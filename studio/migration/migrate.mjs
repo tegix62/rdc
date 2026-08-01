@@ -153,6 +153,10 @@ async function migrateWork() {
   const items = readJson('work.json')
   console.log(`Migrating ${items.length} case study / grid items...`)
   let i = 0
+  // Pass 1: create every document without the parentBrand reference. Items
+  // are only guaranteed to reference IDs of items *somewhere* in this same
+  // collection, not necessarily ones created earlier, so references have to
+  // be wired up in a second pass once every document is known to exist.
   for (const item of items) {
     i += 1
     const doc = {
@@ -163,9 +167,6 @@ async function migrateWork() {
       pageType: PAGE_TYPE_MAP[item.pageType] || null,
       category: CATEGORY_MAP[item.category] || null,
       assetType: ASSET_TYPE_MAP[item.assetType] || null,
-      parentBrand: item.parentBrand
-        ? {_type: 'reference', _ref: `caseStudy-${item.parentBrand}`}
-        : undefined,
       featured: !!item.featured,
       heroTile: !!item.heroTile,
       headline: item.headline || undefined,
@@ -190,6 +191,16 @@ async function migrateWork() {
 
     await client.createOrReplace(doc)
     console.log(`  [${i}/${items.length}] ${item.name}`)
+  }
+
+  // Pass 2: wire up parentBrand references now that every document exists.
+  const withParent = items.filter((item) => item.parentBrand)
+  console.log(`Linking ${withParent.length} parent brand references...`)
+  for (const item of withParent) {
+    await client
+      .patch(`caseStudy-${item.id}`)
+      .set({parentBrand: {_type: 'reference', _ref: `caseStudy-${item.parentBrand}`}})
+      .commit()
   }
 }
 

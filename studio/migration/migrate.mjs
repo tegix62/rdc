@@ -57,14 +57,17 @@ const ASSET_TYPE_MAP = {
 const imageCache = new Map()
 
 async function uploadImage(field) {
-  if (!field || !field.url) return null
+  // Returning undefined (not null) means the key gets dropped from the
+  // document entirely instead of being stored as a literal `null`, which
+  // Sanity's editor flags as a type mismatch for an `image` field.
+  if (!field || !field.url) return undefined
   if (imageCache.has(field.url)) {
     return {_type: 'image', asset: {_type: 'reference', _ref: imageCache.get(field.url)}}
   }
   const res = await fetch(field.url)
   if (!res.ok) {
     console.warn(`  ! image fetch failed (${res.status}): ${field.url}`)
-    return null
+    return undefined
   }
   const buffer = Buffer.from(await res.arrayBuffer())
   const filename = decodeURIComponent(field.url.split('/').pop().split('?')[0])
@@ -164,9 +167,9 @@ async function migrateWork() {
       _type: 'caseStudy',
       title: item.name,
       slug: {_type: 'slug', current: item.slug},
-      pageType: PAGE_TYPE_MAP[item.pageType] || null,
-      category: CATEGORY_MAP[item.category] || null,
-      assetType: ASSET_TYPE_MAP[item.assetType] || null,
+      pageType: PAGE_TYPE_MAP[item.pageType] || undefined,
+      category: CATEGORY_MAP[item.category] || undefined,
+      assetType: ASSET_TYPE_MAP[item.assetType] || undefined,
       featured: !!item.featured,
       heroTile: !!item.heroTile,
       headline: item.headline || undefined,

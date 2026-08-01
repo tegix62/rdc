@@ -1,34 +1,179 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { getPage, getCaseStudies } from '../lib/queries';
+import {
+  getPage,
+  getFeaturedWork,
+  getClientLogos,
+  getSiteSettings,
+} from '../lib/queries';
 import { urlFor } from '../lib/image';
-import { renderPortableText } from '../lib/portableText';
+
+const TALLY_URL = 'https://tally.so/r/mZ8LXz';
 
 const page = await getPage('home');
-const caseStudies = (await getCaseStudies()).slice(0, 6);
+const settings = await getSiteSettings();
+const work = await getFeaturedWork();
+const clientLogos = await getClientLogos([
+  'reps-for-recovery',
+  'dumpstat',
+  'hug-a-mug',
+  'adelante-barbell-club',
+]);
+
+const checklist = [
+  'Hand-drawn from the first sketch',
+  'Deep vintage typography research',
+  'Designed for fabric, not just screens',
+];
+
+const proofStats = [
+  {
+    stat: '22% Increase',
+    rest: ' in yearly revenue using RDC Branding.',
+    name: 'Anabel D.',
+    org: 'Hug a Mug Coffeehouse',
+  },
+  {
+    stat: '16,000 Weekly Listeners',
+    rest: ' in 6 months, using with RDC.',
+    name: 'Jonathan Bell',
+    org: 'DumpStat Podcast',
+  },
+  {
+    stat: '$3500',
+    rest: ' in first-day merch revenue with RDC.',
+    name: 'Adelante Barbell Club',
+    org: 'Union, New Jersey',
+  },
+];
+
+function workHref(item: any) {
+  if (item.pageType === 'Case Study') return `/work/${item.slug.current}`;
+  if (item.parentSlug) return `/work/${item.parentSlug}`;
+  return '/portfolio';
+}
+
+function shapeClass(item: any) {
+  if (item.assetType === 'Wide Video') return 'is-video';
+  if (item.heroTile) return 'is-hero';
+  if (item.assetType === 'Social Card' || item.assetType === 'Vinyl / Record') return 'is-square';
+  return '';
+}
 ---
 
 <Layout title={page?.title ?? 'Rumeau Design Co'} description={page?.seoDescription}>
-  <section>
-    <h1>Rumeau Design Co</h1>
-    <p>Brand identity and merch design for apparel brands and musicians.</p>
-    {page?.body?.length > 0 && (
-      <div class="prose" set:html={renderPortableText(page.body)} />
-    )}
+  <section class="statement">
+    <div class="statement__line" aria-hidden="true"></div>
+    <h1 class="statement__heading">
+      RUMEAU<span class="statement__sep"> </span>DESIGN<span class="statement__sep"> </span>COMPANY
+    </h1>
+    <div class="statement__line" aria-hidden="true"></div>
+    <p class="statement__sub">{settings?.tagline ?? 'Brand Identity & Merch Design for Heritage Apparel Brands.'}</p>
   </section>
 
-  <section>
-    <h2>Selected Work</h2>
-    <div class="grid">
-      {caseStudies.map((cs: any) => (
-        <a class="card" href={`/work/${cs.slug.current}`}>
-          {(cs.thumbnail || cs.mainImage) && (
-            <img src={urlFor(cs.thumbnail || cs.mainImage).width(600).height(750).fit('crop').url()} alt={cs.title} />
-          )}
-          <p class="card__title">{cs.title}</p>
-          {cs.client && <p class="card__meta">{cs.client}</p>}
-        </a>
-      ))}
+  <div class="top-cta">
+    <a class="button button--outline" href="/portfolio">See Portfolio</a>
+    <a class="button" href={TALLY_URL}>Let's Work</a>
+  </div>
+
+  <section class="bio-row">
+    <h2 class="bio-row__text">
+      Chris Rumeau is a brand designer, illustrator, and typographer building visual
+      identities rooted in heritage craft and hand-drawn precision.
+    </h2>
+    <!-- Background video pending — drop the source file in and swap this placeholder for a <video>. -->
+    <div class="video-placeholder" role="img" aria-label="Process video coming soon"></div>
+  </section>
+
+  {clientLogos.length > 0 && (
+    <section class="logo-strip">
+      {clientLogos.map((c: any) => {
+        const logo = c.clientLogo || c.thumbnail || c.mainImage;
+        return logo ? (
+          <a href={`/work/${c.slug.current}`} class="logo-strip__item">
+            <img src={urlFor(logo).width(240).url()} alt={c.title} loading="lazy" />
+          </a>
+        ) : null;
+      })}
+    </section>
+  )}
+
+  <section class="work-section" id="selected-work">
+    <div class="work-section__label-row">
+      <p class="section-label">Selected Work</p>
+      <div class="view-toggle" role="tablist">
+        <button type="button" class="view-toggle__btn is-active" data-mode="grid">Grid</button>
+        <button type="button" class="view-toggle__btn" data-mode="archive">Archive</button>
+      </div>
+    </div>
+    <div class="work-grid" data-mode="grid">
+      {work.map((item: any) => {
+        const img = item.thumbnail || item.mainImage;
+        return (
+          <a class:list={['work-card', item.heroTile && 'is-wide']} href={workHref(item)}>
+            <div class:list={['work-thumb-frame', shapeClass(item)]}>
+              {img && (
+                <img class="work-thumb" src={urlFor(img).width(1200).url()} alt={item.title} loading="lazy" />
+              )}
+              {item.archiveMark && (
+                <img class="work-thumb-mark" src={urlFor(item.archiveMark).width(400).url()} alt="" />
+              )}
+            </div>
+            <h3 class="work-card__title">{item.title}</h3>
+            {item.oneLineSummary && <p class="work-card__desc">{item.oneLineSummary}</p>}
+            {item.client && <p class="work-card__meta">{item.client}</p>}
+          </a>
+        );
+      })}
+    </div>
+  </section>
+
+  <section class="proof-grid">
+    {proofStats.map((p) => (
+      <div class="proof-card">
+        <h3 class="proof-card__stat"><strong>{p.stat}</strong>{p.rest}</h3>
+        <p class="proof-card__name">{p.name}</p>
+        <p class="proof-card__org">{p.org}</p>
+      </div>
+    ))}
+  </section>
+
+  <section class="closer">
+    <h2 class="closer__heading">
+      Hand-drawn brand identity and merch design, <strong>rooted in heritage craft</strong> and built to
+      perform on fabric.
+    </h2>
+    <a class="button button--dark" href={TALLY_URL}>Let's Work</a>
+  </section>
+
+  <section class="checklist">
+    {checklist.map((item) => (
+      <div class="checklist__item">
+        <span class="checklist__check" aria-hidden="true">&#10003;</span>
+        <p>{item}</p>
+      </div>
+    ))}
+  </section>
+
+  <section class="final-cta">
+    {settings?.portrait && (
+      <img class="final-cta__portrait" src={urlFor(settings.portrait).width(240).url()} alt="Chris Rumeau, founder of Rumeau Design Co" />
+    )}
+    <div class="final-cta__content">
+      <h3>DTC Brands and Apparel Companies:</h3>
+      <a class="button button--outline" href={TALLY_URL}>Let's Work</a>
     </div>
   </section>
 </Layout>
+
+<script>
+  const toggle = document.querySelector('.view-toggle');
+  const grid = document.querySelector('.work-grid');
+  toggle?.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>('.view-toggle__btn');
+    if (!btn || !grid) return;
+    const mode = btn.dataset.mode!;
+    grid.setAttribute('data-mode', mode);
+    toggle.querySelectorAll('.view-toggle__btn').forEach((b) => b.classList.toggle('is-active', b === btn));
+  });
+</script>

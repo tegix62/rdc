@@ -250,10 +250,26 @@ async function migratePages() {
   }
 }
 
+async function migrateSiteSettings() {
+  console.log('Migrating site settings...')
+  const portrait = await uploadImage({
+    url: 'https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6670908ca14bc37ee330f293_Portrait%20-%20BLUE%20002885.webp',
+  })
+  await client.createOrReplace({
+    _id: 'siteSettings',
+    _type: 'siteSettings',
+    siteTitle: 'Rumeau Design Co',
+    tagline: 'Brand Identity & Merch Design for Heritage Apparel Brands.',
+    portrait,
+  })
+  console.log('  - Site Settings')
+}
+
 async function main() {
   await migratePages()
   await migrateBlogPosts()
   await migrateWork()
+  await migrateSiteSettings()
   console.log('Done.')
 }
 

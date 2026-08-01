@@ -47,5 +47,33 @@ const navLinks = [
         <p>&copy; {new Date().getFullYear()} Rumeau Design Co.</p>
       </div>
     </footer>
+    <style is:global>
+      img {
+        -webkit-user-drag: none;
+        -khtml-user-drag: none;
+        -moz-user-drag: none;
+        -o-user-drag: none;
+        user-drag: none;
+        -webkit-touch-callout: none;
+      }
+    </style>
+    <script>
+      // Ported from the Webflow site: blocks right-click save and
+      // drag-to-desktop on images, site-wide.
+      document.addEventListener(
+        'contextmenu',
+        (e) => {
+          if (e.target instanceof HTMLImageElement) e.preventDefault();
+        },
+        false,
+      );
+      document.addEventListener(
+        'dragstart',
+        (e) => {
+          if (e.target instanceof HTMLImageElement) e.preventDefault();
+        },
+        false,
+      );
+    </script>
   </body>
 </html>

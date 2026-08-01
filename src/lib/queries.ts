@@ -47,3 +47,30 @@ export function getBlogPost(slug: string) {
     { slug },
   );
 }
+
+export function getSiteSettings() {
+  return sanityClient.fetch(`*[_type == "siteSettings"][0]`);
+}
+
+// Homepage "Selected Work" grid: featured items (case studies or grid items),
+// falling back to all case studies if nothing has been marked featured yet.
+export async function getFeaturedWork() {
+  const featured = await sanityClient.fetch(
+    `*[_type == "caseStudy" && featured == true]{
+      ..., "parentSlug": parentBrand->slug.current
+    } | order(title asc)`,
+  );
+  if (featured.length > 0) return featured;
+  return sanityClient.fetch(
+    `*[_type == "caseStudy" && pageType == "Case Study"]{
+      ..., "parentSlug": parentBrand->slug.current
+    } | order(title asc)`,
+  );
+}
+
+export function getClientLogos(slugs: string[]) {
+  return sanityClient.fetch(
+    `*[_type == "caseStudy" && slug.current in $slugs]{title, slug, clientLogo, thumbnail, mainImage}`,
+    { slugs },
+  );
+}

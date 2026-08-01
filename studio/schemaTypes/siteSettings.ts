@@ -8,6 +8,12 @@ export default defineType({
     defineField({name: 'siteTitle', type: 'string'}),
     defineField({name: 'tagline', type: 'string'}),
     defineField({
+      name: 'portrait',
+      title: 'Founder Portrait',
+      type: 'image',
+      options: {hotspot: true},
+    }),
+    defineField({
       name: 'navLinks',
       type: 'array',
       of: [

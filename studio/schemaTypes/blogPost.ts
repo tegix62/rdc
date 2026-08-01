@@ -16,32 +16,22 @@ export default defineType({
       options: {source: 'title'},
       validation: (Rule) => Rule.required(),
     }),
-    defineField({
-      name: 'excerpt',
-      type: 'text',
-      rows: 3,
-    }),
-    defineField({
-      name: 'coverImage',
-      type: 'image',
-      options: {hotspot: true},
-    }),
+    defineField({name: 'excerpt', type: 'text', rows: 3}),
+    defineField({name: 'mainImage', title: 'Main Image', type: 'image', options: {hotspot: true}}),
+    defineField({name: 'thumbnailImage', title: 'Thumbnail Image', type: 'image', options: {hotspot: true}}),
     defineField({
       name: 'body',
       type: 'array',
       of: [{type: 'block'}, {type: 'image', options: {hotspot: true}}],
     }),
-    defineField({
-      name: 'tags',
-      type: 'array',
-      of: [{type: 'reference', to: [{type: 'tag'}]}],
-    }),
-    defineField({
-      name: 'publishedAt',
-      type: 'datetime',
-    }),
+    defineField({name: 'featured', title: 'Featured?', type: 'boolean'}),
+    defineField({name: 'color', type: 'string'}),
+    defineField({name: 'publishedAt', title: 'Date', type: 'datetime'}),
+    defineField({name: 'author', type: 'string'}),
+    defineField({name: 'length', title: 'Read Length', type: 'string'}),
+    defineField({name: 'metaDescription', title: 'Meta Description', type: 'string'}),
   ],
   preview: {
-    select: {title: 'title', media: 'coverImage'},
+    select: {title: 'title', media: 'thumbnailImage'},
   },
 })

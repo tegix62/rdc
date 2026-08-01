@@ -1,0 +1,23 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getPage, getBlogPosts } from '../../lib/queries';
+import { urlFor } from '../../lib/image';
+
+const page = await getPage('blog');
+const posts = await getBlogPosts();
+---
+
+<Layout title={page?.title ?? 'Blog'} description={page?.seoDescription}>
+  <h1>{page?.title ?? 'Blog'}</h1>
+  <div class="grid">
+    {posts.map((post: any) => (
+      <a class="card" href={`/blog/${post.slug.current}`}>
+        {(post.thumbnailImage || post.mainImage) && (
+          <img src={urlFor(post.thumbnailImage || post.mainImage).width(600).height(400).fit('crop').url()} alt={post.title} />
+        )}
+        <p class="card__title">{post.title}</p>
+        {post.excerpt && <p class="card__meta">{post.excerpt}</p>}
+      </a>
+    ))}
+  </div>
+</Layout>

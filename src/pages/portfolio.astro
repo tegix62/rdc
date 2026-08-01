@@ -1,0 +1,23 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getPage, getCaseStudies } from '../lib/queries';
+import { urlFor } from '../lib/image';
+
+const page = await getPage('portfolio');
+const caseStudies = await getCaseStudies();
+---
+
+<Layout title={page?.title ?? 'Portfolio'} description={page?.seoDescription}>
+  <h1>{page?.title ?? 'Portfolio'}</h1>
+  <div class="grid">
+    {caseStudies.map((cs: any) => (
+      <a class="card" href={`/work/${cs.slug.current}`}>
+        {(cs.thumbnail || cs.mainImage) && (
+          <img src={urlFor(cs.thumbnail || cs.mainImage).width(600).height(750).fit('crop').url()} alt={cs.title} />
+        )}
+        <p class="card__title">{cs.title}</p>
+        {cs.category && <p class="card__meta">{cs.category}</p>}
+      </a>
+    ))}
+  </div>
+</Layout>

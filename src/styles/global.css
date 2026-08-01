@@ -1,0 +1,91 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+  color: #1a1a1a;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+a {
+  color: inherit;
+}
+
+.wrap {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: center;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.site-nav a {
+  text-decoration: none;
+}
+
+.site-nav__brand {
+  font-weight: 700;
+  margin-right: auto;
+}
+
+.site-footer {
+  margin-top: 4rem;
+  padding: 2rem 0;
+  border-top: 1px solid #e5e5e5;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 1.5rem;
+}
+
+.card {
+  text-decoration: none;
+  color: inherit;
+}
+
+.card img {
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  background: #f2f2f2;
+}
+
+.card__title {
+  margin-top: 0.5rem;
+  font-weight: 600;
+}
+
+.card__meta {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+main {
+  padding: 3rem 0;
+}
+
+.prose :is(h2, h3, h4) {
+  margin-top: 2rem;
+}
+
+.prose ul {
+  padding-left: 1.25rem;
+}

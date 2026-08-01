@@ -1,10 +1,34 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { getPage, getCaseStudies } from '../lib/queries';
+import { urlFor } from '../lib/image';
+import { renderPortableText } from '../lib/portableText';
+
+const page = await getPage('home');
+const caseStudies = (await getCaseStudies()).slice(0, 6);
 ---
 
-<Layout title="Rumeau Design Co" description="Brand identity and merch design studio founded by Chris Rumeau.">
-  <main>
+<Layout title={page?.title ?? 'Rumeau Design Co'} description={page?.seoDescription}>
+  <section>
     <h1>Rumeau Design Co</h1>
-    <p>Astro + Sanity rebuild — under construction.</p>
-  </main>
+    <p>Brand identity and merch design for apparel brands and musicians.</p>
+    {page?.body?.length > 0 && (
+      <div class="prose" set:html={renderPortableText(page.body)} />
+    )}
+  </section>
+
+  <section>
+    <h2>Selected Work</h2>
+    <div class="grid">
+      {caseStudies.map((cs: any) => (
+        <a class="card" href={`/work/${cs.slug.current}`}>
+          {(cs.thumbnail || cs.mainImage) && (
+            <img src={urlFor(cs.thumbnail || cs.mainImage).width(600).height(750).fit('crop').url()} alt={cs.title} />
+          )}
+          <p class="card__title">{cs.title}</p>
+          {cs.client && <p class="card__meta">{cs.client}</p>}
+        </a>
+      ))}
+    </div>
+  </section>
 </Layout>

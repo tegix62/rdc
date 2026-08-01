@@ -1,0 +1,19 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getPage } from '../lib/queries';
+import { renderPortableText } from '../lib/portableText';
+
+const page = await getPage('privacy-policy');
+---
+
+<Layout title={page?.title ?? 'Privacy Policy'} description={page?.seoDescription}>
+  <h1>{page?.title ?? 'Privacy Policy'}</h1>
+  {page?.body?.length > 0 ? (
+    <div class="prose" set:html={renderPortableText(page.body)} />
+  ) : (
+    <p>
+      This page's legal text wasn't migrated automatically and needs to be
+      added in Studio before launch.
+    </p>
+  )}
+</Layout>

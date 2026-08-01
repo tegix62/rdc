@@ -1,0 +1,34 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { sanityClient } from '../../lib/sanity';
+import { getBlogPost } from '../../lib/queries';
+import { urlFor } from '../../lib/image';
+import { renderPortableText } from '../../lib/portableText';
+
+export async function getStaticPaths() {
+  const slugs = await sanityClient.fetch(`*[_type == "blogPost"].slug.current`);
+  return slugs.map((slug: string) => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+const post = await getBlogPost(slug!);
+if (!post) {
+  throw new Error(`Blog post not found for slug: ${slug}`);
+}
+---
+
+<Layout title={post.title} description={post.metaDescription ?? post.excerpt}>
+  <article>
+    <h1>{post.title}</h1>
+    <p class="card__meta">
+      {post.author}
+      {post.publishedAt && ` · ${new Date(post.publishedAt).toLocaleDateString()}`}
+    </p>
+    {post.mainImage && (
+      <img src={urlFor(post.mainImage).width(1600).url()} alt={post.title} />
+    )}
+    {post.body?.length > 0 && (
+      <div class="prose" set:html={renderPortableText(post.body)} />
+    )}
+  </article>
+</Layout>

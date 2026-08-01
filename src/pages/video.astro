@@ -1,0 +1,16 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getPage } from '../lib/queries';
+import { renderPortableText } from '../lib/portableText';
+
+const page = await getPage('video');
+---
+
+<Layout title={page?.title ?? 'Process'} description={page?.seoDescription}>
+  <h1>{page?.title ?? 'Process'}</h1>
+  {page?.body?.length > 0 ? (
+    <div class="prose" set:html={renderPortableText(page.body)} />
+  ) : (
+    <p>Content coming soon — add this page's copy and videos in Studio.</p>
+  )}
+</Layout>

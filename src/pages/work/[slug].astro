@@ -1,0 +1,75 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { sanityClient } from '../../lib/sanity';
+import { getCaseStudy, getGridItems } from '../../lib/queries';
+import { urlFor } from '../../lib/image';
+import { renderPortableText } from '../../lib/portableText';
+
+export async function getStaticPaths() {
+  const slugs = await sanityClient.fetch(
+    `*[_type == "caseStudy" && pageType == "Case Study"].slug.current`,
+  );
+  return slugs.map((slug: string) => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+const caseStudy = await getCaseStudy(slug!);
+if (!caseStudy) {
+  throw new Error(`Case study not found for slug: ${slug}`);
+}
+const gridItems = await getGridItems(caseStudy._id);
+const galleries = ['merchGrid', 'flyerGrid', 'processGrid'] as const;
+---
+
+<Layout title={caseStudy.title} description={caseStudy.oneLineSummary}>
+  <article>
+    <header>
+      <h1>{caseStudy.headline ?? caseStudy.title}</h1>
+      {caseStudy.subtitle && <p>{caseStudy.subtitle}</p>}
+      <p class="card__meta">
+        {caseStudy.client}
+        {caseStudy.resultStat && ` · ${caseStudy.resultStat}`}
+      </p>
+    </header>
+
+    {caseStudy.mainImage && (
+      <img src={urlFor(caseStudy.mainImage).width(1600).url()} alt={caseStudy.title} />
+    )}
+
+    {caseStudy.body?.length > 0 && (
+      <div class="prose" set:html={renderPortableText(caseStudy.body)} />
+    )}
+
+    {caseStudy.servicesRendered?.length > 0 && (
+      <>
+        <h2>Services</h2>
+        <div class="prose" set:html={renderPortableText(caseStudy.servicesRendered)} />
+      </>
+    )}
+
+    {galleries.map((field) =>
+      caseStudy[field]?.length > 0 ? (
+        <div class="grid">
+          {caseStudy[field].map((img: any) => (
+            <img src={urlFor(img).width(800).url()} alt="" loading="lazy" />
+          ))}
+        </div>
+      ) : null,
+    )}
+
+    {gridItems.length > 0 && (
+      <div class="grid">
+        {gridItems.map(
+          (item: any) =>
+            item.thumbnail && (
+              <img
+                src={urlFor(item.thumbnail).width(800).url()}
+                alt={item.title}
+                loading="lazy"
+              />
+            ),
+        )}
+      </div>
+    )}
+  </article>
+</Layout>

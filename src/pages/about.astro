@@ -1,0 +1,16 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getPage } from '../lib/queries';
+import { renderPortableText } from '../lib/portableText';
+
+const page = await getPage('about');
+---
+
+<Layout title={page?.title ?? 'About'} description={page?.seoDescription}>
+  <h1>{page?.title ?? 'About'}</h1>
+  {page?.body?.length > 0 ? (
+    <div class="prose" set:html={renderPortableText(page.body)} />
+  ) : (
+    <p>Content coming soon.</p>
+  )}
+</Layout>

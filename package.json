@@ -9,7 +9,9 @@
     "preview": "astro preview"
   },
   "dependencies": {
+    "@portabletext/to-html": "^2.0.13",
     "@sanity/client": "^6.24.1",
+    "@sanity/image-url": "^1.1.0",
     "astro": "^5.1.1"
   }
 }

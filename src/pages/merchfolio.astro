@@ -1,0 +1,28 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getPage, getMerchItems } from '../lib/queries';
+import { urlFor } from '../lib/image';
+
+const page = await getPage('merchfolio');
+const items = await getMerchItems();
+
+function linkFor(item: any) {
+  if (item.pageType === 'Case Study') return `/work/${item.slug.current}`;
+  if (item.parentSlug) return `/work/${item.parentSlug}`;
+  return '/portfolio';
+}
+---
+
+<Layout title={page?.title ?? 'Merch Portfolio'} description={page?.seoDescription}>
+  <h1>{page?.title ?? 'Merch Portfolio'}</h1>
+  <div class="grid">
+    {items.map((item: any) => (
+      <a class="card" href={linkFor(item)}>
+        {(item.thumbnail || item.mainImage) && (
+          <img src={urlFor(item.thumbnail || item.mainImage).width(600).height(600).fit('crop').url()} alt={item.title} />
+        )}
+        <p class="card__title">{item.title}</p>
+      </a>
+    ))}
+  </div>
+</Layout>

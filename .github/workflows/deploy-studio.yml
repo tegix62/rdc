@@ -27,6 +27,6 @@ jobs:
       # token without the deployStudio grant), so verify the studio is
       # actually reachable before calling this step green.
       - run: |
-          code=$(curl -sS -o /dev/null -w "%{http_code}" https://rumeau-design-co.sanity.studio)
+          code=$(curl -sSL -o /dev/null -w "%{http_code}" https://rumeau-design-co.sanity.studio)
           echo "studio responded with HTTP $code"
           test "$code" = "200"

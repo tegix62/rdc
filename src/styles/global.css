@@ -919,6 +919,10 @@ main {
 }
 
 @media (max-width: 40rem) {
+  .work-identity__inner {
+    padding: 0 var(--space-2);
+  }
+
   .work-identity__top,
   .work-identity__bottom {
     flex-direction: column;
@@ -931,6 +935,23 @@ main {
 
   .work-identity__summary {
     max-width: none;
+  }
+
+  .site-footer {
+    padding-top: var(--space-4);
+  }
+
+  .site-footer__top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding-bottom: var(--space-4);
+  }
+
+  .site-footer__bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
   }
 }
 

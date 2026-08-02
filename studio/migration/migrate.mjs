@@ -152,8 +152,75 @@ function htmlToBlocks(html) {
   return blocks
 }
 
+// Case study page layouts, keyed by slug. Images are referenced by their
+// original Webflow URL and run through the same uploadImage() helper as
+// everything else, so a section reusing a project photo resolves to the
+// asset already uploaded for that project rather than a duplicate.
+//
+// This lives in the migration (rather than a separate patch script) on
+// purpose: migrateWork() does a full createOrReplace per document, so any
+// sections/credits/accentColor applied out-of-band get wiped on the next
+// migration run. Keeping them here means they survive.
+async function buildSections(defs) {
+  if (!defs || !defs.length) return undefined
+  const out = []
+  for (const def of defs) {
+    const key = cryptoRandomKey()
+    const img = async (url) => (url ? uploadImage({url}) : undefined)
+    switch (def.type) {
+      case 'fullImage': {
+        const image = await img(def.image)
+        if (image) out.push({_key: key, _type: 'fullImageSection', image})
+        break
+      }
+      case 'twoUp': {
+        const [imageLeft, imageRight] = [await img(def.imageLeft), await img(def.imageRight)]
+        if (imageLeft || imageRight)
+          out.push({_key: key, _type: 'twoUpSection', imageLeft, imageRight})
+        break
+      }
+      case 'threeUp': {
+        const [imageOne, imageTwo, imageThree] = [
+          await img(def.imageOne),
+          await img(def.imageTwo),
+          await img(def.imageThree),
+        ]
+        if (imageOne || imageTwo || imageThree)
+          out.push({_key: key, _type: 'threeUpSection', imageOne, imageTwo, imageThree})
+        break
+      }
+      case 'imageText': {
+        out.push({
+          _key: key,
+          _type: 'imageTextSection',
+          image: await img(def.image),
+          imagePosition: def.position === 'Right' ? 'Right' : 'Left',
+          heading: def.heading || undefined,
+          text: def.text || undefined,
+        })
+        break
+      }
+      case 'video': {
+        if (def.url)
+          out.push({_key: key, _type: 'videoSection', url: def.url, caption: def.caption || undefined})
+        break
+      }
+      default:
+        console.warn(`  ! unknown section type: ${def.type}`)
+    }
+  }
+  return out.length ? out : undefined
+}
+
 async function migrateWork() {
   const items = readJson('work.json')
+  // Optional file — case studies with no entry keep the simple fallback layout.
+  let layouts = {}
+  try {
+    layouts = readJson('caseStudyLayouts.json')
+  } catch {
+    console.log('No caseStudyLayouts.json found; skipping section layouts.')
+  }
   console.log(`Migrating ${items.length} case study / grid items...`)
   let i = 0
   // Pass 1: create every document without the parentBrand reference. Items
@@ -191,6 +258,15 @@ async function migrateWork() {
     doc.merchGrid = await uploadImages(item.merchGrid)
     doc.flyerGrid = await uploadImages(item.flyerGrid)
     doc.processGrid = await uploadImages(item.processGrid)
+
+    const layout = layouts[item.slug]
+    if (layout) {
+      doc.accentColor = layout.accentColor || undefined
+      doc.credits = layout.credits?.length
+        ? layout.credits.map((c) => ({_key: cryptoRandomKey(), ...c}))
+        : undefined
+      doc.sections = await buildSections(layout.sections)
+    }
 
     await client.createOrReplace(doc)
     console.log(`  [${i}/${items.length}] ${item.name}`)
@@ -239,14 +315,20 @@ async function migratePages() {
   const items = readJson('pages.json')
   console.log(`Migrating ${items.length} pages...`)
   for (const item of items) {
-    await client.createOrReplace({
+    const doc = {
       _id: `page-${item.slug}`,
       _type: 'page',
       title: item.title,
       slug: {_type: 'slug', current: item.slug},
       seoDescription: item.seoDescription || undefined,
-    })
-    console.log(`  - ${item.title}`)
+      // Real page copy pulled from the live Webflow pages. Without this the
+      // templates fall through to their "Content coming soon" placeholder,
+      // which is what About and Video were showing despite being in the nav.
+      body: htmlToBlocks(item.bodyHtml),
+    }
+    if (item.heroImage) doc.heroImage = await uploadImage({url: item.heroImage})
+    await client.createOrReplace(doc)
+    console.log(`  - ${item.title}${item.bodyHtml ? '' : ' (no body copy)'}`)
   }
 }
 

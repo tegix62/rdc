@@ -84,8 +84,12 @@ h5, h6 {
     padding: var(--space-4) 0;
   }
 
+  .top-cta {
+    padding: var(--space-3) 0 var(--space-2);
+  }
+
   .bio-row {
-    padding: var(--space-4) 0;
+    padding: var(--space-2) 0 var(--space-4);
   }
 
   .bio-row__text {
@@ -455,7 +459,9 @@ main {
 
 @media (max-width: 40rem) {
   .statement {
-    padding: 1.25rem var(--space-2);
+    /* The real mobile hero isn't edge-to-edge - the heading/lines/subtitle
+       sit in a centered column with roughly a 10% inset on each side. */
+    padding: 1.25rem 10%;
     text-align: left;
   }
 }

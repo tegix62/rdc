@@ -321,12 +321,15 @@ async function migratePages() {
       title: item.title,
       slug: {_type: 'slug', current: item.slug},
       seoDescription: item.seoDescription || undefined,
+      heading: item.heading || undefined,
       // Real page copy pulled from the live Webflow pages. Without this the
       // templates fall through to their "Content coming soon" placeholder,
       // which is what About and Video were showing despite being in the nav.
       body: htmlToBlocks(item.bodyHtml),
     }
     if (item.heroImage) doc.heroImage = await uploadImage({url: item.heroImage})
+    doc.heroAlt = item.heroAlt || undefined
+    doc.sections = await buildSections(item.sections)
     await client.createOrReplace(doc)
     console.log(`  - ${item.title}${item.bodyHtml ? '' : ' (no body copy)'}`)
   }

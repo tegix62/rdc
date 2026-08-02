@@ -14,7 +14,7 @@ function linkFor(item: any) {
 ---
 
 <Layout title={page?.title ?? 'Merch Portfolio'} description={page?.seoDescription}>
-  <h1>{page?.title ?? 'Merch Portfolio'}</h1>
+  <h1>{page?.heading ?? page?.title ?? 'Merch Portfolio'}</h1>
   <div class="grid">
     {items.map((item: any) => (
       <a class="card" href={linkFor(item)}>

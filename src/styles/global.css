@@ -346,6 +346,44 @@ main {
   padding-left: 1.25rem;
 }
 
+/* About page: portrait alongside the bio copy. */
+.about-layout {
+  display: grid;
+  grid-template-columns: 20rem 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.about-layout__portrait {
+  width: 100%;
+  border-radius: 0.25rem;
+}
+
+@media (max-width: 40rem) {
+  .about-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .about-layout__portrait {
+    max-width: 20rem;
+  }
+}
+
+/* Shared spacing for the Sections block system when used on plain pages
+   (Video, Collage) rather than the Work page's accent-color band. */
+.page-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin-top: var(--space-4);
+}
+
+@media (max-width: 40rem) {
+  .page-sections {
+    gap: var(--space-4);
+  }
+}
+
 .button {
   display: inline-flex;
   align-items: center;

@@ -2,15 +2,27 @@
 import Layout from '../layouts/Layout.astro';
 import { getPage } from '../lib/queries';
 import { renderPortableText } from '../lib/portableText';
+import { urlFor } from '../lib/image';
 
 const page = await getPage('about');
 ---
 
 <Layout title={page?.title ?? 'About'} description={page?.seoDescription}>
-  <h1>{page?.title ?? 'About'}</h1>
-  {page?.body?.length > 0 ? (
-    <div class="prose" set:html={renderPortableText(page.body)} />
-  ) : (
-    <p>Content coming soon.</p>
-  )}
+  <div class="about-layout">
+    {page?.heroImage && (
+      <img
+        class="about-layout__portrait"
+        src={urlFor(page.heroImage).width(500).url()}
+        alt={page.heroAlt ?? 'Chris Rumeau'}
+      />
+    )}
+    <div>
+      <h1>{page?.heading ?? page?.title ?? 'About'}</h1>
+      {page?.body?.length > 0 ? (
+        <div class="prose" set:html={renderPortableText(page.body)} />
+      ) : (
+        <p>Content coming soon.</p>
+      )}
+    </div>
+  </div>
 </Layout>

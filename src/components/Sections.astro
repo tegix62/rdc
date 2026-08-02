@@ -1,0 +1,107 @@
+---
+/*
+  Renders the flexible layout blocks editors build in Sanity. Shared by case
+  study pages and regular pages so both get the same set of building blocks
+  and there's only one place to change when a block type is added.
+*/
+import { urlFor } from '../lib/image';
+
+interface Props {
+  sections: any[];
+}
+
+const { sections } = Astro.props;
+
+function embedUrl(url: string) {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes('youtube.com') || u.hostname.includes('youtu.be')) {
+      // Take the path segment for youtu.be, else the v param. Webflow stored
+      // at least one URL as `watch?v=ID?si=...` (a second `?` instead of `&`),
+      // which makes the whole tail land in the `v` value — so trim at any
+      // stray separator rather than trusting the param verbatim.
+      const raw = u.hostname.includes('youtu.be')
+        ? u.pathname.slice(1)
+        : (u.searchParams.get('v') ?? '');
+      const id = raw.split(/[?&/]/)[0];
+      return id ? `https://www.youtube.com/embed/${id}` : url;
+    }
+    if (u.hostname.includes('vimeo.com')) {
+      const id = u.pathname.split('/').filter(Boolean).pop();
+      return id ? `https://player.vimeo.com/video/${id}` : url;
+    }
+    return url;
+  } catch {
+    return url;
+  }
+}
+---
+
+{sections?.map((section: any) => {
+  switch (section._type) {
+    case 'fullImageSection':
+      return section.image ? (
+        <div class="work-section work-section--full">
+          <img
+            src={urlFor(section.image).width(2000).url()}
+            alt={section.alt ?? ''}
+            loading="lazy"
+          />
+        </div>
+      ) : null;
+    case 'twoUpSection':
+      return (
+        <div class="work-section work-section--two-up">
+          {section.imageLeft && (
+            <img src={urlFor(section.imageLeft).width(1200).url()} alt="" loading="lazy" />
+          )}
+          {section.imageRight && (
+            <img src={urlFor(section.imageRight).width(1200).url()} alt="" loading="lazy" />
+          )}
+        </div>
+      );
+    case 'threeUpSection':
+      return (
+        <div class="work-section work-section--three-up">
+          {[section.imageOne, section.imageTwo, section.imageThree].map(
+            (img: any) => img && <img src={urlFor(img).width(800).url()} alt="" loading="lazy" />,
+          )}
+        </div>
+      );
+    case 'imageTextSection':
+      return (
+        <div
+          class:list={[
+            'work-section',
+            'work-section--image-text',
+            section.imagePosition === 'Right' && 'is-reversed',
+          ]}
+        >
+          {section.image && (
+            <img src={urlFor(section.image).width(1200).url()} alt="" loading="lazy" />
+          )}
+          <div class="work-section__text">
+            {section.heading && <h3>{section.heading}</h3>}
+            {section.text && <p>{section.text}</p>}
+          </div>
+        </div>
+      );
+    case 'videoSection':
+      return section.url ? (
+        <div class="work-section work-section--video">
+          <div class="work-video-frame">
+            <iframe
+              src={embedUrl(section.url)}
+              title={section.caption ?? 'Video'}
+              loading="lazy"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowfullscreen
+            />
+          </div>
+          {section.caption && <p class="work-video-caption">{section.caption}</p>}
+        </div>
+      ) : null;
+    default:
+      return null;
+  }
+})}

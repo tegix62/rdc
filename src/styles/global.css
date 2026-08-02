@@ -101,11 +101,8 @@ h5, h6 {
     padding: var(--space-4) 0;
   }
 
-  .proof-grid,
-  .closer,
-  .checklist {
-    padding-top: var(--space-3);
-    padding-bottom: var(--space-3);
+  .proof-row {
+    margin-bottom: var(--space-3);
   }
 
   .final-cta {
@@ -467,30 +464,54 @@ main {
 }
 
 /* Homepage: proof + closer + checklist - one light band on the real
-   site, grouped here so they read as a single section. */
+   site, with a faint tiled sketch texture behind a white wash, fading
+   to solid white at the top edge. */
 .proof-band {
+  position: relative;
   padding: var(--space-6) 0;
+  background-color: var(--color-white);
+  background-image: linear-gradient(to top, var(--color-white), transparent 60%),
+    linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)), var(--proof-bg-image, none);
+  background-size: auto, auto, 420px;
+  background-repeat: no-repeat, no-repeat, repeat;
 }
 
-.proof-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-4);
-  padding-bottom: var(--space-5);
+/* The 4-card row: 3 metric cards plus the closer/CTA card, all sharing
+   the site's thin-top thick-bottom navy border card treatment. */
+.proof-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
 }
 
-@media (max-width: 48rem) {
-  .proof-grid {
-    grid-template-columns: 1fr;
-  }
+.proof-card {
+  flex: 1 1 14rem;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4);
+  background: var(--color-white);
+  border: 2px solid var(--color-navy);
+  border-bottom-width: 8px;
+  text-decoration: none;
+  color: inherit;
 }
 
 .proof-card__stat {
-  font-size: 1.5rem;
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.proof-card__rating {
+  display: flex;
+  gap: 0.25rem;
+  padding: var(--space-2) 0;
+  color: var(--color-navy);
+  font-size: 1.1rem;
 }
 
 .proof-card__name {
-  margin: var(--space-2) 0 0;
+  margin: 0;
   font-weight: 700;
 }
 
@@ -500,14 +521,14 @@ main {
   font-size: 0.875rem;
 }
 
-.closer {
-  text-align: center;
-  padding-bottom: var(--space-5);
+.proof-card--closer {
+  justify-content: center;
+  gap: var(--space-3);
 }
 
 .closer__heading {
-  max-width: 42rem;
-  margin: 0 auto var(--space-4);
+  margin: 0;
+  font-size: 1.5rem;
 }
 
 .checklist {

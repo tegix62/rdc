@@ -21,6 +21,12 @@ export default defineType({
       options: {hotspot: true},
     }),
     defineField({
+      name: 'proofBandBackground',
+      title: 'Proof Band Background Texture',
+      type: 'image',
+      description: 'Faint tiled sketch texture behind the metrics/closer/checklist band.',
+    }),
+    defineField({
       name: 'clientLogos',
       title: 'Client Logo Strip',
       type: 'array',

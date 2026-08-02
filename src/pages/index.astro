@@ -21,23 +21,30 @@ const proofStats = [
     rest: ' in yearly revenue using RDC Branding.',
     name: 'Anabel D.',
     org: 'Hug a Mug Coffeehouse',
+    href: '/work/hug-a-mug',
   },
   {
     stat: '16,000 Weekly Listeners',
     rest: ' in 6 months, using with RDC.',
     name: 'Jonathan Bell',
     org: 'DumpStat Podcast',
+    href: '/work/dumpstat',
   },
   {
     stat: '$3500',
     rest: ' in first-day merch revenue with RDC.',
     name: 'Adelante Barbell Club',
     org: 'Union, New Jersey',
+    href: '/work/adelante-barbell-club',
   },
 ];
 
 const heroStyle = settings?.heroBackground
   ? `--hero-bg-image: url(${urlFor(settings.heroBackground).width(1800).url()})`
+  : undefined;
+
+const proofBandStyle = settings?.proofBandBackground
+  ? `--proof-bg-image: url(${urlFor(settings.proofBandBackground).width(500).url()})`
   : undefined;
 ---
 
@@ -77,23 +84,28 @@ const heroStyle = settings?.heroBackground
     </section>
   )}
 
-  <section class="proof-band">
-    <div class="proof-grid">
+  <section class="proof-band" style={proofBandStyle}>
+    <div class="proof-row">
       {proofStats.map((p) => (
-        <div class="proof-card">
+        <a class="proof-card" href={p.href}>
           <h3 class="proof-card__stat"><strong>{p.stat}</strong>{p.rest}</h3>
+          <div class="proof-card__rating" aria-hidden="true">
+            {Array.from({ length: 5 }).map(() => (
+              <span>&#9733;</span>
+            ))}
+          </div>
           <p class="proof-card__name">{p.name}</p>
           <p class="proof-card__org">{p.org}</p>
-        </div>
+        </a>
       ))}
-    </div>
 
-    <div class="closer">
-      <h2 class="closer__heading">
-        Hand-drawn brand identity and merch design, <strong>rooted in heritage craft</strong> and built to
-        perform on fabric.
-      </h2>
-      <a class="button button--dark" href={TALLY_URL}>Let's Work</a>
+      <div class="proof-card proof-card--closer">
+        <h2 class="closer__heading">
+          Hand-drawn brand identity and merch design, <strong>rooted in heritage craft</strong> and built to
+          perform on fabric.
+        </h2>
+        <a class="button button--dark" href={TALLY_URL}>Let's Work</a>
+      </div>
     </div>
 
     <div class="checklist">

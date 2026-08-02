@@ -261,6 +261,10 @@ async function migrateSiteSettings() {
     url: 'https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66cf805ab7bdefd5798b95d1_Pisces-Anim.webp',
   })
 
+  const proofBandBackground = await uploadImage({
+    url: 'https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6670b42c30b4a0396315af4c_SketchSheet-01-BLUE.webp',
+  })
+
   // The real homepage logo strip: 5 marks (Adelante Barbell Club appears
   // twice, once as its shield logo and once as its tee design).
   const logoSources = [
@@ -303,6 +307,7 @@ async function migrateSiteSettings() {
     tagline: 'Brand Identity & Merch Design for Heritage Apparel Brands.',
     portrait,
     heroBackground,
+    proofBandBackground,
     clientLogos,
   })
   console.log('  - Site Settings')

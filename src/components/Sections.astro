@@ -5,6 +5,7 @@
   and there's only one place to change when a block type is added.
 */
 import { urlFor } from '../lib/image';
+import { renderPortableText } from '../lib/portableText';
 
 interface Props {
   sections: any[];
@@ -101,6 +102,65 @@ function embedUrl(url: string) {
           {section.caption && <p class="work-video-caption">{section.caption}</p>}
         </div>
       ) : null;
+    case 'statCalloutSection':
+      return (
+        <div class="work-section work-section--stat-callout">
+          {section.heading && <h3>{section.heading}</h3>}
+          {section.checklist?.length > 0 && (
+            <ul class="work-stat-checklist">
+              {section.checklist.map((item: string) => <li>{item}</li>)}
+            </ul>
+          )}
+          {(section.statValue || section.statLabel) && (
+            <p class="work-stat">
+              {section.statValue && <strong>{section.statValue}</strong>} {section.statLabel}
+            </p>
+          )}
+        </div>
+      );
+    case 'textSection':
+      return (
+        <div class="work-section work-section--text">
+          {section.heading && <h3>{section.heading}</h3>}
+          {section.body?.length > 0 && <div set:html={renderPortableText(section.body)} />}
+        </div>
+      );
+    case 'achievementsSection':
+      return (
+        <div class="work-section work-section--achievements">
+          <div class="work-section--achievements__images">
+            {section.imageLeft && (
+              <img src={urlFor(section.imageLeft).width(1200).url()} alt="" loading="lazy" />
+            )}
+            {section.imageRight && (
+              <img src={urlFor(section.imageRight).width(1200).url()} alt="" loading="lazy" />
+            )}
+          </div>
+          {section.items?.length > 0 && <div set:html={renderPortableText(section.items)} />}
+        </div>
+      );
+    case 'videoHeroSection':
+      return (
+        <div class="work-section work-section--video-hero">
+          {section.url && (
+            <div class="work-video-hero__bg">
+              <iframe
+                src={embedUrl(section.url)}
+                title={section.heading ?? 'Video'}
+                loading="lazy"
+                allow="autoplay; fullscreen; picture-in-picture"
+                allowfullscreen
+              />
+            </div>
+          )}
+          <div class="work-video-hero__overlay">
+            {section.logo && (
+              <img src={urlFor(section.logo).height(96).url()} alt="" loading="lazy" />
+            )}
+            {section.heading && <h2>{section.heading}</h2>}
+          </div>
+        </div>
+      );
     default:
       return null;
   }

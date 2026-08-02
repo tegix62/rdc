@@ -205,6 +205,46 @@ async function buildSections(defs) {
           out.push({_key: key, _type: 'videoSection', url: def.url, caption: def.caption || undefined})
         break
       }
+      case 'statCallout': {
+        out.push({
+          _key: key,
+          _type: 'statCalloutSection',
+          heading: def.heading || undefined,
+          checklist: def.checklist?.length ? def.checklist : undefined,
+          statValue: def.statValue || undefined,
+          statLabel: def.statLabel || undefined,
+        })
+        break
+      }
+      case 'text': {
+        out.push({
+          _key: key,
+          _type: 'textSection',
+          heading: def.heading || undefined,
+          body: htmlToBlocks(def.bodyHtml),
+        })
+        break
+      }
+      case 'achievements': {
+        out.push({
+          _key: key,
+          _type: 'achievementsSection',
+          imageLeft: await img(def.imageLeft),
+          imageRight: await img(def.imageRight),
+          items: htmlToBlocks(def.itemsHtml),
+        })
+        break
+      }
+      case 'videoHero': {
+        out.push({
+          _key: key,
+          _type: 'videoHeroSection',
+          url: def.url || undefined,
+          heading: def.heading || undefined,
+          logo: await img(def.logo),
+        })
+        break
+      }
       default:
         console.warn(`  ! unknown section type: ${def.type}`)
     }

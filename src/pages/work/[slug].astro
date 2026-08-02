@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import Sections from '../../components/Sections.astro';
 import { sanityClient } from '../../lib/sanity';
 import { getCaseStudy, getGridItems, getOtherCaseStudies } from '../../lib/queries';
 import { urlFor } from '../../lib/image';
@@ -22,25 +23,6 @@ const otherWork = await getOtherCaseStudies(caseStudy._id);
 const galleries = ['merchGrid', 'flyerGrid', 'processGrid'] as const;
 
 const bandStyle = caseStudy.accentColor ? `--work-accent: ${caseStudy.accentColor}` : undefined;
-
-function embedUrl(url: string) {
-  try {
-    const u = new URL(url);
-    if (u.hostname.includes('youtube.com') || u.hostname.includes('youtu.be')) {
-      const id = u.hostname.includes('youtu.be')
-        ? u.pathname.slice(1)
-        : u.searchParams.get('v');
-      return id ? `https://www.youtube.com/embed/${id}` : url;
-    }
-    if (u.hostname.includes('vimeo.com')) {
-      const id = u.pathname.split('/').filter(Boolean).pop();
-      return id ? `https://player.vimeo.com/video/${id}` : url;
-    }
-    return url;
-  } catch {
-    return url;
-  }
-}
 ---
 
 <Layout title={caseStudy.title} description={caseStudy.oneLineSummary}>
@@ -83,71 +65,7 @@ function embedUrl(url: string) {
   {caseStudy.sections?.length > 0 ? (
     <div class="work-band full-bleed" style={bandStyle}>
       <div class="work-band__inner">
-        {caseStudy.sections.map((section: any) => {
-          switch (section._type) {
-            case 'fullImageSection':
-              return section.image ? (
-                <div class="work-section work-section--full">
-                  <img src={urlFor(section.image).width(2000).url()} alt="" loading="lazy" />
-                </div>
-              ) : null;
-            case 'twoUpSection':
-              return (
-                <div class="work-section work-section--two-up">
-                  {section.imageLeft && (
-                    <img src={urlFor(section.imageLeft).width(1200).url()} alt="" loading="lazy" />
-                  )}
-                  {section.imageRight && (
-                    <img src={urlFor(section.imageRight).width(1200).url()} alt="" loading="lazy" />
-                  )}
-                </div>
-              );
-            case 'threeUpSection':
-              return (
-                <div class="work-section work-section--three-up">
-                  {[section.imageOne, section.imageTwo, section.imageThree].map(
-                    (img: any) =>
-                      img && <img src={urlFor(img).width(800).url()} alt="" loading="lazy" />,
-                  )}
-                </div>
-              );
-            case 'imageTextSection':
-              return (
-                <div
-                  class:list={[
-                    'work-section',
-                    'work-section--image-text',
-                    section.imagePosition === 'Right' && 'is-reversed',
-                  ]}
-                >
-                  {section.image && (
-                    <img src={urlFor(section.image).width(1200).url()} alt="" loading="lazy" />
-                  )}
-                  <div class="work-section__text">
-                    {section.heading && <h3>{section.heading}</h3>}
-                    {section.text && <p>{section.text}</p>}
-                  </div>
-                </div>
-              );
-            case 'videoSection':
-              return section.url ? (
-                <div class="work-section work-section--video">
-                  <div class="work-video-frame">
-                    <iframe
-                      src={embedUrl(section.url)}
-                      title={section.caption ?? 'Video'}
-                      loading="lazy"
-                      allow="autoplay; fullscreen; picture-in-picture"
-                      allowfullscreen
-                    />
-                  </div>
-                  {section.caption && <p class="work-video-caption">{section.caption}</p>}
-                </div>
-              ) : null;
-            default:
-              return null;
-          }
-        })}
+        <Sections sections={caseStudy.sections} />
       </div>
     </div>
   ) : (

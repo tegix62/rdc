@@ -3,6 +3,9 @@
 // same document (no new uploads) so Chris can see the layout system
 // rendered with real content instead of empty schema fields.
 //
+// Superseded by caseStudyLayouts.json's real "hug-a-mug" entry - kept only
+// for history. Running migrate.mjs now overwrites whatever this wrote.
+//
 // Run from the studio/ directory: node migration/exampleSections.mjs
 // Requires SANITY_API_TOKEN in the environment.
 

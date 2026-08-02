@@ -1,0 +1,147 @@
+{
+  "hug-a-mug": {
+    "credits": [],
+    "sections": [
+      {
+        "type": "videoHero",
+        "url": "https://player.vimeo.com/video/1044782545",
+        "heading": "Hug a Mug Coffeehouse & Ceramics Studio",
+        "logo": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66c8e12b9f9c0f9b5b6f9508_Hug-a-Mug-Logomark.webp"
+      },
+      {
+        "type": "statCallout",
+        "heading": "Woman-owned, handmade syrups and beverages.",
+        "checklist": ["Logo & Visual Identity", "Illustrated Merch Designs", "Product Photo & Videography"],
+        "statValue": "+22%",
+        "statLabel": "Increase in Yearly Revenue"
+      },
+      {
+        "type": "text",
+        "bodyHtml": "<p><strong>Comprehensive Branding</strong> for the woman-owned dark academia <strong>coffee shop</strong> of North Jersey. We worked extensively in <strong>visuals</strong>, branching our logo philosophy out to a merch line and videography focus for social media and menu design.</p>"
+      },
+      {
+        "type": "text",
+        "heading": "Hug a Mug went from Overlooked Local Spot to a Must-Visit Coffeehouse.",
+        "bodyHtml": "<p>One of few woman-owned coffee shops in Northern New Jersey, Hug a Mug Coffeehouse graced its town through lockdown, but lacked clear identity, <a href=\"https://www.salsify.com/resources/report/content-2022-salsify-consumer-research-the-value-of-building-brand-trust\">strong customer recognition</a>, and a <a href=\"https://info.marq.com/brand-consistency-thank-you\">cohesive visual system</a>.</p><p>The original Canva-made logo wasn't rememberable, and didn't attract foot traffic.</p><p>Any photo/video evidence online wasn't as engaging as the actual shop itself.</p>"
+      },
+      {
+        "type": "text",
+        "heading": "Specialty Coffee and Homemade Syrups without a cohesive visual identity. Until now."
+      },
+      {
+        "type": "fullImage",
+        "image": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/663136684f75eed45db0ace3_CR-HaM-Sheet.jpg"
+      },
+      {
+        "type": "twoUp",
+        "imageLeft": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66c8de76e7b4e2cbcc710a20_Aries.webp",
+        "imageRight": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6657b71c4fccbefe805e8c70_taurus%20825px.webp"
+      },
+      {
+        "type": "text",
+        "heading": "The Everyday Reminder of Homemade",
+        "bodyHtml": "<p><strong>In the Late Internet Era, strong brands have strong social media presence.</strong> We showcased weekly specials and fan favorites as cinematic sighs of relief, stopping the algorithm scroll to remind customers that if they ever need a space to relax, we're there.</p><p>Monthly scripting, shooting, and scheduling of \"stop the scroll\"-technique video production.</p><p>Custom menu screens, cup stamps, and signage to enhance the customer experience.</p>"
+      },
+      {
+        "type": "video",
+        "url": "https://www.youtube.com/watch?v=plYFXjoViKI",
+        "caption": "Menu"
+      },
+      {
+        "type": "text",
+        "heading": "One of the best hugs I've received was in Hug a Mug.",
+        "bodyHtml": "<p>The owner gave it to me on a Friday. It wasn't for any reason. She could just tell I needed it. \"That's the kind of hug I give to my daughters,\" she said. If my 3 years of continued partnering with Hug a Mug can convey the right hug at the right time, then we've done the job well.</p><p><a href=\"https://archive.ph/hJ4Od\">🏆 2023 NJ.com's \"Top 43 Coffee Shops in New Jersey\"</a></p><p><a href=\"https://www.nj.com/entertainment/food/best-coffee-shops/\">🏆 2024 NJ.com's \"Top 51 Coffee Shops in New Jersey\"</a></p>"
+      },
+      {
+        "type": "fullImage",
+        "image": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/67f80e5352f984fcd9b0b826_IMG_0553%20copy.jpg"
+      }
+    ]
+  },
+  "dumpstat": {
+    "accentColor": "#db1e32",
+    "credits": [
+      {"role": "Font — FairyTaleJF", "name": "Jason Walcott"},
+      {"role": "Font — ITC Benguiat", "name": "Ed Benguiat"}
+    ],
+    "sections": [
+      {
+        "type": "fullImage",
+        "image": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66f1d0ac1f40ec68c96cd0e0_DumpStat-Podcast-Artwork-on-Shirt-1440.webp"
+      },
+      {
+        "type": "imageText",
+        "image": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/67f9771ec0441d96b205ba60_DumpStat-SketchProcess-Left.jpg",
+        "position": "Left",
+        "text": "The definition of an oversaturated market is \"two guys with a podcast.\" 3 years later: Top 5 of Spotify & Apple's tabletop categories. 15,000 weekly listeners, and over 100 Patreon supporters. I was brought in first as the engine: creative producer for all things video, audio, and graphic."
+      },
+      {
+        "type": "twoUp",
+        "imageLeft": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6696ac39f5eff93fc2872b6a_DarkDominion-MultivariumTee.webp",
+        "imageRight": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6696ac399eee5a5e73ff13fa_DarkDominion-Hoodie.webp"
+      },
+      {
+        "type": "fullImage",
+        "image": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/67f9774f6e1f3e74c455877a_DumpStat-SketchProcess-Right.jpg"
+      },
+      {
+        "type": "achievements",
+        "imageLeft": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6696ac3912443df9de6235a6_Keth-Sitetransparency.webp",
+        "imageRight": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66cf86d91407bb0a5c97833e_Rime%20Artwork.webp",
+        "itemsHtml": "<ul><li>Built a standout brand in a crowded genre. Named, designed, and launched a full visual identity that cut through the noise and earned long-term listener loyalty.</li><li>Directed post-production to shape pacing and punchlines. Edited every episode for clarity, tone, and humor—meeting Apple and Spotify standards.</li><li>Scaled to 15K weekly downloads and Top 5 on Spotify in under a year. Drove community support with 100+ Patreon backers and charity collabs with <a href=\"https://www.dicebreaker.com/games/dungeons-and-dragons-5e/news/dungeons-and-dragons-oath-of-accessibility\">Bristol Royal Children's Hospital</a> and Mythroll Armory.</li></ul>"
+      },
+      {
+        "type": "twoUp",
+        "imageLeft": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66d8b705bbed253fd3e391f7_Doomwoken-Square2024.webp",
+        "imageRight": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66f1cf1fec61a774576ceb0e_DumpStat-Podcast-Logo-on-Shirt-1440.webp"
+      },
+      {
+        "type": "fullImage",
+        "image": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/68433c85f8256d4f721adbf8_DumpStat-DarkDominion-Overlay-Details_Chris-Rumeau.jpg"
+      }
+    ]
+  },
+  "adelante-barbell-club": {
+    "accentColor": "#333333",
+    "credits": [
+      {"role": "Font — Cervo Neue", "name": "Błażej Ostoja Lniski"},
+      {"role": "Font — Union Condensed", "name": "Lachlan Philp"}
+    ],
+    "sections": [
+      {
+        "type": "fullImage",
+        "image": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/677d9587d1c743bfa4624306_AdelanteBarbellClub-MoreKilosLessEgos-MerchProduct-Photography02_RumeauDesignCo.webp"
+      },
+      {
+        "type": "imageText",
+        "image": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66cf9878e691fd93c38bc5ea_Adelante%20Barbell%20Club%20Logo%20Grid.webp",
+        "position": "Left",
+        "text": "Visual Identity Overhaul for the Union, New Jersey powerlifting gym. We worked extensively in visuals, branching our logo philosophy out to a merch line and videography focus for social media and menu design."
+      },
+      {
+        "type": "twoUp",
+        "imageLeft": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6643b2266142427c5fd6823b_02.jpg",
+        "imageRight": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6643b2263d1cc38a51434c0b_03.jpg"
+      },
+      {
+        "type": "fullImage",
+        "image": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/67e309aa199b6336ad87d4bd_Adelante-Wall-2023-11-04.jpg"
+      },
+      {
+        "type": "achievements",
+        "imageLeft": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/67e4509148d7ce2e210d026d_Adelante-Hoodie-01.jpg",
+        "imageRight": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/67e450918bd7f5ec91b3f8fa_Adelante-Hoodie-03.jpg",
+        "itemsHtml": "<ul><li>Heavy collaboration with client to determine specific style and layout for Fall 2019, future apparel releases, and future Brand Identity.</li><li>Based on client needs, funneled ideas into 30 sketches, 10 preliminaries, and 2 revision finals.</li><li>Generated $3500 first-day revenue, with multiple colorways of the design still being released.</li></ul>"
+      },
+      {
+        "type": "twoUp",
+        "imageLeft": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/67e4516aa09b46b8739525f5_Adelante-OriginalLogo.jpg",
+        "imageRight": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/67e451a47ecd1992af6494a0_Adelante-Hoodie-04.jpg"
+      },
+      {
+        "type": "fullImage",
+        "image": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/67e5a05fd24deb17dfe350a1_RumeauDesign-AdelanteBarbellClub-BeforeAfter.png"
+      }
+    ]
+  }
+}

@@ -189,6 +189,67 @@ partial fix under tonight's remaining time/budget.
 clean. Not yet pushed/deployed as of writing this entry - see the commit log
 for final verification status.
 
+### 8. Case study section rebuild for DumpStat/Adelante/Hug a Mug (task #3, done with Chris live)
+
+This resumes decision #1 above, now with Chris's explicit go-ahead to build
+the missing block types and populate real content. Unlike the entries above,
+this was done interactively with Chris present, not autonomously overnight.
+
+**New block types added** (`caseStudySections.ts` + rendered in the shared
+`Sections.astro`): `statCalloutSection` (heading + checklist + one big
+stat), `textSection` (heading + portable-text body, no image - Challenge/
+Strategy/testimonial blocks), `achievementsSection` (two images + a
+portable-text bulleted list - the "twoUp + achievements paragraph" pattern
+both DumpStat and Adelante use), `videoHeroSection` (full-bleed background
+video with an overlaid title + logo - Hug a Mug's real opener).
+
+**Refactored `work/[slug].astro`** to import and use `Sections.astro`
+instead of duplicating the block-rendering switch statement (this was
+flagged as drift-prone in the punch list) - one less place to update when a
+block type is added.
+
+**Real content pulled live from Webflow** via the Designer API
+(`data_element_tool > get_all_elements` on each case study's actual page,
+`data_assets_tool > get_asset` for each image ID) rather than reusing the
+condensed Appendix summary below, since the Appendix didn't preserve exact
+copy. All three pages' real text, image asset IDs, and links are now in
+`studio/migration/data/caseStudyLayouts.json`, converted to portable text
+via the existing `htmlToBlocks()` helper. Unresolved video sources (two
+Instagram-video grids on Hug a Mug, DumpStat's audiogram 3-up) were left out
+entirely rather than filled with placeholder embeds - no real URLs exist for
+them yet.
+
+**Data bugs fixed along the way**, found while cross-referencing the live
+page against `work.json`:
+- Adelante's `summary` field was lorem ipsum on the live Webflow site itself
+  (not a migration bug) - this is also why its "More Work" card text looked
+  wrong. Replaced with the real preamble paragraph from the page.
+- DumpStat's and Adelante's `mainImage` and `clientLogo` fields pointed at
+  the wrong assets (DumpStat's hero was a sketch-process image instead of
+  the real shirt artwork; its logo was an unrelated illustration instead of
+  the wordmark; Adelante's hero/logo had the same kind of mismatch). Fixed
+  to the assets actually shown on the live pages.
+- DumpStat's font credits (FairyTaleJF/Jason Walcott, ITC Benguiat/Ed
+  Benguiat) and Adelante's (Cervo Neue/Błażej Ostoja Lniski, Union
+  Condensed/Lachlan Philp) are now real, replacing Hug a Mug's leftover
+  PLACEHOLDER credits from `exampleSections.mjs` with an empty array (Hug a
+  Mug's real page has no equivalent credits block to source from).
+- `exampleSections.mjs` is now superseded by the real `hug-a-mug` entry in
+  `caseStudyLayouts.json` - left in place for history, commented to say so.
+
+**Not resolved, flagged for Chris:** Hug a Mug's case study page still
+renders a static `mainImage` hero (`.work-hero`) unconditionally above the
+identity band, same as every other case study - but Hug a Mug's real page
+has no static image hero at all, it opens straight into the new video hero
+section instead. Whether to suppress the static hero specifically for pages
+that have a `videoHeroSection` is a layout decision, not a content one - not
+made unilaterally.
+
+**Verified:** `npm run build` (fails at the expected Sanity-network step,
+confirms the Astro/TS compiles), `node --check migrate.mjs`, and a local
+Playwright/Chromium render of the four new block types against the actual
+compiled CSS (no live network needed) to confirm no overlapping or
+invisible content before pushing.
 
 ---
 

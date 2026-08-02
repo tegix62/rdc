@@ -456,6 +456,7 @@ main {
 @media (max-width: 40rem) {
   .statement {
     padding: 1.25rem var(--space-2);
+    text-align: left;
   }
 }
 
@@ -1091,4 +1092,14 @@ main {
 
 .work-related {
   padding: var(--space-6) 0;
+}
+
+@media (max-width: 40rem) {
+  /* The shared .grid utility's 15rem column minimum only leaves room for a
+     single column at phone widths, so "More Work" rendered as one huge
+     card per row instead of a grid. Force two smaller columns here. */
+  .work-related .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-2);
+  }
 }

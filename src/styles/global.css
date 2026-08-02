@@ -92,13 +92,13 @@ h5, h6 {
     font-size: 1.375rem;
   }
 
-  .logo-strip {
+  .logo-strip__inner {
     gap: var(--space-3);
-    padding: var(--space-3) 0;
+    padding: var(--space-3) var(--space-2);
   }
 
-  .proof-band {
-    padding: var(--space-4) 0;
+  .proof-band__inner {
+    padding: var(--space-4) var(--space-2);
   }
 
   .proof-row {
@@ -332,12 +332,13 @@ main {
 
 /* Homepage: statement / hero - full-bleed dark navy section with the
    real site's background image (an animated WebP of Hug a Mug's Pisces
-   shirt design being printed) behind a navy gradient overlay. Breaks out
-   of .wrap's side padding the same way .pf-section does. */
+   shirt design being printed) behind a navy gradient overlay. True
+   edge-to-edge of the viewport, not just .wrap's side padding. */
 .statement {
   position: relative;
-  margin-left: calc(-1 * var(--space-3));
-  margin-right: calc(-1 * var(--space-3));
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
   padding: 2.5rem var(--space-3);
   text-align: center;
   background-color: var(--color-navy);
@@ -353,8 +354,6 @@ main {
 
 @media (max-width: 40rem) {
   .statement {
-    margin-left: calc(-1 * var(--space-2));
-    margin-right: calc(-1 * var(--space-2));
     padding: 1.25rem var(--space-2);
   }
 }
@@ -458,18 +457,28 @@ main {
   border-radius: 0.25rem;
 }
 
-/* Homepage: client logo strip - dark navy band. Logos are grayscaled and
-   brightened, then screen-blended onto the navy so they read as bright
-   marks without needing an opacity fade (matches the real site). */
+/* Homepage: client logo strip - dark navy band, full-bleed to the
+   viewport edge with the logo row itself kept to a readable max-width.
+   Logos are grayscaled and brightened, then screen-blended onto the
+   navy so they read as bright marks without needing an opacity fade
+   (matches the real site). */
 .logo-strip {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  background: var(--color-navy);
+}
+
+.logo-strip__inner {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
   justify-content: space-around;
   overflow-x: auto;
   gap: var(--space-3);
-  padding: 2.5rem 0;
-  background: var(--color-navy);
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 2.5rem var(--space-3);
 }
 
 .logo-strip__item img {
@@ -488,15 +497,24 @@ main {
 
 /* Homepage: proof + closer + checklist - one light band on the real
    site, with a faint tiled sketch texture behind a white wash, fading
-   to solid white at the top edge. */
+   to solid white at the top edge. Full-bleed background, with the
+   cards/checklist kept to a readable max-width inside it. */
 .proof-band {
   position: relative;
-  padding: var(--space-6) 0;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
   background-color: var(--color-white);
   background-image: linear-gradient(to top, var(--color-white), transparent 60%),
     linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)), var(--proof-bg-image, none);
   background-size: auto, auto, 420px;
   background-repeat: no-repeat, no-repeat, repeat;
+}
+
+.proof-band__inner {
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-3);
 }
 
 /* The 4-card row: 3 metric cards plus the closer/CTA card, all sharing

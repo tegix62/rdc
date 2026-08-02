@@ -74,47 +74,51 @@ const proofBandStyle = settings?.proofBandBackground
 
   {clientLogos.length > 0 && (
     <section class="logo-strip">
-      {clientLogos.map((item: any) =>
-        item.logo ? (
-          <a href={item.href || '#'} class="logo-strip__item">
-            <img src={urlFor(item.logo).height(150).url()} alt={item.alt || ''} loading="lazy" />
-          </a>
-        ) : null,
-      )}
+      <div class="logo-strip__inner">
+        {clientLogos.map((item: any) =>
+          item.logo ? (
+            <a href={item.href || '#'} class="logo-strip__item">
+              <img src={urlFor(item.logo).height(150).url()} alt={item.alt || ''} loading="lazy" />
+            </a>
+          ) : null,
+        )}
+      </div>
     </section>
   )}
 
   <section class="proof-band" style={proofBandStyle}>
-    <div class="proof-row">
-      {proofStats.map((p) => (
-        <a class="proof-card" href={p.href}>
-          <h3 class="proof-card__stat"><strong>{p.stat}</strong>{p.rest}</h3>
-          <div class="proof-card__rating" aria-hidden="true">
-            {Array.from({ length: 5 }).map(() => (
-              <span>&#9733;</span>
-            ))}
-          </div>
-          <p class="proof-card__name">{p.name}</p>
-          <p class="proof-card__org">{p.org}</p>
-        </a>
-      ))}
+    <div class="proof-band__inner">
+      <div class="proof-row">
+        {proofStats.map((p) => (
+          <a class="proof-card" href={p.href}>
+            <h3 class="proof-card__stat"><strong>{p.stat}</strong>{p.rest}</h3>
+            <div class="proof-card__rating" aria-hidden="true">
+              {Array.from({ length: 5 }).map(() => (
+                <span>&#9733;</span>
+              ))}
+            </div>
+            <p class="proof-card__name">{p.name}</p>
+            <p class="proof-card__org">{p.org}</p>
+          </a>
+        ))}
 
-      <div class="proof-card proof-card--closer">
-        <h2 class="closer__heading">
-          Hand-drawn brand identity and merch design, <strong>rooted in heritage craft</strong> and built to
-          perform on fabric.
-        </h2>
-        <a class="button button--dark" href={TALLY_URL}>Let's Work</a>
-      </div>
-    </div>
-
-    <div class="checklist">
-      {checklist.map((item) => (
-        <div class="checklist__item">
-          <span class="checklist__check" aria-hidden="true">&#10003;</span>
-          <p>{item}</p>
+        <div class="proof-card proof-card--closer">
+          <h2 class="closer__heading">
+            Hand-drawn brand identity and merch design, <strong>rooted in heritage craft</strong> and built to
+            perform on fabric.
+          </h2>
+          <a class="button button--dark" href={TALLY_URL}>Let's Work</a>
         </div>
-      ))}
+      </div>
+
+      <div class="checklist">
+        {checklist.map((item) => (
+          <div class="checklist__item">
+            <span class="checklist__check" aria-hidden="true">&#10003;</span>
+            <p>{item}</p>
+          </div>
+        ))}
+      </div>
     </div>
   </section>
 

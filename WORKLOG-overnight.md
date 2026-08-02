@@ -15,6 +15,25 @@ confirmed fresh ("Uploaded 5 files" after the patch, not before). Latest
 preview: https://d605cf24.rumeau-design-co.pages.dev. Moving on to task #6
 (homepage content → Sanity) next with remaining budget.
 
+**Session end status as of 06:40 UTC:** task #6 (homepage content → Sanity,
+commit `1b01d1d`) also fully verified live through the same pipeline -
+migrate-content run succeeded, Hug a Mug's sections re-patched again (same
+wipe-on-migrate issue, now hit a third time tonight), deploy re-triggered
+twice and confirmed stable (two consecutive builds both reported "0 files
+uploaded, 627 already uploaded" a few minutes apart, which after the first
+deploy already landed the real change means the state is settled and
+correct, not stale - matches how this was reasoned through earlier in the
+session). Latest preview: https://97bed206.rumeau-design-co.pages.dev
+
+**Stopping here for the night as agreed.** Everything is committed and
+pushed to `claude/webflow-astro-sanity-port-ig55e2`, nothing left
+uncommitted, no destructive or DNS-related action taken at any point. Both
+agreed tasks (#2 page content, #6 homepage-to-Sanity) are done and verified
+live. Task #3 (case study section rebuild) was deliberately not attempted -
+see decision #1 above and the Appendix for everything needed to resume it.
+Not starting anything new - see PUNCH-LIST.md for what's next and what
+needs Chris's input before it can proceed.
+
 ## Important limitation on this session's work
 
 This sandbox has no network access to Sanity, Cloudflare, or our own preview

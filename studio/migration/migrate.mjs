@@ -260,6 +260,42 @@ async function migrateSiteSettings() {
   const heroBackground = await uploadImage({
     url: 'https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66cf805ab7bdefd5798b95d1_Pisces-Anim.webp',
   })
+
+  // The real homepage logo strip: 5 marks (Adelante Barbell Club appears
+  // twice, once as its shield logo and once as its tee design).
+  const logoSources = [
+    {
+      url: 'https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6643b0319d19ed441c36cfde_Container-Bright-Bone.webp',
+      alt: 'Reps for Recovery logo',
+      href: '/work/reps-for-recovery',
+    },
+    {
+      url: 'https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6670b57789a97751cca5e307_6643f9c169eccf09b3cc0500_2022Asset%2010%404x.webp',
+      alt: 'DumpStat Podcast logo',
+      href: '/work/dumpstat',
+    },
+    {
+      url: 'https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6670b4d58fd116960f4928ed_Hug_A_Mug_2022-Regular_Variants_Negative.webp',
+      alt: 'Hug a Mug Coffeehouse logo',
+      href: '/work/hug-a-mug',
+    },
+    {
+      url: 'https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6643f92b70d0186b5316e3eb_Asset%201.webp',
+      alt: 'Adelante Barbell Club shield logo',
+      href: '/work/adelante-barbell-club',
+    },
+    {
+      url: 'https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6643b22738a1fdf6e315915f_abc-final-skull.webp',
+      alt: 'Adelante Barbell Club tee design',
+      href: '/work/adelante-barbell-club',
+    },
+  ]
+  const clientLogos = []
+  for (const src of logoSources) {
+    const logo = await uploadImage({url: src.url})
+    if (logo) clientLogos.push({_key: cryptoRandomKey(), _type: 'object', logo, alt: src.alt, href: src.href})
+  }
+
   await client.createOrReplace({
     _id: 'siteSettings',
     _type: 'siteSettings',
@@ -267,6 +303,7 @@ async function migrateSiteSettings() {
     tagline: 'Brand Identity & Merch Design for Heritage Apparel Brands.',
     portrait,
     heroBackground,
+    clientLogos,
   })
   console.log('  - Site Settings')
 }

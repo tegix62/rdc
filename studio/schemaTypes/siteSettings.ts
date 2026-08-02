@@ -21,6 +21,22 @@ export default defineType({
       options: {hotspot: true},
     }),
     defineField({
+      name: 'clientLogos',
+      title: 'Client Logo Strip',
+      type: 'array',
+      description: 'Logos shown in the dark navy strip on the homepage.',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            {name: 'logo', type: 'image', options: {hotspot: true}},
+            {name: 'alt', type: 'string'},
+            {name: 'href', type: 'string'},
+          ],
+        },
+      ],
+    }),
+    defineField({
       name: 'navLinks',
       type: 'array',
       of: [

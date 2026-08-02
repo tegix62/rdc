@@ -97,10 +97,6 @@ h5, h6 {
     padding: var(--space-3) 0;
   }
 
-  .logo-strip__item img {
-    max-height: 2rem;
-  }
-
   .proof-band {
     padding: var(--space-4) 0;
   }
@@ -114,8 +110,12 @@ h5, h6 {
 
   .final-cta {
     flex-direction: column;
-    text-align: center;
-    padding: var(--space-3);
+  }
+
+  .final-cta__portrait {
+    width: 100%;
+    height: 240px;
+    left: 0;
   }
 }
 
@@ -297,22 +297,29 @@ main {
   background: var(--color-black);
 }
 
+.button--white {
+  background: var(--color-white);
+  color: var(--color-navy);
+}
+
+.button--white:hover {
+  background: var(--color-gray-light);
+}
+
 .button--dark:hover {
   background: var(--color-navy-dark);
 }
 
-/* Homepage: statement / hero - dark navy section with the real site's
-   background image (an animated WebP of Hug a Mug's Pisces shirt design
-   being printed) behind a navy gradient overlay. */
+/* Homepage: statement / hero - full-bleed dark navy section with the
+   real site's background image (an animated WebP of Hug a Mug's Pisces
+   shirt design being printed) behind a navy gradient overlay. Breaks out
+   of .wrap's side padding the same way .pf-section does. */
 .statement {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 70vh;
+  margin-left: calc(-1 * var(--space-3));
+  margin-right: calc(-1 * var(--space-3));
+  padding: 2.5rem var(--space-3);
   text-align: center;
-  padding: var(--space-4);
   background-color: var(--color-navy);
   background-image: linear-gradient(
       to bottom,
@@ -324,18 +331,51 @@ main {
   background-position: center;
 }
 
+@media (max-width: 40rem) {
+  .statement {
+    margin-left: calc(-1 * var(--space-2));
+    margin-right: calc(-1 * var(--space-2));
+    padding: 1.25rem var(--space-2);
+  }
+}
+
 .statement__line {
   height: 1px;
   background: rgba(255, 255, 255, 0.35);
-  max-width: 20rem;
-  margin: 0 auto var(--space-3);
+  margin: 0 0 0.9375rem;
 }
 
 .statement__heading {
-  font-size: clamp(2.5rem, 8vw, 5rem);
-  letter-spacing: 0.02em;
-  line-height: 1.05;
+  margin: 0;
+  font-size: 21vh;
+  line-height: 16vh;
+  font-weight: 800;
+  letter-spacing: -8px;
   color: var(--color-white);
+}
+
+@media (max-width: 62rem) {
+  .statement__heading {
+    font-size: 16vh;
+    line-height: 12vh;
+  }
+}
+
+@media (max-width: 48rem) {
+  .statement__heading {
+    margin: 15px 0;
+    font-size: 13vh;
+    line-height: 10vh;
+    letter-spacing: -4px;
+  }
+}
+
+@media (max-width: 30rem) {
+  .statement__heading {
+    font-size: 7vh;
+    line-height: 5.8vh;
+    letter-spacing: -2px;
+  }
 }
 
 .statement__sep {
@@ -344,14 +384,23 @@ main {
 }
 
 .statement__sub {
-  margin: var(--space-3) 0 0;
-  font-size: 1.125rem;
+  margin: 0.9375rem 0 0;
+  font-size: 23px;
+  letter-spacing: 5px;
   color: rgba(255, 255, 255, 0.85);
 }
 
-@media (max-width: 40rem) {
-  .statement {
-    min-height: 50vh;
+@media (max-width: 48rem) {
+  .statement__sub {
+    font-size: 12px;
+    letter-spacing: 4px;
+  }
+}
+
+@media (max-width: 30rem) {
+  .statement__sub {
+    font-size: 11px;
+    letter-spacing: 0;
   }
 }
 
@@ -389,26 +438,32 @@ main {
   border-radius: 0.25rem;
 }
 
-/* Homepage: client logo strip - dark navy band, matching the real site's
-   alternating light/dark sections. */
+/* Homepage: client logo strip - dark navy band. Logos are grayscaled and
+   brightened, then screen-blended onto the navy so they read as bright
+   marks without needing an opacity fade (matches the real site). */
 .logo-strip {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-5);
-  padding: var(--space-4) 0;
+  justify-content: space-around;
+  overflow-x: auto;
+  gap: var(--space-3);
+  padding: 2.5rem 0;
   background: var(--color-navy);
 }
 
 .logo-strip__item img {
-  max-height: 2.5rem;
+  height: 75px;
   width: auto;
-  opacity: 0.85;
+  object-fit: contain;
+  filter: brightness(200%) grayscale(100%);
+  mix-blend-mode: screen;
 }
 
-.logo-strip__item:hover img {
-  opacity: 1;
+@media (max-width: 30rem) {
+  .logo-strip__item img {
+    height: 45px;
+  }
 }
 
 /* Homepage: proof + closer + checklist - one light band on the real
@@ -478,27 +533,36 @@ main {
   font-weight: 700;
 }
 
-/* Homepage: final CTA */
+/* Homepage: final CTA - a tall portrait bleeding out of frame next to a
+   navy card, matching the real site's layered "breaking the box" look. */
 .final-cta {
   display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  background: var(--color-navy);
-  color: var(--color-white);
-  padding: var(--space-4);
-  border-radius: 0.25rem;
+  align-items: flex-end;
   margin-bottom: var(--space-6);
   flex-wrap: wrap;
 }
 
 .final-cta__portrait {
-  width: 6rem;
-  height: 6rem;
-  border-radius: 50%;
+  position: relative;
+  left: 3rem;
+  height: 420px;
+  width: auto;
   object-fit: cover;
+  object-position: 50% 20%;
 }
 
-.final-cta__content h3 {
+.final-cta__card {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 18rem;
+  padding: 1.5rem 3rem 3rem;
+  border: 2px solid var(--color-navy);
+  border-bottom-width: 8px;
+  background: var(--color-navy);
+  color: var(--color-white);
+}
+
+.final-cta__card h3 {
   color: var(--color-white);
   font-size: 1.5rem;
   margin-bottom: var(--space-2);

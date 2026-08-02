@@ -62,10 +62,3 @@ export function getAllGridItems() {
     } | order(title asc)`,
   );
 }
-
-export function getClientLogos(slugs: string[]) {
-  return sanityClient.fetch(
-    `*[_type == "caseStudy" && slug.current in $slugs]{title, slug, clientLogo, thumbnail, mainImage}`,
-    { slugs },
-  );
-}

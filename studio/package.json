@@ -6,7 +6,8 @@
     "dev": "sanity dev",
     "build": "sanity build",
     "deploy": "sanity deploy",
-    "migrate": "node migration/migrate.mjs"
+    "migrate": "node migration/migrate.mjs",
+    "example-sections": "node migration/exampleSections.mjs"
   },
   "dependencies": {
     "@sanity/client": "^6.24.1",

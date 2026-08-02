@@ -8,6 +8,12 @@ export default defineType({
     defineField({name: 'siteTitle', type: 'string'}),
     defineField({name: 'tagline', type: 'string'}),
     defineField({
+      name: 'logo',
+      title: 'Nav Logo',
+      type: 'image',
+      description: 'The stacked "Rumeau Design" wordmark used in the site nav.',
+    }),
+    defineField({
       name: 'portrait',
       title: 'Founder Portrait',
       type: 'image',

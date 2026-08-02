@@ -4,6 +4,8 @@ import '@fontsource/gothic-a1/400.css';
 import '@fontsource/gothic-a1/500.css';
 import '@fontsource/gothic-a1/700.css';
 import '../styles/global.css';
+import { getSiteSettings } from '../lib/queries';
+import { urlFor } from '../lib/image';
 
 interface Props {
   title: string;
@@ -12,15 +14,16 @@ interface Props {
 
 const { title, description = 'Rumeau Design Co' } = Astro.props;
 
+const settings = await getSiteSettings();
+
+// The real site's nav: only 4 links are shown, not every page in the
+// project (Merch/Collage/Blog still exist, just aren't nav-linked).
 const navLinks = [
-  { label: 'Home', href: '/' },
-  { label: 'Work', href: '/portfolio' },
-  { label: 'Merch', href: '/merchfolio' },
-  { label: 'Collage', href: '/collage' },
-  { label: 'Process', href: '/video' },
-  { label: 'Blog', href: '/blog' },
+  { label: 'Portfolio', href: '/portfolio' },
   { label: 'About', href: '/about' },
+  { label: 'Video', href: '/video' },
 ];
+const TALLY_URL = 'https://tally.so/r/mZ8LXz';
 ---
 
 <!doctype html>
@@ -33,9 +36,15 @@ const navLinks = [
     <title>{title}</title>
   </head>
   <body>
-    <header class="wrap">
-      <nav class="site-nav">
-        <a class="site-nav__brand" href="/">Rumeau Design Co</a>
+    <header class="site-nav">
+      <nav class="site-nav__inner">
+        <a class="site-nav__brand" href="/">
+          {settings?.logo ? (
+            <img src={urlFor(settings.logo).height(96).url()} alt="Rumeau Design Co" />
+          ) : (
+            'Rumeau Design Co'
+          )}
+        </a>
         <button
           type="button"
           class="site-nav__toggle"
@@ -48,6 +57,7 @@ const navLinks = [
         </button>
         <div class="site-nav__links" id="site-nav-links">
           {navLinks.map((link) => <a href={link.href}>{link.label}</a>)}
+          <a class="site-nav__contact" href={TALLY_URL}>Contact</a>
         </div>
       </nav>
     </header>

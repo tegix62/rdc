@@ -261,6 +261,10 @@ async function migrateSiteSettings() {
     url: 'https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66cf805ab7bdefd5798b95d1_Pisces-Anim.webp',
   })
 
+  const logo = await uploadImage({
+    url: 'https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66709a80ab722c54b9b1c3da_RumeauDesignBLUEflat.webp',
+  })
+
   const proofBandBackground = await uploadImage({
     url: 'https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6670b42c30b4a0396315af4c_SketchSheet-01-BLUE.webp',
   })
@@ -308,6 +312,7 @@ async function migrateSiteSettings() {
     portrait,
     heroBackground,
     proofBandBackground,
+    logo,
     clientLogos,
   })
   console.log('  - Site Settings')

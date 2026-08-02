@@ -132,30 +132,48 @@ a {
   padding: 0 var(--space-3);
 }
 
+/* Site nav - matches the real Webflow navbar: full-bleed white bar,
+   5% side padding, thin navy bottom border, collapsing to a hamburger
+   below 991px (the real site's Relume navbar breakpoint). */
 .site-nav {
   position: relative;
+  background: var(--color-white);
+  border-bottom: 2px solid var(--color-navy);
+}
+
+.site-nav__inner {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
   align-items: center;
-  padding: var(--space-3) 0;
-  border-bottom: 2px solid var(--color-navy);
+  min-height: 4.5rem;
+  padding: 0 5%;
 }
 
-.site-nav a {
+.site-nav__links a {
   text-decoration: none;
   color: var(--color-navy);
   font-family: var(--font-heading);
-  font-size: 0.875rem;
+  font-size: 1rem;
   font-weight: 700;
 }
 
 .site-nav__brand {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 1.125rem;
+  display: flex;
+  align-items: center;
   margin-right: auto;
-  color: var(--color-navy);
+}
+
+.site-nav__brand img {
+  height: 3rem;
+  width: auto;
+}
+
+.site-nav__contact {
+  padding: 0.5rem 1.25rem;
+  border: 2px solid var(--color-navy);
+  border-bottom-width: 6px;
+  text-align: center;
 }
 
 .site-nav__toggle {
@@ -184,9 +202,10 @@ a {
   align-items: center;
 }
 
-@media (max-width: 48rem) {
-  .site-nav {
-    padding: var(--space-2) 0;
+@media (max-width: 62rem) {
+  .site-nav__inner {
+    min-height: 4rem;
+    padding: 0.75rem 5%;
   }
 
   .site-nav__toggle {
@@ -204,6 +223,10 @@ a {
 
   .site-nav__links.is-open {
     display: flex;
+  }
+
+  .site-nav__contact {
+    align-self: flex-start;
   }
 }
 

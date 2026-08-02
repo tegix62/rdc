@@ -772,7 +772,7 @@ main {
 .work-identity__top {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--space-4);
 }
 
@@ -788,11 +788,21 @@ main {
   margin: 0;
 }
 
+.work-identity__mark {
+  flex-shrink: 0;
+}
+
 .work-identity__mark img {
-  max-height: 6rem;
+  max-height: 7rem;
   width: auto;
   filter: brightness(200%) grayscale(100%);
   mix-blend-mode: screen;
+}
+
+@media (max-width: 40rem) {
+  .work-identity__mark img {
+    max-height: 4.5rem;
+  }
 }
 
 .work-identity__bottom {

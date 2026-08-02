@@ -1,18 +1,12 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import {
-  getPage,
-  getFeaturedWork,
-  getClientLogos,
-  getSiteSettings,
-} from '../lib/queries';
+import { getPage, getClientLogos, getSiteSettings } from '../lib/queries';
 import { urlFor } from '../lib/image';
 
 const TALLY_URL = 'https://tally.so/r/mZ8LXz';
 
 const page = await getPage('home');
 const settings = await getSiteSettings();
-const work = await getFeaturedWork();
 const clientLogos = await getClientLogos([
   'reps-for-recovery',
   'dumpstat',
@@ -47,22 +41,13 @@ const proofStats = [
   },
 ];
 
-function workHref(item: any) {
-  if (item.pageType === 'Case Study') return `/work/${item.slug.current}`;
-  if (item.parentSlug) return `/work/${item.parentSlug}`;
-  return '/portfolio';
-}
-
-function shapeClass(item: any) {
-  if (item.assetType === 'Wide Video') return 'is-video';
-  if (item.heroTile) return 'is-hero';
-  if (item.assetType === 'Social Card' || item.assetType === 'Vinyl / Record') return 'is-square';
-  return '';
-}
+const heroStyle = settings?.heroBackground
+  ? `--hero-bg-image: url(${urlFor(settings.heroBackground).width(1800).url()})`
+  : undefined;
 ---
 
 <Layout title={page?.title ?? 'Rumeau Design Co'} description={page?.seoDescription}>
-  <section class="statement">
+  <section class="statement" style={heroStyle}>
     <div class="statement__line" aria-hidden="true"></div>
     <h1 class="statement__heading">
       RUMEAU<span class="statement__sep"> </span>DESIGN<span class="statement__sep"> </span>COMPANY
@@ -81,7 +66,7 @@ function shapeClass(item: any) {
       Chris Rumeau is a brand designer, illustrator, and typographer building visual
       identities rooted in heritage craft and hand-drawn precision.
     </h2>
-    <!-- Background video pending — drop the source file in and swap this placeholder for a <video>. -->
+    <!-- Background video pending - drop the source file in and swap this placeholder for a <video>. -->
     <div class="video-placeholder" role="img" aria-label="Process video coming soon"></div>
   </section>
 
@@ -98,61 +83,33 @@ function shapeClass(item: any) {
     </section>
   )}
 
-  <section class="work-section" id="selected-work">
-    <div class="work-section__label-row">
-      <p class="section-label">Selected Work</p>
-      <div class="view-toggle" role="tablist">
-        <button type="button" class="view-toggle__btn is-active" data-mode="grid">Grid</button>
-        <button type="button" class="view-toggle__btn" data-mode="archive">Archive</button>
-      </div>
+  <section class="proof-band">
+    <div class="proof-grid">
+      {proofStats.map((p) => (
+        <div class="proof-card">
+          <h3 class="proof-card__stat"><strong>{p.stat}</strong>{p.rest}</h3>
+          <p class="proof-card__name">{p.name}</p>
+          <p class="proof-card__org">{p.org}</p>
+        </div>
+      ))}
     </div>
-    <div class="work-grid" data-mode="grid">
-      {work.map((item: any) => {
-        const img = item.thumbnail || item.mainImage;
-        return (
-          <a class:list={['work-card', item.heroTile && 'is-wide']} href={workHref(item)}>
-            <div class:list={['work-thumb-frame', shapeClass(item)]}>
-              {img && (
-                <img class="work-thumb" src={urlFor(img).width(1200).url()} alt={item.title} loading="lazy" />
-              )}
-              {item.archiveMark && (
-                <img class="work-thumb-mark" src={urlFor(item.archiveMark).width(400).url()} alt="" />
-              )}
-            </div>
-            <h3 class="work-card__title">{item.title}</h3>
-            {item.oneLineSummary && <p class="work-card__desc">{item.oneLineSummary}</p>}
-            {item.client && <p class="work-card__meta">{item.client}</p>}
-          </a>
-        );
-      })}
+
+    <div class="closer">
+      <h2 class="closer__heading">
+        Hand-drawn brand identity and merch design, <strong>rooted in heritage craft</strong> and built to
+        perform on fabric.
+      </h2>
+      <a class="button button--dark" href={TALLY_URL}>Let's Work</a>
     </div>
-  </section>
 
-  <section class="proof-grid">
-    {proofStats.map((p) => (
-      <div class="proof-card">
-        <h3 class="proof-card__stat"><strong>{p.stat}</strong>{p.rest}</h3>
-        <p class="proof-card__name">{p.name}</p>
-        <p class="proof-card__org">{p.org}</p>
-      </div>
-    ))}
-  </section>
-
-  <section class="closer">
-    <h2 class="closer__heading">
-      Hand-drawn brand identity and merch design, <strong>rooted in heritage craft</strong> and built to
-      perform on fabric.
-    </h2>
-    <a class="button button--dark" href={TALLY_URL}>Let's Work</a>
-  </section>
-
-  <section class="checklist">
-    {checklist.map((item) => (
-      <div class="checklist__item">
-        <span class="checklist__check" aria-hidden="true">&#10003;</span>
-        <p>{item}</p>
-      </div>
-    ))}
+    <div class="checklist">
+      {checklist.map((item) => (
+        <div class="checklist__item">
+          <span class="checklist__check" aria-hidden="true">&#10003;</span>
+          <p>{item}</p>
+        </div>
+      ))}
+    </div>
   </section>
 
   <section class="final-cta">
@@ -165,15 +122,3 @@ function shapeClass(item: any) {
     </div>
   </section>
 </Layout>
-
-<script>
-  const toggle = document.querySelector('.view-toggle');
-  const grid = document.querySelector('.work-grid');
-  toggle?.addEventListener('click', (e) => {
-    const btn = (e.target as HTMLElement).closest<HTMLElement>('.view-toggle__btn');
-    if (!btn || !grid) return;
-    const mode = btn.dataset.mode!;
-    grid.setAttribute('data-mode', mode);
-    toggle.querySelectorAll('.view-toggle__btn').forEach((b) => b.classList.toggle('is-active', b === btn));
-  });
-</script>

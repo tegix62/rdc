@@ -14,6 +14,13 @@ export default defineType({
       options: {hotspot: true},
     }),
     defineField({
+      name: 'heroBackground',
+      title: 'Homepage Hero Background',
+      type: 'image',
+      description: 'Full-bleed background behind the RUMEAU DESIGN COMPANY statement.',
+      options: {hotspot: true},
+    }),
+    defineField({
       name: 'navLinks',
       type: 'array',
       of: [

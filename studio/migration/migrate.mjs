@@ -255,12 +255,18 @@ async function migrateSiteSettings() {
   const portrait = await uploadImage({
     url: 'https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6670908ca14bc37ee330f293_Portrait%20-%20BLUE%20002885.webp',
   })
+  // The real homepage hero background: an animated WebP of Hug a Mug's
+  // Pisces zodiac shirt design being printed, behind a navy overlay.
+  const heroBackground = await uploadImage({
+    url: 'https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66cf805ab7bdefd5798b95d1_Pisces-Anim.webp',
+  })
   await client.createOrReplace({
     _id: 'siteSettings',
     _type: 'siteSettings',
     siteTitle: 'Rumeau Design Co',
     tagline: 'Brand Identity & Merch Design for Heritage Apparel Brands.',
     portrait,
+    heroBackground,
   })
   console.log('  - Site Settings')
 }

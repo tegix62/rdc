@@ -20,6 +20,15 @@ export function getCaseStudy(slug: string) {
   );
 }
 
+export function getOtherCaseStudies(excludeId: string) {
+  return sanityClient.fetch(
+    `*[_type == "caseStudy" && pageType == "Case Study" && _id != $excludeId]{
+      title, slug, thumbnail, mainImage, client
+    } | order(title asc)[0...4]`,
+    { excludeId },
+  );
+}
+
 export function getGridItems(caseStudyId: string) {
   return sanityClient.fetch(
     `*[_type == "caseStudy" && pageType == "Grid Item" && parentBrand._ref == $id] | order(title asc)`,

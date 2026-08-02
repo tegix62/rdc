@@ -108,6 +108,43 @@ export default defineType({
       of: [{type: 'image', options: {hotspot: true}}],
     }),
     defineField({name: 'filmEmbed', title: 'Film Embed', type: 'url'}),
+    defineField({
+      name: 'accentColor',
+      title: 'Accent Color',
+      type: 'string',
+      description:
+        'Background color for this project\'s section band (hex, e.g. #2f5233). Leave blank for white.',
+    }),
+    defineField({
+      name: 'credits',
+      title: 'Credits',
+      type: 'array',
+      description: 'Shown next to the project title, e.g. "Creative Director — Chris Rumeau".',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            {name: 'role', type: 'string'},
+            {name: 'name', type: 'string'},
+          ],
+        },
+      ],
+    }),
+    defineField({
+      name: 'sections',
+      title: 'Case Study Sections',
+      type: 'array',
+      description:
+        'Freeform layout blocks for the case study page - mix and reorder full images, ' +
+        'split images, and image+text blocks to build the page.',
+      of: [
+        {type: 'fullImageSection'},
+        {type: 'twoUpSection'},
+        {type: 'threeUpSection'},
+        {type: 'imageTextSection'},
+        {type: 'videoSection'},
+      ],
+    }),
   ],
   preview: {
     select: {title: 'title', subtitle: 'client', media: 'thumbnail'},

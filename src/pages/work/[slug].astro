@@ -50,26 +50,34 @@ function embedUrl(url: string) {
     </div>
   )}
 
-  <section class="work-meta">
-    <div class="work-meta__title">
-      <p class="section-label">Project</p>
-      <h1>{caseStudy.headline ?? caseStudy.title}</h1>
-      {caseStudy.subtitle && <p class="work-meta__subtitle">{caseStudy.subtitle}</p>}
+  <section class="work-identity full-bleed">
+    <div class="work-identity__inner">
+      <div class="work-identity__top">
+        <div class="work-identity__heading">
+          {caseStudy.subtitle && <p class="work-identity__kicker">{caseStudy.subtitle}</p>}
+          <h1>{caseStudy.headline ?? caseStudy.title}</h1>
+        </div>
+        {caseStudy.clientLogo && (
+          <div class="work-identity__mark">
+            <img src={urlFor(caseStudy.clientLogo).height(120).url()} alt={caseStudy.client ?? ''} />
+          </div>
+        )}
+      </div>
+      {(caseStudy.summary || caseStudy.oneLineSummary || caseStudy.credits?.length > 0) && (
+        <div class="work-identity__bottom">
+          {(caseStudy.summary || caseStudy.oneLineSummary) && (
+            <p class="work-identity__summary">{caseStudy.summary ?? caseStudy.oneLineSummary}</p>
+          )}
+          {caseStudy.credits?.length > 0 && (
+            <div class="work-identity__credits">
+              {caseStudy.credits.map((c: any) => (
+                <p><strong>{c.role}</strong>{c.name && ` — ${c.name}`}</p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
-    {caseStudy.credits?.length > 0 && (
-      <div class="work-meta__credits">
-        <p class="section-label">Credits</p>
-        {caseStudy.credits.map((c: any) => (
-          <p><strong>{c.role}</strong>{c.name && ` — ${c.name}`}</p>
-        ))}
-      </div>
-    )}
-    {(caseStudy.summary || caseStudy.oneLineSummary) && (
-      <div class="work-meta__about">
-        <p class="section-label">About</p>
-        <p>{caseStudy.summary ?? caseStudy.oneLineSummary}</p>
-      </div>
-    )}
   </section>
 
   {caseStudy.sections?.length > 0 ? (

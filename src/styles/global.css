@@ -729,17 +729,12 @@ main {
   flex-shrink: 0;
 }
 
-/* Utility: break an element out of .wrap's side padding, edge to edge. */
+/* Utility: break an element out of .wrap entirely, true edge-to-edge of
+   the viewport regardless of screen width (not just .wrap's own padding). */
 .full-bleed {
-  margin-left: calc(-1 * var(--space-3));
-  margin-right: calc(-1 * var(--space-3));
-}
-
-@media (max-width: 40rem) {
-  .full-bleed {
-    margin-left: calc(-1 * var(--space-2));
-    margin-right: calc(-1 * var(--space-2));
-  }
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
 }
 
 .section-label {
@@ -753,7 +748,6 @@ main {
 /* Work / case study page */
 .work-hero {
   margin-top: var(--space-3);
-  margin-bottom: var(--space-5);
 }
 
 .work-hero img {
@@ -762,37 +756,91 @@ main {
   object-fit: cover;
 }
 
-.work-meta {
-  display: grid;
-  grid-template-columns: 1.5fr 1fr 1.5fr;
+/* Navy identity band: project title, one-line description, and credits.
+   Sits full-bleed directly under the hero image with no white gap. */
+.work-identity {
+  background: var(--color-navy);
+  padding: var(--space-5) 0;
+}
+
+.work-identity__inner {
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 0 var(--space-3);
+}
+
+.work-identity__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   gap: var(--space-4);
-  padding-bottom: var(--space-5);
 }
 
-@media (max-width: 48rem) {
-  .work-meta {
-    grid-template-columns: 1fr;
+.work-identity__kicker {
+  margin: 0 0 var(--space-1);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.875rem;
+  letter-spacing: 0.04em;
+}
+
+.work-identity__heading h1 {
+  color: var(--color-white);
+  margin: 0;
+}
+
+.work-identity__mark img {
+  max-height: 3.5rem;
+  width: auto;
+  filter: brightness(200%) grayscale(100%);
+  mix-blend-mode: screen;
+}
+
+.work-identity__bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.work-identity__summary {
+  max-width: 26rem;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.work-identity__credits {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.work-identity__credits p {
+  margin: 0.2rem 0;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.work-identity__credits strong {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+@media (max-width: 40rem) {
+  .work-identity__top,
+  .work-identity__bottom {
+    flex-direction: column;
+    align-items: flex-start;
   }
-}
 
-.work-meta__title h1 {
-  margin: var(--space-1) 0 0;
-}
+  .work-identity__credits {
+    text-align: left;
+  }
 
-.work-meta__subtitle {
-  margin: var(--space-2) 0 0;
-  color: var(--color-gray);
-  font-size: 1.125rem;
-}
-
-.work-meta__credits p,
-.work-meta__about p {
-  margin: 0.25rem 0;
-  font-size: 0.9375rem;
-}
-
-.work-meta__about p {
-  color: var(--color-gray);
+  .work-identity__summary {
+    max-width: none;
+  }
 }
 
 /* The accent-color band wrapping a case study's flexible content blocks. */

@@ -31,6 +31,56 @@ const client = createClient({
 
 const readJson = (name) => JSON.parse(readFileSync(path.join(dataDir, name), 'utf8'))
 
+// Re-running this migration used to clobber anything edited in Sanity Studio:
+// every function did a full createOrReplace, so hand-edited homepage copy or
+// re-ordered case study sections were silently reset to whatever the JSON
+// snapshot said. That bit us three times while porting.
+//
+// The default is now fill-in-the-blanks. A document that doesn't exist yet is
+// seeded in full; a document that already exists only receives fields that are
+// still empty on it. Human edits always win, and new fields added to the
+// snapshot later still get populated.
+//
+// Set MIGRATE_FORCE=1 to restore the old overwrite-everything behavior, for
+// when the snapshot is deliberately meant to win: seeding a fresh dataset, or
+// re-applying an edited caseStudyLayouts.json.
+const FORCE = process.env.MIGRATE_FORCE === '1'
+
+// `false` and `0` are real values a person may have chosen, so they are NOT
+// empty - only genuinely absent values are safe to fill in.
+const isEmpty = (value) =>
+  value === undefined ||
+  value === null ||
+  value === '' ||
+  (Array.isArray(value) && value.length === 0)
+
+// `db` and `force` are injectable so the rules below can be unit-tested
+// against a fake client without touching the real dataset.
+async function seedDocument(doc, {db = client, force = FORCE} = {}) {
+  if (force) {
+    await db.createOrReplace(doc)
+    return 'replaced (forced)'
+  }
+
+  const existing = await db.fetch('*[_id == $id][0]', {id: doc._id})
+  if (!existing) {
+    await db.createOrReplace(doc)
+    return 'created'
+  }
+
+  const fill = {}
+  for (const [key, value] of Object.entries(doc)) {
+    if (key === '_id' || key === '_type') continue
+    if (isEmpty(value)) continue
+    if (!isEmpty(existing[key])) continue
+    fill[key] = value
+  }
+
+  if (!Object.keys(fill).length) return 'kept Studio version'
+  await db.patch(doc._id).set(fill).commit()
+  return `filled empty fields: ${Object.keys(fill).join(', ')}`
+}
+
 const CATEGORY_MAP = {
   '25b184027eb70b18d6c7b600aee158e8': 'Brand Identity',
   '9401f9935a5e974e1aafa54688842d7d': 'Merch & Apparel',
@@ -158,9 +208,10 @@ function htmlToBlocks(html) {
 // asset already uploaded for that project rather than a duplicate.
 //
 // This lives in the migration (rather than a separate patch script) on
-// purpose: migrateWork() does a full createOrReplace per document, so any
-// sections/credits/accentColor applied out-of-band get wiped on the next
-// migration run. Keeping them here means they survive.
+// purpose: it's the seed content for a case study's layout, so it belongs
+// with the rest of the seed data. Note that once a case study has sections,
+// seedDocument() will not replace them - edit them in Studio from then on,
+// or re-run with MIGRATE_FORCE=1 if the snapshot here is meant to win.
 async function buildSections(defs) {
   if (!defs || !defs.length) return undefined
   const out = []
@@ -308,16 +359,23 @@ async function migrateWork() {
       doc.sections = await buildSections(layout.sections)
     }
 
-    await client.createOrReplace(doc)
-    console.log(`  [${i}/${items.length}] ${item.name}`)
+    const result = await seedDocument(doc)
+    console.log(`  [${i}/${items.length}] ${item.name} - ${result}`)
   }
 
   // Pass 2: wire up parentBrand references now that every document exists.
   const withParent = items.filter((item) => item.parentBrand)
   console.log(`Linking ${withParent.length} parent brand references...`)
   for (const item of withParent) {
+    const id = `caseStudy-${item.id}`
+    if (!FORCE) {
+      // Same rule as seedDocument: don't re-point a reference someone may
+      // have deliberately changed in Studio.
+      const existing = await client.fetch('*[_id == $id][0].parentBrand', {id})
+      if (existing) continue
+    }
     await client
-      .patch(`caseStudy-${item.id}`)
+      .patch(id)
       .set({parentBrand: {_type: 'reference', _ref: `caseStudy-${item.parentBrand}`}})
       .commit()
   }
@@ -346,8 +404,8 @@ async function migrateBlogPosts() {
     doc.mainImage = await uploadImage(item.mainImage)
     doc.thumbnailImage = await uploadImage(item.thumbnailImage)
 
-    await client.createOrReplace(doc)
-    console.log(`  [${i}/${items.length}] ${item.name}`)
+    const result = await seedDocument(doc)
+    console.log(`  [${i}/${items.length}] ${item.name} - ${result}`)
   }
 }
 
@@ -370,8 +428,8 @@ async function migratePages() {
     if (item.heroImage) doc.heroImage = await uploadImage({url: item.heroImage})
     doc.heroAlt = item.heroAlt || undefined
     doc.sections = await buildSections(item.sections)
-    await client.createOrReplace(doc)
-    console.log(`  - ${item.title}${item.bodyHtml ? '' : ' (no body copy)'}`)
+    const result = await seedDocument(doc)
+    console.log(`  - ${item.title}${item.bodyHtml ? '' : ' (no body copy)'} - ${result}`)
   }
 }
 
@@ -431,12 +489,10 @@ async function migrateSiteSettings() {
 
   // Homepage copy that used to be hardcoded in index.astro. Moved here so
   // it's editable in Studio - values are exactly what was already live on
-  // the site, this is a refactor not a content change. createOrReplace()
-  // would otherwise wipe any edits made in Studio on the next migration
-  // run, same issue as case study sections - if that becomes a problem,
-  // this block should move to an editorial-only patch like
-  // exampleSections.mjs rather than living in the main migration.
-  await client.createOrReplace({
+  // the site, this is a refactor not a content change. These are seeded
+  // through seedDocument(), so editing any of them in Studio sticks: the
+  // next migration run leaves non-empty fields alone.
+  const settings = {
     _id: 'siteSettings',
     _type: 'siteSettings',
     siteTitle: 'Rumeau Design Co',
@@ -488,8 +544,9 @@ async function migrateSiteSettings() {
     closerBold: 'rooted in heritage craft',
     closerSuffix: ' and built to perform on fabric.',
     finalCtaHeading: 'DTC Brands and Apparel Companies:',
-  })
-  console.log('  - Site Settings')
+  }
+  const result = await seedDocument(settings)
+  console.log(`  - Site Settings - ${result}`)
 }
 
 async function main() {
@@ -500,7 +557,14 @@ async function main() {
   console.log('Done.')
 }
 
-main().catch((err) => {
-  console.error(err)
-  process.exit(1)
-})
+// Only run when invoked directly, so the fill-in-the-blanks rules in
+// seedDocument() can be imported and unit-tested (see seedDocument.test.mjs)
+// without kicking off a real migration.
+if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((err) => {
+    console.error(err)
+    process.exit(1)
+  })
+}
+
+export {seedDocument, isEmpty}

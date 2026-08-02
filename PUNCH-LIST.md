@@ -21,6 +21,12 @@ Ordered roughly by impact. Nothing here has been actioned unless marked done.
   new work.
 - [x] `work/[slug].astro` now imports the shared `src/components/Sections.astro`
   instead of duplicating the block-rendering switch statement.
+- [x] **Migration no longer overwrites Studio edits.** Re-running the content
+  migration used to reset hand-edited content back to the JSON snapshot (hit
+  three times during the port). It now only fills fields that are still
+  empty; anything you've typed in Studio survives. Overwriting is still
+  possible but only via a deliberate manual run with the "force" box ticked -
+  never automatically (`WORKLOG-overnight.md` decision #9).
 
 ## High impact - visible to every visitor
 

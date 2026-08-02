@@ -251,6 +251,44 @@ Playwright/Chromium render of the four new block types against the actual
 compiled CSS (no live network needed) to confirm no overlapping or
 invisible content before pushing.
 
+### 9. Fixed the migration-overwrites-Studio-edits bug
+
+The bug flagged in decisions #1 and #7, and hit three times during the port:
+every migrate function did a full `createOrReplace`, so re-running the
+migration silently reset anything edited in Studio back to the JSON snapshot.
+Tolerable while I was the only editor. A trap now that Chris is going
+hands-on, which is why this was fixed before anything else.
+
+**The fix:** a single `seedDocument()` helper now handles all four write
+paths (pages, blog posts, case studies, site settings). Default behavior is
+fill-in-the-blanks:
+
+- Document doesn't exist → seeded in full, as before.
+- Document exists → only fields that are *still empty on it* get written.
+  Anything with a value already - whether seeded earlier or typed in Studio -
+  is left alone.
+- `MIGRATE_FORCE=1` restores the old overwrite-everything behavior for when
+  the snapshot is deliberately meant to win (fresh dataset, or re-applying an
+  edited `caseStudyLayouts.json`). Exposed as a checkbox on the workflow's
+  manual-run form; **automatic runs on push can never overwrite.**
+
+`false` and `0` count as real values, not blanks, so a deliberately-unticked
+boolean in Studio doesn't get flipped back on the next run.
+
+**Tradeoff accepted:** editing an existing entry in `caseStudyLayouts.json`
+no longer applies on a plain push - it needs a manual forced run. That's the
+right default now that Sanity, not the JSON snapshot, is the source of truth
+for content that already landed.
+
+**Verified for real, not just structurally:** `seedDocument.test.mjs` runs 21
+checks against a fake client covering every rule above (no network or
+credentials needed), and `migrate-content.yml` now runs it as a required step
+*before* the migration, so a regression in these rules blocks the job rather
+than quietly destroying content. Also confirmed the new
+run-only-when-invoked-directly guard doesn't break CI: running the script
+directly still reaches the migration (fails at the sandbox's network
+boundary, as expected), while importing it for tests does not.
+
 ---
 
 ## Appendix: raw findings from Webflow extraction (for resuming case study work)

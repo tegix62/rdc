@@ -76,7 +76,6 @@ async function main() {
   await client
     .patch(doc._id)
     .set({
-      accentColor: '#EDE6D6',
       credits: [
         {_key: key(), role: 'PLACEHOLDER Creative Direction', name: 'Chris Rumeau'},
         {_key: key(), role: 'PLACEHOLDER Illustration', name: 'Chris Rumeau'},
@@ -84,6 +83,7 @@ async function main() {
       ],
       sections,
     })
+    .unset(['accentColor'])
     .commit()
 
   console.log(`Patched ${doc.title} (${doc._id}) with example sections.`)

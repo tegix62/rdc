@@ -789,7 +789,7 @@ main {
 }
 
 .work-identity__mark img {
-  max-height: 3.5rem;
+  max-height: 6rem;
   width: auto;
   filter: brightness(200%) grayscale(100%);
   mix-blend-mode: screen;

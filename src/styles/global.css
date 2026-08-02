@@ -644,7 +644,21 @@ main {
    Webflow site's custom code. --pf-col-w is set by client-side JS; the
    fallback below only applies before that script runs. */
 .pf-section {
-  padding: var(--space-4) 0 var(--space-6);
+  /* Cancels out .wrap's side padding so the grid can run much closer to
+     the edge than the rest of the site, matching the live Portfolio
+     page's near-full-bleed container. */
+  margin-left: calc(-1 * var(--space-3));
+  margin-right: calc(-1 * var(--space-3));
+  padding: var(--space-4) var(--space-1) var(--space-6);
+}
+
+@media (max-width: 40rem) {
+  .pf-section {
+    margin-left: calc(-1 * var(--space-2));
+    margin-right: calc(-1 * var(--space-2));
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
 }
 
 .pf-controls {
@@ -652,7 +666,14 @@ main {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-1);
-  margin-bottom: var(--space-3);
+  margin: 0 var(--space-2) var(--space-3);
+}
+
+@media (max-width: 40rem) {
+  .pf-controls {
+    margin-left: var(--space-1);
+    margin-right: var(--space-1);
+  }
 }
 
 .pf-btn {
@@ -700,9 +721,15 @@ main {
   float: left;
 }
 
+@media (max-width: 30rem) {
+  .pf-sizer,
+  .pf-item {
+    padding: 0.15rem;
+  }
+}
+
 .pf-item {
   cursor: pointer;
-  aspect-ratio: 1 / 1;
 }
 
 .pf-item.is-expanded {
@@ -712,8 +739,7 @@ main {
 .pf-item__img {
   display: block;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
 }
 
 .swatch {

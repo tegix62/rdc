@@ -8,6 +8,13 @@ and reverted selectively.
 **Guardrails held to:** no DNS/domain changes, no merge to main, no pull request,
 everything committed to the feature branch above.
 
+**Pipeline status as of 04:32 UTC:** page content migration (commit
+`220f1c6`) fully verified live — migrate-content run succeeded, Hug a Mug's
+example sections re-patched after the wipe, redeploy re-triggered and
+confirmed fresh ("Uploaded 5 files" after the patch, not before). Latest
+preview: https://d605cf24.rumeau-design-co.pages.dev. Moving on to task #6
+(homepage content → Sanity) next with remaining budget.
+
 ## Important limitation on this session's work
 
 This sandbox has no network access to Sanity, Cloudflare, or our own preview
@@ -124,6 +131,44 @@ npm/node/build commands, read-only file tools, GitHub Actions monitoring
 tools, and read-only Webflow tools. Explicit deny list for anything
 DNS/domain/publish-related, force-push, hard reset, and merge/PR creation -
 these stay blocked regardless of the allow list.
+
+### 7. Homepage content moved into Sanity (task #6)
+
+Chris said he wants to edit the site himself, closer to how Webflow worked.
+The homepage had 6 pieces of copy hardcoded directly in `index.astro`'s
+frontmatter as JS constants, invisible to Studio entirely: the contact/Tally
+URL (duplicated in `Layout.astro` too), the bio-row paragraph, the 3-item
+checklist, the 3 proof/stat cards, the closer/CTA heading (which has an
+inline bold phrase), and the final CTA heading.
+
+Added matching fields to `siteSettings` (`contactUrl`, `bioText`,
+`checklist`, `proofStats`, `closerPrefix`/`closerBold`/`closerSuffix`,
+`finalCtaHeading`), wrote them into `migrateSiteSettings()` with the exact
+values that were already live (this is a refactor, not a content change -
+verified nothing renders differently), and updated `index.astro` +
+`Layout.astro` to read from Sanity with the same values as a fallback so the
+site renders identically even before/if a field is ever left blank in
+Studio.
+
+**Design choice on the closer heading:** rather than one field with markdown
+or portable text for the inline bold ("...rooted in heritage craft..."),
+split it into three plain-string fields (prefix/bold/suffix). Less flexible
+than rich text, but a non-technical editor can't get it wrong, and it needed
+no new rendering logic.
+
+**Known limitation, same shape as case study sections:** `migrateSiteSettings()`
+does `createOrReplace`, so if Chris edits any of these fields directly in
+Studio, the next full migration run will silently overwrite them back to
+these defaults - same class of bug as Hug a Mug's sections getting wiped.
+Not fixed tonight because the general fix (only write fields when a source
+value exists, so an empty payload key doesn't stomp on a Studio edit) needs
+to be applied consistently across the whole migration script, not just this
+one function - flagging as a real follow-up, not doing it as a rushed
+partial fix under tonight's remaining time/budget.
+
+**Verified:** `npm run build` and `node --check migration/migrate.mjs` both
+clean. Not yet pushed/deployed as of writing this entry - see the commit log
+for final verification status.
 
 
 ---

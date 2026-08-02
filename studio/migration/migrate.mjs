@@ -389,6 +389,13 @@ async function migrateSiteSettings() {
     if (logo) clientLogos.push({_key: cryptoRandomKey(), _type: 'object', logo, alt: src.alt, href: src.href})
   }
 
+  // Homepage copy that used to be hardcoded in index.astro. Moved here so
+  // it's editable in Studio - values are exactly what was already live on
+  // the site, this is a refactor not a content change. createOrReplace()
+  // would otherwise wipe any edits made in Studio on the next migration
+  // run, same issue as case study sections - if that becomes a problem,
+  // this block should move to an editorial-only patch like
+  // exampleSections.mjs rather than living in the main migration.
   await client.createOrReplace({
     _id: 'siteSettings',
     _type: 'siteSettings',
@@ -402,6 +409,45 @@ async function migrateSiteSettings() {
     socialLinks: [
       {_key: cryptoRandomKey(), platform: 'Instagram', url: 'https://www.instagram.com/rumeaudesign.co'},
     ],
+    contactUrl: 'https://tally.so/r/mZ8LXz',
+    bioText:
+      'Chris Rumeau is a brand designer, illustrator, and typographer building visual ' +
+      'identities rooted in heritage craft and hand-drawn precision.',
+    checklist: [
+      'Hand-drawn from the first sketch',
+      'Deep vintage typography research',
+      'Designed for fabric, not just screens',
+    ],
+    proofStats: [
+      {
+        _key: cryptoRandomKey(),
+        stat: '22% Increase',
+        rest: ' in yearly revenue using RDC Branding.',
+        name: 'Anabel D.',
+        org: 'Hug a Mug Coffeehouse',
+        href: '/work/hug-a-mug',
+      },
+      {
+        _key: cryptoRandomKey(),
+        stat: '16,000 Weekly Listeners',
+        rest: ' in 6 months, using with RDC.',
+        name: 'Jonathan Bell',
+        org: 'DumpStat Podcast',
+        href: '/work/dumpstat',
+      },
+      {
+        _key: cryptoRandomKey(),
+        stat: '$3500',
+        rest: ' in first-day merch revenue with RDC.',
+        name: 'Adelante Barbell Club',
+        org: 'Union, New Jersey',
+        href: '/work/adelante-barbell-club',
+      },
+    ],
+    closerPrefix: 'Hand-drawn brand identity and merch design, ',
+    closerBold: 'rooted in heritage craft',
+    closerSuffix: ' and built to perform on fabric.',
+    finalCtaHeading: 'DTC Brands and Apparel Companies:',
   })
   console.log('  - Site Settings')
 }

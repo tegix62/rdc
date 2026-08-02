@@ -75,6 +75,67 @@ export default defineType({
         },
       ],
     }),
+    defineField({
+      name: 'contactUrl',
+      title: 'Contact Form URL',
+      type: 'url',
+      description: 'Used by every "Let\'s Work" / "Get in Touch" button and the nav Contact button site-wide.',
+    }),
+    defineField({
+      name: 'bioText',
+      title: 'Homepage Bio Text',
+      type: 'text',
+      rows: 3,
+    }),
+    defineField({
+      name: 'checklist',
+      title: 'Homepage Checklist',
+      type: 'array',
+      description: 'The 3 checkmark items under the proof/metrics row.',
+      of: [{type: 'string'}],
+    }),
+    defineField({
+      name: 'proofStats',
+      title: 'Homepage Proof Stats',
+      type: 'array',
+      description: 'The 3 metric cards on the homepage (revenue/listeners/etc). Each links to a case study.',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            {name: 'stat', title: 'Stat (bolded lead-in)', type: 'string'},
+            {name: 'rest', title: 'Rest of the sentence', type: 'string'},
+            {name: 'name', type: 'string'},
+            {name: 'org', title: 'Organization', type: 'string'},
+            {name: 'href', title: 'Link (e.g. /work/hug-a-mug)', type: 'string'},
+          ],
+        },
+      ],
+    }),
+    defineField({
+      name: 'closerPrefix',
+      title: 'Homepage Closer - Prefix',
+      type: 'text',
+      rows: 2,
+      description: 'Text before the bolded phrase in the closer/CTA card.',
+    }),
+    defineField({
+      name: 'closerBold',
+      title: 'Homepage Closer - Bolded Phrase',
+      type: 'string',
+    }),
+    defineField({
+      name: 'closerSuffix',
+      title: 'Homepage Closer - Suffix',
+      type: 'text',
+      rows: 2,
+      description: 'Text after the bolded phrase in the closer/CTA card.',
+    }),
+    defineField({
+      name: 'finalCtaHeading',
+      title: 'Final CTA Heading',
+      type: 'string',
+    }),
   ],
   preview: {
     prepare() {

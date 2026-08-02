@@ -3,41 +3,59 @@ import Layout from '../layouts/Layout.astro';
 import { getPage, getSiteSettings } from '../lib/queries';
 import { urlFor } from '../lib/image';
 
-const TALLY_URL = 'https://tally.so/r/mZ8LXz';
-
 const page = await getPage('home');
 const settings = await getSiteSettings();
 const clientLogos = settings?.clientLogos ?? [];
 
-const checklist = [
-  'Hand-drawn from the first sketch',
-  'Deep vintage typography research',
-  'Designed for fabric, not just screens',
-];
+// Editable in Studio under Site Settings. Fallbacks match what was already
+// live on the site, so nothing changes visually if a field is left blank.
+const TALLY_URL = settings?.contactUrl || 'https://tally.so/r/mZ8LXz';
 
-const proofStats = [
-  {
-    stat: '22% Increase',
-    rest: ' in yearly revenue using RDC Branding.',
-    name: 'Anabel D.',
-    org: 'Hug a Mug Coffeehouse',
-    href: '/work/hug-a-mug',
-  },
-  {
-    stat: '16,000 Weekly Listeners',
-    rest: ' in 6 months, using with RDC.',
-    name: 'Jonathan Bell',
-    org: 'DumpStat Podcast',
-    href: '/work/dumpstat',
-  },
-  {
-    stat: '$3500',
-    rest: ' in first-day merch revenue with RDC.',
-    name: 'Adelante Barbell Club',
-    org: 'Union, New Jersey',
-    href: '/work/adelante-barbell-club',
-  },
-];
+const bioText =
+  settings?.bioText ||
+  'Chris Rumeau is a brand designer, illustrator, and typographer building visual ' +
+    'identities rooted in heritage craft and hand-drawn precision.';
+
+const checklist =
+  settings?.checklist?.length > 0
+    ? settings.checklist
+    : [
+        'Hand-drawn from the first sketch',
+        'Deep vintage typography research',
+        'Designed for fabric, not just screens',
+      ];
+
+const proofStats =
+  settings?.proofStats?.length > 0
+    ? settings.proofStats
+    : [
+        {
+          stat: '22% Increase',
+          rest: ' in yearly revenue using RDC Branding.',
+          name: 'Anabel D.',
+          org: 'Hug a Mug Coffeehouse',
+          href: '/work/hug-a-mug',
+        },
+        {
+          stat: '16,000 Weekly Listeners',
+          rest: ' in 6 months, using with RDC.',
+          name: 'Jonathan Bell',
+          org: 'DumpStat Podcast',
+          href: '/work/dumpstat',
+        },
+        {
+          stat: '$3500',
+          rest: ' in first-day merch revenue with RDC.',
+          name: 'Adelante Barbell Club',
+          org: 'Union, New Jersey',
+          href: '/work/adelante-barbell-club',
+        },
+      ];
+
+const closerPrefix = settings?.closerPrefix || 'Hand-drawn brand identity and merch design, ';
+const closerBold = settings?.closerBold || 'rooted in heritage craft';
+const closerSuffix = settings?.closerSuffix || ' and built to perform on fabric.';
+const finalCtaHeading = settings?.finalCtaHeading || 'DTC Brands and Apparel Companies:';
 
 const heroStyle = settings?.heroBackground
   ? `--hero-bg-image: url(${urlFor(settings.heroBackground).width(1800).url()})`
@@ -64,10 +82,7 @@ const proofBandStyle = settings?.proofBandBackground
   </div>
 
   <section class="bio-row">
-    <h2 class="bio-row__text">
-      Chris Rumeau is a brand designer, illustrator, and typographer building visual
-      identities rooted in heritage craft and hand-drawn precision.
-    </h2>
+    <h2 class="bio-row__text">{bioText}</h2>
     <!-- Background video pending - drop the source file in and swap this placeholder for a <video>. -->
     <div class="video-placeholder" role="img" aria-label="Process video coming soon"></div>
   </section>
@@ -89,7 +104,7 @@ const proofBandStyle = settings?.proofBandBackground
   <section class="proof-band" style={proofBandStyle}>
     <div class="proof-band__inner">
       <div class="proof-row">
-        {proofStats.map((p) => (
+        {proofStats.map((p: any) => (
           <a class="proof-card" href={p.href}>
             <h3 class="proof-card__stat"><strong>{p.stat}</strong>{p.rest}</h3>
             <div class="proof-card__rating" aria-hidden="true">
@@ -104,15 +119,14 @@ const proofBandStyle = settings?.proofBandBackground
 
         <div class="proof-card proof-card--closer">
           <h2 class="closer__heading">
-            Hand-drawn brand identity and merch design, <strong>rooted in heritage craft</strong> and built to
-            perform on fabric.
+            {closerPrefix}<strong>{closerBold}</strong>{closerSuffix}
           </h2>
           <a class="button button--dark" href={TALLY_URL}>Let's Work</a>
         </div>
       </div>
 
       <div class="checklist">
-        {checklist.map((item) => (
+        {checklist.map((item: string) => (
           <div class="checklist__item">
             <span class="checklist__check" aria-hidden="true">&#10003;</span>
             <p>{item}</p>
@@ -127,7 +141,7 @@ const proofBandStyle = settings?.proofBandBackground
       <img class="final-cta__portrait" src={urlFor(settings.portrait).height(840).url()} alt="Chris Rumeau, founder of Rumeau Design Co" />
     )}
     <div class="final-cta__card">
-      <h3>DTC Brands and Apparel Companies:</h3>
+      <h3>{finalCtaHeading}</h3>
       <a class="button button--white" href={TALLY_URL}>Let's Work</a>
     </div>
   </section>

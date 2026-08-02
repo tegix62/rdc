@@ -2,6 +2,10 @@ name: Populate example case study sections
 
 on:
   workflow_dispatch: {}
+  push:
+    branches: [main, 'claude/**']
+    paths:
+      - '.github/workflows/example-sections.yml'
 
 jobs:
   populate:

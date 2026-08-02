@@ -65,8 +65,39 @@ const TALLY_URL = 'https://tally.so/r/mZ8LXz';
       <slot />
     </main>
     <footer class="site-footer">
-      <div class="wrap">
-        <p>&copy; {new Date().getFullYear()} Rumeau Design Co.</p>
+      <div class="wrap site-footer__top">
+        <a class="site-footer__brand" href="/">
+          {settings?.logo ? (
+            <img src={urlFor(settings.logo).height(60).url()} alt="Rumeau Design Co" />
+          ) : (
+            'Rumeau Design Co'
+          )}
+        </a>
+
+        <div class="site-footer__col">
+          <p class="site-footer__heading">Follow</p>
+          {settings?.socialLinks?.length > 0 ? (
+            settings.socialLinks.map((s: any) =>
+              s.url ? (
+                <a class="site-footer__social-link" href={s.url} target="_blank" rel="noopener noreferrer">
+                  {s.platform}
+                </a>
+              ) : null,
+            )
+          ) : (
+            <p class="site-footer__muted">No social links yet</p>
+          )}
+        </div>
+
+        <div class="site-footer__col">
+          <p class="site-footer__heading">Contact</p>
+          <a class="button button--dark" href={TALLY_URL}>Get in Touch</a>
+        </div>
+      </div>
+
+      <div class="wrap site-footer__bottom">
+        <p>&copy; {new Date().getFullYear()} Rumeau Design LLC. All rights reserved.</p>
+        <a href="/privacy-policy">Privacy Policy</a>
       </div>
     </footer>
     <style is:global>

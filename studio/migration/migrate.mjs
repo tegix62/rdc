@@ -314,6 +314,9 @@ async function migrateSiteSettings() {
     proofBandBackground,
     logo,
     clientLogos,
+    socialLinks: [
+      {_key: cryptoRandomKey(), platform: 'Instagram', url: 'https://www.instagram.com/rumeaudesign.co'},
+    ],
   })
   console.log('  - Site Settings')
 }

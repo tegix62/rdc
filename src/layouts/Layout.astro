@@ -36,7 +36,19 @@ const navLinks = [
     <header class="wrap">
       <nav class="site-nav">
         <a class="site-nav__brand" href="/">Rumeau Design Co</a>
-        {navLinks.map((link) => <a href={link.href}>{link.label}</a>)}
+        <button
+          type="button"
+          class="site-nav__toggle"
+          id="site-nav-toggle"
+          aria-expanded="false"
+          aria-controls="site-nav-links"
+          aria-label="Toggle menu"
+        >
+          <span></span><span></span><span></span>
+        </button>
+        <div class="site-nav__links" id="site-nav-links">
+          {navLinks.map((link) => <a href={link.href}>{link.label}</a>)}
+        </div>
       </nav>
     </header>
     <main class="wrap">
@@ -57,6 +69,14 @@ const navLinks = [
         -webkit-touch-callout: none;
       }
     </style>
+    <script>
+      const navToggle = document.querySelector<HTMLButtonElement>('#site-nav-toggle');
+      const navLinks = document.querySelector<HTMLElement>('#site-nav-links');
+      navToggle?.addEventListener('click', () => {
+        const isOpen = navLinks?.classList.toggle('is-open');
+        navToggle.setAttribute('aria-expanded', String(!!isOpen));
+      });
+    </script>
     <script>
       // Ported from the Webflow site: blocks right-click save and
       // drag-to-desktop on images, site-wide.

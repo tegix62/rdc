@@ -1,23 +1,140 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { getPage, getCaseStudies } from '../lib/queries';
+import { getPage, getAllGridItems } from '../lib/queries';
 import { urlFor } from '../lib/image';
 
 const page = await getPage('portfolio');
-const caseStudies = await getCaseStudies();
+const items = await getAllGridItems();
+
+// Groups Typography and Illustration under one "Type/Lettering" filter
+// button, matching the filter bar on the live site.
+const CATEGORY_FILTER: Record<string, string> = {
+  'Brand Identity': 'brand-identity',
+  'Merch & Apparel': 'merch-apparel',
+  Typography: 'type-lettering',
+  Illustration: 'type-lettering',
+  Photography: 'photography',
+};
+
+const filters = [
+  { value: '*', label: 'All' },
+  { value: '.brand-identity', label: 'Brand Identity' },
+  { value: '.merch-apparel', label: 'Merch & Apparel' },
+  { value: '.type-lettering', label: 'Type/Lettering' },
+  { value: '.photography', label: 'Photography' },
+];
 ---
 
 <Layout title={page?.title ?? 'Portfolio'} description={page?.seoDescription}>
-  <h1>{page?.title ?? 'Portfolio'}</h1>
-  <div class="grid">
-    {caseStudies.map((cs: any) => (
-      <a class="card" href={`/work/${cs.slug.current}`}>
-        {(cs.thumbnail || cs.mainImage) && (
-          <img src={urlFor(cs.thumbnail || cs.mainImage).width(600).height(750).fit('crop').url()} alt={cs.title} />
-        )}
-        <p class="card__title">{cs.title}</p>
-        {cs.category && <p class="card__meta">{cs.category}</p>}
-      </a>
-    ))}
-  </div>
+  <section class="pf-section">
+    <div class="pf-controls" id="pf-controls">
+      {filters.map((f, i) => (
+        <button type="button" class:list={['pf-btn', i === 0 && 'is-active']} data-filter={f.value}>
+          {f.label}
+        </button>
+      ))}
+      <span class="pf-divider" aria-hidden="true"></span>
+      <button type="button" class="pf-btn" id="pf-shuffle">Shuffle</button>
+      <button type="button" class="pf-btn" id="pf-minus" aria-label="Smaller tiles">&minus;</button>
+      <button type="button" class="pf-btn" id="pf-plus" aria-label="Larger tiles">+</button>
+    </div>
+
+    <div class="pf-grid" id="pf-grid">
+      {items.map((item: any) => {
+        const img = item.thumbnail || item.mainImage;
+        const cat = CATEGORY_FILTER[item.category] ?? '';
+        return img ? (
+          <div class="pf-item" data-category={cat}>
+            <img class="pf-item__img" src={urlFor(img).width(800).url()} alt={item.title} loading="lazy" />
+          </div>
+        ) : null;
+      })}
+    </div>
+    {items.length === 0 && <p>No items found.</p>}
+  </section>
 </Layout>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.isotope/3.0.6/isotope.pkgd.min.js"></script>
+<script src="https://unpkg.com/imagesloaded@5/imagesloaded.pkgd.min.js"></script>
+<script>
+  declare const Isotope: any;
+  declare const imagesLoaded: any;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const grid = document.querySelector<HTMLElement>('#pf-grid');
+    if (!grid) return;
+
+    const sizer = document.createElement('div');
+    sizer.className = 'pf-sizer';
+    grid.insertBefore(sizer, grid.firstChild);
+
+    let cols = window.innerWidth < 768 ? 3 : 6;
+
+    function setColWidth() {
+      grid!.style.setProperty('--pf-col-w', 100 / cols + '%');
+    }
+    setColWidth();
+
+    const iso = new Isotope(grid, {
+      itemSelector: '.pf-item',
+      layoutMode: 'masonry',
+      masonry: { columnWidth: '.pf-sizer', gutter: 0 },
+      percentPosition: true,
+      transitionDuration: 0,
+    });
+
+    imagesLoaded(grid).on('progress', () => iso.layout());
+
+    document.querySelectorAll<HTMLElement>('.pf-btn[data-filter]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const filterVal = btn.dataset.filter!;
+        const allBtn = document.querySelector<HTMLElement>('.pf-btn[data-filter="*"]');
+        if (filterVal === '*') {
+          document.querySelectorAll('.pf-btn[data-filter]').forEach((b) => b.classList.remove('is-active'));
+          btn.classList.add('is-active');
+          iso.arrange({ filter: '*' });
+          return;
+        }
+        btn.classList.toggle('is-active');
+        const activeFilters = Array.from(document.querySelectorAll('.pf-btn[data-filter].is-active'))
+          .map((b) => (b as HTMLElement).dataset.filter)
+          .filter((f) => f !== '*');
+        if (activeFilters.length === 0) {
+          allBtn?.classList.add('is-active');
+          iso.arrange({ filter: '*' });
+        } else {
+          allBtn?.classList.remove('is-active');
+          iso.arrange({ filter: activeFilters.join(', ') });
+        }
+      });
+    });
+
+    document.querySelector('#pf-shuffle')?.addEventListener('click', () => iso.shuffle());
+
+    function updateCols() {
+      setColWidth();
+      iso.layout();
+    }
+    document.querySelector('#pf-plus')?.addEventListener('click', () => {
+      if (cols > 1) {
+        cols--;
+        updateCols();
+      }
+    });
+    document.querySelector('#pf-minus')?.addEventListener('click', () => {
+      if (cols < 12) {
+        cols++;
+        updateCols();
+      }
+    });
+
+    grid.addEventListener('click', (e) => {
+      const item = (e.target as HTMLElement).closest<HTMLElement>('.pf-item');
+      if (!item) return;
+      const wasExpanded = item.classList.contains('is-expanded');
+      grid.querySelectorAll('.pf-item.is-expanded').forEach((el) => el.classList.remove('is-expanded'));
+      if (!wasExpanded) item.classList.add('is-expanded');
+      iso.layout();
+    });
+  });
+</script>

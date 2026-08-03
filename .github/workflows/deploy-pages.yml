@@ -94,3 +94,35 @@ jobs:
           echo "STABLE_ALIAS=$STABLE"
           echo "STABLE_ALIAS_STATUS=$status"
           echo "THIS_DEPLOY=${{ steps.pages.outputs.url }}"
+
+      # Every template falls back to a "Content coming soon" placeholder when
+      # its Sanity document is missing or empty. That renders a perfectly
+      # healthy 200, so a page can quietly lose its content and nothing here
+      # notices - which is exactly what happened to About and Video earlier in
+      # this port, and what a half-finished migration would do again.
+      - name: Smoke test - no page fell back to a placeholder
+        run: |
+          BASE="https://preview.rumeau-design-co.pages.dev"
+          PATHS="/ /portfolio /about /video /collage /merchfolio /ms-paint /blog /privacy-policy"
+          empty=""
+          for p in $PATHS; do
+            body=$(curl -sL --max-time 20 "$BASE$p" || echo "")
+            code=$(curl -sL -o /dev/null -w "%{http_code}" --max-time 20 "$BASE$p" || echo 000)
+            if [ "$code" != "200" ]; then
+              echo "  $p -> HTTP $code"; empty="$empty $p(http:$code)"
+            elif printf '%s' "$body" | grep -q "Content coming soon"; then
+              echo "  $p -> 200 but showing the placeholder"; empty="$empty $p(placeholder)"
+            else
+              echo "  $p -> ok"
+            fi
+          done
+
+          if [ -n "$empty" ]; then
+            echo "::warning::Pages with no content:$empty"
+            {
+              echo ""
+              echo "**⚠️ Pages showing no content:**$empty"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "all pages returned real content"
+          fi

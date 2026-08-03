@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import Img from '../../components/Img.astro';
 import { getPage, getBlogPosts } from '../../lib/queries';
 import { urlFor } from '../../lib/image';
 
@@ -13,7 +14,13 @@ const posts = await getBlogPosts();
     {posts.map((post: any) => (
       <a class="card" href={`/blog/${post.slug.current}`}>
         {(post.thumbnailImage || post.mainImage) && (
-          <img src={urlFor(post.thumbnailImage || post.mainImage).width(600).height(400).fit('crop').url()} alt={post.title} />
+          <Img
+            image={post.thumbnailImage || post.mainImage}
+            alt={post.title}
+            width={600}
+            height={400}
+            sizes="(max-width: 40rem) 100vw, 33vw"
+          />
         )}
         <p class="card__title">{post.title}</p>
         {post.excerpt && <p class="card__meta">{post.excerpt}</p>}

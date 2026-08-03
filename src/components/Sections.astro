@@ -5,6 +5,7 @@
   and there's only one place to change when a block type is added.
 */
 import { urlFor } from '../lib/image';
+import Img from './Img.astro';
 import { renderPortableText } from '../lib/portableText';
 
 interface Props {
@@ -43,21 +44,17 @@ function embedUrl(url: string) {
     case 'fullImageSection':
       return section.image ? (
         <div class="work-section work-section--full">
-          <img
-            src={urlFor(section.image).width(2000).url()}
-            alt={section.alt ?? ''}
-            loading="lazy"
-          />
+          <Img image={section.image} alt={section.alt ?? ''} width={2000} sizes="100vw" />
         </div>
       ) : null;
     case 'twoUpSection':
       return (
         <div class="work-section work-section--two-up">
           {section.imageLeft && (
-            <img src={urlFor(section.imageLeft).width(1200).url()} alt="" loading="lazy" />
+            <Img image={section.imageLeft} alt="" width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
           )}
           {section.imageRight && (
-            <img src={urlFor(section.imageRight).width(1200).url()} alt="" loading="lazy" />
+            <Img image={section.imageRight} alt="" width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
           )}
         </div>
       );
@@ -65,7 +62,8 @@ function embedUrl(url: string) {
       return (
         <div class="work-section work-section--three-up">
           {[section.imageOne, section.imageTwo, section.imageThree].map(
-            (img: any) => img && <img src={urlFor(img).width(800).url()} alt="" loading="lazy" />,
+            (img: any) =>
+              img && <Img image={img} alt="" width={800} sizes="(max-width: 40rem) 100vw, 33vw" />,
           )}
         </div>
       );
@@ -79,7 +77,7 @@ function embedUrl(url: string) {
           ]}
         >
           {section.image && (
-            <img src={urlFor(section.image).width(1200).url()} alt="" loading="lazy" />
+            <Img image={section.image} alt="" width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
           )}
           <div class="work-section__text">
             {section.heading && <h3>{section.heading}</h3>}
@@ -130,10 +128,10 @@ function embedUrl(url: string) {
         <div class="work-section work-section--achievements">
           <div class="work-section--achievements__images">
             {section.imageLeft && (
-              <img src={urlFor(section.imageLeft).width(1200).url()} alt="" loading="lazy" />
+              <Img image={section.imageLeft} alt="" width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
             )}
             {section.imageRight && (
-              <img src={urlFor(section.imageRight).width(1200).url()} alt="" loading="lazy" />
+              <Img image={section.imageRight} alt="" width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
             )}
           </div>
           {section.items?.length > 0 && <div set:html={renderPortableText(section.items)} />}

@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import Img from '../../components/Img.astro';
 import Sections from '../../components/Sections.astro';
 import { sanityClient } from '../../lib/sanity';
 import { getCaseStudy, getGridItems, getOtherCaseStudies } from '../../lib/queries';
@@ -28,7 +29,14 @@ const bandStyle = caseStudy.accentColor ? `--work-accent: ${caseStudy.accentColo
 <Layout title={caseStudy.title} description={caseStudy.oneLineSummary}>
   {caseStudy.mainImage && (
     <div class="work-hero full-bleed">
-      <img src={urlFor(caseStudy.mainImage).width(2400).url()} alt={caseStudy.title} />
+      <Img
+        image={caseStudy.mainImage}
+        alt={caseStudy.title}
+        width={2400}
+        sizes="100vw"
+        loading="eager"
+        fetchpriority="high"
+      />
     </div>
   )}
 
@@ -45,7 +53,7 @@ const bandStyle = caseStudy.accentColor ? `--work-accent: ${caseStudy.accentColo
         <div class="work-identity__aside">
           {caseStudy.clientLogo && (
             <div class="work-identity__mark">
-              <img src={urlFor(caseStudy.clientLogo).height(120).url()} alt={caseStudy.client ?? ''} />
+              <Img image={caseStudy.clientLogo} alt={caseStudy.client ?? ''} width={340} sizes="170px" />
             </div>
           )}
           {caseStudy.credits?.length > 0 && (
@@ -79,7 +87,7 @@ const bandStyle = caseStudy.accentColor ? `--work-accent: ${caseStudy.accentColo
         caseStudy[field]?.length > 0 ? (
           <div class="grid">
             {caseStudy[field].map((img: any) => (
-              <img src={urlFor(img).width(800).url()} alt="" loading="lazy" />
+              <Img image={img} alt="" width={800} sizes="(max-width: 40rem) 100vw, 33vw" />
             ))}
           </div>
         ) : null,
@@ -89,7 +97,7 @@ const bandStyle = caseStudy.accentColor ? `--work-accent: ${caseStudy.accentColo
           {gridItems.map(
             (item: any) =>
               item.thumbnail && (
-                <img src={urlFor(item.thumbnail).width(800).url()} alt={item.title} loading="lazy" />
+                <Img image={item.thumbnail} alt={item.title} width={800} sizes="(max-width: 40rem) 100vw, 33vw" />
               ),
           )}
         </div>
@@ -105,7 +113,15 @@ const bandStyle = caseStudy.accentColor ? `--work-accent: ${caseStudy.accentColo
           const img = item.thumbnail || item.mainImage;
           return (
             <a class="card" href={`/work/${item.slug.current}`}>
-              {img && <img src={urlFor(img).width(600).height(750).fit('crop').url()} alt={item.title} loading="lazy" />}
+              {img && (
+                <Img
+                  image={img}
+                  alt={item.title}
+                  width={600}
+                  height={750}
+                  sizes="(max-width: 40rem) 33vw, 25vw"
+                />
+              )}
               <p class="card__title">{item.title}</p>
               {item.client && <p class="card__meta">{item.client}</p>}
             </a>

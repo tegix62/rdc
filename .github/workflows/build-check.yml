@@ -19,4 +19,8 @@ jobs:
         with:
           node-version: 20
       - run: npm install
+      # A malformed srcset still renders the image - the browser just falls
+      # back to src and quietly stops being responsive - so this can't be
+      # caught by looking at the site.
+      - run: npm run test:images
       - run: npm run build

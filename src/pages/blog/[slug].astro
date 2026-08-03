@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import Img from '../../components/Img.astro';
 import { sanityClient } from '../../lib/sanity';
 import { getBlogPost } from '../../lib/queries';
 import { urlFor } from '../../lib/image';
@@ -25,7 +26,7 @@ if (!post) {
       {post.publishedAt && ` · ${new Date(post.publishedAt).toLocaleDateString()}`}
     </p>
     {post.mainImage && (
-      <img src={urlFor(post.mainImage).width(1600).url()} alt={post.title} />
+      <Img image={post.mainImage} alt={post.title} width={1600} sizes="100vw" loading="eager" fetchpriority="high" />
     )}
     {post.body?.length > 0 && (
       <div class="prose" set:html={renderPortableText(post.body)} />

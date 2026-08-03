@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Img from '../components/Img.astro';
 import { getPage, getSiteSettings } from '../lib/queries';
 import { urlFor } from '../lib/image';
 
@@ -93,7 +94,7 @@ const proofBandStyle = settings?.proofBandBackground
         {clientLogos.map((item: any) =>
           item.logo ? (
             <a href={item.href || '#'} class="logo-strip__item">
-              <img src={urlFor(item.logo).height(150).url()} alt={item.alt || ''} loading="lazy" />
+              <Img image={item.logo} alt={item.alt || ''} width={220} sizes="150px" />
             </a>
           ) : null,
         )}
@@ -138,7 +139,13 @@ const proofBandStyle = settings?.proofBandBackground
 
   <section class="final-cta">
     {settings?.portrait && (
-      <img class="final-cta__portrait" src={urlFor(settings.portrait).height(840).url()} alt="Chris Rumeau, founder of Rumeau Design Co" />
+      <Img
+        class="final-cta__portrait"
+        image={settings.portrait}
+        alt="Chris Rumeau, founder of Rumeau Design Co"
+        width={700}
+        sizes="(max-width: 40rem) 100vw, 40vw"
+      />
     )}
     <div class="final-cta__card">
       <h3>{finalCtaHeading}</h3>

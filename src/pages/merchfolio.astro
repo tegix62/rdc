@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Img from '../components/Img.astro';
 import { getPage, getMerchItems } from '../lib/queries';
 import { urlFor } from '../lib/image';
 
@@ -19,7 +20,13 @@ function linkFor(item: any) {
     {items.map((item: any) => (
       <a class="card" href={linkFor(item)}>
         {(item.thumbnail || item.mainImage) && (
-          <img src={urlFor(item.thumbnail || item.mainImage).width(600).height(600).fit('crop').url()} alt={item.title} />
+          <Img
+            image={item.thumbnail || item.mainImage}
+            alt={item.title}
+            width={600}
+            height={600}
+            sizes="(max-width: 40rem) 50vw, 25vw"
+          />
         )}
         <p class="card__title">{item.title}</p>
       </a>

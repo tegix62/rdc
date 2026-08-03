@@ -1,0 +1,72 @@
+---
+/*
+  One <img> for the whole site, so responsive sizing and layout stability
+  can't be forgotten per call site - which is how all 21 images ended up
+  without dimensions or a srcset in the first place.
+
+  Emits:
+  - width/height, so the browser reserves the right box before the file
+    arrives and the page doesn't reflow as you scroll
+  - srcset/sizes, so a phone fetches a phone-sized file instead of the one
+    size that happened to suit a desktop hero
+  - a format-negotiated src via urlFor()
+
+  Pass `width`/`height` together to crop to a fixed ratio; pass `width`
+  alone to keep the source's own aspect.
+*/
+import { urlFor, imageDimensions, buildSrcSet } from '../lib/image';
+
+interface Props {
+  image: any;
+  alt: string;
+  /** Largest width this image is ever rendered at, in CSS pixels. */
+  width: number;
+  /** Only when cropping to a fixed ratio. */
+  height?: number;
+  /** Defaults to full-viewport-width, which is right for most blocks here. */
+  sizes?: string;
+  /** Above-the-fold images should pass "eager". */
+  loading?: 'lazy' | 'eager';
+  fetchpriority?: 'high' | 'low' | 'auto';
+  class?: string;
+}
+
+const {
+  image,
+  alt,
+  width,
+  height,
+  sizes = '100vw',
+  loading = 'lazy',
+  fetchpriority,
+  class: className,
+} = Astro.props;
+
+const cropped = typeof height === 'number';
+const aspect = cropped ? {width, height: height!} : undefined;
+
+// Fall back to the requested box if the reference carries no dimensions, so
+// a malformed asset degrades to "no srcset" rather than breaking the build.
+const intrinsic = imageDimensions(image);
+const ratio = cropped
+  ? {width, height: height!}
+  : intrinsic ?? {width, height: Math.round(width * 0.75)};
+
+let src = urlFor(image).width(width);
+if (cropped) src = src.height(height!).fit('crop');
+
+const srcset = buildSrcSet(image, width, aspect);
+---
+
+<img
+  src={src.url()}
+  srcset={srcset}
+  sizes={srcset ? sizes : undefined}
+  width={ratio.width}
+  height={ratio.height}
+  alt={alt}
+  loading={loading}
+  decoding={loading === 'eager' ? 'sync' : 'async'}
+  fetchpriority={fetchpriority}
+  class={className}
+/>

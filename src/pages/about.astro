@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import { getPage } from '../lib/queries';
 import { renderPortableText } from '../lib/portableText';
-import { urlFor } from '../lib/image';
+import Img from '../components/Img.astro';
 
 const page = await getPage('about');
 ---
@@ -10,10 +10,13 @@ const page = await getPage('about');
 <Layout title={page?.title ?? 'About'} description={page?.seoDescription}>
   <div class="about-layout">
     {page?.heroImage && (
-      <img
+      <Img
         class="about-layout__portrait"
-        src={urlFor(page.heroImage).width(500).url()}
+        image={page.heroImage}
         alt={page.heroAlt ?? 'Chris Rumeau'}
+        width={500}
+        sizes="(max-width: 40rem) 100vw, 500px"
+        loading="eager"
       />
     )}
     <div>

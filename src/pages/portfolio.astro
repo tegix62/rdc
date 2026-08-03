@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Img from '../components/Img.astro';
 import { getPage, getAllGridItems } from '../lib/queries';
 import { urlFor } from '../lib/image';
 
@@ -45,7 +46,7 @@ const filters = [
         const cat = CATEGORY_FILTER[item.category] ?? '';
         return img ? (
           <div class="pf-item" data-category={cat}>
-            <img class="pf-item__img" src={urlFor(img).width(800).url()} alt={item.title} loading="lazy" />
+            <Img class="pf-item__img" image={img} alt={item.title} width={800} sizes="(max-width: 48rem) 33vw, 17vw" />
           </div>
         ) : null;
       })}

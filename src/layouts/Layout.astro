@@ -5,7 +5,7 @@ import '@fontsource/gothic-a1/500.css';
 import '@fontsource/gothic-a1/700.css';
 import '../styles/global.css';
 import { getSiteSettings } from '../lib/queries';
-import { urlFor } from '../lib/image';
+import Img from '../components/Img.astro';
 import VisualEditing from '../components/VisualEditing.astro';
 
 interface Props {
@@ -41,7 +41,7 @@ const TALLY_URL = settings?.contactUrl || 'https://tally.so/r/mZ8LXz';
       <nav class="site-nav__inner">
         <a class="site-nav__brand" href="/">
           {settings?.logo ? (
-            <img src={urlFor(settings.logo).height(96).url()} alt="Rumeau Design Co" />
+            <Img image={settings.logo} alt="Rumeau Design Co" width={260} sizes="130px" loading="eager" />
           ) : (
             'Rumeau Design Co'
           )}
@@ -69,7 +69,7 @@ const TALLY_URL = settings?.contactUrl || 'https://tally.so/r/mZ8LXz';
       <div class="wrap site-footer__top">
         <a class="site-footer__brand" href="/">
           {settings?.logo ? (
-            <img src={urlFor(settings.logo).height(60).url()} alt="Rumeau Design Co" />
+            <Img image={settings.logo} alt="Rumeau Design Co" width={200} sizes="100px" />
           ) : (
             'Rumeau Design Co'
           )}

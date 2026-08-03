@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Img from '../components/Img.astro';
+import Sections from '../components/Sections.astro';
 import { getPage, getAllGridItems } from '../lib/queries';
 import { urlFor } from '../lib/image';
 
@@ -16,6 +17,32 @@ const CATEGORY_FILTER: Record<string, string> = {
   Illustration: 'type-lettering',
   Photography: 'photography',
 };
+
+/*
+  A tile whose category isn't in the map above gets no filter class, so it only
+  ever appears under "All" - reachable, but silently absent from every category.
+  That's invisible on the page, so the build says so instead.
+*/
+const unmapped = [
+  ...new Set(
+    items
+      .map((i: any) => i.category)
+      .filter((c: string) => c && !(c in CATEGORY_FILTER)),
+  ),
+];
+if (unmapped.length > 0) {
+  console.warn(
+    `[portfolio] ${unmapped.length} category value(s) have no filter button and ` +
+      `will only show under "All": ${unmapped.join(', ')}`,
+  );
+}
+const uncategorised = items.filter((i: any) => !i.category).length;
+if (uncategorised > 0) {
+  console.warn(
+    `[portfolio] ${uncategorised} grid item(s) have no category at all and will ` +
+      `only show under "All".`,
+  );
+}
 
 const filters = [
   { value: '*', label: 'All' },
@@ -47,8 +74,13 @@ const filters = [
         // Only link to a parent that actually has a page.
         const parentHref =
           item.parentSlug && item.parentType === 'Case Study' ? `/work/${item.parentSlug}` : null;
+        // The category has to be a real CLASS, not just a data attribute:
+        // Isotope filters with CSS selectors (".brand-identity"), so with the
+        // value only in data-category every filter matched zero tiles and the
+        // buttons appeared to do nothing. data-category is kept for styling
+        // and debugging.
         return img ? (
-          <div class="pf-item" data-category={cat}>
+          <div class:list={['pf-item', cat]} data-category={cat}>
             <Img class="pf-item__img" image={img} alt={item.title} width={800} sizes="(max-width: 48rem) 33vw, 17vw" />
             {parentHref && (
               <a class="pf-item__jump" href={parentHref}>
@@ -62,6 +94,12 @@ const filters = [
     </div>
     {items.length === 0 && <p>No items found.</p>}
   </section>
+
+  {page?.sections?.length > 0 && (
+    <div class="page-sections">
+      <Sections sections={page.sections} />
+    </div>
+  )}
 </Layout>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.isotope/3.0.6/isotope.pkgd.min.js"></script>
@@ -99,6 +137,11 @@ const filters = [
       btn.addEventListener('click', () => {
         const filterVal = btn.dataset.filter!;
         const allBtn = document.querySelector<HTMLElement>('.pf-btn[data-filter="*"]');
+
+        // An expanded tile that gets filtered away would keep its expanded
+        // state (and its double width) for when it returns, which reads as a
+        // glitch. Collapse on any filter change.
+        grid.querySelectorAll('.pf-item.is-expanded').forEach((el) => el.classList.remove('is-expanded'));
         if (filterVal === '*') {
           document.querySelectorAll('.pf-btn[data-filter]').forEach((b) => b.classList.remove('is-active'));
           btn.classList.add('is-active');

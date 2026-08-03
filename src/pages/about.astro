@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import { getPage } from '../lib/queries';
 import { renderPortableText } from '../lib/portableText';
 import Img from '../components/Img.astro';
+import Sections from '../components/Sections.astro';
 
 const page = await getPage('about');
 ---
@@ -28,4 +29,10 @@ const page = await getPage('about');
       )}
     </div>
   </div>
+
+  {page?.sections?.length > 0 && (
+    <div class="page-sections">
+      <Sections sections={page.sections} />
+    </div>
+  )}
 </Layout>

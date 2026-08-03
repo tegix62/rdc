@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Img from '../components/Img.astro';
+import Sections from '../components/Sections.astro';
 import { getPage, getSiteSettings } from '../lib/queries';
 import { urlFor } from '../lib/image';
 
@@ -136,6 +137,18 @@ const proofBandStyle = settings?.proofBandBackground
       </div>
     </div>
   </section>
+
+  {/*
+    Editable block slot. The rest of this page is a fixed composition, so
+    anything added to "Page Sections" in Studio lands here - between the
+    checklist and the closing CTA - rather than being freely positionable.
+    Renders nothing when the array is empty.
+  */}
+  {page?.sections?.length > 0 && (
+    <div class="page-sections">
+      <Sections sections={page.sections} />
+    </div>
+  )}
 
   <section class="final-cta">
     {settings?.portrait && (

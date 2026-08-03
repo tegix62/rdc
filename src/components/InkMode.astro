@@ -1,0 +1,135 @@
+---
+/*
+  "Ink mode" - collapses the whole site to one ink colour on coloured stock,
+  after 1980s one-colour offset/riso fantasy zines.
+
+  How it works, and why this way:
+
+  Images are pushed to greyscale, then contrast is cranked, then they are
+  multiplied over the paper colour. Multiply means white areas take the paper
+  colour and dark areas stay dark, which is exactly what one ink on coloured
+  stock does. Crucially this is all `filter` and `mix-blend-mode` - both
+  compositor-friendly - rather than SVG filters, which Chrome does not
+  GPU-accelerate and which would visibly stall a 66-tile portfolio grid.
+
+  Threshold is `contrast()` taken far past 100%, with `brightness()` shifting
+  where the cut falls. That is the cheap 1-bit trick and it is tunable per
+  image, which matters: thresholding destroys low-contrast work, so anything
+  photographic needs a softer setting or none at all.
+
+  The choice is written to <html> before first paint by an inline script, so
+  reloading in ink mode doesn't flash the full-colour site first.
+*/
+
+// Named after the stock colours in the reference zines. `ink` is deliberately
+// near-black rather than pure black - slightly lifted reads more like real
+// press ink and less like a screenshot.
+const PAPERS = [
+  { id: 'bone', label: 'Bone', paper: '#f4efe3', ink: '#141110' },
+  { id: 'blood', label: 'Blood', paper: '#e5473c', ink: '#150605' },
+  { id: 'acid', label: 'Acid', paper: '#c3e84f', ink: '#101504' },
+  { id: 'shock', label: 'Shock', paper: '#f45fa4', ink: '#17040d' },
+  { id: 'ice', label: 'Ice', paper: '#a9c9e8', ink: '#040b15' },
+];
+---
+
+<div class="ink-bar" role="group" aria-label="Print mode">
+  <button type="button" class="ink-bar__toggle" id="ink-toggle" aria-pressed="false">
+    <span class="ink-bar__toggle-label">Print mode</span>
+  </button>
+
+  <div class="ink-bar__papers" id="ink-papers" hidden>
+    {PAPERS.map((p) => (
+      <button
+        type="button"
+        class="ink-bar__swatch"
+        data-paper={p.id}
+        style={`--swatch: ${p.paper}; --swatch-ink: ${p.ink}`}
+        aria-label={`${p.label} stock`}
+        title={p.label}
+      ></button>
+    ))}
+    <button type="button" class="ink-bar__swatch ink-bar__swatch--grain" id="ink-grain" aria-pressed="false" title="Grain">
+      <span aria-hidden="true">▚</span>
+    </button>
+  </div>
+</div>
+
+{/* Inline and un-bundled so it runs before the first paint. */}
+<script is:inline define:vars={{ PAPERS }}>
+  (() => {
+    const root = document.documentElement;
+    const KEY = 'rdc-ink';
+
+    const apply = (state) => {
+      if (!state || !state.on) {
+        root.removeAttribute('data-ink');
+        root.removeAttribute('data-ink-grain');
+        root.style.removeProperty('--ink-paper');
+        root.style.removeProperty('--ink-ink');
+        return;
+      }
+      const paper = PAPERS.find((p) => p.id === state.paper) ?? PAPERS[0];
+      root.setAttribute('data-ink', paper.id);
+      root.style.setProperty('--ink-paper', paper.paper);
+      root.style.setProperty('--ink-ink', paper.ink);
+      if (state.grain) root.setAttribute('data-ink-grain', 'on');
+      else root.removeAttribute('data-ink-grain');
+    };
+
+    let state = { on: false, paper: 'bone', grain: true };
+    try {
+      const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (saved) state = { ...state, ...saved };
+    } catch {}
+    apply(state);
+
+    const save = () => {
+      try {
+        localStorage.setItem(KEY, JSON.stringify(state));
+      } catch {}
+    };
+
+    // The controls are below this script in the document, so wait for them.
+    document.addEventListener('DOMContentLoaded', () => {
+      const toggle = document.getElementById('ink-toggle');
+      const papers = document.getElementById('ink-papers');
+      const grain = document.getElementById('ink-grain');
+      if (!toggle || !papers) return;
+
+      const sync = () => {
+        toggle.setAttribute('aria-pressed', String(state.on));
+        papers.hidden = !state.on;
+        grain?.setAttribute('aria-pressed', String(!!state.grain));
+        for (const b of papers.querySelectorAll('[data-paper]')) {
+          b.classList.toggle('is-active', state.on && b.dataset.paper === state.paper);
+        }
+      };
+      sync();
+
+      toggle.addEventListener('click', () => {
+        state.on = !state.on;
+        apply(state);
+        save();
+        sync();
+      });
+
+      papers.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-paper]');
+        if (!btn) return;
+        state.paper = btn.dataset.paper;
+        state.on = true;
+        apply(state);
+        save();
+        sync();
+      });
+
+      grain?.addEventListener('click', () => {
+        state.grain = !state.grain;
+        apply(state);
+        save();
+        sync();
+      });
+    });
+  })();
+</script>

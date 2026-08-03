@@ -35,4 +35,25 @@ export const imageBehaviourFields = [
       'requires re-encoding.',
     initialValue: false,
   }),
+  defineField({
+    name: 'inkMode',
+    title: 'Print mode treatment',
+    type: 'string',
+    description:
+      'How this image behaves when a visitor switches the site to one-colour ' +
+      'print mode. Auto suits strong black-and-white work. Soft keeps midtones ' +
+      'for photography and anything low-contrast, which a hard threshold would ' +
+      'flatten to mush. Hard is a near-1-bit cut for line art. Skip leaves the ' +
+      'image in full colour.',
+    options: {
+      list: [
+        {title: 'Auto (default)', value: 'auto'},
+        {title: 'Soft - keep midtones', value: 'soft'},
+        {title: 'Hard - near 1-bit', value: 'hard'},
+        {title: 'Skip - stay in colour', value: 'skip'},
+      ],
+      layout: 'radio',
+    },
+    initialValue: 'auto',
+  }),
 ]

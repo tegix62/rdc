@@ -7,6 +7,7 @@ import '../styles/global.css';
 import { getSiteSettings } from '../lib/queries';
 import Img from '../components/Img.astro';
 import VisualEditing from '../components/VisualEditing.astro';
+import InkMode from '../components/InkMode.astro';
 
 interface Props {
   title: string;
@@ -146,6 +147,7 @@ const TALLY_URL = settings?.contactUrl || 'https://tally.so/r/mZ8LXz';
         -webkit-touch-callout: none;
       }
     </style>
+    <InkMode />
     <VisualEditing />
     <script>
       const navToggle = document.querySelector<HTMLButtonElement>('#site-nav-toggle');

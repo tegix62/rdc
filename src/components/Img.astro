@@ -120,6 +120,7 @@ if (manualPassThrough && (image?.crop || image?.hotspot)) {
 ) : (
 <img
   src={src}
+  data-ink-mode={image?.inkMode && image.inkMode !== 'auto' ? image.inkMode : undefined}
   srcset={srcset}
   sizes={srcset ? sizes : undefined}
   width={ratio.width}

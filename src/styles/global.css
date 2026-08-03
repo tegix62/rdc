@@ -1462,3 +1462,176 @@ main {
     transform: none;
   }
 }
+
+/* ============================================================
+   INK MODE - one ink on coloured stock, after 80s zine printing
+   ============================================================ */
+
+.ink-bar {
+  position: fixed;
+  right: var(--space-2);
+  bottom: var(--space-2);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.375rem;
+}
+
+.ink-bar__toggle {
+  font-family: var(--font-heading);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-white);
+  color: var(--color-navy);
+  border: 2px solid currentColor;
+  cursor: pointer;
+}
+
+.ink-bar__toggle[aria-pressed='true'] {
+  background: var(--color-navy);
+  color: var(--color-white);
+}
+
+.ink-bar__papers {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.ink-bar__swatch {
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  cursor: pointer;
+  background: var(--swatch, #fff);
+  border: 2px solid var(--color-ink);
+  font-size: 0.75rem;
+  line-height: 1;
+  color: var(--swatch-ink, #000);
+}
+
+.ink-bar__swatch.is-active {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+.ink-bar__swatch--grain[aria-pressed='true'] {
+  background: var(--color-ink);
+  color: var(--color-white);
+}
+
+/*
+  Tokens are remapped rather than every rule being rewritten, so the whole site
+  follows without a parallel stylesheet to keep in sync. The brand navy becomes
+  ink; every white surface becomes the paper stock.
+*/
+:root[data-ink] {
+  --color-white: var(--ink-paper);
+  --color-navy: var(--ink-ink);
+  --color-navy-dark: var(--ink-ink);
+  --color-ink: var(--ink-ink);
+  --color-black: var(--ink-ink);
+  /* Greys become translucent ink so they sit on the stock rather than looking
+     like a separate colour that survived the conversion. */
+  --color-gray: color-mix(in srgb, var(--ink-ink) 62%, var(--ink-paper));
+  --color-gray-light: color-mix(in srgb, var(--ink-ink) 8%, var(--ink-paper));
+  --color-border: color-mix(in srgb, var(--ink-ink) 24%, var(--ink-paper));
+
+  /* Defaults, overridable per image. `hard` is a near-1-bit cut; bias shifts
+     where that cut lands. */
+  --ink-contrast: 260%;
+  --ink-bright: 108%;
+
+  background: var(--ink-paper);
+  color: var(--ink-ink);
+}
+
+:root[data-ink] body {
+  background: var(--ink-paper);
+  color: var(--ink-ink);
+}
+
+/*
+  Images: desaturate, push contrast, then multiply onto the stock. Multiply is
+  what makes this ink-on-paper rather than a tint - white goes to paper colour,
+  dark stays dark.
+
+  isolation on the wrapper keeps the blend from reaching through to whatever is
+  behind it, which otherwise makes overlapping sections muddy.
+*/
+:root[data-ink] img,
+:root[data-ink] video {
+  filter: grayscale(1) brightness(var(--ink-bright)) contrast(var(--ink-contrast));
+  mix-blend-mode: multiply;
+}
+
+/* Photographic and low-contrast work loses everything to a hard cut, so these
+   opt down. Set per image in Studio. */
+:root[data-ink] [data-ink-mode='soft'] img,
+:root[data-ink] img[data-ink-mode='soft'] {
+  --ink-contrast: 125%;
+  --ink-bright: 102%;
+}
+
+:root[data-ink] [data-ink-mode='hard'] img,
+:root[data-ink] img[data-ink-mode='hard'] {
+  --ink-contrast: 900%;
+  --ink-bright: 112%;
+}
+
+/* Left in full colour - for anything the conversion simply ruins. */
+:root[data-ink] [data-ink-mode='skip'] img,
+:root[data-ink] img[data-ink-mode='skip'],
+:root[data-ink] [data-ink-mode='skip'] video {
+  filter: none;
+  mix-blend-mode: normal;
+}
+
+/* Video is usually the low-contrast case, so it defaults softer than stills. */
+:root[data-ink] video {
+  --ink-contrast: 140%;
+  --ink-bright: 104%;
+}
+
+/*
+  Grain. A single fixed overlay of tiled SVG turbulence rather than a filter on
+  each image: one cheap layer instead of per-element work, and it reads like
+  press texture sitting on top of the whole sheet.
+*/
+:root[data-ink][data-ink-grain]::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0.42;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+/* The controls must not be converted along with the artwork, or the swatches
+   stop showing their own colours. */
+:root[data-ink] .ink-bar img {
+  filter: none;
+  mix-blend-mode: normal;
+}
+
+:root[data-ink] .ink-bar__toggle {
+  background: var(--ink-ink);
+  color: var(--ink-paper);
+}
+
+:root[data-ink] .ink-bar__swatch {
+  mix-blend-mode: normal;
+}
+
+@media (max-width: 40rem) {
+  .ink-bar {
+    right: var(--space-1);
+    bottom: var(--space-1);
+  }
+}

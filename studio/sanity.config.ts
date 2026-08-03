@@ -6,18 +6,18 @@ import {schemaTypes} from './schemaTypes'
 
 // Which site the Presentation tab loads in its preview panel.
 //
-// Defaults to a local dev server, because that's the only setup where editing
-// is genuinely live: `npm run dev` renders each request on demand, so typing
-// in Studio updates the page immediately - the Webflow-style experience.
+// Defaults to the deployed preview, so the Studio works from any device with
+// nothing running locally. Click-to-edit works there, but the page only
+// reflects changes after a rebuild, since that site is statically generated.
 //
-// Point this at a deployed preview URL instead (via SANITY_STUDIO_PREVIEW_URL,
-// set at build time) to use it from any device without running anything
-// locally. Click-to-edit still works there, but the page only reflects changes
-// after a rebuild, since that site is statically generated.
+// For live-as-you-type editing, run the site locally with `npm run dev` and
+// set SANITY_STUDIO_PREVIEW_URL=http://localhost:4321 - a dev server renders
+// each request on demand, so edits appear immediately.
 //
 // Whichever URL is used, that site must be built with
 // PUBLIC_SANITY_VISUAL_EDITING=true or there will be nothing to click.
-const PREVIEW_URL = process.env.SANITY_STUDIO_PREVIEW_URL || 'http://localhost:4321'
+const PREVIEW_URL =
+  process.env.SANITY_STUDIO_PREVIEW_URL || 'https://preview.rumeau-design-co.pages.dev'
 
 export default defineConfig({
   name: 'default',

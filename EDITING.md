@@ -49,13 +49,15 @@ loads in the panel. Click text to edit it; the page updates instantly.
 
 ### From any device - no setup
 
-Open the hosted Studio and use the Presentation tab there. Click-to-edit
-works the same, but the page only reflects your changes **after a rebuild**
-(a minute or two), not as you type - the deployed site is pre-built.
+Open **https://rumeau-design-co.sanity.studio** and use the Presentation tab.
+Click-to-edit works the same, but the page only reflects your changes **after
+a rebuild** (a minute or two), not as you type - the deployed site is
+pre-built.
 
-This needs one thing set up first: the `PREVIEW_SITE_URL` repository variable
-in GitHub, set to the preview site's address. Until that's set, the hosted
-Studio's Presentation tab expects a local dev server and will look empty.
+This previews **https://preview.rumeau-design-co.pages.dev**, which is the
+stable address for the current build. Individual deploys also get their own
+throwaway URL with a random prefix; that one changes every push, so bookmark
+the `preview.` one.
 
 ## Seeing changes live
 

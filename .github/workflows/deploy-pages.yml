@@ -44,6 +44,12 @@ jobs:
           projectName: rumeau-design-co
           directory: dist
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          # Deploy under a fixed label rather than the git branch name.
+          # Cloudflare builds its stable alias from this, and it wouldn't make
+          # one for a branch containing a "/" - so every deploy was reachable
+          # only at its own throwaway hash URL, which is no use as Studio's
+          # preview target. This pins it to preview.rumeau-design-co.pages.dev.
+          branch: preview
       # Every deploy gets a throwaway per-commit URL, but the branch alias is
       # stable - that's the one to point Studio's Presentation tab at, and the
       # one worth bookmarking. Surfaced in the summary so it isn't buried in

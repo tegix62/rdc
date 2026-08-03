@@ -1,0 +1,37 @@
+name: Convert animated images to video
+
+# Manual. Transcoding is slow and writes new assets to the dataset, so it
+# shouldn't fire on every push. Safe to re-run: already-converted assets are
+# skipped unless "force" is ticked.
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Re-convert everything, even assets already in the map'
+        type: boolean
+        default: false
+  push:
+    paths:
+      - 'studio/migration/convert-animations.mjs'
+      - '.github/workflows/convert-animations.yml'
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: studio
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # ffmpeg is pre-installed on ubuntu-latest runners; assert it rather
+      # than discovering it's missing halfway through a transcode.
+      - run: ffmpeg -version | head -1
+        working-directory: .
+      - run: npm install
+      - run: npm run convert:animations
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          FORCE: ${{ inputs.force && '1' || '0' }}

@@ -16,6 +16,7 @@
 */
 import { urlFor, imageDimensions, buildSrcSet, originalUrl, isPassThrough } from '../lib/image';
 import { isAnimatedWebp } from '../lib/animated';
+import { getAnimatedVideo } from '../lib/animatedVideo';
 
 interface Props {
   image: any;
@@ -66,6 +67,14 @@ const animatedWebp = await isAnimatedWebp(image);
 const passThrough = isPassThrough(image, animatedWebp);
 const original = passThrough ? originalUrl(image) : null;
 
+/*
+  An animation with a converted video version renders as <video> instead: a
+  looping h264 is typically an order of magnitude smaller than the same GIF.
+  Silent, looping and inline, so it behaves exactly like the animated image it
+  replaces. Falls back to the image when no conversion exists yet.
+*/
+const video = passThrough ? await getAnimatedVideo(image, width) : null;
+
 let builtSrc = urlFor(image).width(width);
 if (cropped) builtSrc = builtSrc.height(height!).fit('crop');
 
@@ -91,6 +100,23 @@ if (manualPassThrough && (image?.crop || image?.hotspot)) {
 }
 ---
 
+{video ? (
+  <video
+    class={className}
+    width={ratio.width}
+    height={ratio.height}
+    poster={video.poster ?? undefined}
+    autoplay
+    loop
+    muted
+    playsinline
+    preload="metadata"
+    aria-label={alt}
+  >
+    {video.webm && <source src={video.webm} type="video/webm" />}
+    {video.mp4 && <source src={video.mp4} type="video/mp4" />}
+  </video>
+) : (
 <img
   src={src}
   srcset={srcset}
@@ -103,3 +129,4 @@ if (manualPassThrough && (image?.crop || image?.hotspot)) {
   fetchpriority={fetchpriority}
   class={className}
 />
+)}

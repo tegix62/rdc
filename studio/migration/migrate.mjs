@@ -292,7 +292,6 @@ async function buildSections(defs) {
           _type: 'videoHeroSection',
           url: def.url || undefined,
           heading: def.heading || undefined,
-          logo: await img(def.logo),
         })
         break
       }

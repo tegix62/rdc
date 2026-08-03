@@ -5,8 +5,7 @@
       {
         "type": "videoHero",
         "url": "https://player.vimeo.com/video/1044782545",
-        "heading": "Hug a Mug Coffeehouse & Ceramics Studio",
-        "logo": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66c8e12b9f9c0f9b5b6f9508_Hug-a-Mug-Logomark.webp"
+        "heading": "Hug a Mug Coffeehouse & Ceramics Studio"
       },
       {
         "type": "statCallout",

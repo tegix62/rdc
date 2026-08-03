@@ -1184,21 +1184,21 @@ main {
   border: none;
 }
 
+/* Sits along the bottom rather than centred, and ignores the pointer, so the
+   embedded player's controls stay reachable underneath it. */
 .work-video-hero__overlay {
-  position: relative;
+  position: absolute;
   z-index: 1;
-  text-align: center;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.35);
-  padding: var(--space-3);
-}
-
-.work-video-hero__overlay img {
-  margin: 0 auto var(--space-2);
+  inset: auto 0 0 0;
+  pointer-events: none;
+  padding: var(--space-4) var(--space-3) var(--space-3);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.65), transparent);
 }
 
 .work-video-hero__overlay h2 {
-  color: inherit;
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.25rem, 3vw, 2rem);
 }
 
 .work-related {

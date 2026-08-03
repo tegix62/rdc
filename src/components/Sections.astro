@@ -153,12 +153,11 @@ function embedUrl(url: string) {
               />
             </div>
           )}
-          <div class="work-video-hero__overlay">
-            {section.logo && (
-              <img src={urlFor(section.logo).height(96).url()} alt="" loading="lazy" />
-            )}
-            {section.heading && <h2>{section.heading}</h2>}
-          </div>
+          {section.heading && (
+            <div class="work-video-hero__overlay">
+              <h2>{section.heading}</h2>
+            </div>
+          )}
         </div>
       );
     default:

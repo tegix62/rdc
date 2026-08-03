@@ -153,7 +153,9 @@ export const videoHeroSection = defineType({
   name: 'videoHeroSection',
   title: 'Video Hero',
   type: 'object',
-  description: 'A full-bleed background video with an overlaid title and logo, for a case study opener.',
+  description:
+    'A full-bleed video opener for a case study, with the title along the bottom. ' +
+    'Leave the title blank to show the video on its own.',
   fields: [
     defineField({
       name: 'url',
@@ -162,11 +164,10 @@ export const videoHeroSection = defineType({
       description: 'YouTube or Vimeo URL.',
     }),
     defineField({name: 'heading', type: 'string'}),
-    image('logo', 'Logo'),
   ],
   preview: {
-    select: {title: 'heading', media: 'logo'},
-    prepare: ({title, media}) => ({title: title || 'Video Hero', media}),
+    select: {title: 'heading', subtitle: 'url'},
+    prepare: ({title, subtitle}) => ({title: title || 'Video Hero', subtitle}),
   },
 })
 

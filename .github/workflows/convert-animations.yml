@@ -26,10 +26,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      # ffmpeg is pre-installed on ubuntu-latest runners; assert it rather
-      # than discovering it's missing halfway through a transcode.
-      - run: ffmpeg -version | head -1
+      # ffmpeg is NOT on the ubuntu-latest image, contrary to what the first
+      # version of this workflow assumed. Install it explicitly.
+      - name: Install ffmpeg
         working-directory: .
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+      # Asserted without a pipe on purpose: the original check was
+      # `ffmpeg -version | head -1`, and a pipeline exits with the status of
+      # its LAST command, so head's success masked ffmpeg being missing
+      # entirely and the run failed later instead.
+      - name: Verify ffmpeg and codecs
+        working-directory: .
+        run: |
+          ffmpeg -version
+          ffmpeg -hide_banner -encoders | grep -q libx264 || { echo "libx264 missing"; exit 1; }
+          ffmpeg -hide_banner -encoders | grep -q libvpx-vp9 || { echo "libvpx-vp9 missing"; exit 1; }
       - run: npm install
       - run: npm run convert:animations
         env:

@@ -289,6 +289,70 @@ run-only-when-invoked-directly guard doesn't break CI: running the script
 directly still reaches the migration (fails at the sandbox's network
 boundary, as expected), while importing it for tests does not.
 
+### 10. Responsive images (why the Astro site felt worse than Webflow)
+
+Chris said the live Webflow site "kind of just feels better" than the Astro
+port, and expected the opposite. He was right, and it was measurable, not a
+feel thing: all 21 images had **no `width`/`height` and no `srcset`**.
+
+- No dimensions means the browser can't reserve space, so every image
+  reflowed the page as it loaded. That's the scroll jank.
+- No srcset means one fixed size for every device. The case study hero asked
+  for 2400px and a phone downloaded all of it. Webflow auto-generates
+  500/800/1080/1600/2000 variants (visible in its asset API) and picks one.
+- `urlFor()` never set `auto=format`, so Sanity served the original JPEG/PNG
+  while Webflow served WebP.
+
+So on a phone the port was plausibly shipping several times Webflow's bytes
+*and* shifting layout while doing it. Webflow gets this right by default;
+these `<img>` tags were hand-written and skipped it.
+
+**Fix:** one `Img.astro` that every image now goes through, so it can't be
+forgotten per call site the way it was. It reads intrinsic dimensions out of
+the Sanity asset `_ref` (they're encoded there, so no network call), emits
+width/height, and builds a srcset capped at both the render size and the
+source size so nothing upscales. Heroes and the nav logo load eagerly.
+
+**Bug caught while verifying the emitted markup, not by reasoning about it:**
+cropping makes Sanity emit `rect=x,y,w,h`, and srcset is comma-separated -
+those commas split one candidate into four broken ones. Every cropped image
+(More Work cards, blog thumbnails, merch grid) would have shipped a garbage
+srcset that *still renders*, because browsers fall back to `src`. It would
+just silently never be responsive. Now percent-encoded.
+
+Because that whole class of failure is invisible on the page and in a
+screenshot, `scripts/test-images.mjs` (17 checks) now runs in `build-check`
+ahead of the build.
+
+**Still worth doing later:** the fonts are imported as full Fontsource CSS
+with no explicit loading strategy, and the Portfolio page pulls jQuery
+Isotope plus imagesLoaded from two CDNs. Both likely also affect how the
+site feels. Not touched tonight - the image work was the dominant factor and
+is verifiable on its own.
+
+### 11. `/ms-paint` ported (task #9) - the last content parity gap
+
+Pulled the real page via the Designer API and added it as a `page` document
+plus a route, same treatment as About/Video. Header is the Emerson mark
+beside the quote and the note; two three-up galleries below (Lorax, Crab
+City, and four D&D character commissions).
+
+**Alt text:** 6 of the 7 assets have none in Webflow. I can't see the
+images, so rather than invent visual descriptions I wrote alt from each
+file's own subject (e.g. "Portrait of Ralph Waldo Emerson, drawn in
+Microsoft Paint"). Honest and useful for a screen reader without claiming
+detail I haven't verified. The Lorax image had real alt text in Webflow and
+that was kept verbatim.
+
+**Ported faithfully, including "(UNDER CONSTRUCTION)"** - it's on the live
+page. **Flagging for Chris:** that's probably not something you want
+carried onto the new site, but removing someone's own copy isn't my call.
+
+**Declined:** `image-rendering: pixelated` on the MS Paint art. It's
+arguably the right treatment for pixel work, but the live site doesn't do
+it, it can look worse when downscaling, and I can't see the result - so it
+would have been an unverifiable stylistic invention dressed up as parity.
+
 ---
 
 ## Appendix: raw findings from Webflow extraction (for resuming case study work)

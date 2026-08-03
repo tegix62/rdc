@@ -381,6 +381,39 @@ main {
   }
 }
 
+/* MS Paint page: the Emerson mark sits beside the quote and the note about
+   the work, mirroring the header on the live Webflow page. Its own rules
+   rather than reusing .about-layout, which is sized for a portrait. */
+.ms-paint-header {
+  display: grid;
+  grid-template-columns: 13rem 1fr;
+  gap: var(--space-4);
+  align-items: start;
+  margin-top: var(--space-4);
+}
+
+.ms-paint-header__mark {
+  width: 100%;
+}
+
+.ms-paint-header h1 {
+  font-size: clamp(1.75rem, 3.5vw, 2.75rem);
+  line-height: 1.15;
+  text-wrap: balance;
+  margin-bottom: var(--space-2);
+}
+
+@media (max-width: 40rem) {
+  .ms-paint-header {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+
+  .ms-paint-header__mark {
+    max-width: 11rem;
+  }
+}
+
 /* Shared spacing for the Sections block system when used on plain pages
    (Video, Collage) rather than the Work page's accent-color band. */
 .page-sections {

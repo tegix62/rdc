@@ -1,0 +1,36 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getPage } from '../lib/queries';
+import { renderPortableText } from '../lib/portableText';
+import Sections from '../components/Sections.astro';
+import Img from '../components/Img.astro';
+
+const page = await getPage('ms-paint');
+---
+
+<Layout title={page?.title ?? 'MS Paint'} description={page?.seoDescription}>
+  <div class="ms-paint-header">
+    {page?.heroImage && (
+      <Img
+        class="ms-paint-header__mark"
+        image={page.heroImage}
+        alt={page.heroAlt ?? ''}
+        width={420}
+        sizes="(max-width: 40rem) 60vw, 210px"
+        loading="eager"
+      />
+    )}
+    <div>
+      <h1>{page?.heading ?? 'MS Paint'}</h1>
+      {page?.body?.length > 0 && <div class="prose" set:html={renderPortableText(page.body)} />}
+    </div>
+  </div>
+
+  {page?.sections?.length > 0 ? (
+    <div class="page-sections">
+      <Sections sections={page.sections} />
+    </div>
+  ) : (
+    <p>Content coming soon — add this page's images in Studio.</p>
+  )}
+</Layout>

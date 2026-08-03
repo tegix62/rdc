@@ -28,12 +28,16 @@ Ordered roughly by impact. Nothing here has been actioned unless marked done.
   possible but only via a deliberate manual run with the "force" box ticked -
   never automatically (`WORKLOG-overnight.md` decision #9).
 
+- [x] **`/ms-paint` ported** - the last real content gap vs the live Webflow
+  site (`WORKLOG-overnight.md` decision #11). Note it carries the live page's
+  own "(UNDER CONSTRUCTION)" line; say the word and I'll drop it.
+- [x] **Responsive images.** Every image now carries dimensions and a srcset,
+  fixing both the layout shift that made scrolling feel worse than Webflow
+  and the oversized payloads on phones (decision #10).
+
 ## High impact - visible to every visitor
 
-- [ ] **`/ms-paint` page is live on the real site and completely missing from
-  our port.** It's real, published content (a design-constraint experiment
-  write-up), not a draft or duplicate. Needs to be extracted and added as a
-  new route, same treatment as About/Video.
+- [ ] Nothing outstanding here - see "Needs your input" below.
 
 ## Medium impact
 

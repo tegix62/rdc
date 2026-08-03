@@ -1,0 +1,36 @@
+name: Study reference portfolio structure
+
+# Read-only, structure only. Records navigation, heading hierarchy, section
+# shape, contact approach and computed typography for a set of reference
+# portfolios, so layout decisions come from evidence instead of memory.
+# Downloads no images, CSS or code, and copies nothing.
+#
+# Runs in CI because this session's network policy blocks external hosts.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/study-references.mjs'
+      - '.github/workflows/study-references.yml'
+
+jobs:
+  study:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/study-references.mjs | tee /tmp/refs.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Reference portfolio structure'
+            echo ''
+            echo '```'
+            cat /tmp/refs.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

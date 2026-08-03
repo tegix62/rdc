@@ -71,54 +71,6 @@ h5, h6 {
   line-height: 1.3;
 }
 
-@media (max-width: 40rem) {
-  h1 { font-size: 2.5rem; }
-  h2 { font-size: 2rem; }
-  h3 { font-size: 1.75rem; }
-
-  .wrap {
-    padding: 0 var(--space-2);
-  }
-
-  main {
-    padding: var(--space-4) 0;
-  }
-
-  .top-cta {
-    padding: var(--space-3) 0 var(--space-2);
-  }
-
-  .bio-row {
-    padding: var(--space-2) 0 var(--space-4);
-  }
-
-  .bio-row__text {
-    font-size: 1.375rem;
-  }
-
-  .logo-strip__inner {
-    gap: var(--space-3);
-    padding: var(--space-3) var(--space-2);
-  }
-
-  .proof-band__inner {
-    padding: var(--space-4) var(--space-2);
-  }
-
-  .proof-row {
-    margin-bottom: var(--space-3);
-  }
-
-  .final-cta {
-    flex-direction: column;
-  }
-
-  .final-cta__portrait {
-    width: 100%;
-    height: 240px;
-    left: 0;
-  }
-}
 
 img {
   max-width: 100%;
@@ -1633,5 +1585,71 @@ main {
   .ink-bar {
     right: var(--space-1);
     bottom: var(--space-1);
+  }
+}
+
+
+/*
+  Mobile overrides, deliberately last.
+
+  This block used to sit near the top of the file, above the components it
+  targets. At equal specificity the later rule wins, so every override in
+  here for .top-cta, .bio-row, .logo-strip__inner, .proof-band__inner,
+  .proof-row, .final-cta, .final-cta__portrait, .wrap and main was dead -
+  the desktop rules at lines 570-760 simply won on phones too.
+
+  The visible symptom was the homepage scrolling sideways on a phone:
+  .final-cta__portrait kept its desktop `left: 3rem`, pushing it 24px past
+  the viewport at 390px. The rest of the homepage was silently unstyled for
+  mobile in the same way.
+
+  Anything added here must stay at the end of the file.
+*/
+@media (max-width: 40rem) {
+  h1 { font-size: 2.5rem; }
+  h2 { font-size: 2rem; }
+  h3 { font-size: 1.75rem; }
+
+  .wrap {
+    padding: 0 var(--space-2);
+  }
+
+  main {
+    padding: var(--space-4) 0;
+  }
+
+  .top-cta {
+    padding: var(--space-3) 0 var(--space-2);
+  }
+
+  .bio-row {
+    padding: var(--space-2) 0 var(--space-4);
+  }
+
+  .bio-row__text {
+    font-size: 1.375rem;
+  }
+
+  .logo-strip__inner {
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-2);
+  }
+
+  .proof-band__inner {
+    padding: var(--space-4) var(--space-2);
+  }
+
+  .proof-row {
+    margin-bottom: var(--space-3);
+  }
+
+  .final-cta {
+    flex-direction: column;
+  }
+
+  .final-cta__portrait {
+    width: 100%;
+    height: 240px;
+    left: 0;
   }
 }

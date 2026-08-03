@@ -54,12 +54,50 @@ const isEmpty = (value) =>
   value === '' ||
   (Array.isArray(value) && value.length === 0)
 
+/*
+  "Serve exactly as uploaded" (noRecompress) is only ever set by a human, in
+  Studio, per image - the JSON snapshot has no concept of it. A forced
+  overwrite would therefore silently strip every one of those decisions and
+  quietly put hand-compressed artwork back through lossy re-encoding.
+
+  So even under force, these flags are carried across. They're keyed on the
+  asset reference rather than the field path, because the flag is a property
+  of that particular file: it stays correct if sections get re-ordered or the
+  same logo is reused somewhere else in the document.
+*/
+const collectPassThroughAssets = (node, found = new Set()) => {
+  if (Array.isArray(node)) {
+    for (const item of node) collectPassThroughAssets(item, found)
+  } else if (node && typeof node === 'object') {
+    const ref = node.asset?._ref
+    if (ref && node.noRecompress === true) found.add(ref)
+    for (const value of Object.values(node)) collectPassThroughAssets(value, found)
+  }
+  return found
+}
+
+const restorePassThroughAssets = (node, refs) => {
+  if (!refs.size) return
+  if (Array.isArray(node)) {
+    for (const item of node) restorePassThroughAssets(item, refs)
+  } else if (node && typeof node === 'object') {
+    const ref = node.asset?._ref
+    if (ref && refs.has(ref)) node.noRecompress = true
+    for (const value of Object.values(node)) restorePassThroughAssets(value, refs)
+  }
+}
+
 // `db` and `force` are injectable so the rules below can be unit-tested
 // against a fake client without touching the real dataset.
 async function seedDocument(doc, {db = client, force = FORCE} = {}) {
   if (force) {
+    const existing = await db.fetch('*[_id == $id][0]', {id: doc._id})
+    const kept = collectPassThroughAssets(existing)
+    restorePassThroughAssets(doc, kept)
     await db.createOrReplace(doc)
-    return 'replaced (forced)'
+    return kept.size
+      ? `replaced (forced, kept ${kept.size} "as uploaded" flag(s))`
+      : 'replaced (forced)'
   }
 
   const existing = await db.fetch('*[_id == $id][0]', {id: doc._id})

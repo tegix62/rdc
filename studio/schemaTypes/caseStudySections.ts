@@ -1,7 +1,8 @@
 import {defineField, defineType} from 'sanity'
+import {imageBehaviourFields} from './imageFields'
 
 const image = (name: string, title: string) =>
-  defineField({name, title, type: 'image', options: {hotspot: true}})
+  defineField({name, title, type: 'image', fields: imageBehaviourFields, options: {hotspot: true}})
 
 export const fullImageSection = defineType({
   name: 'fullImageSection',

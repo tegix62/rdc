@@ -1,4 +1,5 @@
 import {defineField, defineType} from 'sanity'
+import {imageBehaviourFields} from './imageFields'
 
 export default defineType({
   name: 'siteSettings',
@@ -11,18 +12,21 @@ export default defineType({
       name: 'logo',
       title: 'Nav Logo',
       type: 'image',
+      fields: imageBehaviourFields,
       description: 'The stacked "Rumeau Design" wordmark used in the site nav.',
     }),
     defineField({
       name: 'portrait',
       title: 'Founder Portrait',
       type: 'image',
+      fields: imageBehaviourFields,
       options: {hotspot: true},
     }),
     defineField({
       name: 'heroBackground',
       title: 'Homepage Hero Background',
       type: 'image',
+      fields: imageBehaviourFields,
       description: 'Full-bleed background behind the RUMEAU DESIGN COMPANY statement.',
       options: {hotspot: true},
     }),
@@ -30,6 +34,7 @@ export default defineType({
       name: 'proofBandBackground',
       title: 'Proof Band Background Texture',
       type: 'image',
+      fields: imageBehaviourFields,
       description: 'Faint tiled sketch texture behind the metrics/closer/checklist band.',
     }),
     defineField({
@@ -41,7 +46,7 @@ export default defineType({
         {
           type: 'object',
           fields: [
-            {name: 'logo', type: 'image', options: {hotspot: true}},
+            {name: 'logo', type: 'image', fields: imageBehaviourFields, options: {hotspot: true}},
             {name: 'alt', type: 'string'},
             {name: 'href', type: 'string'},
           ],

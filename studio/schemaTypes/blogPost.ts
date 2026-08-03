@@ -1,4 +1,5 @@
 import {defineField, defineType} from 'sanity'
+import {imageBehaviourFields} from './imageFields'
 
 export default defineType({
   name: 'blogPost',
@@ -17,12 +18,12 @@ export default defineType({
       validation: (Rule) => Rule.required(),
     }),
     defineField({name: 'excerpt', type: 'text', rows: 3}),
-    defineField({name: 'mainImage', title: 'Main Image', type: 'image', options: {hotspot: true}}),
-    defineField({name: 'thumbnailImage', title: 'Thumbnail Image', type: 'image', options: {hotspot: true}}),
+    defineField({name: 'mainImage', title: 'Main Image', type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}),
+    defineField({name: 'thumbnailImage', title: 'Thumbnail Image', type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}),
     defineField({
       name: 'body',
       type: 'array',
-      of: [{type: 'block'}, {type: 'image', options: {hotspot: true}}],
+      of: [{type: 'block'}, {type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}],
     }),
     defineField({name: 'featured', title: 'Featured?', type: 'boolean'}),
     defineField({name: 'color', type: 'string'}),

@@ -131,5 +131,65 @@ console.log('\nseedDocument: MIGRATE_FORCE restores overwrite behavior')
   check('overwrites the whole document', db.calls.replaced, doc)
 }
 
+
+console.log('\nseedDocument: "serve exactly as uploaded" survives a forced overwrite')
+{
+  // Only a human ever sets this, in Studio. A forced overwrite that dropped
+  // it would silently put hand-compressed artwork back through lossy
+  // re-encoding - invisible on the page, permanent in the file.
+  const ref = 'image-logo123-1200x800-png'
+  const db = fakeDb({
+    _id: 'caseStudy-x',
+    _type: 'caseStudy',
+    clientLogo: {_type: 'image', asset: {_ref: ref}, noRecompress: true},
+    merchGrid: [{_type: 'image', asset: {_ref: 'image-other-800x800-jpg'}}],
+  })
+  const doc = {
+    _id: 'caseStudy-x',
+    _type: 'caseStudy',
+    clientLogo: {_type: 'image', asset: {_ref: ref}},
+    merchGrid: [{_type: 'image', asset: {_ref: 'image-other-800x800-jpg'}}],
+  }
+  const result = await seedDocument(doc, {db, force: true})
+  check('flag restored onto the replaced doc', db.calls.replaced.clientLogo.noRecompress, true)
+  check('unflagged images left alone', db.calls.replaced.merchGrid[0].noRecompress, undefined)
+  check('reports what it preserved', result, 'replaced (forced, kept 1 "as uploaded" flag(s))')
+}
+
+console.log('\nseedDocument: the flag follows the asset, not the field path')
+{
+  // Same file reused elsewhere, and sections re-ordered since the snapshot.
+  const ref = 'image-mark-900x900-png'
+  const db = fakeDb({
+    _id: 'caseStudy-y',
+    _type: 'caseStudy',
+    sections: [{_type: 'x'}, {logo: {_type: 'image', asset: {_ref: ref}, noRecompress: true}}],
+  })
+  const doc = {
+    _id: 'caseStudy-y',
+    _type: 'caseStudy',
+    clientLogo: {_type: 'image', asset: {_ref: ref}},
+    sections: [{logo: {_type: 'image', asset: {_ref: ref}}}, {_type: 'x'}],
+  }
+  await seedDocument(doc, {db, force: true})
+  check('restored at a different path', db.calls.replaced.clientLogo.noRecompress, true)
+  check('restored inside a re-ordered array', db.calls.replaced.sections[0].logo.noRecompress, true)
+}
+
+console.log('\nseedDocument: fill-blanks mode leaves existing images untouched entirely')
+{
+  const db = fakeDb({
+    _id: 'caseStudy-z',
+    _type: 'caseStudy',
+    clientLogo: {_type: 'image', asset: {_ref: 'image-a-100x100-png'}, noRecompress: true},
+  })
+  const result = await seedDocument(
+    {_id: 'caseStudy-z', _type: 'caseStudy', clientLogo: {_type: 'image', asset: {_ref: 'image-b-100x100-png'}}},
+    {db, force: false},
+  )
+  check('does not touch a populated image field', result, 'kept Studio version')
+  check('no replace call at all', db.calls.replaced, null)
+}
+
 console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll checks passed.')
 process.exit(failures ? 1 : 0)

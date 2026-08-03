@@ -1,4 +1,5 @@
 import {defineField, defineType} from 'sanity'
+import {imageBehaviourFields} from './imageFields'
 
 export default defineType({
   name: 'page',
@@ -34,13 +35,14 @@ export default defineType({
     defineField({
       name: 'heroImage',
       type: 'image',
+      fields: imageBehaviourFields,
       options: {hotspot: true},
     }),
     defineField({name: 'heroAlt', title: 'Hero Image Alt Text', type: 'string'}),
     defineField({
       name: 'body',
       type: 'array',
-      of: [{type: 'block'}, {type: 'image', options: {hotspot: true}}],
+      of: [{type: 'block'}, {type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}],
     }),
     defineField({
       name: 'sections',

@@ -35,7 +35,9 @@ await build({
   logLevel: 'error',
 })
 
-const {imageDimensions, buildSrcSet, urlFor} = await import(`file://${outfile}`)
+const {imageDimensions, buildSrcSet, urlFor, originalUrl, isPassThrough} = await import(
+  `file://${outfile}`
+)
 await rm(outfile)
 
 let failures = 0
@@ -89,6 +91,30 @@ const ratios = new Set(
 )
 check('aspect identical across variants', ratios.size, 1)
 check('matches the requested ratio', [...ratios][0], (600 / 750).toFixed(3))
+
+
+console.log('\npass-through - "serve exactly as uploaded"')
+// The whole point is that these bytes are never re-encoded. If a transform
+// parameter ever leaks into this URL, hand-compressed art silently starts
+// getting a second lossy pass - invisible in the page, permanent in the file.
+const plain = img('image-abc123-1200x800-png')
+const kept = {...plain, noRecompress: true}
+
+check('flag detected', isPassThrough(kept), true)
+check('absent flag is not pass-through', isPassThrough(plain), false)
+check('explicit false is not pass-through', isPassThrough({...plain, noRecompress: false}), false)
+
+const orig = originalUrl(kept)
+check('url points at the asset', orig.endsWith('/abc123-1200x800.png'), true)
+check('NO query string at all', orig.includes('?'), false)
+check('no format conversion', /[?&]fm=|auto=format/.test(orig), false)
+check('no quality parameter', /[?&]q=/.test(orig), false)
+check('no resizing', /[?&]w=|[?&]h=/.test(orig), false)
+check('malformed ref returns null', originalUrl({_ref: 'not-an-image'}), null)
+
+// Dimensions must survive, or pass-through reintroduces the layout shift
+// that the whole Img component exists to prevent.
+check('dimensions still available', JSON.stringify(imageDimensions(kept)), JSON.stringify({width: 1200, height: 800}))
 
 console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll checks passed.')
 process.exit(failures ? 1 : 0)

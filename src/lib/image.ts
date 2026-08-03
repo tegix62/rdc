@@ -18,6 +18,33 @@ export function urlFor(source: unknown) {
   space before it loads - without them the page reflows as each image
   arrives, which reads as janky scrolling.
 */
+/*
+  True pass-through: the asset's own URL with no query string at all, so the
+  CDN hands back the exact bytes that were uploaded.
+
+  This is built from the asset reference rather than via the URL builder on
+  purpose. The builder is where auto('format') and quality(80) live, and a
+  future edit there would silently start re-encoding images that are meant to
+  ship untouched. Constructing the URL directly means there is no code path
+  from here to a transform parameter.
+
+  Reference format: image-<assetId>-<width>x<height>-<ext>
+*/
+export function originalUrl(source: any): string | null {
+  const ref: string | undefined = source?.asset?._ref ?? source?._ref;
+  if (typeof ref !== 'string') return null;
+  const match = ref.match(/^image-([a-f0-9]+)-(\d+x\d+)-([a-z0-9]+)$/i);
+  if (!match) return null;
+  const [, assetId, dimensions, ext] = match;
+  const {projectId, dataset} = sanityClient.config();
+  return `https://cdn.sanity.io/images/${projectId}/${dataset}/${assetId}-${dimensions}.${ext}`;
+}
+
+/** Whether this image is marked "serve exactly as uploaded" in Studio. */
+export function isPassThrough(source: any): boolean {
+  return source?.noRecompress === true;
+}
+
 export function imageDimensions(source: any): {width: number; height: number} | null {
   const ref: string | undefined = source?.asset?._ref ?? source?._ref;
   if (typeof ref !== 'string') return null;

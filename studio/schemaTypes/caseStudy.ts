@@ -1,4 +1,5 @@
 import {defineField, defineType} from 'sanity'
+import {imageBehaviourFields} from './imageFields'
 
 const CATEGORIES = ['Brand Identity', 'Merch & Apparel', 'Typography', 'Illustration', 'Photography']
 const ASSET_TYPES = [
@@ -61,19 +62,20 @@ export default defineType({
       type: 'boolean',
       description: 'Spans two columns in the homepage grid. Use sparingly.',
     }),
-    defineField({name: 'thumbnail', type: 'image', options: {hotspot: true}}),
+    defineField({name: 'thumbnail', type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}),
     defineField({
       name: 'archiveMark',
       title: 'Archive Mark',
       type: 'image',
+      fields: imageBehaviourFields,
       description: 'Black and white logomark shown in Archive view.',
     }),
-    defineField({name: 'mainImage', title: 'Main Project Image', type: 'image', options: {hotspot: true}}),
+    defineField({name: 'mainImage', title: 'Main Project Image', type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}),
     defineField({name: 'headline', type: 'string'}),
     defineField({name: 'subtitle', type: 'string'}),
     defineField({name: 'resultStat', title: 'Result Stat', type: 'string'}),
     defineField({name: 'client', title: 'Client Name', type: 'string'}),
-    defineField({name: 'clientLogo', type: 'image', options: {hotspot: true}}),
+    defineField({name: 'clientLogo', type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}),
     defineField({name: 'oneLineSummary', title: 'One Line Summary', type: 'string'}),
     defineField({name: 'summary', title: 'Project Summary', type: 'text', rows: 3}),
     defineField({name: 'principalType', title: 'Principal Type', type: 'string'}),
@@ -81,7 +83,7 @@ export default defineType({
       name: 'body',
       title: 'Project Details',
       type: 'array',
-      of: [{type: 'block'}, {type: 'image', options: {hotspot: true}}],
+      of: [{type: 'block'}, {type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}],
     }),
     defineField({
       name: 'servicesRendered',
@@ -93,19 +95,19 @@ export default defineType({
       name: 'merchGrid',
       title: 'Merch Grid',
       type: 'array',
-      of: [{type: 'image', options: {hotspot: true}}],
+      of: [{type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}],
     }),
     defineField({
       name: 'flyerGrid',
       title: 'Flyer Grid',
       type: 'array',
-      of: [{type: 'image', options: {hotspot: true}}],
+      of: [{type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}],
     }),
     defineField({
       name: 'processGrid',
       title: 'Process Grid',
       type: 'array',
-      of: [{type: 'image', options: {hotspot: true}}],
+      of: [{type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}],
     }),
     defineField({name: 'filmEmbed', title: 'Film Embed', type: 'url'}),
     defineField({

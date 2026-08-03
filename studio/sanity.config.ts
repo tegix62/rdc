@@ -30,9 +30,19 @@ export default defineConfig({
     structureTool(),
     presentationTool({
       previewUrl: {
-        origin: PREVIEW_URL,
-        preview: '/',
+        initial: PREVIEW_URL,
       },
+      // Without this, Presentation loads the page but refuses to talk to it,
+      // reporting "unable to connect" with the Edit toggle greyed out. It
+      // defaults to null, which only permits a preview on the Studio's own
+      // origin - and the Studio is on sanity.studio while the site is on
+      // pages.dev. Deploy-specific URLs get a wildcard so a preview of an
+      // older build still connects.
+      allowOrigins: [
+        'https://preview.rumeau-design-co.pages.dev',
+        'https://*.rumeau-design-co.pages.dev',
+        'http://localhost:4321',
+      ],
     }),
     visionTool(),
   ],

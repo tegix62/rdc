@@ -72,6 +72,13 @@ Already ported, no action needed:
 
 ## Medium impact
 
+- [ ] **14 animated GIFs are the last real weight problem.** One of them (the
+  Pisces animation) is 10.7 MB and single-handedly makes the homepage 42%
+  heavier than Webflow, which served the same animation at 4 MB. Sanity does
+  not usefully re-encode animated GIFs. Converting them to MP4/WebM would cut
+  that to a few hundred KB, but it swaps `<img>` for `<video>` - a behaviour
+  change, so it needs your say-so (`WORKLOG-overnight.md` decision #14).
+
 - [ ] **The site has no favicon.** `Layout.astro` points every page at
   `/favicon.svg`, but `public/` has never contained one, so every page load
   404s and browser tabs show a blank icon. Pre-existing, found while

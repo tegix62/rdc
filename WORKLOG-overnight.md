@@ -402,6 +402,55 @@ before pushing - and guessing a version into five workflows to silence a
 cosmetic warning isn't worth breaking every pipeline over. GitHub already
 force-runs them on Node 24, so nothing is actually broken today.
 
+### 14. Measured: is the Astro port actually faster than Webflow?
+
+Chris ported expecting Astro to be dramatically faster. Nobody had measured
+it. `scripts/perf-compare.mjs` runs a real Chromium against both sites and
+records wire bytes. Cold cache, 1440x900.
+
+| page | Webflow | Astro | change |
+|---|---|---|---|
+| home | 7,950 KB | 11,309 KB | **+42%** |
+| portfolio | 25,455 KB | 5,027 KB | **-80%** |
+| about | 2,994 KB | 425 KB | **-86%** |
+
+Two adjustments needed to read this honestly:
+
+1. **`sanity-visual-editing.js` is 269 KB and loads on every page.** It is
+   preview-only and disappears when `PUBLIC_SANITY_VISUAL_EDITING` is off, so
+   subtract it from every Astro figure. About then reads 156 KB vs 2,994 KB,
+   or **-95%**.
+2. **The `load (ms)` column includes a fixed 3.5s settle wait** so injected
+   scripts get a chance to run. Subtract it: portfolio is 12.6s on Webflow vs
+   1.5s on Astro. That one is a genuine, visitor-visible difference.
+
+**The homepage regression is a single file.** One asset accounts for 10,721 KB
+of the homepage's 10,899 KB of images - 98% of it. It's the Pisces animation,
+an animated GIF. Webflow served the same animation at 3,982 KB. Sanity's
+`auto=format` does not usefully re-encode animated GIFs, so it ships the
+original and we lose to Webflow by 6.7 MB on one image. Strip that one file
+and the homepage is ~319 KB against Webflow's 7,950 KB, about **-96%**.
+
+There are 14 GIFs in the migrated content, and the same pattern shows on
+portfolio (822 KB and 767 KB entries at small pixel dimensions). **GIFs are
+now the entire remaining image problem.** The fix is converting them to
+MP4/WebM, which is a behaviour change (a `<video>` element rather than an
+`<img>`) and so is Chris's call, not an assumption to make.
+
+**Two things I told Chris earlier that this disproves:**
+
+- I flagged the fonts as a likely performance problem. Wrong, and badly:
+  Webflow ships **1,619 KB** of fonts per page, the port ships **75-87 KB**.
+  That's -95% and needs no work at all.
+- I flagged jQuery Isotope on `/portfolio` as giving back the JS advantage.
+  Overstated: script weight there is 282 KB against Webflow's 871 KB, still
+  -68%. Worth revisiting eventually, not a priority.
+
+What Webflow actually spends its weight on, per page: 1,619 KB of fonts,
+168 KB of `webflow.js`, 333 KB of reCAPTCHA, 108 KB of the Meta Pixel. The
+port's structural advantage is real - it just got masked on the homepage by
+one unoptimised GIF.
+
 ---
 
 ## Appendix: raw findings from Webflow extraction (for resuming case study work)

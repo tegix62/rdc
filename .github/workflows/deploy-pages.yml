@@ -56,13 +56,36 @@ jobs:
       # the log.
       - name: Report preview URLs
         run: |
+          STABLE="https://preview.rumeau-design-co.pages.dev"
+
+          # The action reports its `alias` output straight from the create-
+          # deployment response, and Cloudflare fills aliases in afterwards -
+          # so that output says "hash URL" even when the alias is fine. Ask
+          # the URL itself rather than believing the output, retrying because
+          # a brand new alias takes a few seconds to resolve.
+          status=000
+          for attempt in 1 2 3 4 5; do
+            status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$STABLE" || echo 000)
+            [ "$status" = "200" ] && break
+            echo "attempt $attempt: $STABLE -> $status, retrying..."
+            sleep 6
+          done
+
+          if [ "$status" = "200" ]; then
+            verdict="✅ live"
+          else
+            verdict="⚠️ not resolving (HTTP $status)"
+          fi
+
           {
             echo "### Preview URLs"
             echo ""
             echo "| | |"
             echo "|---|---|"
-            echo "| Stable (bookmark this) | ${{ steps.pages.outputs.alias }} |"
+            echo "| Stable (bookmark this) | $STABLE - $verdict |"
             echo "| This deploy | ${{ steps.pages.outputs.url }} |"
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "PREVIEW_ALIAS=${{ steps.pages.outputs.alias }}"
-          echo "PREVIEW_URL=${{ steps.pages.outputs.url }}"
+
+          echo "STABLE_ALIAS=$STABLE"
+          echo "STABLE_ALIAS_STATUS=$status"
+          echo "THIS_DEPLOY=${{ steps.pages.outputs.url }}"

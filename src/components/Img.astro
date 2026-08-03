@@ -15,7 +15,7 @@
   alone to keep the source's own aspect.
 */
 import { urlFor, imageDimensions, buildSrcSet, originalUrl, isPassThrough } from '../lib/image';
-import { isAnimatedWebp } from '../lib/animated';
+import { isAnimatedSource } from '../lib/animated';
 import { getAnimatedVideo } from '../lib/animatedVideo';
 
 interface Props {
@@ -60,11 +60,12 @@ const ratio = cropped
   a re-encode. Dimensions are still emitted, so pass-through images reserve
   their space and don't reintroduce the layout shift.
 */
-// Animated WebP can't be told apart from static WebP by reference alone, so
-// this probes the file header (cached per asset, per build). GIFs are caught
-// by extension inside isPassThrough without a network call.
-const animatedWebp = await isAnimatedWebp(image);
-const passThrough = isPassThrough(image, animatedWebp);
+// Decided by reading the file header, cached per asset per build. The asset
+// reference's extension is not trusted: this dataset has `-gif` references
+// holding static PNG and `-webp` references holding JPEG, and believing them
+// disabled responsive sizing on dozens of ordinary images.
+const animated = await isAnimatedSource(image);
+const passThrough = isPassThrough(image, animated);
 const original = passThrough ? originalUrl(image) : null;
 
 /*

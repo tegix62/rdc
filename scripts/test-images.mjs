@@ -35,7 +35,7 @@ await build({
   logLevel: 'error',
 })
 
-const {imageDimensions, buildSrcSet, urlFor, originalUrl, isPassThrough, isAnimatedByExtension, sourceExtension} = await import(
+const {imageDimensions, buildSrcSet, urlFor, originalUrl, isPassThrough, mayBeAnimated, sourceExtension} = await import(
   `file://${outfile}`
 )
 await rm(outfile)
@@ -124,12 +124,20 @@ console.log('\nanimated sources bypass the transform pipeline')
 const gif = img('image-anim1-800x800-gif')
 const staticPng = img('image-flat1-800x800-png')
 
-check('gif detected by extension', isAnimatedByExtension(gif), true)
-check('png is not animated', isAnimatedByExtension(staticPng), false)
+// The extension is only a hint about whether probing is worthwhile. It is
+// explicitly NOT a verdict: this dataset has `-gif` references holding static
+// PNG and `-webp` references holding JPEG, and trusting them disabled
+// responsive sizing on dozens of ordinary images.
+check('gif is worth probing', mayBeAnimated(gif), true)
+check('webp is worth probing', mayBeAnimated(img('image-y-800x800-webp')), true)
+check('png is never probed', mayBeAnimated(staticPng), false)
+check('jpg is never probed', mayBeAnimated(img('image-z-800x800-jpg')), false)
 check('extension parsed', sourceExtension(gif), 'gif')
 check('extension parsed (webp)', sourceExtension(img('image-x-10x10-webp')), 'webp')
 
-check('gif is pass-through with no flag set', isPassThrough(gif), true)
+// A gif reference alone must NOT force pass-through - only a positive probe.
+check('gif reference alone is not pass-through', isPassThrough(gif), false)
+check('gif with positive probe is pass-through', isPassThrough(gif, true), true)
 check('png still goes through the pipeline', isPassThrough(staticPng), false)
 // The probe result is passed in as the second argument for animated WebP.
 check('animated webp forced to pass-through', isPassThrough(img('image-y-800x800-webp'), true), true)

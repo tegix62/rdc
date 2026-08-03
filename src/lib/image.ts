@@ -54,31 +54,37 @@ export function sourceExtension(source: any): string | null {
 }
 
 /*
-  Animated images must never go through the resize/re-encode pipeline.
+  Animated images must never go through the resize/re-encode pipeline: the CDN
+  re-encodes frame by frame and the result can be several times the original.
+  Measured on this dataset, one 867 KB GIF comes back as 4,602 KB.
 
-  This is not a preference, it's a measured failure: the homepage's
-  `Pisces-Anim-under1mb.webp` - an animated WebP hand-compressed to under 1 MB
-  - came back from the CDN at 10,721 KB, having asked for it at w=800&q=80.
-  Re-encoding an animation frame by frame at a new size is not something the
-  image pipeline does well, and the result was ~11x larger than the original
-  file and larger than what Webflow served.
+  What this must NOT do is trust the file extension in the asset reference.
+  Sanity's stored extension is unreliable here - a diagnostic over the whole
+  dataset found assets whose reference ends `-webp` whose actual bytes are
+  JPEG, and assets labelled `-gif` that are static PNG. An earlier version of
+  this decided pass-through from the extension alone, which forced dozens of
+  perfectly ordinary static images to ship at full size with no srcset and made
+  /portfolio 7 MB heavier.
 
-  GIF is detectable from the asset reference. Animated WebP is not - a static
-  and an animated WebP have identical references - so those are detected by
-  reading the RIFF header, which is what `probeAnimatedWebp` in ./animated.ts
-  does.
+  So animation is determined by reading the file header - see ./animated.ts -
+  and the extension is used only to decide whether a probe is worth doing.
 */
-export function isAnimatedByExtension(source: any): boolean {
-  return sourceExtension(source) === 'gif';
+/**
+ * Whether this source is worth probing for animation. Only these containers
+ * can hold one, so everything else skips the network call. This is a hint
+ * about where to look, never a verdict - see the note above.
+ */
+export function mayBeAnimated(source: any): boolean {
+  const ext = sourceExtension(source);
+  return ext === 'gif' || ext === 'webp';
 }
 
 /**
  * Whether this image ships untouched: either marked "serve exactly as
- * uploaded" in Studio, or animated (where re-encoding actively makes it
- * worse).
+ * uploaded" in Studio, or confirmed animated by reading its bytes.
  */
 export function isPassThrough(source: any, animated = false): boolean {
-  return source?.noRecompress === true || animated || isAnimatedByExtension(source);
+  return source?.noRecompress === true || animated;
 }
 
 export function imageDimensions(source: any): {width: number; height: number} | null {

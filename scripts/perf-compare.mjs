@@ -34,15 +34,32 @@ async function measure(browser, url) {
   const byType = {}
   const requests = []
 
-  page.on('requestfinished', async (req) => {
+  /*
+    Sizes come from Content-Length first, falling back to sizes().
+
+    This matters: an earlier version used only `sizes().responseBodySize`, and
+    it reported a single homepage image at 10,721 KB. Downloading that asset
+    directly showed 71 KB, and the transformed version 79 KB - so the figure
+    was wrong by a factor of ~135, and a whole diagnosis was built on it.
+    Content-Length is what the server actually declares it is sending.
+  */
+  page.on('response', async (res) => {
     try {
-      const sizes = await req.sizes()
+      const req = res.request()
       const type = req.resourceType()
-      const bytes = (sizes.responseBodySize ?? 0) + (sizes.responseHeadersSize ?? 0)
+      const declared = Number(res.headers()['content-length'] ?? NaN)
+      let bytes = Number.isFinite(declared) && declared >= 0 ? declared : NaN
+
+      if (!Number.isFinite(bytes)) {
+        const sizes = await req.sizes()
+        const body = sizes.responseBodySize ?? 0
+        bytes = body > 0 ? body : 0
+      }
+
       byType[type] = (byType[type] ?? 0) + bytes
-      requests.push({url: req.url(), type, bytes})
+      requests.push({url: req.url(), type, bytes, source: Number.isFinite(declared) ? 'content-length' : 'sizes()'})
     } catch {
-      /* request torn down before sizes resolved; ignore */
+      /* response torn down before it could be read; ignore */
     }
   })
 

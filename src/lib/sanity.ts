@@ -25,6 +25,21 @@ const NON_TEXT_FIELDS = new Set([
   '_ref',
   '_type',
   '_key',
+  /*
+    These are compared against literals or used as lookup keys and CSS class
+    names, so they must come back as clean strings.
+
+    `category` being absent from this list is what broke the Portfolio filters.
+    Its value is used as a key into the filter map, and stega appended invisible
+    characters to it, so "Brand Identity" stopped matching "Brand Identity" and
+    every tile silently got no filter class. Nothing was visible in the data,
+    the markup, or the page - the string simply was not the string any more.
+  */
+  'category',
+  'pageType',
+  'parentType',
+  'assetType',
+  'inkMode',
 ])
 
 // Hex colours, and anything that is plainly a URL or path rather than prose.

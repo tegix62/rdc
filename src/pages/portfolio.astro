@@ -11,65 +11,26 @@ const items = await getAllGridItems();
 /*
   Maps a grid item's category to a filter class. Typography and Illustration
   deliberately share one "Type/Lettering" button, matching the live site.
-
-  Accepts BOTH the friendly name and the raw Webflow category id, because the
-  dataset contains the raw ids and the migration can no longer correct them.
-  The documents were seeded before CATEGORY_MAP existed, so they hold values
-  like "25b18402...". Re-running the migration does not fix it: the fill-in-the-
-  blanks rule added to stop migrations clobbering Studio edits only writes
-  fields that are EMPTY, and these are not empty - they are populated and
-  wrong. Every one of the 80 items reports "kept Studio version" for exactly
-  that reason.
-
-  Normalising on read fixes it immediately and works whichever value a document
-  holds, which also means new items created in Studio with the friendly names
-  keep working. Repairing the stored data needs a deliberate forced migration.
 */
 const CATEGORY_FILTER: Record<string, string> = {
-  // Friendly names, as written by the current migration and by Studio.
   'Brand Identity': 'brand-identity',
   'Merch & Apparel': 'merch-apparel',
   Typography: 'type-lettering',
   Illustration: 'type-lettering',
   Photography: 'photography',
-  // Raw Webflow category ids, as actually stored on the migrated documents.
-  '25b184027eb70b18d6c7b600aee158e8': 'brand-identity',
-  '9401f9935a5e974e1aafa54688842d7d': 'merch-apparel',
-  '434c6f273e30a5b44173206a70f0a63b': 'type-lettering',
-  '72001b43acecb4bd274abbeb9fc58dc3': 'type-lettering',
-  c497ce92016cc5970b75f3a85057a17f: 'photography',
 };
 
 /*
-  A tile whose category isn't in the map above gets no filter class, so it only
-  ever appears under "All" - reachable, but silently absent from every category.
-  That's invisible on the page, so the build says so instead.
-*/
-// Printed every build so the actual stored values are visible rather than
-// inferred. This is what would have identified the raw-id problem immediately.
-const seen = [...new Set(items.map((i: any) => i.category ?? '(none)'))];
-console.log(`[portfolio] ${items.length} tiles; category values in use: ${seen.join(' | ')}`);
+  Strips zero-width characters before using a value as a lookup key.
 
-const unmapped = [
-  ...new Set(
-    items
-      .map((i: any) => i.category)
-      .filter((c: string) => c && !(c in CATEGORY_FILTER)),
-  ),
-];
-if (unmapped.length > 0) {
-  console.warn(
-    `[portfolio] ${unmapped.length} category value(s) have no filter button and ` +
-      `will only show under "All": ${unmapped.join(', ')}`,
-  );
-}
-const uncategorised = items.filter((i: any) => !i.category).length;
-if (uncategorised > 0) {
-  console.warn(
-    `[portfolio] ${uncategorised} grid item(s) have no category at all and will ` +
-      `only show under "All".`,
-  );
-}
+  Belt and braces on top of the stega exclusion list in lib/sanity.ts. Visual
+  editing embeds invisible markers in strings, and a contaminated key fails a
+  lookup with no visible symptom anywhere - which cost several rounds of
+  debugging here. Any field added later that ends up as a key or class name
+  gets this for free, whether or not someone remembers the exclusion list.
+*/
+const cleanKey = (value: unknown): string =>
+  typeof value === 'string' ? value.replace(/[\u200B-\u200F\uFEFF\u2060]/g, '').trim() : '';
 
 const filters = [
   { value: '*', label: 'All' },
@@ -97,10 +58,10 @@ const filters = [
     <div class="pf-grid" id="pf-grid">
       {items.map((item: any) => {
         const img = item.thumbnail || item.mainImage;
-        const cat = CATEGORY_FILTER[item.category] ?? '';
+        const cat = CATEGORY_FILTER[cleanKey(item.category)] ?? '';
         // Only link to a parent that actually has a page.
         const parentHref =
-          item.parentSlug && item.parentType === 'Case Study' ? `/work/${item.parentSlug}` : null;
+          item.parentSlug && cleanKey(item.parentType) === 'Case Study' ? `/work/${item.parentSlug}` : null;
         // The category has to be a real CLASS, not just a data attribute:
         // Isotope filters with CSS selectors (".brand-identity"), so with the
         // value only in data-category every filter matched zero tiles and the

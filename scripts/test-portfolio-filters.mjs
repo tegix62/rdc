@@ -65,9 +65,21 @@ const markup = await page.evaluate(() => {
     withNoCategoryClass: items.filter((el) => el.classList.length === 1).length,
     categoryClasses: classes,
     buttons: [...document.querySelectorAll('.pf-btn[data-filter]')].map((b) => b.dataset.filter),
+    // The literal attribute, so a contaminated or absent class is visible
+    // rather than inferred.
+    rawClasses: items.slice(0, 4).map((el) => el.getAttribute('class')),
+    // Visual editing embeds these invisible markers in strings. Their presence
+    // explains a lookup silently failing on a value that looks correct.
+    zeroWidth: (document.documentElement.innerHTML.match(/[\u200B-\u200F\uFEFF\u2060]/g) ?? []).length,
   }
 })
 console.log(`  ${markup.total} tiles; category classes: ${JSON.stringify(markup.categoryClasses)}`)
+console.log('  raw class attributes on the first 4 tiles:')
+for (const c of markup.rawClasses) console.log(`    ${JSON.stringify(c)}`)
+console.log(
+  `  zero-width characters in page HTML: ${markup.zeroWidth} ` +
+    `(stega markers - these contaminate any string used as a lookup key)`,
+)
 console.log(`  tiles with no category class: ${markup.withNoCategoryClass}`)
 console.log(`  filter buttons: ${markup.buttons.join(' ')}`)
 check('tiles carry category classes', Object.keys(markup.categoryClasses).length > 0, true)

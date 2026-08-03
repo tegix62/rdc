@@ -64,10 +64,21 @@ export function getSiteSettings() {
 // The real Portfolio page's shuffle/resize grid: every Grid Item in the
 // Work collection (thumbnail tiles that link back to a parent brand),
 // not just featured Case Studies.
+/*
+  Every Grid Item tile on the Portfolio page, plus its parent brand.
+
+  `parentType` is fetched alongside the slug because only "Case Study"
+  documents get a page at /work/<slug>. Linking a tile to a Grid Item's own
+  slug would produce a 404 that reads as a broken site, so the Portfolio page
+  only renders the jump button when the parent is a real case study.
+*/
 export function getAllGridItems() {
   return sanityClient.fetch(
     `*[_type == "caseStudy" && pageType == "Grid Item"]{
-      title, slug, thumbnail, mainImage, category
+      title, slug, thumbnail, mainImage, category,
+      "parentSlug": parentBrand->slug.current,
+      "parentTitle": parentBrand->title,
+      "parentType": parentBrand->pageType
     } | order(title asc)`,
   );
 }

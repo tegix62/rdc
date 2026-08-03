@@ -881,6 +881,57 @@ main {
   height: auto;
 }
 
+/*
+  "Jump to project" button, revealed under a tile only while it is expanded.
+
+  It sits inside .pf-item, which is what makes it exactly as wide as the image
+  above it: the image is width:100% of the same padding box, so both share one
+  edge without hardcoding a width anywhere.
+
+  Hidden with display:none rather than opacity/height so it contributes no
+  height when collapsed - Isotope measures real offsetHeight to place tiles,
+  and a zero-opacity button would still push every tile below it down.
+*/
+.pf-item__jump {
+  display: none;
+}
+
+.pf-item.is-expanded .pf-item__jump {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.5rem 0.625rem;
+  box-sizing: border-box;
+  background: var(--color-navy);
+  color: var(--color-white);
+  text-decoration: none;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pf-item.is-expanded .pf-item__jump:hover,
+.pf-item.is-expanded .pf-item__jump:focus-visible {
+  background: var(--color-navy-dark);
+}
+
+/* The project name can be long and the tile is only two columns wide, so it
+   truncates rather than wrapping and changing the tile's height. */
+.pf-item__jump-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pf-item__jump-arrow {
+  flex: none;
+}
+
 .swatch {
   display: flex;
   align-items: center;

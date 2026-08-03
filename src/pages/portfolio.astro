@@ -44,9 +44,18 @@ const filters = [
       {items.map((item: any) => {
         const img = item.thumbnail || item.mainImage;
         const cat = CATEGORY_FILTER[item.category] ?? '';
+        // Only link to a parent that actually has a page.
+        const parentHref =
+          item.parentSlug && item.parentType === 'Case Study' ? `/work/${item.parentSlug}` : null;
         return img ? (
           <div class="pf-item" data-category={cat}>
             <Img class="pf-item__img" image={img} alt={item.title} width={800} sizes="(max-width: 48rem) 33vw, 17vw" />
+            {parentHref && (
+              <a class="pf-item__jump" href={parentHref}>
+                <span class="pf-item__jump-label">{item.parentTitle ?? 'View project'}</span>
+                <span class="pf-item__jump-arrow" aria-hidden="true">&rarr;</span>
+              </a>
+            )}
           </div>
         ) : null;
       })}
@@ -130,12 +139,23 @@ const filters = [
     });
 
     grid.addEventListener('click', (e) => {
-      const item = (e.target as HTMLElement).closest<HTMLElement>('.pf-item');
+      const target = e.target as HTMLElement;
+
+      // The jump button lives inside the tile, so without this its click would
+      // bubble up here and collapse the tile instead of navigating.
+      if (target.closest('a')) return;
+
+      const item = target.closest<HTMLElement>('.pf-item');
       if (!item) return;
       const wasExpanded = item.classList.contains('is-expanded');
       grid.querySelectorAll('.pf-item.is-expanded').forEach((el) => el.classList.remove('is-expanded'));
       if (!wasExpanded) item.classList.add('is-expanded');
-      iso.layout();
+
+      // The button becoming visible changes the tile's height, so Isotope has
+      // to re-measure. Two frames: one for the class to apply and the browser
+      // to reflow, then layout against real heights. A single synchronous
+      // call here measures the pre-reveal height and leaves tiles overlapping.
+      requestAnimationFrame(() => requestAnimationFrame(() => iso.layout()));
     });
   });
 </script>

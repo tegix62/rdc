@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - run: npm install
       # A malformed srcset still renders the image - the browser just falls
       # back to src and quietly stops being responsive - so this can't be

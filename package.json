@@ -20,5 +20,8 @@
   "devDependencies": {
     "@sanity/visual-editing": "2.13.4",
     "esbuild": "^0.28.1"
+  },
+  "engines": {
+    "node": ">=20.19"
   }
 }

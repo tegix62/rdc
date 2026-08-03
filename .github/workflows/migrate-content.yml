@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - run: npm install
       # Guards the fill-in-the-blanks rules that keep a migration re-run from
       # wiping content edited in Studio. Cheap, no network, and a regression

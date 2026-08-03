@@ -38,27 +38,29 @@ Real Chromium, cold cache, wire bytes:
 - Fonts are **not** a problem in the port (75–87 KB vs Webflow's 1,619 KB)
 - jQuery Isotope on `/portfolio` is 282 KB vs Webflow's 871 KB of script
 
-## OPEN — the one active bug
+## RESOLVED — the portfolio filter bug
 
-**Portfolio category filter buttons do nothing.** Confirmed by Chris on a
-phone and by an automated click test. Status:
+Cause: **stega**. Sanity's visual editing embeds invisible zero-width
+characters into strings so Studio can trace text back to its field.
+`lib/sanity.ts` already excluded fields that are parsed rather than read
+(`accentColor`, `href`, `url`, `slug`) — but not `category`. So the lookup key
+became `"Brand Identity"` plus invisible markers, the map returned undefined,
+every tile got an empty class and all four filters matched nothing.
 
-- Isotope and imagesLoaded both load; Shuffle and the ±size buttons work
-- The deployed page renders 66 tiles with **zero** category classes
-- Sanity data is **correct** — `category` holds friendly names
-  (`"Brand Identity"`, `"Merch & Apparel"`)
-- The local build emits the right classes from those exact values, verified
-  against fixtures
+Invisible in the data, the markup and the page, and every local test passed
+because mock data carries no stega. Three rounds of inference failed on it.
 
-So it is neither the data nor the mapping. Remaining suspects: the test hit a
-stale deploy (it waits only 150s), or Astro's `class:list` behaves differently
-on the deployed version — **no lockfile is committed**, so a clean CI
-`npm install` can float the Astro version. Next step is to print the raw
-`class` attribute from the deployed HTML rather than infer it again.
+Fixed by excluding `category`, `pageType`, `parentType`, `assetType`, `inkMode`
+from stega, plus a `cleanKey()` helper that strips zero-width characters at the
+point of use so later fields inherit the protection.
 
-Two dead theories, do not revisit: the category being only a `data-` attribute
-(fixed, necessary but insufficient), and the documents holding raw Webflow
-category ids (disproved — remove the raw-id entries from `CATEGORY_FILTER`).
+Verified by real clicks on the deployed site: 18 brand-identity, 20
+merch-apparel, 24 type-lettering, all restoring to 66.
+
+Two content facts it surfaced: **4 of 66 tiles have no usable category** (2 with
+none, 2 with an unmapped Webflow id), and **Photography has zero tagged items**,
+so its button is now hidden — an empty filter reads as a broken site. The build
+warns about both.
 
 ## Traps that have already caused real bugs
 

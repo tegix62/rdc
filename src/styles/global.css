@@ -1321,3 +1321,144 @@ main {
     font-size: 0.75rem;
   }
 }
+
+/*
+  Aesthetic Range - the icon tray recovered from the abandoned "Home 2" draft
+  (Section-Trends: a heading beside Vintage / Minimalist / Collage).
+
+  The hover does three things at once, deliberately, so it reads as one gesture
+  rather than three effects: the icon lifts and grows slightly, its label
+  tightens toward it, and a rule draws itself under the tile from left to right.
+  Everything is transform and opacity only - no width, height, or margin
+  animation - so it runs on the compositor and cannot reflow the row.
+*/
+.aesthetic-range {
+  margin-top: var(--space-5);
+}
+
+.aesthetic-range__heading {
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  text-wrap: balance;
+  margin-bottom: var(--space-2);
+}
+
+.aesthetic-range__intro {
+  max-width: 44ch;
+  color: var(--color-gray);
+  margin-bottom: var(--space-4);
+}
+
+.aesthetic-range__tray {
+  display: grid;
+  /* Follows the real item count rather than assuming three, so 2 or 5 tiles
+     stay evenly distributed instead of leaving a gap where a third would be. */
+  grid-template-columns: repeat(var(--tray-count, 3), minmax(0, 1fr));
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+@media (max-width: 40rem) {
+  .aesthetic-range__tray {
+    /* Wraps to whatever fits instead of squeezing five tiles onto a phone. */
+    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  }
+}
+
+.aesthetic-range__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-2) var(--space-2);
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+  isolation: isolate;
+}
+
+/* The rule that draws in on hover. A scaled pseudo-element rather than a
+   border-width change, which would shift the tile's height. */
+.aesthetic-range__tile::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--color-navy);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.aesthetic-range__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  transition:
+    transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1),
+    opacity 0.35s ease;
+}
+
+.aesthetic-range__icon :global(img),
+.aesthetic-range__icon :global(video) {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.aesthetic-range__label {
+  font-family: var(--font-heading);
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* Standing in for artwork that doesn't exist yet - a square of the border
+   colour, so an unfilled tile still occupies its place in the rhythm. */
+.aesthetic-range__placeholder {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--color-gray-light);
+  border: 1px dashed var(--color-border);
+}
+
+.aesthetic-range__item:hover .aesthetic-range__icon,
+.aesthetic-range__tile:focus-visible .aesthetic-range__icon {
+  transform: translateY(-0.375rem) scale(1.06);
+}
+
+.aesthetic-range__item:hover .aesthetic-range__label,
+.aesthetic-range__tile:focus-visible .aesthetic-range__label {
+  transform: translateY(-0.125rem);
+}
+
+.aesthetic-range__item:hover .aesthetic-range__tile::after,
+.aesthetic-range__tile:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.aesthetic-range__tile:focus-visible {
+  outline: 2px solid var(--color-navy);
+  outline-offset: 2px;
+}
+
+/* Movement is decoration here, and some people get motion sickness from it.
+   The rule still draws so hover feedback survives - it just doesn't travel. */
+@media (prefers-reduced-motion: reduce) {
+  .aesthetic-range__icon,
+  .aesthetic-range__label,
+  .aesthetic-range__tile::after {
+    transition-duration: 0.01ms;
+  }
+
+  .aesthetic-range__item:hover .aesthetic-range__icon,
+  .aesthetic-range__item:hover .aesthetic-range__label {
+    transform: none;
+  }
+}

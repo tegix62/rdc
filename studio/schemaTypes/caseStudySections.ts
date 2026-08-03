@@ -172,6 +172,74 @@ export const videoHeroSection = defineType({
   },
 })
 
+
+/*
+  Recovered from the abandoned "Home 2" draft on Webflow, where it existed as
+  Section-Trends: a heading beside a row of three "Trend Block" tiles labelled
+  Vintage / Minimalist / Collage. One tile had an empty image slot and the other
+  two had none, so the iconography was scaffolded and never filled in.
+
+  Rebuilt as a placeable block rather than pinned to one page, because its job -
+  showing range across several aesthetics - is useful on the homepage, an about
+  page or a services page, and the layout it belongs in is still being decided.
+
+  Two to six tiles rather than exactly three: the original was a triplet, but
+  the point is breadth and that shouldn't be capped by the draft.
+*/
+export const aestheticRangeSection = defineType({
+  name: 'aestheticRangeSection',
+  title: 'Aesthetic Range (icon tray)',
+  type: 'object',
+  fields: [
+    defineField({
+      name: 'heading',
+      type: 'string',
+      description: 'The original draft read "What styles are trending now?".',
+    }),
+    defineField({
+      name: 'intro',
+      title: 'Supporting line',
+      type: 'text',
+      rows: 2,
+      description: 'Optional. Sits under the heading.',
+    }),
+    defineField({
+      name: 'items',
+      title: 'Aesthetics',
+      type: 'array',
+      validation: (Rule) => Rule.min(2).max(6),
+      of: [
+        {
+          type: 'object',
+          fields: [
+            defineField({name: 'label', type: 'string', validation: (Rule) => Rule.required()}),
+            image('icon', 'Icon'),
+            defineField({
+              name: 'iconAlt',
+              title: 'Icon alt text',
+              type: 'string',
+              description:
+                'Leave empty if the icon only repeats the label - a screen reader ' +
+                'would otherwise read the same word twice.',
+            }),
+            defineField({
+              name: 'href',
+              title: 'Link (optional)',
+              type: 'string',
+              description: 'e.g. /portfolio or a case study path, if this aesthetic has work behind it.',
+            }),
+          ],
+          preview: {select: {title: 'label', media: 'icon'}},
+        },
+      ],
+    }),
+  ],
+  preview: {
+    select: {title: 'heading'},
+    prepare: ({title}) => ({title: title || 'Aesthetic Range', subtitle: 'Icon tray'}),
+  },
+})
+
 export const caseStudySectionTypes = [
   fullImageSection,
   twoUpSection,
@@ -182,4 +250,5 @@ export const caseStudySectionTypes = [
   textSection,
   achievementsSection,
   videoHeroSection,
+  aestheticRangeSection,
 ]

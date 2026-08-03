@@ -158,6 +158,51 @@ function embedUrl(url: string) {
           )}
         </div>
       );
+    case 'aestheticRangeSection': {
+      const items = section.items ?? [];
+      if (items.length === 0) return null;
+      return (
+        <div class="work-section aesthetic-range">
+          {section.heading && <h2 class="aesthetic-range__heading">{section.heading}</h2>}
+          {section.intro && <p class="aesthetic-range__intro">{section.intro}</p>}
+          <ul class="aesthetic-range__tray" style={`--tray-count: ${items.length}`}>
+            {items.map((item: any) => {
+              const inner = (
+                <>
+                  <span class="aesthetic-range__icon">
+                    {item.icon ? (
+                      <Img
+                        image={item.icon}
+                        alt={item.iconAlt ?? ''}
+                        width={320}
+                        sizes="(max-width: 40rem) 40vw, 160px"
+                      />
+                    ) : (
+                      /* No icon yet: a marker keeps the tile's shape and rhythm
+                         so the tray reads as deliberate rather than broken
+                         while the artwork is still being drawn. */
+                      <span class="aesthetic-range__placeholder" aria-hidden="true"></span>
+                    )}
+                  </span>
+                  <span class="aesthetic-range__label">{item.label}</span>
+                </>
+              );
+              return (
+                <li class="aesthetic-range__item">
+                  {item.href ? (
+                    <a class="aesthetic-range__tile" href={item.href}>
+                      {inner}
+                    </a>
+                  ) : (
+                    <span class="aesthetic-range__tile">{inner}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      );
+    }
     default:
       return null;
   }

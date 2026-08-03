@@ -4,8 +4,8 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
+    "dev": "node scripts/build-overlay.mjs && astro dev",
+    "build": "node scripts/build-overlay.mjs && astro build",
     "preview": "astro preview"
   },
   "dependencies": {
@@ -15,5 +15,9 @@
     "@sanity/client": "^6.29.1",
     "@sanity/image-url": "^1.1.0",
     "astro": "^5.1.1"
+  },
+  "devDependencies": {
+    "@sanity/visual-editing": "^2.13.4",
+    "esbuild": "^0.28.1"
   }
 }

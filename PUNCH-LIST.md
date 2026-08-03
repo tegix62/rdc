@@ -37,6 +37,11 @@ Ordered roughly by impact. Nothing here has been actioned unless marked done.
 
 ## Medium impact
 
+- [ ] **The site has no favicon.** `Layout.astro` points every page at
+  `/favicon.svg`, but `public/` has never contained one, so every page load
+  404s and browser tabs show a blank icon. Pre-existing, found while
+  debugging visual editing. Needs an actual icon from Chris (or derive one
+  from the logomark) - not something to invent.
 - [ ] Privacy Policy is legally incomplete on the REAL site (cuts off after
   section 4, no rights/retention/cookies/contact sections, no last-updated
   date, references UK "HM Revenue & Customs" despite being a NJ business).

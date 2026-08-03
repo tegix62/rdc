@@ -4,33 +4,14 @@
   markers the client embeds into clickable "edit this field" targets when the
   page is viewed inside Studio's Presentation tool.
 
-  Deliberately `is:inline` and loaded from a CDN rather than bundled from
-  node_modules. Astro compiles every <script> it finds whether or not the
-  surrounding conditional renders, so bundling this pulled a 640 KB chunk
-  (plus React, framer-motion and a syntax highlighter) into every build,
-  including production ones that never load it. Inline + CDN keeps the real
-  site at zero cost and drops the dependency - and its peer conflicts -
-  entirely. The CDN is only ever reached while editing, never by a visitor.
+  The file it points at is produced by scripts/build-overlay.mjs during
+  `npm run build`, and only exists in builds that opted into visual editing -
+  see that script for why it isn't imported here directly.
 
-  The URL below is written out in full on purpose. `is:inline` means Astro
-  passes this through untouched, so a frontmatter variable would not be
-  interpolated - and reading it from a data attribute does not work either,
-  because `document.currentScript` is always null in a module script. Keep the
-  version here in step with the Studio: overlay v2 pairs with Studio v3.
+  `is:inline` matters: it stops Astro from bundling this tag, which is what
+  keeps the overlay out of production builds entirely.
 */
 import { VISUAL_EDITING } from '../lib/sanity';
 ---
 
-{VISUAL_EDITING && (
-  <script is:inline type="module">
-    try {
-      const mod = await import('https://esm.sh/@sanity/visual-editing@2.13.4')
-      mod.enableVisualEditing()
-      console.info('[sanity] visual editing enabled')
-    } catch (err) {
-      // Surfaced rather than swallowed: if this fails, Presentation just
-      // reports "unable to connect" with no hint as to why.
-      console.error('[sanity] visual editing overlay failed to load:', err)
-    }
-  </script>
-)}
+{VISUAL_EDITING && <script is:inline type="module" src="/sanity-visual-editing.js"></script>}

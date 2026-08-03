@@ -1,9 +1,15 @@
 name: Compare speed against the live Webflow site
 
-# Manual only. This is a decision-support measurement, not a gate - it hits
-# the live site, so it shouldn't run on every push.
+# Decision-support measurement, not a gate. It hits the live production site,
+# so it must not run on every push - only when the measurement itself changes.
+# (workflow_dispatch is declared too, but GitHub only offers that once this
+# file reaches the default branch.)
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/perf-compare.mjs'
+      - '.github/workflows/perf-compare.yml'
 
 jobs:
   compare:

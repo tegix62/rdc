@@ -16,9 +16,19 @@ const post = await getBlogPost(slug!);
 if (!post) {
   throw new Error(`Blog post not found for slug: ${slug}`);
 }
+
+const ogSource = post.mainImage ?? post.thumbnailImage;
+const ogImage = ogSource
+  ? urlFor(ogSource).width(1200).height(630).fit('crop').url()
+  : undefined;
 ---
 
-<Layout title={post.title} description={post.metaDescription ?? post.excerpt}>
+<Layout
+  title={post.title}
+  description={post.metaDescription ?? post.excerpt}
+  ogType="article"
+  ogImage={ogImage}
+>
   <article>
     <h1>{post.title}</h1>
     <p class="card__meta">

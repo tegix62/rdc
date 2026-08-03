@@ -31,6 +31,11 @@ jobs:
           # before pointing a real domain at this build: it embeds invisible
           # markers in page text that visitors have no use for.
           PUBLIC_SANITY_VISUAL_EDITING: 'true'
+          # Marks the build as the preview deployment: pages emit noindex and
+          # robots.txt disallows everything, so this public URL can't be
+          # crawled and compete with rumeaudesign.co for the same copy.
+          # Must be false/removed for a build that serves the real domain.
+          PUBLIC_IS_PREVIEW: 'true'
       - name: Ensure Cloudflare Pages project exists
         run: npx wrangler@3 pages project create rumeau-design-co --production-branch main || true
         env:

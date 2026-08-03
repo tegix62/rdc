@@ -24,9 +24,20 @@ const otherWork = await getOtherCaseStudies(caseStudy._id);
 const galleries = ['merchGrid', 'flyerGrid', 'processGrid'] as const;
 
 const bandStyle = caseStudy.accentColor ? `--work-accent: ${caseStudy.accentColor}` : undefined;
+
+// Social previews need an absolute URL and a predictable crop.
+const ogSource = caseStudy.mainImage ?? caseStudy.thumbnail;
+const ogImage = ogSource
+  ? urlFor(ogSource).width(1200).height(630).fit('crop').url()
+  : undefined;
 ---
 
-<Layout title={caseStudy.title} description={caseStudy.oneLineSummary}>
+<Layout
+  title={caseStudy.title}
+  description={caseStudy.oneLineSummary}
+  ogType="article"
+  ogImage={ogImage}
+>
   {caseStudy.mainImage && (
     <div class="work-hero full-bleed">
       <Img

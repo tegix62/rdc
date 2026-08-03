@@ -64,8 +64,9 @@ Ordered roughly by impact. Nothing here has been actioned unless marked done.
 
 ## Needs your input before I can act
 
-1. **MS Paint page** - want this added as a new route? If yes I need the same
-   Designer-API content pull as About/Video got tonight.
+1. **The "(UNDER CONSTRUCTION)" line on `/ms-paint`.** Ported because it's
+   your copy on the live page, but it probably shouldn't follow you onto the
+   new site. One word and it's gone.
 2. **Hug a Mug's static hero vs. its new video hero.** Every case study page
    shows a static `mainImage` hero above the title band. Hug a Mug's real
    page doesn't have one of those at all - it opens straight into the new

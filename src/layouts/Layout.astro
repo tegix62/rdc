@@ -11,11 +11,31 @@ import VisualEditing from '../components/VisualEditing.astro';
 interface Props {
   title: string;
   description?: string;
+  /** Absolute URL for social previews. Falls back to no og:image. */
+  ogImage?: string;
+  /** 'article' for blog posts and case studies. */
+  ogType?: 'website' | 'article';
 }
 
-const { title, description = 'Rumeau Design Co' } = Astro.props;
+const { title, description = 'Rumeau Design Co', ogImage, ogType = 'website' } = Astro.props;
 
 const settings = await getSiteSettings();
+
+// Canonical always points at the real domain, never at whichever preview
+// host served the page, so a preview can't compete with the live site for
+// its own URLs.
+//
+// The trailing slash is stripped so these match sitemap.xml exactly. Astro's
+// directory build format serves /about and /about/ alike, and left alone the
+// canonical said one while the sitemap said the other - which a crawler
+// reads as two URLs for one page.
+const path = Astro.url.pathname.replace(/(.)\/$/, '$1');
+const canonical = Astro.site ? new URL(path, Astro.site).href : Astro.url.href;
+
+// The preview deployment is a public URL. Without this it is perfectly
+// crawlable and would compete with rumeaudesign.co in search results for
+// duplicated copy. Webflow's staging is noindexed for the same reason.
+const IS_PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
 
 // The real site's nav: only 4 links are shown, not every page in the
 // project (Merch/Collage/Blog still exist, just aren't nav-linked).
@@ -35,6 +55,21 @@ const TALLY_URL = settings?.contactUrl || 'https://tally.so/r/mZ8LXz';
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="description" content={description} />
     <title>{title}</title>
+    <link rel="canonical" href={canonical} />
+    {IS_PREVIEW && <meta name="robots" content="noindex, nofollow" />}
+
+    {/* Webflow emitted these per page; without them a shared link previews
+        as a bare URL with no title, description or image. */}
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content="Rumeau Design Co" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {ogImage && <meta name="twitter:image" content={ogImage} />}
   </head>
   <body>
     <header class="site-nav">

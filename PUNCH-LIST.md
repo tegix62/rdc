@@ -39,6 +39,37 @@ Ordered roughly by impact. Nothing here has been actioned unless marked done.
 
 - [ ] Nothing outstanding here - see "Needs your input" below.
 
+## Custom code on the live site that the port does not have
+
+Found by reading the live site's head/footer custom code and registered
+scripts - a blind spot in the original audit, which covered pages and content
+but not custom code. Two of these are real:
+
+- [ ] **Meta Pixel is missing** (`fbq('init', '1641640693737739')` +
+  PageView). If any Meta/Instagram ads, retargeting audiences, or conversion
+  tracking depend on this, they go dark at cutover and the loss is silent -
+  nothing breaks visibly. Needs a decision: port it, replace it, or drop it
+  deliberately.
+- [ ] **JSON-LD structured data is missing.** The live site has a registered
+  `SchemaMarkupJSONLD` script (v1.0.1, added Feb 2026). This means the SEO
+  parity report in decision #12 was incomplete - it covered meta/OG/canonical
+  /sitemap/robots but not structured data.
+
+Loaded on the live site but apparently unused - no matching content found in
+the full Webflow extraction, so these look like leftovers rather than
+features. Worth confirming before assuming:
+
+- [ ] ShareThis inline share buttons + Finsweet `socialshare` attributes.
+- [ ] `webflow-lottie-lazy-loader` - no Lottie animations found anywhere in
+  the extracted content.
+
+Already ported, no action needed:
+
+- [x] Image protection (right-click and drag blocking, `user-drag: none`) is
+  in `Layout.astro`.
+- [x] The Ctrl+Shift+G baseline grid overlay is a debug tool, not site
+  functionality - deliberately not ported.
+
 ## Medium impact
 
 - [ ] **The site has no favicon.** `Layout.astro` points every page at

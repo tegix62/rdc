@@ -11,21 +11,26 @@
   including production ones that never load it. Inline + CDN keeps the real
   site at zero cost and drops the dependency - and its peer conflicts -
   entirely. The CDN is only ever reached while editing, never by a visitor.
+
+  The URL below is written out in full on purpose. `is:inline` means Astro
+  passes this through untouched, so a frontmatter variable would not be
+  interpolated - and reading it from a data attribute does not work either,
+  because `document.currentScript` is always null in a module script. Keep the
+  version here in step with the Studio: overlay v2 pairs with Studio v3.
 */
 import { VISUAL_EDITING } from '../lib/sanity';
-
-const OVERLAY_URL = 'https://esm.sh/@sanity/visual-editing@2.13.4';
 ---
 
 {VISUAL_EDITING && (
-  <script is:inline type="module" data-overlay-url={OVERLAY_URL}>
-    // Only meaningful inside Studio's Presentation iframe; harmless elsewhere.
-    const url = document.currentScript?.dataset.overlayUrl;
+  <script is:inline type="module">
     try {
-      const { enableVisualEditing } = await import(url);
-      enableVisualEditing();
+      const mod = await import('https://esm.sh/@sanity/visual-editing@2.13.4')
+      mod.enableVisualEditing()
+      console.info('[sanity] visual editing enabled')
     } catch (err) {
-      console.warn('[sanity] visual editing overlay failed to load', err);
+      // Surfaced rather than swallowed: if this fails, Presentation just
+      // reports "unable to connect" with no hint as to why.
+      console.error('[sanity] visual editing overlay failed to load:', err)
     }
   </script>
 )}

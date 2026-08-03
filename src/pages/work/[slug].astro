@@ -34,21 +34,19 @@ const bandStyle = caseStudy.accentColor ? `--work-accent: ${caseStudy.accentColo
 
   <section class="work-identity full-bleed">
     <div class="work-identity__inner">
-      <div class="work-identity__top">
-        <div class="work-identity__heading">
-          {caseStudy.subtitle && <p class="work-identity__kicker">{caseStudy.subtitle}</p>}
-          <h1>{caseStudy.headline ?? caseStudy.title}</h1>
-        </div>
-        {caseStudy.clientLogo && (
-          <div class="work-identity__mark">
-            <img src={urlFor(caseStudy.clientLogo).height(120).url()} alt={caseStudy.client ?? ''} />
-          </div>
+      <div class="work-identity__main">
+        {caseStudy.subtitle && <p class="work-identity__kicker">{caseStudy.subtitle}</p>}
+        <h1>{caseStudy.headline ?? caseStudy.title}</h1>
+        {(caseStudy.summary || caseStudy.oneLineSummary) && (
+          <p class="work-identity__summary">{caseStudy.summary ?? caseStudy.oneLineSummary}</p>
         )}
       </div>
-      {(caseStudy.summary || caseStudy.oneLineSummary || caseStudy.credits?.length > 0) && (
-        <div class="work-identity__bottom">
-          {(caseStudy.summary || caseStudy.oneLineSummary) && (
-            <p class="work-identity__summary">{caseStudy.summary ?? caseStudy.oneLineSummary}</p>
+      {(caseStudy.clientLogo || caseStudy.credits?.length > 0) && (
+        <div class="work-identity__aside">
+          {caseStudy.clientLogo && (
+            <div class="work-identity__mark">
+              <img src={urlFor(caseStudy.clientLogo).height(120).url()} alt={caseStudy.client ?? ''} />
+            </div>
           )}
           {caseStudy.credits?.length > 0 && (
             <div class="work-identity__credits">

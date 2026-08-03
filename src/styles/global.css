@@ -897,29 +897,46 @@ main {
   padding: var(--space-5) 0;
 }
 
+/* Two adjacent columns rather than two `space-between` rows. The rows put
+   the heading, mark, summary and credits in four separate corners of a
+   72rem container, so short content left a large void down the middle and
+   the summary sat a long way under its own heading. Pairing the text into
+   one column and the mark/credits into another keeps each block readable
+   at its own measure and closes the gap between them. */
 .work-identity__inner {
   max-width: var(--content-width);
   margin: 0 auto;
   padding: 0 var(--space-3);
-}
-
-.work-identity__top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-4);
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+  gap: var(--space-5);
+  align-items: start;
 }
 
 .work-identity__kicker {
-  margin: 0 0 var(--space-1);
+  margin: 0 0 var(--space-2);
   color: rgba(255, 255, 255, 0.55);
-  font-size: 0.875rem;
-  letter-spacing: 0.04em;
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.work-identity__heading h1 {
+.work-identity__main h1 {
   color: var(--color-white);
   margin: 0;
+  /* Display sizes need the tracking pulled in; the default spacing reads
+     loose once the type is this large. */
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+.work-identity__aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-4);
+  text-align: right;
 }
 
 .work-identity__mark {
@@ -939,31 +956,24 @@ main {
   }
 }
 
-.work-identity__bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  gap: var(--space-4);
-  margin-top: var(--space-4);
-}
-
 .work-identity__summary {
-  max-width: 26rem;
-  margin: 0;
+  /* Sized by reading measure - roughly 70 characters - rather than by what
+     is left over in the column. */
+  max-width: 34rem;
+  margin: var(--space-3) 0 0;
   color: rgba(255, 255, 255, 0.75);
   font-size: 1rem;
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
 .work-identity__credits {
   flex-shrink: 0;
-  text-align: right;
 }
 
 .work-identity__credits p {
-  margin: 0.2rem 0;
+  margin: 0.15rem 0;
   font-size: 0.8125rem;
+  line-height: 1.45;
   color: rgba(255, 255, 255, 0.65);
 }
 
@@ -976,14 +986,17 @@ main {
     padding: 0 var(--space-2);
   }
 
-  .work-identity__top,
-  .work-identity__bottom {
-    flex-direction: column;
-    align-items: flex-start;
+  /* One column on phones: the mark and credits sit under the text rather
+     than beside it, and everything shares the same left edge. */
+  .work-identity__inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
   }
 
-  .work-identity__credits {
+  .work-identity__aside {
+    align-items: flex-start;
     text-align: left;
+    gap: var(--space-3);
   }
 
   .work-identity__summary {

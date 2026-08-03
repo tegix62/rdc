@@ -6,6 +6,7 @@ import '@fontsource/gothic-a1/700.css';
 import '../styles/global.css';
 import { getSiteSettings } from '../lib/queries';
 import { urlFor } from '../lib/image';
+import VisualEditing from '../components/VisualEditing.astro';
 
 interface Props {
   title: string;
@@ -110,6 +111,7 @@ const TALLY_URL = settings?.contactUrl || 'https://tally.so/r/mZ8LXz';
         -webkit-touch-callout: none;
       }
     </style>
+    <VisualEditing />
     <script>
       const navToggle = document.querySelector<HTMLButtonElement>('#site-nav-toggle');
       const navLinks = document.querySelector<HTMLElement>('#site-nav-links');

@@ -1,0 +1,31 @@
+---
+/*
+  Loads Sanity's visual-editing overlay, which turns the invisible stega
+  markers the client embeds into clickable "edit this field" targets when the
+  page is viewed inside Studio's Presentation tool.
+
+  Deliberately `is:inline` and loaded from a CDN rather than bundled from
+  node_modules. Astro compiles every <script> it finds whether or not the
+  surrounding conditional renders, so bundling this pulled a 640 KB chunk
+  (plus React, framer-motion and a syntax highlighter) into every build,
+  including production ones that never load it. Inline + CDN keeps the real
+  site at zero cost and drops the dependency - and its peer conflicts -
+  entirely. The CDN is only ever reached while editing, never by a visitor.
+*/
+import { VISUAL_EDITING } from '../lib/sanity';
+
+const OVERLAY_URL = 'https://esm.sh/@sanity/visual-editing@2.13.4';
+---
+
+{VISUAL_EDITING && (
+  <script is:inline type="module" data-overlay-url={OVERLAY_URL}>
+    // Only meaningful inside Studio's Presentation iframe; harmless elsewhere.
+    const url = document.currentScript?.dataset.overlayUrl;
+    try {
+      const { enableVisualEditing } = await import(url);
+      enableVisualEditing();
+    } catch (err) {
+      console.warn('[sanity] visual editing overlay failed to load', err);
+    }
+  </script>
+)}

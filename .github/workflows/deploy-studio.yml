@@ -23,6 +23,11 @@ jobs:
       - run: npx sanity deploy --yes
         env:
           SANITY_AUTH_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          # Which site the Presentation tab previews. Set the PREVIEW_SITE_URL
+          # repository variable to the deployed preview URL to use visual
+          # editing from any device; without it the deployed Studio expects a
+          # local `npm run dev` on the machine you're browsing from.
+          SANITY_STUDIO_PREVIEW_URL: ${{ vars.PREVIEW_SITE_URL || 'http://localhost:4321' }}
       # `sanity deploy` can exit 0 even when it failed internally (e.g. a
       # token without the deployStudio grant), so verify the studio is
       # actually reachable before calling this step green.

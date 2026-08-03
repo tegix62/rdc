@@ -24,6 +24,13 @@ jobs:
           node-version: 20
       - run: npm install
       - run: npm run build
+        env:
+          # This deployment is a preview/staging site - the real
+          # rumeaudesign.co is still served by Webflow - so it's the right
+          # place to turn click-to-edit on. Set this to false (or drop it)
+          # before pointing a real domain at this build: it embeds invisible
+          # markers in page text that visitors have no use for.
+          PUBLIC_SANITY_VISUAL_EDITING: 'true'
       - name: Ensure Cloudflare Pages project exists
         run: npx wrangler@3 pages project create rumeau-design-co --production-branch main || true
         env:

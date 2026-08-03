@@ -353,6 +353,55 @@ arguably the right treatment for pixel work, but the live site doesn't do
 it, it can look worse when downscaling, and I can't see the result - so it
 would have been an unverifiable stylistic invention dressed up as parity.
 
+### 12. SEO parity (task #10) - and a real risk to the live site
+
+Audited the port's `<head>` against Webflow's. Gaps found:
+
+- **No Open Graph tags at all.** Webflow emits them per page. Every link
+  shared to Slack, iMessage or social previewed as a bare URL with no title,
+  description or image. Case studies and blog posts now feed a real
+  1200x630 crop as `og:image`, which is better than the live site manages -
+  most of its pages have `imageUrl: null`.
+- **No canonical, no sitemap, no robots.txt.** Webflow provides all three.
+- **The preview deployment was fully crawlable.** This is the one that
+  mattered: a public URL serving the same copy as rumeaudesign.co can
+  compete with it in search. Preview builds now emit `noindex` and a
+  `robots.txt` that disallows everything, gated on `PUBLIC_IS_PREVIEW`, and
+  canonical always points at the real domain no matter which host served the
+  page. **That flag must be false for a build that serves the real domain**,
+  or the live site will noindex itself - same footgun as
+  `PUBLIC_SANITY_VISUAL_EDITING`.
+
+**Sitemap is hand-rolled, not `@astrojs/sitemap`.** It has to enumerate the
+Sanity-driven routes anyway, and with no lockfile committed every added
+dependency is one more thing that can float to an incompatible version on a
+clean CI install - which is exactly what broke two deploys earlier tonight.
+
+**Two bugs caught by reading the built output rather than assuming:** the
+sitemap namespace was `sitemap.org` instead of `sitemaps.org`, which
+invalidates the whole file; and canonical emitted `/about/` while the sitemap
+said `/about`, which a crawler reads as two URLs for one page.
+
+**Known remaining gap, needs Chris:** case study `<title>` uses the project
+name ("DumpStat, a D&D Podcast") where Webflow has a real SEO title
+("DumpStat Podcast — Brand Identity | Rumeau Design Co"). Fixing it properly
+means an `seoTitle` field on the caseStudy schema plus copy for each project
+- that's his writing, not mine to invent.
+
+### 13. CI on Node 22 (task #4)
+
+All five workflows pinned Node 20, which GitHub is deprecating. Bumped to 22
+(current LTS, and what every build and test this session actually ran on
+locally), plus an `engines` field in both manifests.
+
+**Deliberately not done:** the "actions target Node.js 20" warnings come from
+`actions/checkout@v4` and `actions/setup-node@v4` themselves, not from our
+`node-version`. Bumping those to v5 is the actual fix, but this session's
+GitHub access is scoped to `tegix62/rdc`, so I can't verify those tags exist
+before pushing - and guessing a version into five workflows to silence a
+cosmetic warning isn't worth breaking every pipeline over. GitHub already
+force-runs them on Node 24, so nothing is actually broken today.
+
 ---
 
 ## Appendix: raw findings from Webflow extraction (for resuming case study work)

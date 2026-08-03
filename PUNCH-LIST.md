@@ -54,6 +54,21 @@ Ordered roughly by impact. Nothing here has been actioned unless marked done.
 
 ## Low impact / cleanup
 
+- [ ] **Case study page titles are weaker than Webflow's.** Ours use the
+  project name ("DumpStat, a D&D Podcast"); Webflow has a real SEO title
+  ("DumpStat Podcast — Brand Identity | Rumeau Design Co"). Needs an
+  `seoTitle` field on the caseStudy schema and a line of copy per project -
+  your writing, not mine to invent.
+- [ ] **"actions target Node.js 20" warnings in every workflow log.** Cosmetic
+  today: GitHub already force-runs those actions on Node 24. The fix is
+  bumping `actions/checkout` and `actions/setup-node` to v5, left undone
+  because this session couldn't verify those tags exist before pushing to
+  five pipelines (`WORKLOG-overnight.md` decision #13).
+- [ ] **Before pointing the real domain here:** set `PUBLIC_IS_PREVIEW` and
+  `PUBLIC_SANITY_VISUAL_EDITING` to false in `deploy-pages.yml`. The first
+  makes the site noindex itself; the second embeds invisible editing markers
+  in page text.
+
 - [ ] Several duplicate/draft Webflow pages exist (`Home 2`, `Home Copy`,
   `Home Copy 2`, `Portfolio Copy`, `Portfolio Copy 2`, `Portfolio Copy 3`,
   `Turbo`, `Chateau Seven` [case study, in-progress draft]) - all correctly

@@ -1,0 +1,39 @@
+name: Check the visual editing overlay boots
+
+# The Presentation Edit toggle can be flicked but does nothing. Stega is
+# confirmed working, so this checks the other half: whether the overlay that
+# turns stega markers into clickable targets actually runs inside an iframe.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/test-visual-editing.mjs'
+      - '.github/workflows/test-visual-editing.yml'
+      - 'src/components/VisualEditing.astro'
+      - 'scripts/build-overlay.mjs'
+
+jobs:
+  overlay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: sleep 120
+      - name: Test the overlay
+        run: |
+          set -o pipefail
+          node scripts/test-visual-editing.mjs | tee /tmp/ve.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Visual editing overlay'
+            echo ''
+            echo '```'
+            cat /tmp/ve.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

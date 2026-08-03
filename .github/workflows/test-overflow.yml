@@ -1,0 +1,34 @@
+name: Check for horizontal overflow
+
+# Sideways scroll is obvious to see and hard to attribute. This names the
+# offending elements at three widths, with print mode off and on.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/test-overflow.mjs'
+      - '.github/workflows/test-overflow.yml'
+      - 'src/styles/global.css'
+
+jobs:
+  overflow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: sleep 150
+      - run: node scripts/test-overflow.mjs | tee /tmp/overflow.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Horizontal overflow'
+            echo ''
+            echo '```'
+            cat /tmp/overflow.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

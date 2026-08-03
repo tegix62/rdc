@@ -15,6 +15,7 @@
   alone to keep the source's own aspect.
 */
 import { urlFor, imageDimensions, buildSrcSet, originalUrl, isPassThrough } from '../lib/image';
+import { isAnimatedWebp } from '../lib/animated';
 
 interface Props {
   image: any;
@@ -58,7 +59,11 @@ const ratio = cropped
   a re-encode. Dimensions are still emitted, so pass-through images reserve
   their space and don't reintroduce the layout shift.
 */
-const passThrough = isPassThrough(image);
+// Animated WebP can't be told apart from static WebP by reference alone, so
+// this probes the file header (cached per asset, per build). GIFs are caught
+// by extension inside isPassThrough without a network call.
+const animatedWebp = await isAnimatedWebp(image);
+const passThrough = isPassThrough(image, animatedWebp);
 const original = passThrough ? originalUrl(image) : null;
 
 let builtSrc = urlFor(image).width(width);
@@ -70,14 +75,15 @@ const srcset = passThrough ? undefined : buildSrcSet(image, width, aspect);
 // A pass-through file is delivered at its full size to every device, so an
 // oversized one is a cost the CDN can no longer absorb. Flag it at build
 // time rather than letting it quietly land on phones.
-if (passThrough && intrinsic && intrinsic.width > width * 2) {
+const manualPassThrough = image?.noRecompress === true;
+if (manualPassThrough && intrinsic && intrinsic.width > width * 2) {
   console.warn(
     `[Img] "serve exactly as uploaded" image is ${intrinsic.width}px wide but ` +
       `renders at most ${width}px. Every visitor downloads the full file. ` +
       `Consider uploading it closer to ${width * 2}px.`,
   );
 }
-if (passThrough && (image?.crop || image?.hotspot)) {
+if (manualPassThrough && (image?.crop || image?.hotspot)) {
   console.warn(
     '[Img] "serve exactly as uploaded" ignores the crop/hotspot set in Studio, ' +
       'because cropping requires re-encoding.',

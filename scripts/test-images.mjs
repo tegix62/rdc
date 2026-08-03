@@ -35,7 +35,7 @@ await build({
   logLevel: 'error',
 })
 
-const {imageDimensions, buildSrcSet, urlFor, originalUrl, isPassThrough} = await import(
+const {imageDimensions, buildSrcSet, urlFor, originalUrl, isPassThrough, isAnimatedByExtension, sourceExtension} = await import(
   `file://${outfile}`
 )
 await rm(outfile)
@@ -115,6 +115,28 @@ check('malformed ref returns null', originalUrl({_ref: 'not-an-image'}), null)
 // Dimensions must survive, or pass-through reintroduces the layout shift
 // that the whole Img component exists to prevent.
 check('dimensions still available', JSON.stringify(imageDimensions(kept)), JSON.stringify({width: 1200, height: 800}))
+
+
+console.log('\nanimated sources bypass the transform pipeline')
+// Measured cause of the homepage being heavier than Webflow: an animated WebP
+// hand-compressed to under 1 MB came back from the CDN at 10,721 KB after a
+// w=800&q=80 resize. Animations must never be re-encoded.
+const gif = img('image-anim1-800x800-gif')
+const staticPng = img('image-flat1-800x800-png')
+
+check('gif detected by extension', isAnimatedByExtension(gif), true)
+check('png is not animated', isAnimatedByExtension(staticPng), false)
+check('extension parsed', sourceExtension(gif), 'gif')
+check('extension parsed (webp)', sourceExtension(img('image-x-10x10-webp')), 'webp')
+
+check('gif is pass-through with no flag set', isPassThrough(gif), true)
+check('png still goes through the pipeline', isPassThrough(staticPng), false)
+// The probe result is passed in as the second argument for animated WebP.
+check('animated webp forced to pass-through', isPassThrough(img('image-y-800x800-webp'), true), true)
+check('static webp untouched', isPassThrough(img('image-y-800x800-webp'), false), false)
+
+check('gif url carries no transform', originalUrl(gif).includes('?'), false)
+check('gif url keeps its extension', originalUrl(gif).endsWith('.gif'), true)
 
 console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll checks passed.')
 process.exit(failures ? 1 : 0)

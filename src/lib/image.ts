@@ -33,16 +33,52 @@ export function urlFor(source: unknown) {
 export function originalUrl(source: any): string | null {
   const ref: string | undefined = source?.asset?._ref ?? source?._ref;
   if (typeof ref !== 'string') return null;
-  const match = ref.match(/^image-([a-f0-9]+)-(\d+x\d+)-([a-z0-9]+)$/i);
+  // Deliberately permissive on the asset id. Sanity uses hex digests today,
+  // but a stricter pattern that fails to match returns null here, and null
+  // silently falls back to the transform pipeline - which would re-encode the
+  // very animations this exists to protect. Failing open to "no pass-through"
+  // is the one outcome that must not happen quietly.
+  const match = ref.match(/^image-([a-zA-Z0-9_-]+)-(\d+x\d+)-([a-z0-9]+)$/i);
   if (!match) return null;
   const [, assetId, dimensions, ext] = match;
   const {projectId, dataset} = sanityClient.config();
   return `https://cdn.sanity.io/images/${projectId}/${dataset}/${assetId}-${dimensions}.${ext}`;
 }
 
-/** Whether this image is marked "serve exactly as uploaded" in Studio. */
-export function isPassThrough(source: any): boolean {
-  return source?.noRecompress === true;
+/** The asset's file extension, from its reference. */
+export function sourceExtension(source: any): string | null {
+  const ref: string | undefined = source?.asset?._ref ?? source?._ref;
+  if (typeof ref !== 'string') return null;
+  const match = ref.match(/-([a-z0-9]+)$/i);
+  return match ? match[1].toLowerCase() : null;
+}
+
+/*
+  Animated images must never go through the resize/re-encode pipeline.
+
+  This is not a preference, it's a measured failure: the homepage's
+  `Pisces-Anim-under1mb.webp` - an animated WebP hand-compressed to under 1 MB
+  - came back from the CDN at 10,721 KB, having asked for it at w=800&q=80.
+  Re-encoding an animation frame by frame at a new size is not something the
+  image pipeline does well, and the result was ~11x larger than the original
+  file and larger than what Webflow served.
+
+  GIF is detectable from the asset reference. Animated WebP is not - a static
+  and an animated WebP have identical references - so those are detected by
+  reading the RIFF header, which is what `probeAnimatedWebp` in ./animated.ts
+  does.
+*/
+export function isAnimatedByExtension(source: any): boolean {
+  return sourceExtension(source) === 'gif';
+}
+
+/**
+ * Whether this image ships untouched: either marked "serve exactly as
+ * uploaded" in Studio, or animated (where re-encoding actively makes it
+ * worse).
+ */
+export function isPassThrough(source: any, animated = false): boolean {
+  return source?.noRecompress === true || animated || isAnimatedByExtension(source);
 }
 
 export function imageDimensions(source: any): {width: number; height: number} | null {

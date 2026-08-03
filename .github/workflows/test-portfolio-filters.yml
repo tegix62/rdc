@@ -1,0 +1,27 @@
+name: Test the portfolio category filters
+
+# Clicks the real buttons on the deployed site. "The category buttons don't
+# work" has been reported twice, so this exercises them instead of reasoning
+# about the markup.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/test-portfolio-filters.mjs'
+      - '.github/workflows/test-portfolio-filters.yml'
+      - 'src/pages/portfolio.astro'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      # Give the deploy that this push also triggered time to go live, so the
+      # test isn't run against the previous build.
+      - run: sleep 150
+      - run: node scripts/test-portfolio-filters.mjs

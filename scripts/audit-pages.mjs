@@ -58,6 +58,10 @@ const staticPaths = [
   '/merchfolio',
   '/blog',
   '/privacy-policy',
+  // Internal, and excluded from the sitemap - but it renders every layout
+  // block with fixtures, so it is the only page that exercises blocks no real
+  // case study uses yet. Worth measuring for overflow above all.
+  '/style-guide',
 ]
 
 const browser = await chromium.launch()

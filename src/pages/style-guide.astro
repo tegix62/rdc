@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Sections from '../components/Sections.astro';
 
 const colors = [
   { name: 'Brand Navy', value: '#002885', var: '--color-navy' },
@@ -9,6 +10,84 @@ const colors = [
   { name: 'Gray (meta text)', value: '#666666', var: '--color-gray' },
   { name: 'Ink (body text)', value: '#1a1a1a', var: '--color-ink' },
   { name: 'Black', value: '#000000', var: '--color-black' },
+];
+/*
+  Fixtures for every layout block, rendered through the real Sections component.
+
+  Why this page and not a real case study: a new block that nothing uses is a
+  block nobody has seen. Media Row and Media + Text were shipped correct as far
+  as type-checking goes, and that says nothing about whether they render, whether
+  a video sits properly beside text, or whether three items across overflow on a
+  phone. Seeding Chris's live case studies to find out would mean editing his
+  content to test my code.
+
+  Sections takes a plain array, so fixtures need no Sanity query at all. The
+  asset references below are real files from the dataset, chosen on purpose:
+
+  - the two GIFs are confirmed animated by scripts/audit-animated.mjs, so a row
+    of them exercises the pass-through path rather than a static stand-in. The
+    400x400 one is the file the transform pipeline turns from 867 KB into
+    4,374 KB, which makes it the best possible canary.
+  - the videos are the Vimeo and YouTube embeds already used elsewhere on the
+    site, so both providers get covered.
+
+  The page audit loads /style-guide at both widths, so these get checked for
+  sideways scroll and weight on every run.
+*/
+const ref = (id: string) => ({_type: 'image', asset: {_type: 'reference', _ref: id}});
+
+const ANIMATED_GIF_A = 'image-84932c87f8d266a2d3c30330f2797e46e86308c2-1080x1080-gif';
+const ANIMATED_GIF_B = 'image-7699f292fa859c7d126fd3aafe76eaf7eb0ac579-400x400-gif';
+const STATIC_IMAGE = 'image-b3834b3ffbcf2783a337743475cd2041ff0aceb9-1080x1080-webp';
+
+const VIMEO = 'https://player.vimeo.com/video/1044782545';
+const YOUTUBE = 'https://www.youtube.com/watch?v=plYFXjoViKI';
+
+const blockFixtures = [
+  {
+    _type: 'mediaRowSection',
+    _key: 'row-three-animated',
+    heading: 'Three across, two of them animated',
+    items: [
+      {_type: 'mediaImage', _key: 'a', image: {...ref(ANIMATED_GIF_A), alt: 'Animated logo loop'}, caption: 'Animated GIF'},
+      {_type: 'mediaImage', _key: 'b', image: {...ref(ANIMATED_GIF_B), alt: 'Animated print mockup'}, caption: 'Animated GIF'},
+      {_type: 'mediaImage', _key: 'c', image: {...ref(STATIC_IMAGE), alt: 'Static brand sheet'}, caption: 'Static image'},
+    ],
+  },
+  {
+    _type: 'mediaRowSection',
+    _key: 'row-two-videos',
+    heading: 'Two videos side by side',
+    items: [
+      {_type: 'mediaVideo', _key: 'a', url: VIMEO, caption: 'Vimeo'},
+      {_type: 'mediaVideo', _key: 'b', url: YOUTUBE, caption: 'YouTube'},
+    ],
+  },
+  {
+    _type: 'mediaRowSection',
+    _key: 'row-mixed',
+    heading: 'A video beside a mockup',
+    items: [
+      {_type: 'mediaVideo', _key: 'a', url: YOUTUBE, caption: 'Walkthrough'},
+      {_type: 'mediaImage', _key: 'b', image: {...ref(STATIC_IMAGE), alt: 'Mobile mockup'}, caption: 'Mockup'},
+    ],
+  },
+  {
+    _type: 'mediaTextSection',
+    _key: 'mt-video',
+    videoUrl: VIMEO,
+    mediaPosition: 'Left',
+    heading: 'Media + Text, with a video',
+    text: 'The video replaces the image when a URL is set, the same rule a case study hero uses.',
+  },
+  {
+    _type: 'mediaTextSection',
+    _key: 'mt-image',
+    image: {...ref(STATIC_IMAGE), alt: 'Brand sheet detail'},
+    mediaPosition: 'Right',
+    heading: 'Media + Text, image on the right',
+    text: 'Same block with no video URL, and the media half flipped to the right.',
+  },
 ];
 ---
 
@@ -64,4 +143,12 @@ const colors = [
       <p class="card__meta">Card meta text</p>
     </div>
   </div>
+
+  <h2>Layout blocks</h2>
+  <p>
+    Every block available in Studio, rendered with fixture content. Two of the
+    GIFs below are genuinely animated files from the dataset, so this also
+    checks that animated sources bypass the resize pipeline.
+  </p>
+  <Sections sections={blockFixtures} />
 </Layout>

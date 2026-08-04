@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Sections from '../components/Sections.astro';
+import { sanityClient } from '../lib/sanity';
 
 const colors = [
   { name: 'Brand Navy', value: '#002885', var: '--color-navy' },
@@ -43,6 +44,24 @@ const STATIC_IMAGE = 'image-b3834b3ffbcf2783a337743475cd2041ff0aceb9-1080x1080-w
 const VIMEO = 'https://player.vimeo.com/video/1044782545';
 const YOUTUBE = 'https://www.youtube.com/watch?v=plYFXjoViKI';
 
+/*
+  A real uploaded video for the autoplay fixture.
+
+  The autoplay path needs an actual file, and nothing in the dataset is a
+  hand-uploaded clip yet - but animatedVideoMap holds MP4s the GIF conversion
+  produced, which are genuine Sanity file assets with genuine URLs. Borrowing
+  one exercises the self-hosted branch for real rather than with a fabricated
+  URL that would 404 and prove nothing.
+
+  Resolves to null before any conversion has run, and the fixture is skipped.
+*/
+const uploaded = await sanityClient.fetch<{mp4?: string; webm?: string} | null>(
+  `*[_id == "animatedVideoMap"][0].entries[defined(mp4.asset)][0]{
+    "mp4": mp4.asset->url,
+    "webm": webm.asset->url
+  }`,
+);
+
 const blockFixtures = [
   {
     _type: 'mediaRowSection',
@@ -80,6 +99,32 @@ const blockFixtures = [
     heading: 'Media + Text, with a video',
     text: 'The video replaces the image when a URL is set, the same rule a case study hero uses.',
   },
+  ...(uploaded?.mp4
+    ? [
+        {
+          _type: 'mediaRowSection',
+          _key: 'row-autoplay',
+          heading: 'Uploaded file, autoplaying silently on a loop',
+          items: [
+            {
+              _type: 'mediaVideo',
+              _key: 'a',
+              videoFile: {asset: {url: uploaded.mp4}},
+              videoWebm: uploaded.webm ? {asset: {url: uploaded.webm}} : undefined,
+              videoPlayback: 'autoplay',
+              caption: 'Autoplay, muted, looping - no player script',
+            },
+            {
+              _type: 'mediaVideo',
+              _key: 'b',
+              videoFile: {asset: {url: uploaded.mp4}},
+              videoPlayback: 'click',
+              caption: 'Same file, click to play with controls',
+            },
+          ],
+        },
+      ]
+    : []),
   {
     _type: 'mediaTextSection',
     _key: 'mt-image',

@@ -1842,6 +1842,160 @@ main {
 }
 
 /*
+  Video: the shared component's two shapes.
+
+  --video: fills whatever frame it is dropped into, because the surrounding
+  block (work-video-frame, work-video-hero__bg, a Media Row slot) already owns
+  the aspect ratio and sizing. This layer only handles what is inside.
+*/
+.video {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.video__el,
+.video iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: cover;
+}
+
+/*
+  The embed facade. A button, so it is keyboard reachable and announced as a
+  control - the iframe it replaces is created on click, which is what keeps
+  roughly 640 KB of player JavaScript off a page nobody watched a video on.
+*/
+.video__facade {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: var(--color-ink);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.video__facade :is(img, video) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Dimmed a little so the play button reads against a bright frame. */
+  opacity: 0.85;
+  transition: opacity 140ms ease;
+}
+
+.video__facade:hover :is(img, video),
+.video__facade:focus-visible :is(img, video) {
+  opacity: 1;
+}
+
+.video__facade-blank {
+  display: block;
+  width: 100%;
+  /* No poster and no thumbnail to fall back on - Vimeo has no public one - so
+     the facade keeps a 16:9 block rather than collapsing to nothing. */
+  aspect-ratio: 16 / 9;
+  background: var(--color-ink);
+}
+
+/* Play triangle, drawn rather than an asset: one less request, and it inherits
+   the palette in print mode for free. */
+.video__play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  border: 2px solid var(--color-white);
+  pointer-events: none;
+}
+
+.video__play::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 54%;
+  transform: translate(-50%, -50%);
+  border-style: solid;
+  border-width: 0.6rem 0 0.6rem 1rem;
+  border-color: transparent transparent transparent var(--color-white);
+}
+
+.video__facade:hover .video__play {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+/*
+  The single control an autoplaying loop gets.
+
+  A moving image nobody can stop is a real accessibility failure, so this is a
+  proper labelled button rather than decoration - but it stays out of the way:
+  low opacity until the video is hovered or the button itself is focused.
+*/
+.video__pause {
+  position: absolute;
+  right: var(--space-1);
+  bottom: var(--space-1);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 32px;
+  padding: 0.375rem 0.625rem;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 140ms ease;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.video--self:hover .video__pause,
+.video__pause:focus-visible {
+  opacity: 1;
+}
+
+/* Touch has no hover, so leave it visible but quiet rather than unreachable. */
+@media (pointer: coarse) {
+  .video__pause {
+    opacity: 0.75;
+  }
+}
+
+.video__pause-icon {
+  display: block;
+  width: 8px;
+  height: 10px;
+  border-left: 3px solid currentColor;
+  border-right: 3px solid currentColor;
+}
+
+/* Paused: the icon becomes a play triangle so the button says what it will do
+   rather than what it did. */
+.video__pause[aria-pressed='true'] .video__pause-icon {
+  width: 0;
+  height: 0;
+  border-left: 8px solid currentColor;
+  border-right: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+
+/*
   Media Row.
 
   --media-count comes from the block, so two items get halves and three get

@@ -6,7 +6,7 @@ import { sanityClient } from '../../lib/sanity';
 import { getCaseStudy, getGridItems, getOtherCaseStudies } from '../../lib/queries';
 import { urlFor } from '../../lib/image';
 import { renderPortableText } from '../../lib/portableText';
-import { embedUrl } from '../../lib/video';
+import Video from '../../components/Video.astro';
 
 export async function getStaticPaths() {
   const slugs = await sanityClient.fetch(
@@ -49,14 +49,16 @@ const ogImage = ogSource
     the port's invention. Setting Hero Video swaps the two rather than adding to
     them.
   */}
-  {caseStudy.heroVideo ? (
+  {caseStudy.heroVideo || caseStudy.heroVideoFile || caseStudy.heroVideoWebm ? (
     <div class="work-hero work-hero--video full-bleed">
-      <iframe
-        src={embedUrl(caseStudy.heroVideo)}
+      <Video
+        url={caseStudy.heroVideo}
+        file={caseStudy.heroVideoFile}
+        webm={caseStudy.heroVideoWebm}
+        poster={caseStudy.mainImage ?? caseStudy.thumbnail}
+        playback={caseStudy.heroVideoPlayback ?? 'autoplay'}
         title={caseStudy.title}
-        loading="eager"
-        allow="autoplay; fullscreen; picture-in-picture"
-        allowfullscreen
+        width={2400}
       />
     </div>
   ) : (
@@ -117,13 +119,9 @@ const ogImage = ogSource
   {caseStudy.filmEmbed && (
     <div class="work-section work-section--video">
       <div class="work-video-frame">
-        <iframe
-          src={embedUrl(caseStudy.filmEmbed)}
-          title={`${caseStudy.title} film`}
-          loading="lazy"
-          allow="autoplay; fullscreen; picture-in-picture"
-          allowfullscreen
-        />
+        {/* Through Video for the same reason as everything else: the 640 KB of
+            player script waits for someone to actually want it. */}
+        <Video url={caseStudy.filmEmbed} title={`${caseStudy.title} film`} width={1600} />
       </div>
     </div>
   )}

@@ -1,0 +1,198 @@
+---
+/*
+  One video component for the whole site, so the two very different kinds of
+  video are decided in one place rather than per call site.
+
+  UPLOADED FILE -> a native <video>. No player JavaScript at all.
+    playback 'autoplay': muted, looping, inline, no controls, plus one small
+      pause button. Muted is not a style choice - browsers refuse to autoplay
+      anything else - and `playsinline` is what stops iOS taking the video
+      fullscreen the moment it starts.
+    playback 'click': normal controls, preload="none" so nothing but the poster
+      is fetched until someone presses play.
+
+  YOUTUBE / VIMEO -> a facade. A poster and a play button; the iframe is created
+  on click.
+
+  That last part is the measured win. Each embed pulls roughly 640 KB of player
+  JavaScript whether or not anyone watches: /video was 1,199 KB with 960 KB of
+  it script, and /style-guide with three embeds pulled 1,921 KB. A facade moves
+  all of that behind an intention to watch.
+
+  The facade is a <button> rather than a div with a handler, so it is reachable
+  by keyboard and announced as a control for free.
+*/
+import {embedUrl} from '../lib/video';
+import {urlFor} from '../lib/image';
+import Img from './Img.astro';
+
+interface Props {
+  /** A YouTube or Vimeo link. Ignored when a file is present. */
+  url?: string | null;
+  /** Uploaded MP4, as resolved from Sanity (`videoFile{asset->{url}}`). */
+  file?: {asset?: {url?: string}} | null;
+  /** Uploaded WebM. Offered before the MP4, being usually smaller. */
+  webm?: {asset?: {url?: string}} | null;
+  poster?: any;
+  playback?: 'click' | 'autoplay' | null;
+  /** Used for the accessible name, and as the iframe title. */
+  title?: string;
+  /** Largest width this is rendered at, for sizing the poster. */
+  width?: number;
+  sizes?: string;
+  class?: string;
+}
+
+const {
+  url,
+  file,
+  webm,
+  poster,
+  playback = 'click',
+  title = 'Video',
+  width = 1600,
+  sizes = '100vw',
+  class: className,
+} = Astro.props;
+
+const mp4 = file?.asset?.url ?? null;
+const webmUrl = webm?.asset?.url ?? null;
+// An upload wins over a URL: if both are filled in, the file is the more
+// deliberate choice and the one that can autoplay.
+const selfHosted = Boolean(mp4 || webmUrl);
+const autoplay = selfHosted && playback === 'autoplay';
+
+const embed = !selfHosted && url ? embedUrl(url) : null;
+
+/*
+  The poster for an embed facade, in order of preference:
+    1. the poster image set in Studio
+    2. YouTube's own thumbnail, derived from the id already parsed out of the
+       embed URL
+    3. nothing, and the facade renders as a plain block with a play button
+
+  Vimeo is deliberately absent from step 2. Its thumbnails need an API call, and
+  making the build depend on a third-party request to render a page is a bad
+  trade for one still - the poster field covers it.
+*/
+const youTubeId = embed?.includes('youtube.com/embed/')
+  ? embed.split('/embed/')[1]?.split(/[?&]/)[0]
+  : null;
+const fallbackPoster = youTubeId ? `https://i.ytimg.com/vi/${youTubeId}/hqdefault.jpg` : null;
+const posterUrl = poster ? urlFor(poster).width(width).url() : null;
+---
+
+{selfHosted ? (
+  <div class:list={['video', 'video--self', className]}>
+    <video
+      class="video__el"
+      poster={posterUrl ?? undefined}
+      autoplay={autoplay || undefined}
+      loop={autoplay || undefined}
+      muted={autoplay || undefined}
+      playsinline={autoplay || undefined}
+      controls={!autoplay || undefined}
+      preload={autoplay ? 'auto' : 'none'}
+      aria-label={title}
+    >
+      {/* WebM first: browsers take the first source they can play, and it is
+          usually the smaller of the two. */}
+      {webmUrl && <source src={webmUrl} type="video/webm" />}
+      {mp4 && <source src={mp4} type="video/mp4" />}
+    </video>
+
+    {autoplay && (
+      /*
+        The one control an autoplaying loop gets. Deliberately not a full player
+        bar: this is decorative motion, and the only thing anyone reasonably
+        wants is to make it stop. Hidden from the accessibility tree would be
+        wrong - a moving image someone cannot pause is a genuine accessibility
+        failure, and WCAG asks for exactly this - so it is a real button with a
+        real label.
+      */
+      <button type="button" class="video__pause" data-video-pause aria-pressed="false">
+        <span class="video__pause-icon" aria-hidden="true"></span>
+        <span class="video__pause-label">Pause</span>
+      </button>
+    )}
+  </div>
+) : embed ? (
+  <div class:list={['video', 'video--embed', className]} data-video-embed={embed} data-video-title={title}>
+    <button type="button" class="video__facade" aria-label={`Play ${title}`}>
+      {poster ? (
+        <Img image={poster} alt="" width={width} sizes={sizes} />
+      ) : fallbackPoster ? (
+        /* Not through Img: this is a third-party URL, not a Sanity asset, so
+           there is no reference to derive dimensions or a srcset from. */
+        <img src={fallbackPoster} alt="" loading="lazy" width="480" height="360" />
+      ) : (
+        <span class="video__facade-blank" aria-hidden="true"></span>
+      )}
+      <span class="video__play" aria-hidden="true"></span>
+    </button>
+  </div>
+) : null}
+
+<script>
+  /*
+    Both behaviours, delegated from the document so any number of videos on a
+    page share one listener - and so videos added later by any other script are
+    covered without re-binding.
+  */
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement | null;
+    if (!target) return;
+
+    // --- embed facade: build the iframe on first click ---------------------
+    const facade = target.closest<HTMLElement>('.video__facade');
+    if (facade) {
+      const holder = facade.closest<HTMLElement>('[data-video-embed]');
+      const src = holder?.dataset.videoEmbed;
+      if (!holder || !src) return;
+      const frame = document.createElement('iframe');
+      // autoplay=1 because the click WAS the intention to play; without it the
+      // visitor has to press play a second time inside the iframe.
+      frame.src = src + (src.includes('?') ? '&' : '?') + 'autoplay=1';
+      frame.title = holder.dataset.videoTitle || 'Video';
+      frame.allow = 'autoplay; fullscreen; picture-in-picture';
+      frame.setAttribute('allowfullscreen', '');
+      frame.loading = 'eager';
+      holder.replaceChildren(frame);
+      return;
+    }
+
+    // --- pause button on an autoplaying loop ------------------------------
+    const pause = target.closest<HTMLElement>('[data-video-pause]');
+    if (pause) {
+      const video = pause.parentElement?.querySelector('video');
+      if (!(video instanceof HTMLVideoElement)) return;
+      if (video.paused) {
+        video.play();
+        pause.setAttribute('aria-pressed', 'false');
+        pause.querySelector('.video__pause-label')!.textContent = 'Pause';
+      } else {
+        video.pause();
+        pause.setAttribute('aria-pressed', 'true');
+        pause.querySelector('.video__pause-label')!.textContent = 'Play';
+      }
+    }
+  });
+
+  /*
+    Respect "reduce motion". Someone who has asked their system not to animate
+    things should not be handed a looping video that started on its own. The
+    poster stays, and the pause button becomes the way to start it.
+  */
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    for (const v of document.querySelectorAll('video[autoplay]')) {
+      if (v instanceof HTMLVideoElement) {
+        v.autoplay = false;
+        v.pause();
+        const btn = v.parentElement?.querySelector('[data-video-pause]');
+        btn?.setAttribute('aria-pressed', 'true');
+        const label = btn?.querySelector('.video__pause-label');
+        if (label) label.textContent = 'Play';
+      }
+    }
+  }
+</script>

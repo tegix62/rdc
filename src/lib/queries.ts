@@ -1,8 +1,27 @@
 import { sanityClient } from './sanity';
 
+/*
+  Uploaded video files have to be projected explicitly.
+
+  A bare `*[_type == "x"][0]` returns a file field as an unresolved reference -
+  `{_type: 'file', asset: {_ref: 'file-abc-mp4'}}` - with no URL anywhere in it.
+  Nothing errors; the video simply never plays, which is the worst kind of bug
+  because the page still looks fine. So every video-bearing field gets `asset->`.
+
+  `items[]` reaches inside a Media Row, whose slots each carry their own video.
+  Sections with no `items` array just come back without one.
+*/
+const VIDEO_FILES = `videoFile{asset->{url}}, videoWebm{asset->{url}}`;
+
+const SECTIONS = `sections[]{
+  ...,
+  ${VIDEO_FILES},
+  items[]{ ..., ${VIDEO_FILES} }
+}`;
+
 export function getPage(slug: string) {
   return sanityClient.fetch(
-    `*[_type == "page" && slug.current == $slug][0]`,
+    `*[_type == "page" && slug.current == $slug][0]{ ..., ${SECTIONS} }`,
     { slug },
   );
 }
@@ -15,7 +34,12 @@ export function getCaseStudies() {
 
 export function getCaseStudy(slug: string) {
   return sanityClient.fetch(
-    `*[_type == "caseStudy" && pageType == "Case Study" && slug.current == $slug][0]`,
+    `*[_type == "caseStudy" && pageType == "Case Study" && slug.current == $slug][0]{
+      ...,
+      heroVideoFile{asset->{url}},
+      heroVideoWebm{asset->{url}},
+      ${SECTIONS}
+    }`,
     { slug },
   );
 }

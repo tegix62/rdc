@@ -7,7 +7,7 @@
 import { urlFor } from '../lib/image';
 import Img from './Img.astro';
 import { renderPortableText } from '../lib/portableText';
-import { embedUrl } from '../lib/video';
+import Video from './Video.astro';
 
 interface Props {
   sections: any[];
@@ -68,15 +68,17 @@ const { sections } = Astro.props;
         </div>
       );
     case 'videoSection':
-      return section.url ? (
+      return section.url || section.videoFile || section.videoWebm ? (
         <div class="work-section work-section--video">
           <div class="work-video-frame">
-            <iframe
-              src={embedUrl(section.url)}
+            <Video
+              url={section.url}
+              file={section.videoFile}
+              webm={section.videoWebm}
+              poster={section.videoPoster}
+              playback={section.videoPlayback}
               title={section.caption ?? 'Video'}
-              loading="lazy"
-              allow="autoplay; fullscreen; picture-in-picture"
-              allowfullscreen
+              width={1600}
             />
           </div>
           {section.caption && <p class="work-video-caption">{section.caption}</p>}
@@ -122,14 +124,16 @@ const { sections } = Astro.props;
     case 'videoHeroSection':
       return (
         <div class="work-section work-section--video-hero">
-          {section.url && (
+          {(section.url || section.videoFile || section.videoWebm) && (
             <div class="work-video-hero__bg">
-              <iframe
-                src={embedUrl(section.url)}
+              <Video
+                url={section.url}
+                file={section.videoFile}
+                webm={section.videoWebm}
+                poster={section.videoPoster}
+                playback={section.videoPlayback}
                 title={section.heading ?? 'Video'}
-                loading="lazy"
-                allow="autoplay; fullscreen; picture-in-picture"
-                allowfullscreen
+                width={2000}
               />
             </div>
           )}
@@ -149,7 +153,9 @@ const { sections } = Astro.props;
     */
     case 'mediaRowSection': {
       const items = (section.items ?? []).filter(
-        (i: any) => (i._type === 'mediaVideo' && i.url) || (i._type === 'mediaImage' && i.image),
+        (i: any) =>
+          (i._type === 'mediaVideo' && (i.url || i.videoFile || i.videoWebm)) ||
+          (i._type === 'mediaImage' && i.image),
       );
       if (items.length === 0) return null;
       // Narrower slots want smaller files. This is the width each item is
@@ -163,12 +169,15 @@ const { sections } = Astro.props;
               <figure class="media-row__item">
                 {item._type === 'mediaVideo' ? (
                   <div class="work-video-frame">
-                    <iframe
-                      src={embedUrl(item.url)}
+                    <Video
+                      url={item.url}
+                      file={item.videoFile}
+                      webm={item.videoWebm}
+                      poster={item.videoPoster}
+                      playback={item.videoPlayback}
                       title={item.caption ?? 'Video'}
-                      loading="lazy"
-                      allow="autoplay; fullscreen; picture-in-picture"
-                      allowfullscreen
+                      width={slotWidth}
+                      sizes={`(max-width: 40rem) 100vw, ${Math.round(100 / items.length)}vw`}
                     />
                   </div>
                 ) : (
@@ -199,14 +208,17 @@ const { sections } = Astro.props;
             section.mediaPosition === 'Right' && 'is-reversed',
           ]}
         >
-          {section.videoUrl ? (
+          {section.videoUrl || section.videoFile || section.videoWebm ? (
             <div class="work-video-frame">
-              <iframe
-                src={embedUrl(section.videoUrl)}
+              <Video
+                url={section.videoUrl}
+                file={section.videoFile}
+                webm={section.videoWebm}
+                poster={section.videoPoster}
+                playback={section.videoPlayback}
                 title={section.heading ?? 'Video'}
-                loading="lazy"
-                allow="autoplay; fullscreen; picture-in-picture"
-                allowfullscreen
+                width={1200}
+                sizes="(max-width: 40rem) 100vw, 50vw"
               />
             </div>
           ) : (

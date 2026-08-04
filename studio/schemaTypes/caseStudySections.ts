@@ -1,5 +1,6 @@
 import {defineField, defineType} from 'sanity'
 import {imageBehaviourFields} from './imageFields'
+import {videoBehaviourFields} from './videoFields'
 
 const image = (name: string, title: string) =>
   defineField({name, title, type: 'image', fields: imageBehaviourFields, options: {hotspot: true}})
@@ -70,15 +71,16 @@ export const videoSection = defineType({
   fields: [
     defineField({
       name: 'url',
-      title: 'Video URL',
+      title: 'Video URL (YouTube or Vimeo)',
       type: 'url',
       description: 'YouTube or Vimeo URL.',
     }),
     defineField({name: 'caption', type: 'string'}),
+    ...videoBehaviourFields,
   ],
   preview: {
     select: {subtitle: 'url'},
-    prepare: ({subtitle}) => ({title: 'Video Embed', subtitle}),
+    prepare: ({subtitle}) => ({title: 'Video', subtitle}),
   },
 })
 
@@ -152,7 +154,7 @@ export const achievementsSection = defineType({
 
 export const videoHeroSection = defineType({
   name: 'videoHeroSection',
-  title: 'Video Hero',
+  title: 'Video Hero (full-bleed, can autoplay)',
   type: 'object',
   description:
     'A full-bleed video opener for a case study, with the title along the bottom. ' +
@@ -165,6 +167,7 @@ export const videoHeroSection = defineType({
       description: 'YouTube or Vimeo URL.',
     }),
     defineField({name: 'heading', type: 'string'}),
+    ...videoBehaviourFields,
   ],
   preview: {
     select: {title: 'heading', subtitle: 'url'},
@@ -280,16 +283,18 @@ export const mediaVideo = defineType({
   fields: [
     defineField({
       name: 'url',
-      title: 'Video URL',
+      title: 'Video URL (YouTube or Vimeo)',
       type: 'url',
-      description: 'A YouTube or Vimeo link.',
-      validation: (Rule) => Rule.required(),
+      description:
+        'Leave empty if you are uploading a file below instead. One or the ' +
+        'other is needed; an upload wins if both are filled in.',
     }),
     defineField({
       name: 'caption',
       type: 'string',
       description: 'Optional line under this item.',
     }),
+    ...videoBehaviourFields,
   ],
   preview: {
     select: {title: 'caption', subtitle: 'url'},
@@ -350,6 +355,7 @@ export const mediaTextSection = defineType({
         'A YouTube or Vimeo link. When set, this plays INSTEAD of the image ' +
         'above - the image is not shown. Leave empty for an image.',
     }),
+    ...videoBehaviourFields,
     defineField({
       name: 'mediaPosition',
       title: 'Media Position',

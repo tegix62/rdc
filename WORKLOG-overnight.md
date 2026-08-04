@@ -633,3 +633,80 @@ character measure and line-height per run of body copy, sub-44px touch
 targets, and unsized images. Bytes come from `Content-Length` — Playwright's
 `responseBodySize` reported a 71 KB image as 10.7 MB earlier in this port and
 an entire diagnosis was built on it.
+
+### Decision #18 — visual editing works; three checks were wrong before one was right
+
+Confirmed end to end against the live preview, using the Studio's own comlink
+bundled out of `studio/node_modules`:
+
+- handshake connects in **well under a second**
+- overlay mounts in **~400ms**
+- `presentation/toggle-overlay` turns it **off**, and again turns it **back on**
+- hovering a Sanity-fed element **draws a click-to-edit rect over it**
+
+The seven stega-tagged text nodes on `/about` are the right seven — the `h1`,
+the four body paragraphs, the Instagram link, the copyright line — and the nav
+links, which are hardcoded rather than Sanity-fed, correctly carry none.
+
+Getting there took three wrong assertions, all the same wrong assumption: that
+a working overlay *adds* DOM elements. It does not. It keeps a fixed pool of
+boxes and **moves** them. The child count sits at 11 whether or not anything is
+highlighted, so:
+
+1. "toggling raises the element count" — no, it comes up enabled, so toggling
+   turns it off (8 → 1).
+2. "hovering raises the element count" — no, nothing is appended.
+3. Only the screenshot committed to `ci-reports` settled it. A picture of the
+   frame beat three rounds of counting.
+
+The check now asks the question geometrically: after moving the pointer, does
+any box inside `<sanity-visual-editing>` overlap the point under it?
+
+**So Chris's "the switch does nothing" is most likely this**: the overlay comes
+up *already enabled*, so flicking the switch turns it off, and the only visible
+affordance is a rect that appears **on hover**. Nothing changes at the moment
+of the flick, which reads as a dead control. Worth telling him rather than
+fixing.
+
+### Decision #19 — first real page measurements
+
+From the first full audit run (preview build, so byte counts include the
+preview-only overlay and stega):
+
+| | |
+|---|---|
+| `/portfolio` mobile | **26.1 MB**, 133 requests for 68 images |
+| `/portfolio` desktop | 13.0 MB, 76 requests |
+| `/` both | ~10.9 MB, **8 images** |
+| `/about` | 105 KB |
+
+Mobile being *twice* desktop on `/portfolio` is backwards and is the single
+biggest speed problem on the site. Roughly two image requests per `<img>`
+suggests a second fetch after Isotope resizes the tiles, but that is a
+hypothesis and has not been measured — `scripts/audit-pages.mjs` now records
+every image URL, its bytes and its `w=` parameter, and separates pass-through
+originals from transformed ones, because the fix is completely different
+depending on which it is. **Next session: read `latest/pages.md` under
+"Heaviest images" first.**
+
+Fixed from the same run:
+
+- `.prose` had **no measure cap at all** — 141 characters a line on `/video`,
+  94 on `/about`, against a 45–75 target. Capped at 68ch on the text elements
+  only, so images and galleries keep their width.
+- `.statement__sub` was **11px** below 30rem with tracking dropped to 0. Now
+  13px with 1px of tracking.
+- Tap targets: hamburger **32×32 → 44×44**, portfolio filter row 24px tall,
+  print-mode swatches 24×24, footer links 21px — all at or above 44px on
+  coarse pointers now.
+- No page scrolls sideways at either width, and no image is missing
+  width/height. Both previously-fixed problems are staying fixed.
+
+Two bugs in the audit itself, both found by disbelieving its output:
+
+- stega markers count towards `textContent.length`, so a nine-character label
+  like "Anabel D." was measured as an 80-character paragraph and the first
+  report was full of false positives.
+- section-block fields were counted against all 96 documents, turning "nobody
+  has used this block yet" into 83 separate "empty in every document"
+  findings.

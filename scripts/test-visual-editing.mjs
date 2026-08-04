@@ -77,9 +77,13 @@ check(
   true,
 )
 
-const booted = consoleLines.some((l) => l.includes('visual editing enabled'))
-const failed = consoleLines.filter((l) => l.toLowerCase().includes('visual editing failed'))
-check('overlay reported that it started', booted, true)
+// The bundle logs 'mounted' only once the overlay's element is actually in
+// the DOM - see scripts/build-overlay.mjs for why 'started' wasn't enough.
+const booted = consoleLines.some((l) => l.includes('visual editing mounted'))
+const failed = consoleLines.filter(
+  (l) => l.includes('never mounted') || l.includes('threw on start'),
+)
+check('overlay reported that it mounted', booted, true)
 if (failed.length) {
   console.log('\n  overlay start-up errors:')
   for (const f of failed) console.log(`    ${f}`)

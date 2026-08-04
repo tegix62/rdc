@@ -43,14 +43,30 @@ await mkdir(path.dirname(outfile), {recursive: true})
 // A tiny entry rather than bundling the package directly, so the overlay
 // starts itself on load and reports what happened. Presentation only says
 // "unable to connect" when this fails, which says nothing about the cause.
+// enableVisualEditing() schedules a dynamic import and returns immediately, so
+// a try/catch around it catches nothing and its "enabled" log means only that
+// the call was made - the overlay could still fail to mount and this would
+// look identical. What actually proves it mounted is the <sanity-visual-editing>
+// element it inserts, so wait for that and say either way.
 const entry = `
 import {enableVisualEditing} from '@sanity/visual-editing'
+
+const started = Date.now()
 try {
   enableVisualEditing()
-  console.info('[sanity] visual editing enabled')
 } catch (err) {
-  console.error('[sanity] visual editing failed to start:', err)
+  console.error('[sanity] visual editing threw on start:', err)
 }
+
+const poll = setInterval(() => {
+  if (document.querySelector('sanity-visual-editing')) {
+    clearInterval(poll)
+    console.info('[sanity] visual editing mounted in ' + (Date.now() - started) + 'ms')
+  } else if (Date.now() - started > 10000) {
+    clearInterval(poll)
+    console.error('[sanity] visual editing never mounted - no <sanity-visual-editing> element after 10s')
+  }
+}, 100)
 `
 
 const result = await build({

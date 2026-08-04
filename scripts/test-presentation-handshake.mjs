@@ -27,11 +27,16 @@
   as it is in the real Studio. Then it does what the Edit toggle does - post
   "presentation/toggle-overlay" - and reports whether the site reacted.
 
-  First run, 2026-08-04: the handshake connected in 27ms, the overlay mounted
-  in 555ms, and the page answered the toggle. So the site half is healthy and
-  the protocol matches. What that leaves is whether an editor sees anything -
-  the overlay can be connected and enabled and still highlight nothing - so
-  section 3 hovers real text and checks a target gets drawn.
+  Outcome, 2026-08-04: all three sections pass against the live preview.
+  Presentation connects in well under a second, the overlay mounts in ~400ms,
+  the toggle turns it off and back on, and hovering a Sanity-fed element draws
+  a click-to-edit rect over it. Visual editing works.
+
+  Two checks had to be corrected before they told the truth, both making the
+  same wrong assumption: that a working overlay ADDS elements. It does not -
+  it keeps a fixed pool of boxes and moves them, so the count sits at 11
+  whether or not anything is highlighted. Only the screenshot settled it, and
+  the hover check now asks the question geometrically instead.
 
   Reading the result:
 

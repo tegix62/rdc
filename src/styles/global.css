@@ -330,9 +330,13 @@ main {
   The cap goes on the text elements rather than the container, so images,
   galleries and embeds inside .prose keep the full width they were laid out
   for.
+
+  62ch and not 68ch, because ch is the width of the "0" glyph and in Gothic A1
+  that is wider than the average lowercase letter: a first pass at 68ch
+  measured 78 characters a line, still over target. 62ch measures about 71.
 */
 .prose :is(p, li, blockquote, h2, h3, h4) {
-  max-width: 68ch;
+  max-width: 62ch;
 }
 
 .prose ul {
@@ -1729,9 +1733,12 @@ main {
     padding-block: 0.625rem;
   }
 
+  /* 36px still measured under the 44px floor, so it stayed on the audit's
+     list. These are the print-mode paper colours - small targets sitting
+     close together, which is the worst combination on a phone. */
   .ink-bar__swatch {
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
   }
 
   .ink-bar__toggle {
@@ -1743,6 +1750,7 @@ main {
   .site-footer__social-link,
   .site-footer__bottom a {
     display: inline-block;
-    padding-block: 0.6875rem;
+    /* 0.6875rem measured 43px - one pixel short. */
+    padding-block: 0.75rem;
   }
 }

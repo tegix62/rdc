@@ -710,3 +710,105 @@ Two bugs in the audit itself, both found by disbelieving its output:
 - section-block fields were counted against all 96 documents, turning "nobody
   has used this block yet" into 83 separate "empty in every document"
   findings.
+
+### Decision #20 — the weight was upscaling and a probe that could not see GIFs
+
+Measured before and after, on the real deployed preview:
+
+| Page | Before | After | |
+|---|--:|--:|---|
+| `/` desktop | 10,938 KB | **4,445 KB** | −59% |
+| `/` mobile | 10,944 KB | **4,451 KB** | −59% |
+| `/portfolio` mobile | 12,318 KB | **8,021 KB** | −35% |
+| `/portfolio` desktop | 10,554 KB | **7,266 KB** | −31% |
+| `/merchfolio` desktop | 2,570 KB | **1,722 KB** | −33% |
+| `/work/adelante-barbell-club` | 446 KB | **1,270 KB** | **+185%, see below** |
+
+Four separate bugs, each found by measurement and each confirmed fixed by
+re-measurement.
+
+**1. Nothing stopped the CDN being asked to enlarge an image.** `buildSrcSet`
+clamped to the intrinsic width. The `src` attribute did not, and neither did the
+two homepage CSS backgrounds, which never touch `Img.astro` at all. The source
+dimensions sat in the URLs the whole time:
+
+    ...-800x800.webp  asked for w=1800  ->  10,704 KB
+    ...-300x300.webp  asked for w=800   ->   3,887 KB
+    ...-200x200.webp  asked for w=800   ->   2,539 KB
+
+Clamping now lives in one place, `cappedWidth()`. Worse than waste: a source
+narrower than the smallest srcset entry (320) yields **no srcset at all**, so
+that upscaled `src` was the browser's only candidate.
+
+**2. The animation probe could never detect an animated GIF.** It fetched 256
+bytes and searched only the first **64** for the NETSCAPE loop block. That block
+sits after the logical screen descriptor *and* the global colour table — 768
+bytes on its own for a 256-colour palette — so on a real GIF the marker is past
+offset 780 and a 64-byte window cannot reach it. 13 animated GIFs were reported
+static and went through the very pipeline `animated.ts` exists to keep them out
+of, including the 400×400 that becomes 4,374 KB from 867 KB. Now reads 4 KB and
+searches the whole window: **87 of 87 verdicts agree with the bytes, was 74.**
+
+**3. `mayBeAnimated()` gated the probe on the stored extension** — the one thing
+this dataset's own documentation says cannot be trusted. An APNG referenced as
+`-png` was never probed because nothing in the reference said "gif" or "webp".
+Widened; the verdict still comes from bytes. (No APNGs turned up in the end —
+the hypothesis was wrong, and checking cost one CI run instead of a wrong claim.)
+
+**4. `og:image` was content-negotiated.** An animated source came back as an
+animated WebP: rejected by every scraper, and megabytes. Forced to `jpg`.
+
+#### The regression, stated plainly
+
+`/work/adelante-barbell-club` nearly tripled, and the byte breakdown says why:
+784 KB of `media`. With the GIFs finally detected, their converted videos
+started being served — and on this dataset 10 of 13 transcodes are *larger* than
+the hand-optimised GIF they replace. A correct fix exposed a bad default.
+
+`getAnimatedVideo` now reads `sourceBytes`/`mp4Bytes` — which the CMS audit had
+flagged **dead**, in the schema and read by nothing — and serves the video only
+when it beats the source by 10%. A dead field turned out to be a missing
+feature, not a spare one.
+
+That did not fix this page, which is the honest result: the videos here *do*
+beat their sources. The real error is upstream of both. **"Animated ⇒ never
+transform" is too absolute** — whether the pipeline helps depends on the width
+being requested, and at the small widths this page uses the re-encode genuinely
+beat the original. The correct rule is a per-asset, per-width decision from
+measured bytes, cached into Sanity. That is a real piece of work, not a 4am
+change, and it is on the punch list.
+
+#### Two flaws in the audits themselves, both found by disbelieving them
+
+- **Sizes measured without an `Accept` header describe a response no visitor
+  ever gets.** `auto=format` is content-negotiated, so a bare fetch reported the
+  hero at 79 KB for the exact URL a browser had just downloaded at 10,704 KB.
+  Both numbers were true. Fixed, and the two audits now agree exactly.
+- **`tee` only captures stdout.** The animated audit's first run wrote a 0-byte
+  report because the script died before its first `console.log`. Every audit step
+  now redirects stderr into the same pipe — and that is what surfaced the next
+  bug (`Dynamic require of "stream"`) in one run instead of none.
+
+### Decision #21 — typography and tap targets, verified
+
+- Reading measure: `/video` **141ch → 71ch**, `/about` **94ch → 71ch**. `.prose`
+  had no `max-width` at all. Capped on the text elements only, so images and
+  galleries keep their width. 62ch not 68ch: `ch` is the "0" glyph, wider than
+  average lowercase in Gothic A1, so 68ch measured 78.
+- Smallest text on the site: `.statement__sub` was **11px** below 30rem with
+  tracking dropped to 0. Now 13px with 1px of tracking.
+- Tap targets: hamburger **32×32 → 44×44** (it was the smallest control on the
+  site and the first one any phone visitor hits), portfolio filter row 24px →
+  44px, print-mode swatches 24 → 44, footer links 21 → 44.
+- No page scrolls sideways at either width; no image is missing width/height.
+
+### Still open, in priority order
+
+1. **`/portfolio` desktop CLS is 0.4722** (good is under 0.1) — by far the worst
+   number left, and it is exactly the "feels janky" complaint. Isotope lays the
+   masonry grid out after paint. Mobile measures 0, which is suspicious and
+   worth understanding before trusting it.
+2. **`/portfolio` is still ~7.3–8.0 MB** for 68 thumbnails. The per-asset,
+   per-width decision above is the main lever.
+3. **One 800×800 source file is 3,981 KB** — the homepage hero. No amount of
+   code fixes a 4 MB source; it needs re-exporting. Content task for Chris.

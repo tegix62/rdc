@@ -50,6 +50,7 @@ import {build} from 'esbuild'
 import {createServer} from 'node:http'
 import {chromium} from 'playwright'
 import path from 'node:path'
+import {mkdir} from 'node:fs/promises'
 import {fileURLToPath} from 'node:url'
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
@@ -239,19 +240,27 @@ if (frame) {
   // zero the overlay has nothing to find and the fault is upstream, in the
   // client's stega config rather than in the overlay.
   const stega = await frame.evaluate(() => {
-    let nodes = 0
+    const tagged = []
     let chars = 0
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
     while (walker.nextNode()) {
-      const m = walker.currentNode.nodeValue.match(/[\u200B-\u200F\uFEFF\u2060]/g)
+      const n = walker.currentNode
+      const m = n.nodeValue.match(/[\u200B-\u200F\uFEFF\u2060]/g)
       if (m) {
-        nodes += 1
         chars += m.length
+        tagged.push({
+          parent: n.parentElement?.tagName.toLowerCase() ?? '?',
+          cls: String(n.parentElement?.className ?? '').slice(0, 28),
+          text: n.nodeValue.replace(/[\u200B-\u200F\uFEFF\u2060]/g, '').trim().slice(0, 40),
+        })
       }
     }
-    return {nodes, chars}
+    // Everything Sanity-fed that did NOT get a payload is the more useful
+    // half: those elements can never become editable.
+    return {tagged, chars}
   })
-  console.log(`    text nodes carrying stega: ${stega.nodes} (${stega.chars} marker chars)`)
+  console.log(`    text nodes carrying stega: ${stega.tagged.length} (${stega.chars} marker chars)`)
+  for (const t of stega.tagged) console.log(`      <${t.parent}${t.cls ? '.' + t.cls : ''}> "${t.text}"`)
 
   // Hovering one element and concluding "nothing highlights" is too weak - it
   // could just be the wrong element. Walk several visible candidates and
@@ -283,6 +292,14 @@ if (frame) {
   }
   for (const l of hoverLog) console.log(`    ${l}`)
 
+  // Leave the pointer on a Sanity-fed element so the screenshot below shows
+  // whatever the overlay does or does not draw on hover.
+  const last = candidates[candidates.length - 1]
+  if (last) {
+    await page.mouse.move(last.x, last.y)
+    await page.waitForTimeout(900)
+  }
+
   // What the overlay actually put in the DOM, so a failure says something
   // more useful than a count.
   const shape = await frame.evaluate(() => {
@@ -310,8 +327,12 @@ if (frameConsole.length) {
   for (const l of frameConsole.slice(0, 25)) console.log(`    ${l}`)
 }
 
-await page.screenshot({path: 'presentation-handshake.png', fullPage: false})
-console.log(`\n  screenshot: presentation-handshake.png`)
+// Into audit/ so the workflow carries it to the ci-reports branch - a
+// sandbox with no network can read a committed PNG but cannot download a
+// build artifact.
+await mkdir('audit', {recursive: true})
+await page.screenshot({path: 'audit/handshake.png', fullPage: false})
+console.log(`\n  screenshot: audit/handshake.png`)
 
 console.log(failures ? `\n${failures} check(s) FAILED` : `\nAll checks passed.`)
 

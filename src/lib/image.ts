@@ -118,6 +118,33 @@ export function cappedWidth(source: unknown, requested: number): number {
   return Math.min(requested, intrinsic.width);
 }
 
+/*
+  A URL for a CSS background image.
+
+  Backgrounds don't go through Img.astro, so they got none of its protections -
+  no width clamp and, more importantly, no pass-through. The homepage hero is
+  an animated 800x800 WebP that was requested at w=1800 and came back at
+  10,704 KB: 98% of that page's weight in one file.
+
+  Clamping alone isn't enough for an animated source. The CDN re-encodes every
+  frame at whatever size it's given, so even a correctly-clamped w=800 request
+  re-encodes the whole animation. The only safe answer is to hand back the
+  uploaded bytes untouched, exactly as Img.astro does.
+
+  Async because deciding whether a file is animated means reading its header -
+  the asset reference's extension is not trustworthy on this dataset.
+*/
+export async function backgroundUrl(source: any, width: number): Promise<string | null> {
+  if (!source) return null;
+  const {isAnimatedSource} = await import('./animated');
+  const animated = await isAnimatedSource(source);
+  if (isPassThrough(source, animated)) {
+    const original = originalUrl(source);
+    if (original) return original;
+  }
+  return urlFor(source).width(cappedWidth(source, width)).url();
+}
+
 // The widths offered to the browser. Chosen to bracket the sizes this site
 // actually renders at rather than a generic ladder. Sanity generates each on
 // first request and caches it.

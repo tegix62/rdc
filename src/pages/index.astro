@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Img from '../components/Img.astro';
 import Sections from '../components/Sections.astro';
 import { getPage, getSiteSettings } from '../lib/queries';
-import { urlFor, cappedWidth } from '../lib/image';
+import { backgroundUrl } from '../lib/image';
 
 const page = await getPage('home');
 const settings = await getSiteSettings();
@@ -60,18 +60,17 @@ const closerSuffix = settings?.closerSuffix || ' and built to perform on fabric.
 const finalCtaHeading = settings?.finalCtaHeading || 'DTC Brands and Apparel Companies:';
 
 /*
-  cappedWidth because this asked for w=1800 from an 800x800 source and got
-  back a 10,704 KB file - on its own 98% of this page's weight, and the single
-  heaviest thing on the site. A CSS background doesn't go through Img.astro,
-  so it never got the clamp Img applies.
+  backgroundUrl, not urlFor: this asked for w=1800 from an animated 800x800
+  source and came back at 10,704 KB - on its own 98% of this page's weight and
+  the heaviest file on the site. A CSS background bypasses Img.astro, so it got
+  neither the width clamp nor the pass-through that keep animated sources out
+  of the re-encode pipeline. See backgroundUrl in lib/image.ts.
 */
-const heroStyle = settings?.heroBackground
-  ? `--hero-bg-image: url(${urlFor(settings.heroBackground).width(cappedWidth(settings.heroBackground, 1800)).url()})`
-  : undefined;
+const heroBg = await backgroundUrl(settings?.heroBackground, 1800);
+const heroStyle = heroBg ? `--hero-bg-image: url(${heroBg})` : undefined;
 
-const proofBandStyle = settings?.proofBandBackground
-  ? `--proof-bg-image: url(${urlFor(settings.proofBandBackground).width(cappedWidth(settings.proofBandBackground, 500)).url()})`
-  : undefined;
+const proofBg = await backgroundUrl(settings?.proofBandBackground, 500);
+const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined;
 ---
 
 <Layout title={page?.title ?? 'Rumeau Design Co'} description={page?.seoDescription}>

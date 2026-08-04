@@ -42,12 +42,15 @@ jobs:
       - name: Wait for the preview deploy
         run: sleep 90
 
+      # 2>&1 on every step below: the animated audit's first run wrote a 0-byte
+      # report because tee only captures stdout, so a crash that killed the
+      # script before its first console.log left no trace anywhere.
       - name: Pages (desktop + mobile)
         id: pages
         continue-on-error: true
         run: |
           set -o pipefail
-          node scripts/audit-pages.mjs --out audit | tee audit-pages.log
+          node scripts/audit-pages.mjs --out audit 2>&1 | tee audit-pages.log
 
       - name: CMS fields
         id: cms
@@ -55,7 +58,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p audit
-          node scripts/audit-cms.mjs --json audit/cms.json | tee audit/cms.md
+          node scripts/audit-cms.mjs --json audit/cms.json 2>&1 | tee audit/cms.md
 
       # Why the four heaviest files on the site went through the transform
       # pipeline when src/lib/animated.ts exists to stop them. Bundles and calls
@@ -66,14 +69,14 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p audit
-          node scripts/audit-animated.mjs --json audit/animated.json | tee audit/animated.md
+          node scripts/audit-animated.mjs --json audit/animated.json 2>&1 | tee audit/animated.md
 
       - name: Visual editing handshake
         id: ve
         continue-on-error: true
         run: |
           set -o pipefail
-          node scripts/test-presentation-handshake.mjs | tee audit/visual-editing.md
+          node scripts/test-presentation-handshake.mjs 2>&1 | tee audit/visual-editing.md
 
       - name: Publish to the run summary
         if: always()

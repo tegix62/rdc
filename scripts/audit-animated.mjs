@@ -57,7 +57,11 @@ await build({
   bundle: true,
   format: 'esm',
   platform: 'node',
-  packages: 'external',
+  // Everything bundled in, deliberately NOT packages:'external'. The output
+  // goes to a temp dir, and Node resolves bare specifiers relative to the
+  // importing FILE - so an external '@sanity/image-url' looks for node_modules
+  // next to /tmp/animated-xxx/ and dies. The first run of this script produced
+  // an empty report for exactly that reason.
   define: {
     'import.meta.env.PUBLIC_SANITY_VISUAL_EDITING': '"false"',
     'import.meta.env.PUBLIC_SANITY_STUDIO_URL': 'undefined',

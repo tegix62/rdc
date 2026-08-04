@@ -1,0 +1,138 @@
+name: Audit — pages, CMS fields, visual editing
+
+# Everything measurable about the site in one run, published somewhere a
+# sandbox with no outbound network can still read it.
+#
+# The reports are committed to the `ci-reports` branch, not just left in the
+# step summary. A later session may not have the GitHub API available, but git
+# always works - so `git fetch origin ci-reports && git show
+# origin/ci-reports:latest/pages.md` gets the numbers with nothing but a clone.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Hourly is pointless for a site that only changes when something is
+    # pushed; this is here so an unattended session always has a recent report
+    # to read even if it never triggers one itself.
+    - cron: '0 */6 * * *'
+  push:
+    paths:
+      - 'scripts/audit-*.mjs'
+      - 'scripts/test-presentation-handshake.mjs'
+      - '.github/workflows/audit.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm install --prefix studio
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+
+      # Let a push settle into a deployed build before measuring it, otherwise
+      # the audit describes the previous version of the site.
+      - name: Wait for the preview deploy
+        run: sleep 90
+
+      - name: Pages (desktop + mobile)
+        id: pages
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          node scripts/audit-pages.mjs --out audit | tee audit-pages.log
+
+      - name: CMS fields
+        id: cms
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          mkdir -p audit
+          node scripts/audit-cms.mjs --json audit/cms.json | tee audit/cms.md
+
+      - name: Visual editing handshake
+        id: ve
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          node scripts/test-presentation-handshake.mjs | tee audit/visual-editing.md
+
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          for f in audit/pages.md audit/cms.md audit/visual-editing.md; do
+            [ -f "$f" ] || continue
+            case "$f" in
+              *.md) ;;
+            esac
+            {
+              echo ""
+              echo "<details><summary>$f</summary>"
+              echo ""
+              # pages.md is already markdown; the other two are plain text.
+              if [ "$f" = "audit/pages.md" ]; then cat "$f"; else printf '```\n'; cat "$f"; printf '```\n'; fi
+              echo ""
+              echo "</details>"
+            } >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audit
+          path: audit
+          if-no-files-found: warn
+
+      # The point of the whole workflow: get the reports somewhere reachable by
+      # `git fetch` alone.
+      - name: Commit the reports to the ci-reports branch
+        if: always()
+        run: |
+          set -euo pipefail
+          [ -d audit ] || exit 0
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          stamp=$(date -u +%Y-%m-%dT%H-%M-%SZ)
+          sha=$(git rev-parse --short HEAD)
+          mkdir -p /tmp/reports && cp -r audit /tmp/reports/payload
+
+          # An orphan branch so reports never mix with source history and the
+          # branch stays cheap to fetch. Reset to a single commit each time -
+          # the screenshots are large and nobody needs their history.
+          git checkout --orphan ci-reports
+          git rm -rf --cached . >/dev/null 2>&1 || true
+          find . -maxdepth 1 -mindepth 1 ! -name .git -exec rm -rf {} +
+
+          mkdir -p latest
+          cp -r /tmp/reports/payload/* latest/
+          {
+            echo "# CI reports"
+            echo ""
+            echo "Generated $stamp from \`$sha\` on \`$GITHUB_REF_NAME\`."
+            echo ""
+            echo "Read them without the GitHub API:"
+            echo ""
+            echo '```'
+            echo "git fetch origin ci-reports"
+            echo "git show origin/ci-reports:latest/pages.md"
+            echo "git show origin/ci-reports:latest/cms.md"
+            echo "git show origin/ci-reports:latest/visual-editing.md"
+            echo '```'
+          } > README.md
+
+          git add -A
+          git commit -q -m "Audit reports $stamp ($sha)"
+          for attempt in 1 2 3 4; do
+            git push -f origin ci-reports && break
+            echo "push failed, retry $attempt"
+            sleep $((2 ** attempt))
+          done

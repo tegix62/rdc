@@ -23,7 +23,14 @@ const cache = new Map<string, Promise<boolean>>();
 
 async function probe(url: string): Promise<boolean> {
   try {
-    const res = await fetch(url, {headers: {Range: 'bytes=0-255'}});
+    // 4 KB, not 256 bytes. A GIF's NETSCAPE application extension - the loop
+    // block that marks it animated - sits after the logical screen descriptor
+    // AND the global colour table, and a 256-colour table alone is 768 bytes.
+    // So on a typical GIF the marker lives around offset 780+ and the old
+    // window could never reach it. Measured: 13 animated GIFs in this dataset
+    // were reported static, including the 400x400 one that the CDN turns from
+    // 867 KB into 4,602 KB.
+    const res = await fetch(url, {headers: {Range: 'bytes=0-4095'}});
     if (!res.ok && res.status !== 206) return false;
     const bytes = new Uint8Array(await res.arrayBuffer());
     const ascii = (start: number, len: number) =>
@@ -36,12 +43,16 @@ async function probe(url: string): Promise<boolean> {
       extension cannot be trusted to pick a parser either.
     */
 
-    // GIF: animated when it declares more than one image descriptor. The
-    // header window is enough to distinguish the common cases - a single-frame
-    // GIF has its one descriptor early, and a Netscape looping extension
-    // ("NETSCAPE2.0") is a positive animation signal.
+    // The whole fetched window, rather than an arbitrary prefix of it. Marker
+    // positions depend on palette and chunk sizes, so any fixed small number
+    // is a guess - and the previous guess (64) was wrong for every real GIF
+    // here.
+    const window = ascii(0, bytes.length);
+
+    // GIF: a Netscape looping extension is a positive animation signal. A
+    // single-frame GIF does not carry one.
     if (ascii(0, 3) === 'GIF') {
-      return ascii(0, 64).includes('NETSCAPE');
+      return window.includes('NETSCAPE');
     }
 
     if (ascii(0, 4) === 'RIFF' && ascii(8, 4) === 'WEBP') {
@@ -49,8 +60,9 @@ async function probe(url: string): Promise<boolean> {
       if (ascii(12, 4) !== 'VP8X') return false;
       // Byte 20 holds the feature flags; bit 1 (0x02) is the animation flag.
       const animationFlag = (bytes[20] & 0x02) !== 0;
-      // Belt and braces: an ANIM chunk should appear in the header region.
-      return animationFlag || ascii(0, 64).includes('ANIM');
+      // Belt and braces: an ANIM chunk sits early, but read the whole window
+      // for the same reason as above.
+      return animationFlag || window.includes('ANIM');
     }
 
     // JPEG, PNG and anything else cannot animate.

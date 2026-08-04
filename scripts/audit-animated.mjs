@@ -143,12 +143,33 @@ const truthOf = (bytes) => {
   return {format: ascii(0, 4).replace(/[^\x20-\x7e]/g, '.'), animated: false, note: 'not gif or webp'}
 }
 
-const sizeOf = async (url) => {
+/*
+  Sizes must be measured with a browser's Accept header.
+
+  The first run of this script reported the homepage hero at 79 KB for the
+  exact URL the page audit had measured at 10,704 KB. Both numbers were real:
+  auto=format is content-negotiated, so a bare fetch with no Accept header gets
+  the original format back while a browser gets WebP or AVIF. Measuring without
+  it describes a response no visitor ever receives.
+
+  Content-Type comes back too, because "what did the CDN actually decide to
+  send" is the question underneath all of this.
+*/
+const BROWSER_ACCEPT =
+  'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+
+const measure = async (url, {asBrowser = true} = {}) => {
   try {
-    const res = await fetch(url, {method: 'HEAD'})
-    return Number(res.headers.get('content-length') ?? 0)
+    const res = await fetch(url, {
+      method: 'HEAD',
+      headers: asBrowser ? {Accept: BROWSER_ACCEPT} : {},
+    })
+    return {
+      bytes: Number(res.headers.get('content-length') ?? 0),
+      type: (res.headers.get('content-type') ?? '?').replace('image/', ''),
+    }
   } catch {
-    return 0
+    return {bytes: 0, type: 'error'}
   }
 }
 
@@ -178,11 +199,18 @@ for (const a of candidates) {
   const truth = truthOf(bytes)
   const dims = lib.imageDimensions(a.source)
 
-  const originalBytes = await sizeOf(url)
-  // What the site would ship if it treated this as an ordinary image. 800 is
-  // the width the portfolio grid asks for, which is where the worst offenders
+  const original = await measure(url)
+  // What the site ships if it treats this as an ordinary image. 800 is the
+  // width the portfolio grid asks for, which is where the worst offenders
   // showed up.
-  const transformedBytes = await sizeOf(`${url}?w=800&q=80&auto=format`)
+  const transformed = await measure(`${url}?w=800&q=80&auto=format`)
+  // And what upscaling does, which is the homepage hero's whole story: an
+  // 800x800 source was asked for at w=1800.
+  const upscaled = dims
+    ? await measure(`${url}?w=${dims.width * 2}&q=80&auto=format`)
+    : {bytes: 0, type: '-'}
+  const originalBytes = original.bytes
+  const transformedBytes = transformed.bytes
 
   const agree = verdict === truth.animated
   if (!agree) disagreements += 1
@@ -196,14 +224,20 @@ for (const a of candidates) {
     note: truth.note,
     noRecompress: a.noRecompress,
     originalBytes,
+    originalType: original.type,
     transformedBytes,
+    transformedType: transformed.type,
+    upscaledBytes: upscaled.bytes,
+    upscaledType: upscaled.type,
     headerBytes: bytes.length,
   })
 
   console.log(
     `  ${agree ? '  ' : '!!'} ${(dims ? `${dims.width}x${dims.height}` : '?').padStart(9)} ` +
       `${truth.format.padEnd(10)} shipped=${String(verdict).padEnd(5)} bytes-say=${String(truth.animated).padEnd(5)} ` +
-      `orig ${kb(originalBytes).padStart(8)} -> w800 ${kb(transformedBytes).padStart(8)}  ${truth.note}`,
+      `orig ${kb(originalBytes).padStart(8)}/${original.type.padEnd(4)} ` +
+      `w800 ${kb(transformedBytes).padStart(8)}/${transformed.type.padEnd(4)} ` +
+      `2x ${kb(upscaled.bytes).padStart(8)}  ${truth.note}`,
   )
 }
 
@@ -211,6 +245,7 @@ for (const a of candidates) {
 console.log(`\n# Summary\n`)
 const animated = rows.filter((r) => r.truth)
 const blowUps = rows.filter((r) => r.transformedBytes > r.originalBytes * 1.5 && r.originalBytes)
+const upscaleBlowUps = rows.filter((r) => r.upscaledBytes > r.originalBytes * 3 && r.originalBytes)
 console.log(`  probed:              ${rows.length}`)
 console.log(`  animated by bytes:   ${animated.length}`)
 console.log(`  shipped code agrees: ${rows.filter((r) => r.verdict === r.truth).length}/${rows.length}`)
@@ -234,6 +269,17 @@ if (blowUps.length) {
     console.log(
       `  ${r.dims.padStart(9)} ${kb(r.originalBytes).padStart(8)} -> ${kb(r.transformedBytes).padStart(8)} ` +
         `(${factor}x) ${r.format}${r.noRecompress ? ' [flagged as-uploaded]' : ''}`,
+    )
+  }
+}
+
+if (upscaleBlowUps.length) {
+  console.log(`\n## Asking for double the source width explodes these\n`)
+  console.log(`  The clamp in cappedWidth() is what stops this reaching a visitor.\n`)
+  for (const r of upscaleBlowUps.sort((a, b) => b.upscaledBytes - a.upscaledBytes)) {
+    console.log(
+      `  ${r.dims.padStart(9)} ${kb(r.originalBytes).padStart(8)} -> ${kb(r.upscaledBytes).padStart(9)} ` +
+        `at 2x width (${(r.upscaledBytes / r.originalBytes).toFixed(0)}x) as ${r.upscaledType}`,
     )
   }
 }

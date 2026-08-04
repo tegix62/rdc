@@ -40,6 +40,9 @@ jobs:
           # crawled and compete with rumeaudesign.co for the same copy.
           # Must be false/removed for a build that serves the real domain.
           PUBLIC_IS_PREVIEW: 'true'
+          # Stamped into every page as <meta name="build-commit">, so the audit
+          # can tell whether what it is measuring is the build it meant to.
+          PUBLIC_BUILD_SHA: ${{ github.sha }}
       - name: Ensure Cloudflare Pages project exists
         run: npx wrangler@3 pages project create rumeau-design-co --production-branch main || true
         env:

@@ -69,6 +69,14 @@ const FOOTER_TEXT = settings?.footerText;
     ) : (
       <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     )}
+    {/*
+      Which commit built this page. The audit polls for it before measuring,
+      because it previously waited a fixed 90 seconds for the deploy and had no
+      way to tell whether it had landed - so a run could measure the PREVIOUS
+      build and report a change as having had no effect. Which is exactly what
+      happened to the lazy-embed change.
+    */}
+    <meta name="build-commit" content={import.meta.env.PUBLIC_BUILD_SHA ?? 'dev'} />
     <meta name="description" content={description} />
     <title>{title}</title>
     <link rel="canonical" href={canonical} />

@@ -42,10 +42,36 @@ jobs:
       - run: npm install --no-save playwright@1.56.0
       - run: npx playwright install --with-deps chromium
 
-      # Let a push settle into a deployed build before measuring it, otherwise
-      # the audit describes the previous version of the site.
-      - name: Wait for the preview deploy
-        run: sleep 90
+      # Wait for THIS commit to be live, not for a fixed number of seconds.
+      #
+      # A fixed 90s sleep was a guess, and it was wrong often enough to matter:
+      # the deploy runs in parallel with this job, so a run could measure the
+      # previous build and report a real improvement as having changed nothing.
+      # Every page carries <meta name="build-commit">, so this polls until it
+      # matches - and says so loudly if it never does, rather than quietly
+      # measuring the wrong thing.
+      - name: Wait for this commit to be deployed
+        run: |
+          BASE="https://preview.rumeau-design-co.pages.dev"
+          want="$GITHUB_SHA"
+          live=""
+          for attempt in $(seq 1 40); do
+            live=$(curl -s --max-time 20 "$BASE" \
+              | grep -o 'name="build-commit" content="[^"]*"' \
+              | head -1 | sed 's/.*content="\([^"]*\)".*/\1/')
+            if [ "$live" = "$want" ]; then
+              echo "deployed commit is live after $((attempt * 15))s"
+              exit 0
+            fi
+            echo "attempt $attempt: live=${live:-none} want=$want"
+            sleep 15
+          done
+          echo "::warning::Preview still serving ${live:-unknown}, expected $want. Numbers below describe an OLDER build."
+          {
+            echo ""
+            echo "**⚠️ Measured build mismatch** — preview served \`${live:-unknown}\`, this run is \`$want\`."
+            echo "Everything below describes an older build."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # 2>&1 on every step below: the animated audit's first run wrote a 0-byte
       # report because tee only captures stdout, so a crash that killed the

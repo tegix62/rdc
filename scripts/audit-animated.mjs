@@ -140,7 +140,25 @@ const truthOf = (bytes) => {
       note: `flags=0x${flags.toString(16).padStart(2, '0')} animBit=${animFlag} ANIMchunk=${hasAnimChunk}`,
     }
   }
-  return {format: ascii(0, 4).replace(/[^\x20-\x7e]/g, '.'), animated: false, note: 'not gif or webp'}
+  /*
+    Not GIF and not WebP, but two of the site's worst offenders land here while
+    being 1,348 KB at 300x300 - roughly 15 bytes per pixel, which no still
+    image is. So something animated is arriving in a container neither
+    mayBeAnimated() nor this reader recognises, and naming it matters more than
+    guessing: report the magic bytes and, for ISO base media files, the brand.
+  */
+  const iso = ascii(4, 4) === 'ftyp'
+  const brand = iso ? ascii(8, 4) : null
+  const hex = [...bytes.slice(0, 12)].map((b) => b.toString(16).padStart(2, '0')).join(' ')
+  return {
+    format: iso ? `iso/${brand}` : ascii(0, 4).replace(/[^\x20-\x7e]/g, '.'),
+    // An ISO base media file is a sequence container by construction. avis is
+    // animated AVIF; heic/hevc sequences behave the same way. Reported as a
+    // finding rather than acted on - the shipped probe still decides from its
+    // own rules, and this is here to say what those rules are missing.
+    animated: iso && /^(avis|hevc|msf1|heic)$/.test(brand ?? ''),
+    note: iso ? `ISO base media, brand ${brand}` : `unrecognised magic: ${hex}`,
+  }
 }
 
 /*

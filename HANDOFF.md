@@ -1,8 +1,35 @@
 # Handoff — Rumeau Design Co, Webflow → Astro + Sanity
 
-State as of 3 Aug 2026. Read this first in a new session; then
+State as of 4 Aug 2026. Read this first in a new session; then
 `WORKLOG-overnight.md` for the reasoning behind each decision, and
 `PUNCH-LIST.md` for what's still open.
+
+---
+
+## Read the measurements without the GitHub API
+
+This sandbox has **no outbound network** — `curl` to any real host returns
+000, so nothing can be checked by fetching it. And a session started by a
+scheduled trigger may not carry the GitHub MCP tools, so workflow logs may be
+unreachable too.
+
+Git always works. `.github/workflows/audit.yml` therefore commits every
+report it produces to an orphan `ci-reports` branch:
+
+```
+git fetch origin ci-reports
+git show origin/ci-reports:latest/pages.md            # speed, typography, layout, both widths
+git show origin/ci-reports:latest/cms.md              # every schema field
+git show origin/ci-reports:latest/visual-editing.md   # Presentation handshake
+git show origin/ci-reports:README.md                  # when it ran, from which commit
+```
+
+To take a fresh measurement, push a commit touching `scripts/audit-*.mjs`
+(or wait for the 6-hourly schedule) and poll with a loop on
+`git fetch origin ci-reports`, which is how the last session did it.
+
+`node scripts/audit-cms.mjs --offline` runs fully inside the sandbox — the
+schema and the "is anything reading this field?" half need no network.
 
 ---
 

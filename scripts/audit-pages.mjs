@@ -104,16 +104,49 @@ for (const p of paths) {
     })
     const page = await context.newPage()
 
+    // getEntriesByType('largest-contentful-paint') came back empty on all 20
+    // page loads in the first run - the buffer isn't retained for it the way
+    // it is for navigation timing. An observer registered before any document
+    // script runs does see them.
+    await page.addInitScript(() => {
+      window.__lcp = 0
+      window.__cls = 0
+      try {
+        new PerformanceObserver((list) => {
+          for (const e of list.getEntries()) window.__lcp = Math.round(e.startTime)
+        }).observe({type: 'largest-contentful-paint', buffered: true})
+        new PerformanceObserver((list) => {
+          for (const e of list.getEntries()) if (!e.hadRecentInput) window.__cls += e.value
+        }).observe({type: 'layout-shift', buffered: true})
+      } catch {
+        /* older engines - the report shows a dash rather than a wrong number */
+      }
+    })
+
     // Content-Length, because responseBodySize from the CDP metrics API
     // reported a 71 KB image as 10.7 MB earlier in this port and an entire
     // afternoon of "optimisation" was aimed at a file that was already fine.
     const bytes = {}
+    const images = []
     let requests = 0
     page.on('response', async (res) => {
       requests += 1
       const type = res.request().resourceType()
       const len = Number(res.headers()['content-length'] ?? 0)
       bytes[type] = (bytes[type] ?? 0) + (Number.isFinite(len) ? len : 0)
+      if (type === 'image') {
+        const u = res.url()
+        images.push({
+          url: u,
+          bytes: Number.isFinite(len) ? len : 0,
+          // An image served straight from cdn.sanity.io with no query string
+          // is a pass-through original: Chris's own compression, deliberately
+          // never resized. Useful to separate, because "the images are heavy"
+          // has a completely different fix depending on which kind it is.
+          passThrough: u.includes('cdn.sanity.io') && !u.includes('?'),
+          width: Number(new URL(u).searchParams.get('w')) || null,
+        })
+      }
     })
 
     const consoleErrors = []
@@ -142,13 +175,8 @@ for (const p of paths) {
       ({IDEAL_MEASURE, BODY_LINE_HEIGHT}) => {
         const nav = performance.getEntriesByType('navigation')[0]
 
-        const lcpEntries = performance.getEntriesByType('largest-contentful-paint')
-        const lcp = lcpEntries.length ? Math.round(lcpEntries[lcpEntries.length - 1].startTime) : null
-
-        let cls = 0
-        for (const e of performance.getEntriesByType('layout-shift') ?? []) {
-          if (!e.hadRecentInput) cls += e.value
-        }
+        const lcp = window.__lcp || null
+        const cls = window.__cls ?? 0
 
         // --- sideways scroll ------------------------------------------------
         const docWidth = document.documentElement.clientWidth
@@ -276,6 +304,9 @@ for (const p of paths) {
       requests,
       totalBytes,
       bytes,
+      images: images.sort((a, b) => b.bytes - a.bytes).slice(0, 20),
+      imageRequests: images.length,
+      passThroughBytes: images.filter((i) => i.passThrough).reduce((a, i) => a + i.bytes, 0),
       consoleErrors: [...new Set(consoleErrors)].slice(0, 5),
       ...metrics,
     })
@@ -312,6 +343,26 @@ lines.push(``)
 
 const worst = [...results].filter((r) => !r.error).sort((a, b) => b.totalBytes - a.totalBytes).slice(0, 5)
 lines.push(`Heaviest: ${worst.map((r) => `\`${r.path}\` (${r.viewport}, ${kb(r.totalBytes)})`).join(', ')}`, ``)
+
+lines.push(`## Heaviest images`, ``)
+lines.push(
+  `A pass-through image is one served straight from cdn.sanity.io with no`,
+  `query string: Chris's own compression, deliberately never resized. Those`,
+  `cannot be made smaller without replacing the file. Everything else goes`,
+  `through the transform pipeline and can be fixed in code.`,
+  ``,
+)
+for (const r of [...results].filter((x) => !x.error && x.totalBytes > 1_000_000).sort((a, b) => b.totalBytes - a.totalBytes)) {
+  lines.push(
+    `**\`${r.path}\` (${r.viewport})** — ${r.imageRequests} image requests for ` +
+      `${r.imgCount} <img> tags, ${kb(r.passThroughBytes)} of it pass-through`,
+  )
+  for (const i of r.images.slice(0, 8)) {
+    const name = i.url.split('/').pop().split('?')[0].slice(0, 44)
+    lines.push(`  - ${kb(i.bytes).padStart(7)} ${i.passThrough ? 'pass-through' : `w=${i.width ?? '?'}`} \`${name}\``)
+  }
+  lines.push(``)
+}
 
 const overflowing = results.filter((r) => r.overflows?.length)
 lines.push(`## Sideways scroll`, ``)

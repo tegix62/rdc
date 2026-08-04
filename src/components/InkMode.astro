@@ -33,12 +33,26 @@ const PAPERS = [
 ];
 ---
 
-<div class="ink-bar" role="group" aria-label="Print mode">
-  <button type="button" class="ink-bar__toggle" id="ink-toggle" aria-pressed="false">
-    <span class="ink-bar__toggle-label">Print mode</span>
-  </button>
+{/*
+  Collapsed to a single corner button by default.
 
-  <div class="ink-bar__papers" id="ink-papers" hidden>
+  This is an experimental tool rather than site furniture, so it should not cost
+  screen space or pull the eye on a page meant to show work to a client. The
+  handle stays deliberately recessed - thin outline, no fill, part opacity -
+  until hovered or until print mode is actually on, at which point it fills in so
+  the state is legible without expanding anything.
+
+  44x44 even so. It would be smaller still as a slim edge tab, but the page audit
+  measures every control against a 44px floor and a knowingly-failing one is
+  worse than a slightly larger button.
+*/}
+<div class="ink-bar" role="group" aria-label="Print mode" data-open="false" id="ink-bar">
+  <div class="ink-bar__panel" id="ink-panel" hidden>
+    <button type="button" class="ink-bar__toggle" id="ink-toggle" aria-pressed="false">
+      <span class="ink-bar__toggle-label">Print mode</span>
+    </button>
+
+    <div class="ink-bar__papers" id="ink-papers" hidden>
     {PAPERS.map((p) => (
       <button
         type="button"
@@ -49,10 +63,23 @@ const PAPERS = [
         title={p.label}
       ></button>
     ))}
-    <button type="button" class="ink-bar__swatch ink-bar__swatch--grain" id="ink-grain" aria-pressed="false" title="Grain">
-      <span aria-hidden="true">▚</span>
-    </button>
+      <button type="button" class="ink-bar__swatch ink-bar__swatch--grain" id="ink-grain" aria-pressed="false" title="Grain">
+        <span aria-hidden="true">▚</span>
+      </button>
+    </div>
   </div>
+
+  <button
+    type="button"
+    class="ink-bar__handle"
+    id="ink-handle"
+    aria-expanded="false"
+    aria-controls="ink-panel"
+    aria-label="Print mode options"
+    title="Print mode"
+  >
+    <span aria-hidden="true">▚</span>
+  </button>
 </div>
 
 {/* Inline and un-bundled so it runs before the first paint. */}
@@ -77,7 +104,9 @@ const PAPERS = [
       else root.removeAttribute('data-ink-grain');
     };
 
-    let state = { on: false, paper: 'bone', grain: true };
+    // `open` is only the panel's visibility, kept with the rest so the tool
+    // stays where you left it rather than re-collapsing on every page.
+    let state = { on: false, paper: 'bone', grain: true, open: false };
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
       if (saved) state = { ...state, ...saved };
@@ -92,10 +121,13 @@ const PAPERS = [
 
     // The controls are below this script in the document, so wait for them.
     document.addEventListener('DOMContentLoaded', () => {
+      const bar = document.getElementById('ink-bar');
+      const handle = document.getElementById('ink-handle');
+      const panel = document.getElementById('ink-panel');
       const toggle = document.getElementById('ink-toggle');
       const papers = document.getElementById('ink-papers');
       const grain = document.getElementById('ink-grain');
-      if (!toggle || !papers) return;
+      if (!toggle || !papers || !bar || !handle || !panel) return;
 
       const sync = () => {
         toggle.setAttribute('aria-pressed', String(state.on));
@@ -104,8 +136,30 @@ const PAPERS = [
         for (const b of papers.querySelectorAll('[data-paper]')) {
           b.classList.toggle('is-active', state.on && b.dataset.paper === state.paper);
         }
+        panel.hidden = !state.open;
+        bar.setAttribute('data-open', String(!!state.open));
+        handle.setAttribute('aria-expanded', String(!!state.open));
+        // The handle fills in when print mode is active, so the state is
+        // readable while collapsed.
+        handle.setAttribute('data-active', String(!!state.on));
       };
       sync();
+
+      handle.addEventListener('click', () => {
+        state.open = !state.open;
+        save();
+        sync();
+      });
+
+      // Escape collapses it, which is the expected way out of a panel that
+      // covers part of the page.
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && state.open) {
+          state.open = false;
+          save();
+          sync();
+        }
+      });
 
       toggle.addEventListener('click', () => {
         state.on = !state.on;

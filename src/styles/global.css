@@ -1511,6 +1511,57 @@ main {
   gap: 0.375rem;
 }
 
+.ink-bar__panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.375rem;
+}
+
+/*
+  The collapsed handle.
+
+  Recessed on purpose: this is an experimental tool, not site furniture, and on a
+  page being shown to a client it should not be the thing that catches the eye. A
+  hairline and no fill at 45% opacity reads as "something is there" without
+  announcing itself, and it comes up to full on hover, on keyboard focus, or
+  whenever print mode is actually on - so the state stays legible while collapsed.
+*/
+.ink-bar__handle {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--color-ink);
+  background: transparent;
+  color: var(--color-ink);
+  font-size: 0.875rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 120ms ease, background-color 120ms ease, color 120ms ease;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.ink-bar__handle:hover,
+.ink-bar__handle:focus-visible {
+  opacity: 1;
+}
+
+/* Print mode is on: fill in, so you can tell from the corner alone. */
+.ink-bar__handle[data-active='true'] {
+  opacity: 1;
+  background: var(--color-ink);
+  color: var(--color-white);
+}
+
+.ink-bar[data-open='true'] .ink-bar__handle {
+  opacity: 1;
+}
+
 .ink-bar__toggle {
   font-family: var(--font-heading);
   font-size: 0.625rem;
@@ -1633,6 +1684,20 @@ main {
   Grain. A single fixed overlay of tiled SVG turbulence rather than a filter on
   each image: one cheap layer instead of per-element work, and it reads like
   press texture sitting on top of the whole sheet.
+
+  Made much coarser. It was baseFrequency 0.9, which puts the noise features at
+  roughly a pixel each - at that scale it reads as sensor noise or a dirty
+  screen, not as press texture, which is why it looked inconsequential.
+  baseFrequency is in cycles per pixel, so 0.055 puts a feature at about 18px:
+  around sixteen times larger, and in the range where riso grain actually lives.
+
+  numOctaves down from 3 to 1 as well. Extra octaves layer finer detail on top,
+  which is exactly the fine speckle being got rid of - one octave leaves clean
+  blobs.
+
+  Two knobs, both here rather than buried in the data URI:
+    --ink-grain-scale    stretches the tile. Above 1 makes grain larger still.
+    --ink-grain-opacity  how heavy the texture sits.
 */
 :root[data-ink][data-ink-grain]::after {
   content: '';
@@ -1640,10 +1705,13 @@ main {
   inset: 0;
   z-index: 50;
   pointer-events: none;
-  opacity: 0.42;
+  opacity: var(--ink-grain-opacity, 0.5);
   mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.055' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='discrete' tableValues='0 0 0 1 1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23n)'/%3E%3C/svg%3E");
   background-repeat: repeat;
+  /* 320px is the tile's own size, so scale 1 is 1:1 and anything above it
+     enlarges the grain without regenerating the SVG. */
+  background-size: calc(320px * var(--ink-grain-scale, 1));
 }
 
 /* The controls must not be converted along with the artwork, or the swatches
@@ -1660,6 +1728,18 @@ main {
 
 :root[data-ink] .ink-bar__swatch {
   mix-blend-mode: normal;
+}
+
+/* The handle has to sit in the ink palette too, or it stays site-navy on
+   coloured stock and is the one thing on screen that didn't convert. */
+:root[data-ink] .ink-bar__handle {
+  border-color: var(--ink-ink);
+  color: var(--ink-ink);
+}
+
+:root[data-ink] .ink-bar__handle[data-active='true'] {
+  background: var(--ink-ink);
+  color: var(--ink-paper);
 }
 
 @media (max-width: 40rem) {

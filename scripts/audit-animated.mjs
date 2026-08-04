@@ -25,8 +25,7 @@
   Usage: node scripts/audit-animated.mjs [--json out.json]
 */
 import {build} from 'esbuild'
-import {writeFile, mkdtemp} from 'node:fs/promises'
-import {tmpdir} from 'node:os'
+import {writeFile, mkdir} from 'node:fs/promises'
 import path from 'node:path'
 import {fileURLToPath} from 'node:url'
 
@@ -41,7 +40,19 @@ const DATASET = 'production'
 // Bundle the shipped probe. import.meta.env doesn't exist in Node, so the two
 // values src/lib/sanity.ts reads are defined at build time - the same way Astro
 // substitutes them.
-const outdir = await mkdtemp(path.join(tmpdir(), 'animated-'))
+/*
+  Written INSIDE the repo, not to a temp dir, and with @sanity/client left
+  external. Both halves of that matter, and each was learned from a failed run:
+
+  - bundling @sanity/client into ESM dies on "Dynamic require of stream" - it
+    reaches for CJS built-ins through get-it, which esbuild can't express in an
+    ESM bundle.
+  - leaving it external only works if the output sits somewhere Node can find
+    node_modules, because bare specifiers resolve relative to the importing
+    file. From /tmp there is nothing to find.
+*/
+const outdir = path.join(root, 'node_modules/.cache/audit')
+await mkdir(outdir, {recursive: true})
 const outfile = path.join(outdir, 'animated.mjs')
 await build({
   stdin: {
@@ -57,11 +68,7 @@ await build({
   bundle: true,
   format: 'esm',
   platform: 'node',
-  // Everything bundled in, deliberately NOT packages:'external'. The output
-  // goes to a temp dir, and Node resolves bare specifiers relative to the
-  // importing FILE - so an external '@sanity/image-url' looks for node_modules
-  // next to /tmp/animated-xxx/ and dies. The first run of this script produced
-  // an empty report for exactly that reason.
+  packages: 'external',
   define: {
     'import.meta.env.PUBLIC_SANITY_VISUAL_EDITING': '"false"',
     'import.meta.env.PUBLIC_SANITY_STUDIO_URL': 'undefined',

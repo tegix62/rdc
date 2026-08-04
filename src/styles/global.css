@@ -880,7 +880,19 @@ main {
   from measured height - a 2px growth on select would nudge every tile below it.
   A shadow paints inside the existing box and changes no geometry at all.
 */
+/*
+  The padding is on EVERY tile, not only the selected one, and that is the whole
+  trick. Adding it on select would change the tile's height, and Isotope places
+  tiles from measured offsetHeight - so every tile below the selected one would
+  shift down by 8px the moment you clicked. Same reason the hairline is a shadow
+  and not a border.
+
+  Reserved on all tiles it costs nothing visually, because the frame has no
+  background: unselected tiles just carry 4px of transparent inset that only
+  becomes visible once there is a hairline to sit inside.
+*/
 .pf-item__frame {
+  padding: var(--pf-frame-inset, 4px);
   box-shadow: none;
 }
 

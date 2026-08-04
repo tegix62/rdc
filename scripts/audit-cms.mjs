@@ -50,6 +50,11 @@ const DATASET = 'production'
 // Machine-written bookkeeping, never opened by an editor. The question this
 // audit asks - "if I change this in Studio, does anything happen?" - doesn't
 // apply, so flagging its fields as dead is just noise.
+// animatedVideoMap is machine-written bookkeeping - but note its sourceBytes
+// and mp4Bytes fields were flagged dead by an earlier run of this audit and
+// are now read by src/lib/animatedVideo.ts to decide whether a converted
+// video is actually smaller than the animation it replaces. A dead field is
+// sometimes a missing feature, not a redundant one.
 const INTERNAL_TYPES = new Set(['animatedVideoMap'])
 
 // ---------------------------------------------------------------------------

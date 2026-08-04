@@ -27,6 +27,19 @@ type Entry = {
   webm?: {asset?: {url?: string}};
   width?: number;
   height?: number;
+  /*
+    Recorded by convert-animations.mjs. Read here because a converted video is
+    not automatically an improvement: Chris hand-optimises his GIFs, and on
+    this dataset 10 of 13 transcodes came out LARGER than the file they
+    replaced. Serving them regardless is measurable harm - fixing the animation
+    probe made /work/adelante-barbell-club jump from 446 KB to 1,270 KB, 784 KB
+    of it video that displaced smaller images.
+
+    The CMS audit flagged both of these fields as dead, which they were. They
+    exist to make exactly this decision.
+  */
+  sourceBytes?: number;
+  mp4Bytes?: number;
 };
 
 let mapPromise: Promise<Map<string, Entry>> | null = null;
@@ -37,7 +50,7 @@ function loadMap(): Promise<Map<string, Entry>> {
     .fetch(
       `*[_id == "animatedVideoMap"][0]{
         entries[]{
-          assetId, width, height,
+          assetId, width, height, sourceBytes, mp4Bytes,
           mp4{asset->{url}},
           webm{asset->{url}}
         }
@@ -76,6 +89,31 @@ export async function getAnimatedVideo(
   const mp4 = entry.mp4?.asset?.url ?? null;
   const webm = entry.webm?.asset?.url ?? null;
   if (!mp4 && !webm) return null;
+
+  /*
+    Only serve the video when it is actually smaller than the animation it
+    replaces, by enough to be worth a second format. A 10% margin, because a
+    video also costs a poster image and a decoder.
+
+    Unknown sizes mean "don't gamble": returning null here falls back to
+    serving the animation itself, which is the option whose cost is known.
+  */
+  const {sourceBytes, mp4Bytes} = entry;
+  const videoWins =
+    typeof sourceBytes === 'number' &&
+    typeof mp4Bytes === 'number' &&
+    mp4Bytes > 0 &&
+    mp4Bytes < sourceBytes * 0.9;
+
+  if (!videoWins) {
+    if (typeof sourceBytes !== 'number' || typeof mp4Bytes !== 'number') {
+      console.warn(
+        `[animatedVideo] ${hash} has a converted video but no recorded sizes, ` +
+          `so the animation is served instead. Re-run convert-animations to record them.`,
+      );
+    }
+    return null;
+  }
 
   /*
     The poster matters for the case where muted autoplay is blocked anyway -

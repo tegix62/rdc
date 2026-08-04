@@ -35,6 +35,40 @@ Ordered roughly by impact. Nothing here has been actioned unless marked done.
   fixing both the layout shift that made scrolling feel worse than Webflow
   and the oversized payloads on phones (decision #10).
 
+## Performance — measured, mostly fixed, one thing needs you
+
+Full numbers and reasoning in `WORKLOG-overnight.md` decisions #20-21.
+
+- [x] Homepage **10,938 KB → 4,445 KB** (−59%), `/portfolio` mobile
+  **12,318 KB → 8,021 KB** (−35%), `/merchfolio` desktop −33%. Cause was the
+  CDN being asked to *enlarge* small images, plus an animation probe that
+  could never detect an animated GIF (it searched 64 bytes for a marker that
+  lives past byte 780).
+- [x] Reading measure capped: `/video` **141 → 71 characters** a line,
+  `/about` 94 → 71. `.prose` had no `max-width` at all.
+- [x] Tap targets: the hamburger was 32×32 — smallest control on the site and
+  the first one any phone visitor hits. Now 44×44, along with the portfolio
+  filter row, print swatches and footer links.
+- [x] Smallest text on the site was 11px (homepage tagline on phones). Now 13px.
+
+- [ ] **One source file needs re-exporting — this one is yours.** The homepage
+  hero background is an 800×800 file that is **3,981 KB**. No code change fixes
+  a 4 MB source; it wants a re-export at a sane quality. Everything else on the
+  site is now within reason.
+- [ ] **`/portfolio` desktop CLS is 0.4722** (under 0.1 is "good"). This is the
+  worst number left and it is precisely the jank you can feel: Isotope lays the
+  masonry grid out *after* the page paints, so everything jumps once. Fixing it
+  means reserving the grid's height before layout.
+- [ ] **`/portfolio` is still ~7.3–8.0 MB** for 68 thumbnails. The rule
+  "animated images never go through the resize pipeline" turns out to be too
+  absolute — at small widths the re-encode genuinely beats the original, and
+  which way it goes depends on the width being asked for. The fix is a
+  per-asset, per-width decision made from measured bytes and cached in Sanity.
+  Deliberately not attempted at 4am.
+- [ ] `/work/adelante-barbell-club` went **446 KB → 1,270 KB** as a side effect
+  of fixing the GIF detection: its converted videos started being served. Same
+  root cause as the item above, and it is the clearest case for fixing it.
+
 ## Dead CMS fields (found by `npm run audit:cms`)
 
 An audit of all 170 schema fields found eight that no template read: editing

@@ -213,8 +213,15 @@ for (const p of paths) {
 
         const body = []
         const headings = new Map()
+        // Preview builds embed stega markers - runs of zero-width characters -
+        // inside every string that came from Sanity. They count towards
+        // textContent.length, so a nine-character label like "Anabel D." looked
+        // like an 80-character paragraph and the first report was full of
+        // proof-card names flagged as too-narrow body copy.
+        const visible = (el) => (el.textContent ?? '').replace(/[\u200B-\u200F\uFEFF\u2060]/g, '').trim()
+
         for (const el of document.querySelectorAll('p, li, h1, h2, h3, h4')) {
-          const text = (el.textContent ?? '').trim()
+          const text = visible(el)
           if (text.length < 40 && !/^h[1-4]$/i.test(el.tagName)) continue
           const style = getComputedStyle(el)
           const fontPx = parseFloat(style.fontSize)

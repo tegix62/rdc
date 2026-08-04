@@ -137,9 +137,12 @@ a {
   flex-direction: column;
   justify-content: center;
   gap: 5px;
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
+  /* 44x44 is the tap floor; the bars stay 2rem wide, the extra is padding.
+     The audit measured this at 32x32 - the smallest control on the site, and
+     the one every mobile visitor has to hit first. */
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0 0.375rem;
   border: none;
   background: none;
   cursor: pointer;
@@ -314,6 +317,22 @@ main {
 
 .prose p {
   margin: var(--space-2) 0;
+}
+
+/*
+  Cap the reading measure.
+
+  .prose had no max-width, so text ran the full 72rem content column: the
+  audit measured 141 characters a line on /video and 94 on /about, against a
+  target of 45-75. Past roughly 75 the eye loses its place on the return
+  sweep, which is most of why a page of otherwise fine copy reads as heavy.
+
+  The cap goes on the text elements rather than the container, so images,
+  galleries and embeds inside .prose keep the full width they were laid out
+  for.
+*/
+.prose :is(p, li, blockquote, h2, h3, h4) {
+  max-width: 68ch;
 }
 
 .prose ul {
@@ -498,6 +517,16 @@ main {
   .statement__sub {
     font-size: 11px;
     letter-spacing: 0;
+  }
+}
+
+/* 11px was carried over from Webflow and measured as the smallest text on
+   the site. At 0 letter-spacing it also loses the tracking that made the
+   tagline read as a tagline rather than a cramped sentence. */
+@media (max-width: 30rem) {
+  .statement__sub {
+    font-size: 13px;
+    letter-spacing: 1px;
   }
 }
 
@@ -1678,4 +1707,42 @@ main {
   height: 100%;
   border: 0;
   display: block;
+}
+
+
+/*
+  Tap targets.
+
+  The page audit measured every interactive control at 390px. These were all
+  under the 44x44 floor: the portfolio filter row at 24px tall, the print-mode
+  paper swatches at 24x24, and the footer links at 21px. On a phone that is
+  the difference between a control and a coin toss.
+
+  Last block in the file so it lands after every component rule it adjusts,
+  including the mobile block above it - source order is what decides these,
+  and putting them earlier is how the homepage mobile styles ended up as dead
+  code the first time.
+*/
+@media (pointer: coarse), (max-width: 40rem) {
+  .pf-btn {
+    min-height: 44px;
+    padding-block: 0.625rem;
+  }
+
+  .ink-bar__swatch {
+    width: 36px;
+    height: 36px;
+  }
+
+  .ink-bar__toggle {
+    min-height: 44px;
+  }
+
+  /* Footer links measured 21px tall. Padding rather than a min-height keeps
+     them inline without forcing the columns apart. */
+  .site-footer__social-link,
+  .site-footer__bottom a {
+    display: inline-block;
+    padding-block: 0.6875rem;
+  }
 }

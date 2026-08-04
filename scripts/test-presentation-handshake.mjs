@@ -27,12 +27,18 @@
   as it is in the real Studio. Then it does what the Edit toggle does - post
   "presentation/toggle-overlay" - and reports whether the site reacted.
 
+  First run, 2026-08-04: the handshake connected in 27ms, the overlay mounted
+  in 555ms, and the page answered the toggle. So the site half is healthy and
+  the protocol matches. What that leaves is whether an editor sees anything -
+  the overlay can be connected and enabled and still highlight nothing - so
+  section 3 hovers real text and checks a target gets drawn.
+
   Reading the result:
 
-    handshake connected + overlay elements appear
-      The site is fine and so is the protocol. The fault is in the real
-      Studio's environment: browser storage partitioning, an extension, or the
-      Studio being on a different origin than the one allowOrigins permits.
+    all three sections pass
+      The site is fine end to end. Anything still wrong is in the real
+      Studio's environment: browser storage partitioning, an extension, or a
+      Studio origin that allowOrigins doesn't cover.
 
     handshake never connects
       The site never answers. The status log and the console lines below it
@@ -187,31 +193,70 @@ const overlayState = async () => {
 }
 
 const before = await overlayState()
-console.log(`    before toggle: ${JSON.stringify(before)}`)
+console.log(`    overlay state on connect: ${JSON.stringify(before)}`)
 
-// Exactly what the Edit toggle does - see sanity's PreviewFrame:
+// The overlay comes up enabled - the page posts visual-editing/toggle
+// {enabled: true} the moment it connects - so "presentation/toggle-overlay"
+// turns it OFF. An earlier version of this test asserted the element count
+// would go up and called a working toggle a failure.
+//
+// Exactly what the Edit toggle does; see sanity's PreviewFrame:
 //   const toggleOverlay = useCallback(() => visualEditingComlink?.post('presentation/toggle-overlay'), ...)
 await page.evaluate(() => window.__comlink?.post('presentation/toggle-overlay'))
-await page.waitForTimeout(2500)
+await page.waitForTimeout(1500)
+const off = await overlayState()
+console.log(`    after one toggle:         ${JSON.stringify(off)}`)
 
-// Overlay rects are drawn for whatever the pointer is over, so nudge it the
-// way an editor would before deciding nothing happened.
-if (frame) {
-  await page.mouse.move(700, 400)
-  await page.waitForTimeout(400)
-  await page.mouse.move(700, 500)
-  await page.waitForTimeout(1200)
-}
-
-const after = await overlayState()
-console.log(`    after toggle:  ${JSON.stringify(after)}`)
+await page.evaluate(() => window.__comlink?.post('presentation/toggle-overlay'))
+await page.waitForTimeout(1500)
+const backOn = await overlayState()
+console.log(`    after toggling back:      ${JSON.stringify(backOn)}`)
 console.log()
 
-check('the site has an overlay host element', !!after?.hostExists)
+check('the site has an overlay host element', !!before?.hostExists)
 check(
-  'toggling the overlay changed the page',
-  !!after && !!before && after.childCount > before.childCount,
-  `child count went ${before?.childCount} -> ${after?.childCount}`,
+  'toggling turns the overlay off',
+  !!off && !!before && off.childCount < before.childCount,
+  `element count went ${before?.childCount} -> ${off?.childCount}`,
+)
+check(
+  'toggling again turns it back on',
+  !!backOn && !!off && backOn.childCount > off.childCount,
+  `element count went ${off?.childCount} -> ${backOn?.childCount}`,
+)
+
+// ---------------------------------------------------------------------------
+// The part that actually matters to an editor: with the overlay on, does
+// hovering a piece of Sanity-fed text draw a clickable target over it? Neither
+// the handshake nor the toggle proves this - the overlay can be connected and
+// enabled and still highlight nothing if the stega payloads don't resolve.
+console.log(`\n3. Hovering something an editor would click\n`)
+
+let hovered = null
+if (frame) {
+  const box = await frame
+    .locator('h1, h2, p')
+    .filter({hasNot: frame.locator('nav *')})
+    .first()
+    .boundingBox()
+    .catch(() => null)
+
+  if (box) {
+    // The frame sits at the top-left of the host page, so frame coordinates
+    // are page coordinates here.
+    await page.mouse.move(box.x + box.width / 2, box.y + Math.min(box.height / 2, 20))
+    await page.waitForTimeout(1200)
+    hovered = await overlayState()
+    console.log(`    while hovering:           ${JSON.stringify(hovered)}`)
+  } else {
+    console.log('    could not find a heading or paragraph to hover')
+  }
+}
+
+check(
+  'hovering draws an editable target',
+  !!hovered && !!backOn && hovered.childCount > backOn.childCount,
+  `element count went ${backOn?.childCount} (idle) -> ${hovered?.childCount} (hovering)`,
 )
 
 for (const line of await page.evaluate(() => window.__log ?? [])) console.log(`    ${line}`)

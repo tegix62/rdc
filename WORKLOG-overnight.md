@@ -812,3 +812,96 @@ change, and it is on the punch list.
    per-width decision above is the main lever.
 3. **One 800×800 source file is 3,981 KB** — the homepage hero. No amount of
    code fixes a 4 MB source; it needs re-exporting. Content task for Chris.
+
+### Decision #22 — Media Row, Media + Text, and alt text everywhere
+
+Chris asked whether the block system could do four things. Two of them could
+not: **two videos side by side**, and **a video beside text**. Rather than add a
+block per combination, a row is now a list of slots and each slot is
+independently an image or a video.
+
+- **Media Row (2–4 across)** — three animated GIFs, two videos, a video next to
+  a phone mockup, any mix. Optional caption per item, optional heading.
+  `--media-count` drives the column count so there is no class per count, and it
+  stacks on a phone regardless of what the block says.
+  Two *named member types* (`mediaImage`, `mediaVideo`) rather than one object
+  holding both an image and a URL, so Studio offers a plain "Image or Video?"
+  choice instead of an object with half its fields blank.
+- **Media + Text** — Image + Text with the media half able to be a video. Image
+  and video are separate fields following the rule a case study hero already
+  uses: fill in the video and it replaces the image. One less thing to learn.
+- **Two Images / Three Images kept.** Existing case studies use them; there is no
+  reason to break working content to tidy a schema.
+
+**Alt text now exists on every image field on the site**, added once to the
+shared `imageBehaviourFields` rather than field by field. It was missing
+everywhere — and `Sections.astro` was reading `section.alt` on Full Image, a
+field that was never in the schema, so every image in every case study shipped
+`alt=""`. `Img.astro` falls back to the asset's own alt when no prop is passed,
+which is how all the existing call sites gained it at once.
+
+`alt` and `iconAlt` are excluded from stega. Alt text lands in an attribute and a
+screen reader reads it verbatim, zero-width characters included — the same bug
+class as the Portfolio filters, except the only people who would ever notice are
+those relying on assistive technology. Excluded before the field shipped.
+
+#### Verifying blocks nothing uses yet
+
+A new block that no document uses is a block nobody has seen. Type-checking says
+nothing about whether a video sits properly beside text. Seeding Chris's live
+case studies to find out would mean editing his content to test my code.
+
+`Sections` takes a plain array, so **`/style-guide` now renders every block from
+fixtures** with no Sanity query. The asset references are real and chosen: both
+GIFs are confirmed animated by `audit-animated.mjs`, one being the 400×400 that
+the pipeline turns from 867 KB into 4,374 KB — the best available canary for the
+pass-through path. `/style-guide` is in the audit's path list, so all of it gets
+checked for overflow and weight every run.
+
+#### It immediately caught a regression
+
+    /work/adelante-barbell-club  desktop  1614px in a 1440px viewport
+    /work/adelante-barbell-club  mobile    768px in a  390px viewport
+    /style-guide                 mobile    417px in a  390px viewport
+
+One cause: the base rule gave `max-width: 100%` to `img` and **not to `video`**.
+`Img.astro` renders an animated source as a looping `<video>` carrying the
+asset's intrinsic width, so with no cap a 1080×1080 animation rendered 1080px
+wide — and on the case study that dragged the unrelated card grid out to the same
+768px, which is why the report showed `a.card` overhanging by 378px.
+
+Latent for as long as animated GIFs were served as `<img>` and inherited the rule
+by accident. Fixing the animation probe this morning started rendering them as
+`<video>` and turned it into a horizontal scrollbar. **Same shape as the
+video-size regression earlier the same day: a correct fix exposing something that
+had only ever worked by coincidence.**
+
+Now verified clear: *"None. Every page fits its viewport at both widths."*
+
+#### Typography, closed out
+
+| | before | after |
+|---|--:|--:|
+| `/video` | 141ch | **71ch** |
+| `/about` | 94ch | **71ch** |
+| Achievements block | 138ch | **capped 62ch** |
+| `/style-guide` sample | 141ch | **capped 62ch** |
+
+Achievements was the interesting one — it renders rich text in a bare div rather
+than inside `.prose`, so it never got the cap. Longest line left anywhere, and on
+a real case study rather than a demo.
+
+Everything still on the typography list is legitimately narrow rather than wrong:
+blog card titles at 31–37ch, and privacy-policy list items at 43ch on a 390px
+phone, which is about as good as 390px gets.
+
+#### Tap targets, nearly closed
+
+Heights are all at or above 44px. The portfolio filter row cleared the floor in
+one dimension only — the `−` and `+` buttons are 29px wide — so they now carry a
+`min-width` too.
+
+**Left:** three anchors on the homepage measure roughly 36–43px wide by 45px
+tall. Height is fine, width is slightly short. The audit records size and label
+but not a selector, and their labels are empty, so rather than guess which
+elements they are I have left them as the last item on the list.

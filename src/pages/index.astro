@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Img from '../components/Img.astro';
 import Sections from '../components/Sections.astro';
 import { getPage, getSiteSettings } from '../lib/queries';
-import { urlFor } from '../lib/image';
+import { urlFor, cappedWidth } from '../lib/image';
 
 const page = await getPage('home');
 const settings = await getSiteSettings();
@@ -59,12 +59,18 @@ const closerBold = settings?.closerBold || 'rooted in heritage craft';
 const closerSuffix = settings?.closerSuffix || ' and built to perform on fabric.';
 const finalCtaHeading = settings?.finalCtaHeading || 'DTC Brands and Apparel Companies:';
 
+/*
+  cappedWidth because this asked for w=1800 from an 800x800 source and got
+  back a 10,704 KB file - on its own 98% of this page's weight, and the single
+  heaviest thing on the site. A CSS background doesn't go through Img.astro,
+  so it never got the clamp Img applies.
+*/
 const heroStyle = settings?.heroBackground
-  ? `--hero-bg-image: url(${urlFor(settings.heroBackground).width(1800).url()})`
+  ? `--hero-bg-image: url(${urlFor(settings.heroBackground).width(cappedWidth(settings.heroBackground, 1800)).url()})`
   : undefined;
 
 const proofBandStyle = settings?.proofBandBackground
-  ? `--proof-bg-image: url(${urlFor(settings.proofBandBackground).width(500).url()})`
+  ? `--proof-bg-image: url(${urlFor(settings.proofBandBackground).width(cappedWidth(settings.proofBandBackground, 500)).url()})`
   : undefined;
 ---
 

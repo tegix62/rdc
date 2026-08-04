@@ -1,4 +1,4 @@
-name: Audit — pages, CMS fields, visual editing
+name: Audit — pages, CMS fields, animated sources, visual editing
 
 # Everything measurable about the site in one run, published somewhere a
 # sandbox with no outbound network can still read it.
@@ -57,6 +57,17 @@ jobs:
           mkdir -p audit
           node scripts/audit-cms.mjs --json audit/cms.json | tee audit/cms.md
 
+      # Why the four heaviest files on the site went through the transform
+      # pipeline when src/lib/animated.ts exists to stop them. Bundles and calls
+      # the shipped probe, so a disagreement is the real bug, not a copy's.
+      - name: Animated sources
+        id: animated
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          mkdir -p audit
+          node scripts/audit-animated.mjs --json audit/animated.json | tee audit/animated.md
+
       - name: Visual editing handshake
         id: ve
         continue-on-error: true
@@ -67,16 +78,13 @@ jobs:
       - name: Publish to the run summary
         if: always()
         run: |
-          for f in audit/pages.md audit/cms.md audit/visual-editing.md; do
+          for f in audit/pages.md audit/cms.md audit/animated.md audit/visual-editing.md; do
             [ -f "$f" ] || continue
-            case "$f" in
-              *.md) ;;
-            esac
             {
               echo ""
               echo "<details><summary>$f</summary>"
               echo ""
-              # pages.md is already markdown; the other two are plain text.
+              # pages.md is already markdown; the others are plain script output.
               if [ "$f" = "audit/pages.md" ]; then cat "$f"; else printf '```\n'; cat "$f"; printf '```\n'; fi
               echo ""
               echo "</details>"
@@ -125,6 +133,7 @@ jobs:
             echo "git fetch origin ci-reports"
             echo "git show origin/ci-reports:latest/pages.md"
             echo "git show origin/ci-reports:latest/cms.md"
+            echo "git show origin/ci-reports:latest/animated.md"
             echo "git show origin/ci-reports:latest/visual-editing.md"
             echo '```'
           } > README.md

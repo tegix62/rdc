@@ -98,6 +98,26 @@ export function imageDimensions(source: any): {width: number; height: number} | 
   return {width, height};
 }
 
+/*
+  The width to actually ask the CDN for, never larger than the file itself.
+
+  Upscaling is not just wasteful, it is catastrophic on an animated source:
+  the CDN re-encodes every frame at the requested size, so a 200x200 animated
+  WebP asked for at w=800 came back at 2,539 KB, and an 800x800 one asked for
+  at w=1800 came back at 10,704 KB - by itself 98% of the homepage's weight.
+
+  buildSrcSet has always clamped. The single `src` attribute and the two CSS
+  background images did not, and those are where every one of the measured
+  offenders came from. Clamping lives here so no call site has to remember:
+  ask for whatever width the layout wants and get back the largest width that
+  is real.
+*/
+export function cappedWidth(source: unknown, requested: number): number {
+  const intrinsic = imageDimensions(source);
+  if (!intrinsic) return requested;
+  return Math.min(requested, intrinsic.width);
+}
+
 // The widths offered to the browser. Chosen to bracket the sizes this site
 // actually renders at rather than a generic ladder. Sanity generates each on
 // first request and caches it.
@@ -112,8 +132,7 @@ export function buildSrcSet(
   maxWidth: number,
   aspect?: {width: number; height: number},
 ): string | undefined {
-  const intrinsic = imageDimensions(source);
-  const ceiling = Math.min(maxWidth, intrinsic?.width ?? maxWidth);
+  const ceiling = cappedWidth(source, maxWidth);
   const widths = SRCSET_WIDTHS.filter((w) => w <= ceiling);
   // Include the ceiling itself so the largest rendering isn't handed a file
   // smaller than it needs.

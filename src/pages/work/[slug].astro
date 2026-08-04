@@ -29,7 +29,11 @@ const bandStyle = caseStudy.accentColor ? `--work-accent: ${caseStudy.accentColo
 // Social previews need an absolute URL and a predictable crop.
 const ogSource = caseStudy.mainImage ?? caseStudy.thumbnail;
 const ogImage = ogSource
-  ? urlFor(ogSource).width(1200).height(630).fit('crop').url()
+  // format('jpg') on purpose: an og:image has to be a still. Left to
+  // auto-format, an animated source comes back as an animated WebP, which
+  // every scraper rejects and which can run to megabytes - the same
+  // re-encode-every-frame blow-up that made the homepage 10 MB.
+  ? urlFor(ogSource).width(1200).height(630).fit('crop').format('jpg').url()
   : undefined;
 ---
 

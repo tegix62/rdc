@@ -14,7 +14,7 @@
   Pass `width`/`height` together to crop to a fixed ratio; pass `width`
   alone to keep the source's own aspect.
 */
-import { urlFor, imageDimensions, buildSrcSet, originalUrl, isPassThrough } from '../lib/image';
+import { urlFor, imageDimensions, buildSrcSet, originalUrl, isPassThrough, cappedWidth } from '../lib/image';
 import { isAnimatedSource } from '../lib/animated';
 import { getAnimatedVideo } from '../lib/animatedVideo';
 
@@ -76,8 +76,17 @@ const original = passThrough ? originalUrl(image) : null;
 */
 const video = passThrough ? await getAnimatedVideo(image, width) : null;
 
-let builtSrc = urlFor(image).width(width);
-if (cropped) builtSrc = builtSrc.height(height!).fit('crop');
+/*
+  Clamped to the file's own width. buildSrcSet already did this; the `src`
+  attribute did not, and that is where the measured damage came from: a
+  200x200 animated WebP rendered with width={800} was requested at w=800 and
+  came back at 2,539 KB. Worse, a source narrower than the smallest srcset
+  entry yields no srcset at all, so that upscaled src was the only candidate
+  the browser had.
+*/
+const askWidth = cappedWidth(image, width);
+let builtSrc = urlFor(image).width(askWidth);
+if (cropped) builtSrc = builtSrc.height(Math.round((askWidth * height!) / width)).fit('crop');
 
 const src = original ?? builtSrc.url();
 const srcset = passThrough ? undefined : buildSrcSet(image, width, aspect);

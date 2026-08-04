@@ -6,6 +6,7 @@ import { sanityClient } from '../../lib/sanity';
 import { getCaseStudy, getGridItems, getOtherCaseStudies } from '../../lib/queries';
 import { urlFor } from '../../lib/image';
 import { renderPortableText } from '../../lib/portableText';
+import { embedUrl } from '../../lib/video';
 
 export async function getStaticPaths() {
   const slugs = await sanityClient.fetch(
@@ -38,17 +39,35 @@ const ogImage = ogSource
   ogType="article"
   ogImage={ogImage}
 >
-  {caseStudy.mainImage && (
-    <div class="work-hero full-bleed">
-      <Img
-        image={caseStudy.mainImage}
-        alt={caseStudy.title}
-        width={2400}
-        sizes="100vw"
+  {/*
+    A case study leads with either a video or an image, never both. Hug a Mug's
+    real page opens straight into video, and stacking a static hero above it was
+    the port's invention. Setting Hero Video swaps the two rather than adding to
+    them.
+  */}
+  {caseStudy.heroVideo ? (
+    <div class="work-hero work-hero--video full-bleed">
+      <iframe
+        src={embedUrl(caseStudy.heroVideo)}
+        title={caseStudy.title}
         loading="eager"
-        fetchpriority="high"
+        allow="autoplay; fullscreen; picture-in-picture"
+        allowfullscreen
       />
     </div>
+  ) : (
+    caseStudy.mainImage && (
+      <div class="work-hero full-bleed">
+        <Img
+          image={caseStudy.mainImage}
+          alt={caseStudy.title}
+          width={2400}
+          sizes="100vw"
+          loading="eager"
+          fetchpriority="high"
+        />
+      </div>
+    )
   )}
 
   <section class="work-identity full-bleed">

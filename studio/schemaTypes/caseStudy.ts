@@ -71,6 +71,15 @@ export default defineType({
       description: 'Black and white logomark shown in Archive view.',
     }),
     defineField({name: 'mainImage', title: 'Main Project Image', type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}),
+    defineField({
+      name: 'heroVideo',
+      title: 'Hero Video (optional)',
+      type: 'url',
+      description:
+        'A YouTube or Vimeo link. When set, this plays as the page hero INSTEAD ' +
+        'of the Main Project Image - the image is not shown above it. Leave ' +
+        'empty for a normal image hero.',
+    }),
     defineField({name: 'headline', type: 'string'}),
     defineField({name: 'subtitle', type: 'string'}),
     defineField({name: 'resultStat', title: 'Result Stat', type: 'string'}),

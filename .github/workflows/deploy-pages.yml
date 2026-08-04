@@ -103,7 +103,7 @@ jobs:
       - name: Smoke test - no page fell back to a placeholder
         run: |
           BASE="https://preview.rumeau-design-co.pages.dev"
-          PATHS="/ /portfolio /about /video /collage /merchfolio /ms-paint /blog /privacy-policy"
+          PATHS="/ /portfolio /about /video /collage /merchfolio /blog /privacy-policy"
           empty=""
           for p in $PATHS; do
             body=$(curl -sL --max-time 20 "$BASE$p" || echo "")

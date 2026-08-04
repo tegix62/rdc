@@ -13,8 +13,8 @@ import { sanityClient } from '../lib/sanity';
 const IS_PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
 
 // Routes that exist as files. Deliberately excludes /style-guide (internal),
-// /404, and /image-license-info (unedited Webflow boilerplate, see the
-// punch list).
+// /404, /image-license-info (unedited Webflow boilerplate), and /ms-paint
+// (removed at Chris's request; its Sanity document is retained).
 const STATIC_PATHS = [
   '/',
   '/portfolio',
@@ -22,7 +22,6 @@ const STATIC_PATHS = [
   '/video',
   '/collage',
   '/merchfolio',
-  '/ms-paint',
   '/blog',
   '/privacy-policy',
 ];

@@ -7,6 +7,16 @@ export default defineType({
   type: 'document',
   fields: [
     defineField({name: 'siteTitle', type: 'string'}),
+    defineField({
+      name: 'favicon',
+      title: 'Favicon',
+      type: 'image',
+      description:
+        'The little icon in the browser tab. Square works best, and it is shown ' +
+        'at about 32px, so anything with fine detail will disappear. Until one ' +
+        'is set the site requests /favicon.svg, which does not exist, so every ' +
+        'page load 404s and tabs show a blank icon.',
+    }),
     defineField({name: 'tagline', type: 'string'}),
     defineField({
       name: 'logo',

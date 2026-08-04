@@ -69,28 +69,5 @@
     "heading": "Privacy Policy",
     "seoDescription": "Rumeau Design Co.'s Privacy Policy to learn how we protect your personal information.",
     "bodyHtml": "<h2>1. Introduction</h2><p>Rumeau Design Co. (\"we\", \"us\", \"our\") is committed to protecting your privacy. This Privacy Policy outlines how we collect, use, disclose, and safeguard your information when you visit our website <a href=\"https://www.rumeaudesign.co\">www.rumeaudesign.co</a>. Please read this Privacy Policy carefully. If you do not agree with the terms of this Privacy Policy, please do not access the site.</p><h2>2. Information We Collect</h2><p><strong>Identity Data:</strong> Name, surname, username or similar identifier.</p><p><strong>Contact Data:</strong> Billing address, delivery address, email address, and telephone numbers.</p><p><strong>Financial Data:</strong> Bank account and payment card details.</p><p><strong>Transaction Data:</strong> Details about payments to and from you and other details of products and services you have purchased from us.</p><p><strong>Technical Data:</strong> IP address, browser type and version, time zone setting and location, browser plug-in types and versions, operating system and platform, and other technology on the devices you use to access this website.</p><p><strong>Profile Data:</strong> Username and password, purchases or orders made by you, your interests, preferences, feedback, and survey responses.</p><p><strong>Usage Data:</strong> Information about how you use our website, products, and services.</p><p><strong>Marketing and Communications Data:</strong> Your preferences in receiving marketing from us and your communication preferences.</p><h2>3. How We Use Your Information</h2><p>We will only use your personal data when the law allows us to. Most commonly, we will use your personal data in the following circumstances:</p><p><strong>Performance of Contract:</strong> Where we need to perform the contract we are about to enter into or have entered into with you.</p><p><strong>Legitimate Interest:</strong> Where it is necessary for our legitimate interests (or those of a third party) and your interests and fundamental rights do not override those interests.</p><p><strong>Legal Compliance:</strong> Where we need to comply with a legal or regulatory obligation.</p><p><strong>Purposes for using your personal data:</strong></p><ul><li>To register you as a new customer.</li><li>To process and deliver your order including managing payments, fees, and charges.</li><li>To manage our relationship with you, including notifying you about changes to our terms or privacy policy.</li><li>To administer and protect our business and this website (including troubleshooting, data analysis, testing, system maintenance, support, reporting, and hosting of data).</li><li>To deliver relevant website content and advertisements to you and measure or understand the effectiveness of the advertising we serve to you.</li><li>To use data analytics to improve our website, products/services, marketing, customer relationships, and experiences.</li><li>To make suggestions and recommendations to you about goods or services that may be of interest to you.</li></ul><h2>4. How We Share Your Information</h2><p>We may share your information with third parties for the purposes set out in this Privacy Policy. These include:</p><p><strong>Service Providers:</strong> Companies that provide services to help us deliver our business activities.</p><p><strong>Professional Advisers:</strong> Lawyers, bankers, auditors, and insurers who provide consultancy, banking, legal, insurance, and accounting services.</p><p><strong>Regulatory Authorities:</strong> Regulators and other authorities who require reporting of processing activities in certain circumstances.</p>"
-  },
-  {
-    "title": "MS Paint | Rumeau Design Co",
-    "slug": "ms-paint",
-    "heading": "“Whoso would be a man must be a NON-CONFORMIST.”",
-    "seoDescription": "An experiment in constraint-based design. What happens when you build a brand identity inside MS Paint?",
-    "heroImage": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66da5f6db879d90b39ba5621_Ralph%20Waldo%20Emerson.png",
-    "heroAlt": "Portrait of Ralph Waldo Emerson, drawn in Microsoft Paint.",
-    "bodyHtml": "<p>This is art made in Microsoft Paint either for pure expression or as an exercise to prove a point: Just because a medium or style isn't what most people would consider \"professional\", doesn't mean it does its job of communicating effectively.</p><p>(UNDER CONSTRUCTION)</p>",
-    "sections": [
-      {
-        "type": "threeUp",
-        "imageOne": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66da64b1e1ca90cace6e92cb_lorax.webp",
-        "imageTwo": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66da64b12ff147eaa1eda28a_crab%20city.webp",
-        "imageThree": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66da64b1f581814692532995_Maestro_-_Rhaegal.webp"
-      },
-      {
-        "type": "threeUp",
-        "imageOne": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66da64b1ce3f80e28289ed1f_Maxwell_-_Bartok.webp",
-        "imageTwo": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66da64b107b17a8329a2707f_Ziorak_-_Servatin_Ironcleaver.webp",
-        "imageThree": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66da64b185f76a4956352f5e_Nopeman342_-_Lord_of_Blades_Zurg.webp"
-      }
-    ]
   }
 ]

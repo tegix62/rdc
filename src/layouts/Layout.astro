@@ -6,6 +6,7 @@ import '@fontsource/gothic-a1/700.css';
 import '../styles/global.css';
 import { getSiteSettings } from '../lib/queries';
 import Img from '../components/Img.astro';
+import { urlFor } from '../lib/image';
 import VisualEditing from '../components/VisualEditing.astro';
 import InkMode from '../components/InkMode.astro';
 
@@ -53,7 +54,16 @@ const TALLY_URL = settings?.contactUrl || 'https://tally.so/r/mZ8LXz';
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    {/*
+      Served from Sanity so it can be changed without a code edit. Falls back
+      to /favicon.svg, which has never existed - so until one is uploaded every
+      page load 404s on it and tabs show a blank icon.
+    */}
+    {settings?.favicon ? (
+      <link rel="icon" href={urlFor(settings.favicon).width(64).height(64).fit('crop').url()} />
+    ) : (
+      <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    )}
     <meta name="description" content={description} />
     <title>{title}</title>
     <link rel="canonical" href={canonical} />

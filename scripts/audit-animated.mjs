@@ -126,6 +126,15 @@ const truthOf = (bytes) => {
       note: ascii(0, 200).includes('NETSCAPE') ? 'NETSCAPE loop block' : 'no loop block in first 200B',
     }
   }
+  if (ascii(1, 3) === 'PNG') {
+    const apng = ascii(0, bytes.length).includes('acTL')
+    return {
+      format: apng ? 'apng' : 'png',
+      animated: apng,
+      note: apng ? 'acTL animation chunk' : 'still PNG',
+    }
+  }
+
   if (ascii(0, 4) === 'RIFF' && ascii(8, 4) === 'WEBP') {
     const fourcc = ascii(12, 4)
     if (fourcc !== 'VP8X') {

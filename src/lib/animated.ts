@@ -65,7 +65,18 @@ async function probe(url: string): Promise<boolean> {
       return animationFlag || window.includes('ANIM');
     }
 
-    // JPEG, PNG and anything else cannot animate.
+    /*
+      PNG can animate. An APNG carries an acTL (animation control) chunk, which
+      the spec requires to appear before the first IDAT - so it is inside this
+      window. Missing this mattered: the dataset holds 400x400 PNGs that the
+      transform pipeline turns from 279 KB into 1,256 KB, which is not something
+      a still image does.
+    */
+    if (ascii(1, 3) === 'PNG') {
+      return window.includes('acTL');
+    }
+
+    // JPEG and anything else here cannot animate.
     return false;
   } catch {
     return false;

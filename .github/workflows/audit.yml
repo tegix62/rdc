@@ -20,6 +20,11 @@ on:
       - 'scripts/audit-*.mjs'
       - 'scripts/test-presentation-handshake.mjs'
       - '.github/workflows/audit.yml'
+      # Styles and templates too. Without these, a typography or tap-target
+      # change shipped to the preview without ever being measured - which is
+      # exactly the gap this whole workflow exists to close. The measure cap
+      # and the 44px targets went out unverified for that reason.
+      - 'src/**'
 
 permissions:
   contents: write

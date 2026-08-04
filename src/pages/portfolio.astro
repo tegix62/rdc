@@ -98,13 +98,20 @@ if (emptyFilters.length > 0) {
         // and debugging.
         return img ? (
           <div class:list={['pf-item', cat]} data-category={cat}>
-            <Img class="pf-item__img" image={img} alt={item.title} width={800} sizes="(max-width: 48rem) 33vw, 17vw" />
-            {parentHref && (
-              <a class="pf-item__jump" href={parentHref}>
-                <span class="pf-item__jump-label">{item.parentTitle ?? 'View project'}</span>
-                <span class="pf-item__jump-arrow" aria-hidden="true">&rarr;</span>
-              </a>
-            )}
+            {/*
+              The frame wraps the image and the jump button so a selected tile
+              can carry ONE border around both. Bordering each separately would
+              read as two stacked outlines with a gap between them.
+            */}
+            <div class="pf-item__frame">
+              <Img class="pf-item__img" image={img} alt={item.title} width={800} sizes="(max-width: 48rem) 33vw, 17vw" />
+              {parentHref && (
+                <a class="pf-item__jump" href={parentHref}>
+                  <span class="pf-item__jump-label">{item.parentTitle ?? 'View project'}</span>
+                  <span class="pf-item__jump-arrow" aria-hidden="true">&rarr;</span>
+                </a>
+              )}
+            </div>
           </div>
         ) : null;
       })}

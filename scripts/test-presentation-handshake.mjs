@@ -283,12 +283,43 @@ if (frame) {
     return out
   })
 
+  /*
+    Counting the overlay's child elements does not work, and the screenshot
+    is why: hovering draws a rect around the element, but the overlay keeps a
+    fixed pool of boxes and MOVES one into place rather than appending a new
+    one. The count sits at 11 whether or not anything is highlighted, so the
+    first version of this check called a working overlay broken - the same
+    mistake as asserting the toggle would raise the count.
+
+    What actually distinguishes highlighted from not is geometry: an overlay
+    box lands on top of the hovered element. So the test asks whether any box
+    inside <sanity-visual-editing> now overlaps the element under the pointer.
+  */
+  const boxOver = (x, y) =>
+    frame.evaluate(
+      ({x, y}) => {
+        const host = document.querySelector('sanity-visual-editing')
+        if (!host) return null
+        for (const el of host.querySelectorAll('*')) {
+          const r = el.getBoundingClientRect()
+          if (r.width < 8 || r.height < 8) continue
+          if (x >= r.left - 2 && x <= r.right + 2 && y >= r.top - 2 && y <= r.bottom + 2) {
+            return {w: Math.round(r.width), h: Math.round(r.height)}
+          }
+        }
+        return null
+      },
+      {x, y},
+    )
+
   for (const c of candidates) {
     await page.mouse.move(c.x, c.y)
     await page.waitForTimeout(700)
-    const state = await overlayState()
-    hoverLog.push(`${c.tag} @${c.x},${c.y} "${c.text}" -> ${state.childCount} elements`)
-    if (!hovered || state.childCount > hovered.childCount) hovered = state
+    const box = await boxOver(c.x, c.y)
+    hoverLog.push(
+      `${c.tag} @${c.x},${c.y} "${c.text}" -> ${box ? `highlighted ${box.w}x${box.h}` : 'nothing drawn'}`,
+    )
+    if (box) hovered = box
   }
   for (const l of hoverLog) console.log(`    ${l}`)
 
@@ -315,9 +346,8 @@ if (frame) {
 
 check(
   'hovering draws an editable target',
-  !!hovered && !!backOn && hovered.childCount > backOn.childCount,
-  `no candidate raised the element count above ${backOn?.childCount}:\n         ` +
-    hoverLog.join('\n         '),
+  !!hovered,
+  `no candidate got an overlay box drawn over it:\n         ` + hoverLog.join('\n         '),
 )
 
 for (const line of await page.evaluate(() => window.__log ?? [])) console.log(`    ${line}`)

@@ -72,7 +72,22 @@ h5, h6 {
 }
 
 
-img {
+/*
+  video is here with img on purpose.
+
+  Img.astro renders an animated source as a looping <video>, carrying the
+  asset's intrinsic width and height so it reserves the right box. Without a
+  max-width those attributes win: a 1080x1080 animation rendered at 1080px
+  wide, and the page audit measured /work/adelante-barbell-club at 1614px in a
+  1440px viewport and 768px in a 390px one - which then dragged the unrelated
+  card grid below it out to the same width.
+
+  It was latent for as long as animated GIFs were being served as <img> and
+  quietly inherited this rule. Fixing the animation probe this morning started
+  rendering them as <video>, and the gap became a horizontal scrollbar.
+*/
+img,
+video {
   max-width: 100%;
   height: auto;
   display: block;
@@ -1720,6 +1735,12 @@ main {
   display: block;
 }
 
+
+/* /style-guide writes its own copy rather than using .prose, so it was the one
+   page still running 141 characters a line. */
+.style-guide-note {
+  max-width: 62ch;
+}
 
 /*
   Media Row.

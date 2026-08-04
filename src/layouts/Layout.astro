@@ -47,6 +47,11 @@ const navLinks = [
   { label: 'Video', href: '/video' },
 ];
 const TALLY_URL = settings?.contactUrl || 'https://tally.so/r/mZ8LXz';
+
+// Both of these were in the Studio and read by nothing, so editing them did
+// nothing to the site - the audit in scripts/audit-cms.mjs found them.
+const SITE_NAME = settings?.siteTitle || 'Rumeau Design Co';
+const FOOTER_TEXT = settings?.footerText;
 ---
 
 <!doctype html>
@@ -72,7 +77,7 @@ const TALLY_URL = settings?.contactUrl || 'https://tally.so/r/mZ8LXz';
     {/* Webflow emitted these per page; without them a shared link previews
         as a bare URL with no title, description or image. */}
     <meta property="og:type" content={ogType} />
-    <meta property="og:site_name" content="Rumeau Design Co" />
+    <meta property="og:site_name" content={SITE_NAME} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
@@ -87,9 +92,9 @@ const TALLY_URL = settings?.contactUrl || 'https://tally.so/r/mZ8LXz';
       <nav class="site-nav__inner">
         <a class="site-nav__brand" href="/">
           {settings?.logo ? (
-            <Img image={settings.logo} alt="Rumeau Design Co" width={260} sizes="130px" loading="eager" />
+            <Img image={settings.logo} alt={SITE_NAME} width={260} sizes="130px" loading="eager" />
           ) : (
-            'Rumeau Design Co'
+            SITE_NAME
           )}
         </a>
         <button
@@ -115,11 +120,12 @@ const TALLY_URL = settings?.contactUrl || 'https://tally.so/r/mZ8LXz';
       <div class="wrap site-footer__top">
         <a class="site-footer__brand" href="/">
           {settings?.logo ? (
-            <Img image={settings.logo} alt="Rumeau Design Co" width={200} sizes="100px" />
+            <Img image={settings.logo} alt={SITE_NAME} width={200} sizes="100px" />
           ) : (
-            'Rumeau Design Co'
+            SITE_NAME
           )}
         </a>
+        {FOOTER_TEXT && <p class="site-footer__blurb">{FOOTER_TEXT}</p>}
 
         <div class="site-footer__col">
           <p class="site-footer__heading">Follow</p>
@@ -143,7 +149,7 @@ const TALLY_URL = settings?.contactUrl || 'https://tally.so/r/mZ8LXz';
       </div>
 
       <div class="wrap site-footer__bottom">
-        <p>&copy; {new Date().getFullYear()} Rumeau Design LLC. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} {SITE_NAME === 'Rumeau Design Co' ? 'Rumeau Design LLC' : SITE_NAME}. All rights reserved.</p>
         <a href="/privacy-policy">Privacy Policy</a>
       </div>
     </footer>

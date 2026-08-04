@@ -7,7 +7,9 @@
     "dev": "node scripts/build-overlay.mjs && astro dev",
     "build": "node scripts/build-overlay.mjs && astro build",
     "preview": "astro preview",
-    "test:images": "node scripts/test-images.mjs"
+    "test:images": "node scripts/test-images.mjs",
+    "audit:cms": "node scripts/audit-cms.mjs",
+    "audit:pages": "node scripts/audit-pages.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter-tight": "^5.1.1",

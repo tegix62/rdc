@@ -35,6 +35,44 @@ Ordered roughly by impact. Nothing here has been actioned unless marked done.
   fixing both the layout shift that made scrolling feel worse than Webflow
   and the oversized payloads on phones (decision #10).
 
+## Dead CMS fields (found by `npm run audit:cms`)
+
+An audit of all 170 schema fields found eight that no template read: editing
+them in Studio changed nothing on the site. Asset Type was the one you
+noticed; it was not alone, and three of them made an explicit promise in
+their description that no code kept.
+
+Four are now wired up:
+
+- [x] `siteSettings.siteTitle` - drives `og:site_name`, the logo's alt text,
+  the text fallback when no logo is set, and the copyright line.
+- [x] `siteSettings.footerText` - renders as a short line beside the footer
+  columns, capped at 28 characters of measure so it can't unbalance the row.
+- [x] `caseStudy.resultStat` - the one headline number per project, shown
+  under the summary at the top of the case study. This is the metrics
+  surface you asked about.
+- [x] `caseStudy.filmEmbed` - a YouTube/Vimeo link embedded below the
+  project intro (distinct from Hero Video, which replaces the hero image).
+
+Four describe features this site doesn't have. Rather than invent them
+unasked, their Studio descriptions now start with NOT WIRED UP YET so the
+field stops lying, and the decision is yours:
+
+- [ ] **`assetType`** ("Asset Type"). Migrated cleanly - 22 items are
+  Identity / Brand Sheet, 21 are Apparel, 37 are untagged. The obvious job
+  for it is giving the portfolio grid deliberate shape instead of ragged
+  masonry: Apparel to a 4:5 portrait crop, Social Card and Vinyl to a
+  square, Wide Video to 16:9 across two columns. That is a visible change to
+  how the whole grid reads, so it wants your eye on a before/after rather
+  than me choosing at 4am.
+- [ ] **`heroTile`** ("Spans two columns in the homepage grid"). There is no
+  homepage work grid in this port - the homepage leads with proof and a call
+  to action. Either build the grid or drop the field.
+- [ ] **`archiveMark`** ("Black and white logomark shown in Archive view").
+  There is no Archive view. The marks you uploaded are safe either way.
+- [ ] **`principalType`**. A Webflow leftover whose purpose didn't survive
+  the move. Candidate for deletion once you confirm it meant nothing.
+
 ## High impact - visible to every visitor
 
 - [ ] Nothing outstanding here - see "Needs your input" below.

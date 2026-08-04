@@ -45,7 +45,11 @@ export default defineType({
       name: 'assetType',
       title: 'Asset Type',
       type: 'string',
-      description: 'Controls grid tile shape.',
+      description:
+        'NOT WIRED UP YET. This said it controls grid tile shape, and nothing ' +
+        'on the site reads it - changing it has no effect. Kept because the ' +
+        'values migrated cleanly from Webflow and are worth keeping; see ' +
+        'PUNCH-LIST.md for the decision on what it should do.',
       options: {list: ASSET_TYPES},
     }),
     defineField({
@@ -60,7 +64,10 @@ export default defineType({
       name: 'heroTile',
       title: 'Hero Tile',
       type: 'boolean',
-      description: 'Spans two columns in the homepage grid. Use sparingly.',
+      description:
+        'NOT WIRED UP YET. This described spanning two columns in a homepage ' +
+        'work grid, and this site has no homepage work grid - the homepage ' +
+        'leads with proof and a call to action instead. See PUNCH-LIST.md.',
     }),
     defineField({name: 'thumbnail', type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}),
     defineField({
@@ -68,7 +75,9 @@ export default defineType({
       title: 'Archive Mark',
       type: 'image',
       fields: imageBehaviourFields,
-      description: 'Black and white logomark shown in Archive view.',
+      description:
+        'NOT WIRED UP YET. There is no Archive view on this site, so nothing ' +
+        'displays this. The uploaded marks are kept. See PUNCH-LIST.md.',
     }),
     defineField({name: 'mainImage', title: 'Main Project Image', type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}),
     defineField({
@@ -82,12 +91,27 @@ export default defineType({
     }),
     defineField({name: 'headline', type: 'string'}),
     defineField({name: 'subtitle', type: 'string'}),
-    defineField({name: 'resultStat', title: 'Result Stat', type: 'string'}),
+    defineField({
+      name: 'resultStat',
+      title: 'Result Stat',
+      type: 'string',
+      description:
+        'One headline number for this project, e.g. "3x merch sell-through in ' +
+        'the first week". Shown under the summary at the top of the case study.',
+    }),
     defineField({name: 'client', title: 'Client Name', type: 'string'}),
     defineField({name: 'clientLogo', type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}),
     defineField({name: 'oneLineSummary', title: 'One Line Summary', type: 'string'}),
     defineField({name: 'summary', title: 'Project Summary', type: 'text', rows: 3}),
-    defineField({name: 'principalType', title: 'Principal Type', type: 'string'}),
+    defineField({
+      name: 'principalType',
+      title: 'Principal Type',
+      type: 'string',
+      description:
+        'NOT WIRED UP YET, and its purpose did not survive the move from ' +
+        'Webflow. Nothing reads it. A candidate for deletion once you confirm ' +
+        'it meant nothing you still want.',
+    }),
     defineField({
       name: 'body',
       title: 'Project Details',
@@ -118,7 +142,14 @@ export default defineType({
       type: 'array',
       of: [{type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}],
     }),
-    defineField({name: 'filmEmbed', title: 'Film Embed', type: 'url'}),
+    defineField({
+      name: 'filmEmbed',
+      title: 'Film Embed',
+      type: 'url',
+      description:
+        'A YouTube or Vimeo link, embedded below the project intro. For a ' +
+        'video at the very top of the page instead, use Hero Video above.',
+    }),
     defineField({
       name: 'accentColor',
       title: 'Accent Color',

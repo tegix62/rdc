@@ -215,6 +215,16 @@ a {
   width: auto;
 }
 
+/* Optional line of copy from siteSettings.footerText. Capped near 45
+   characters so it stays a short statement beside the columns rather than
+   growing into a paragraph that unbalances the row. */
+.site-footer__blurb {
+  flex: 1 1 16rem;
+  max-width: 28ch;
+  margin: 0;
+  color: var(--color-gray);
+}
+
 .site-footer__col {
   display: flex;
   flex-direction: column;
@@ -985,6 +995,18 @@ main {
   color: rgba(255, 255, 255, 0.75);
   font-size: 1rem;
   line-height: 1.55;
+}
+
+/* The one number a prospective client scans for, so it reads at heading
+   weight rather than as another line of the summary. Sits on the same
+   left edge as everything else in the column. */
+.work-identity__stat {
+  margin: var(--space-3) 0 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: #fff;
 }
 
 .work-identity__credits {

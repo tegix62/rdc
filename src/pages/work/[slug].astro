@@ -78,6 +78,13 @@ const ogImage = ogSource
         {(caseStudy.summary || caseStudy.oneLineSummary) && (
           <p class="work-identity__summary">{caseStudy.summary ?? caseStudy.oneLineSummary}</p>
         )}
+        {/*
+          Result Stat was in the schema and read by nothing - the CMS audit
+          found it dead. It's the one number on the page a prospective client
+          scans for, so it gets its own line rather than being folded into the
+          summary paragraph.
+        */}
+        {caseStudy.resultStat && <p class="work-identity__stat">{caseStudy.resultStat}</p>}
       </div>
       {(caseStudy.clientLogo || caseStudy.credits?.length > 0) && (
         <div class="work-identity__aside">
@@ -97,6 +104,25 @@ const ogImage = ogSource
       )}
     </div>
   </section>
+
+  {/*
+    Film Embed was likewise dead. It sits after the identity block so a case
+    study can lead with its story and then show the film, rather than
+    competing with the hero for the top of the page.
+  */}
+  {caseStudy.filmEmbed && (
+    <div class="work-section work-section--video">
+      <div class="work-video-frame">
+        <iframe
+          src={embedUrl(caseStudy.filmEmbed)}
+          title={`${caseStudy.title} film`}
+          loading="lazy"
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowfullscreen
+        />
+      </div>
+    </div>
+  )}
 
   {caseStudy.sections?.length > 0 ? (
     <div class="work-band full-bleed" style={bandStyle}>

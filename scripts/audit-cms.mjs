@@ -172,6 +172,9 @@ const isEmpty = (v) =>
 // ---------------------------------------------------------------------------
 const findings = []
 const rows = []
+// Section block types no document uses at all. Reported once each, not once
+// per field.
+const unusedBlocks = new Set()
 
 for (const {typeName, path: fieldPath, name, field} of fields) {
   const dead = !isRead(name)
@@ -183,10 +186,17 @@ for (const {typeName, path: fieldPath, name, field} of fields) {
   const allowed = list?.map((o) => (typeof o === 'string' ? o : o.value))
 
   if (docs) {
-    const owning = docs.filter((d) => d._type === typeName)
-    // Fields defined on non-document types (section blocks) are reached
-    // through whichever document embeds them, so scan everything for those.
-    const pool = documentTypes.includes(typeName) ? owning : docs
+    // Fields on a section block only exist in documents that actually use
+    // that block. Counting them against all 96 documents reported 83 fields
+    // as "empty in every document" when they were simply fields of a block
+    // nobody had added yet - so the pool is narrowed to documents where the
+    // block is present, and a block used nowhere is reported as the one
+    // finding it really is rather than as one per field.
+    const usesType = (doc) => JSON.stringify(doc).includes(`"_type":"${typeName}"`)
+    const pool = documentTypes.includes(typeName)
+      ? docs.filter((d) => d._type === typeName)
+      : docs.filter(usesType)
+
     for (const doc of pool) {
       total += 1
       const found = valuesAt(doc, fieldPath)
@@ -208,6 +218,7 @@ for (const {typeName, path: fieldPath, name, field} of fields) {
     })
   if (docs && total > 0 && filled === 0 && !dead)
     findings.push({level: 'UNUSED', typeName, fieldPath, detail: `empty in all ${total} document(s)`})
+  if (docs && total === 0 && !documentTypes.includes(typeName)) unusedBlocks.add(typeName)
 }
 
 // ---------------------------------------------------------------------------
@@ -229,6 +240,13 @@ for (const level of ['INVALID', 'DEAD', 'UNUSED']) {
   console.log(`## ${level} (${group.length})`)
   console.log(`${blurb}\n`)
   for (const f of group) console.log(`  ${f.typeName}.${f.fieldPath}\n      ${f.detail}`)
+  console.log()
+}
+
+if (unusedBlocks.size) {
+  console.log(`## Blocks nobody has used yet (${unusedBlocks.size})`)
+  console.log(`Available in the Sections editor, not present in any document.\n`)
+  for (const t of [...unusedBlocks].sort()) console.log(`  ${t}`)
   console.log()
 }
 

@@ -233,30 +233,74 @@ check(
 console.log(`\n3. Hovering something an editor would click\n`)
 
 let hovered = null
+let hoverLog = []
 if (frame) {
-  const box = await frame
-    .locator('h1, h2, p')
-    .filter({hasNot: frame.locator('nav *')})
-    .first()
-    .boundingBox()
-    .catch(() => null)
+  // How many separate strings on this page carry a stega payload. If this is
+  // zero the overlay has nothing to find and the fault is upstream, in the
+  // client's stega config rather than in the overlay.
+  const stega = await frame.evaluate(() => {
+    let nodes = 0
+    let chars = 0
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+    while (walker.nextNode()) {
+      const m = walker.currentNode.nodeValue.match(/[\u200B-\u200F\uFEFF\u2060]/g)
+      if (m) {
+        nodes += 1
+        chars += m.length
+      }
+    }
+    return {nodes, chars}
+  })
+  console.log(`    text nodes carrying stega: ${stega.nodes} (${stega.chars} marker chars)`)
 
-  if (box) {
-    // The frame sits at the top-left of the host page, so frame coordinates
-    // are page coordinates here.
-    await page.mouse.move(box.x + box.width / 2, box.y + Math.min(box.height / 2, 20))
-    await page.waitForTimeout(1200)
-    hovered = await overlayState()
-    console.log(`    while hovering:           ${JSON.stringify(hovered)}`)
-  } else {
-    console.log('    could not find a heading or paragraph to hover')
+  // Hovering one element and concluding "nothing highlights" is too weak - it
+  // could just be the wrong element. Walk several visible candidates and
+  // report what each one did.
+  const candidates = await frame.evaluate(() => {
+    const out = []
+    for (const el of document.querySelectorAll('h1, h2, h3, p, li, a')) {
+      const r = el.getBoundingClientRect()
+      const text = (el.textContent ?? '').replace(/[\u200B-\u200F\uFEFF\u2060]/g, '').trim()
+      if (r.width < 40 || r.height < 10 || r.top < 0 || r.bottom > window.innerHeight) continue
+      if (!text) continue
+      out.push({
+        x: Math.round(r.x + r.width / 2),
+        y: Math.round(r.y + r.height / 2),
+        tag: el.tagName.toLowerCase(),
+        text: text.slice(0, 32),
+      })
+      if (out.length >= 6) break
+    }
+    return out
+  })
+
+  for (const c of candidates) {
+    await page.mouse.move(c.x, c.y)
+    await page.waitForTimeout(700)
+    const state = await overlayState()
+    hoverLog.push(`${c.tag} @${c.x},${c.y} "${c.text}" -> ${state.childCount} elements`)
+    if (!hovered || state.childCount > hovered.childCount) hovered = state
   }
+  for (const l of hoverLog) console.log(`    ${l}`)
+
+  // What the overlay actually put in the DOM, so a failure says something
+  // more useful than a count.
+  const shape = await frame.evaluate(() => {
+    const host = document.querySelector('sanity-visual-editing')
+    if (!host) return '(no host element)'
+    return [...host.querySelectorAll('*')]
+      .slice(0, 20)
+      .map((el) => el.tagName.toLowerCase() + (el.className ? '.' + String(el.className).slice(0, 24) : ''))
+      .join(' ')
+  })
+  console.log(`\n    overlay DOM: ${shape}`)
 }
 
 check(
   'hovering draws an editable target',
   !!hovered && !!backOn && hovered.childCount > backOn.childCount,
-  `element count went ${backOn?.childCount} (idle) -> ${hovered?.childCount} (hovering)`,
+  `no candidate raised the element count above ${backOn?.childCount}:\n         ` +
+    hoverLog.join('\n         '),
 )
 
 for (const line of await page.evaluate(() => window.__log ?? [])) console.log(`    ${line}`)

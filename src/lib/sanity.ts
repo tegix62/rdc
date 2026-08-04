@@ -40,6 +40,15 @@ const NON_TEXT_FIELDS = new Set([
   'parentType',
   'assetType',
   'inkMode',
+  /*
+    Alt text lands in an attribute, not in visible prose, and a screen reader
+    reads the attribute verbatim - including the zero-width characters stega
+    hides in it. Same class of bug as the Portfolio filters above, except the
+    only people who would ever notice are the ones relying on assistive
+    technology. Excluded before the field ever shipped.
+  */
+  'alt',
+  'iconAlt',
 ])
 
 // Hex colours, and anything that is plainly a URL or path rather than prose.

@@ -20,7 +20,14 @@ import { getAnimatedVideo } from '../lib/animatedVideo';
 
 interface Props {
   image: any;
-  alt: string;
+  /*
+    Falls back to the image's own `alt` field in Sanity when this is empty.
+    That is how every existing call site gained alt text at once: most of them
+    pass alt="" because there was no field to pass, and rewriting all of them
+    would have meant missing some. An explicit prop still wins, for the cases
+    where the surrounding page knows better than the asset does.
+  */
+  alt?: string;
   /** Largest width this image is ever rendered at, in CSS pixels. */
   width: number;
   /** Only when cropping to a fixed ratio. */
@@ -35,7 +42,7 @@ interface Props {
 
 const {
   image,
-  alt,
+  alt: altProp,
   width,
   height,
   sizes = '100vw',
@@ -43,6 +50,8 @@ const {
   fetchpriority,
   class: className,
 } = Astro.props;
+
+const alt = altProp || image?.alt || '';
 
 const cropped = typeof height === 'number';
 const aspect = cropped ? {width, height: height!} : undefined;

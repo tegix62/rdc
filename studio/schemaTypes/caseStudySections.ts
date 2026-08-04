@@ -240,6 +240,136 @@ export const aestheticRangeSection = defineType({
   },
 })
 
+/*
+  Media Row, and the two item types it holds.
+
+  Replaces the need for a separate "Two Videos" and "Three Videos" block: a row
+  is a list of slots, and each slot is independently an image or a video. Three
+  animated GIFs across, two videos side by side, a video next to a mockup - all
+  the same block, and the layout adapts to how many items are in it.
+
+  Two named member types rather than one object with both an image and a URL
+  field, because Sanity then offers a straight "Image or Video?" choice when you
+  add an item, instead of an object with half its fields left blank.
+
+  Two Images and Three Images are kept, not removed: existing case studies use
+  them, and there is no reason to break working content.
+*/
+export const mediaImage = defineType({
+  name: 'mediaImage',
+  title: 'Image',
+  type: 'object',
+  fields: [
+    image('image', 'Image'),
+    defineField({
+      name: 'caption',
+      type: 'string',
+      description: 'Optional line under this item.',
+    }),
+  ],
+  preview: {
+    select: {media: 'image', title: 'caption', alt: 'image.alt'},
+    prepare: ({media, title, alt}) => ({title: title || alt || 'Image', media}),
+  },
+})
+
+export const mediaVideo = defineType({
+  name: 'mediaVideo',
+  title: 'Video',
+  type: 'object',
+  fields: [
+    defineField({
+      name: 'url',
+      title: 'Video URL',
+      type: 'url',
+      description: 'A YouTube or Vimeo link.',
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: 'caption',
+      type: 'string',
+      description: 'Optional line under this item.',
+    }),
+  ],
+  preview: {
+    select: {title: 'caption', subtitle: 'url'},
+    prepare: ({title, subtitle}) => ({title: title || 'Video', subtitle}),
+  },
+})
+
+export const mediaRowSection = defineType({
+  name: 'mediaRowSection',
+  title: 'Media Row (images and/or videos across)',
+  type: 'object',
+  fields: [
+    defineField({
+      name: 'items',
+      title: 'Items',
+      type: 'array',
+      of: [{type: 'mediaImage'}, {type: 'mediaVideo'}],
+      description:
+        'Two or three reads best. Four still works. On a phone they stack ' +
+        'vertically whatever you choose, because three things side by side on ' +
+        'a 390px screen is unreadable.',
+      validation: (Rule) => Rule.min(1).max(4),
+    }),
+    defineField({
+      name: 'heading',
+      type: 'string',
+      description: 'Optional heading above the row.',
+    }),
+  ],
+  preview: {
+    select: {heading: 'heading', items: 'items'},
+    prepare: ({heading, items}) => ({
+      title: heading || 'Media Row',
+      subtitle: `${items?.length ?? 0} item(s)`,
+    }),
+  },
+})
+
+/*
+  Media + Text - Image + Text, generalised so the media half can be a video.
+
+  The image and the video are separate fields rather than a one-item list,
+  matching how a case study hero already works: fill in the video and it plays
+  instead of the image. That pattern is already on this site, so it is one less
+  thing to learn.
+*/
+export const mediaTextSection = defineType({
+  name: 'mediaTextSection',
+  title: 'Media + Text',
+  type: 'object',
+  fields: [
+    image('image', 'Image'),
+    defineField({
+      name: 'videoUrl',
+      title: 'Video URL (optional)',
+      type: 'url',
+      description:
+        'A YouTube or Vimeo link. When set, this plays INSTEAD of the image ' +
+        'above - the image is not shown. Leave empty for an image.',
+    }),
+    defineField({
+      name: 'mediaPosition',
+      title: 'Media Position',
+      type: 'string',
+      options: {list: ['Left', 'Right'], layout: 'radio'},
+      initialValue: 'Left',
+    }),
+    defineField({name: 'heading', type: 'string'}),
+    defineField({name: 'text', type: 'text', rows: 4}),
+  ],
+  preview: {
+    select: {title: 'heading', media: 'image', subtitle: 'videoUrl'},
+    prepare: ({title, media, subtitle}) => ({
+      title: title || 'Media + Text',
+      subtitle: subtitle ? 'video' : undefined,
+      media,
+    }),
+  },
+})
+
 export const caseStudySectionTypes = [
   fullImageSection,
   twoUpSection,
@@ -251,4 +381,10 @@ export const caseStudySectionTypes = [
   achievementsSection,
   videoHeroSection,
   aestheticRangeSection,
+  // The two item types are registered too, because an array member type has to
+  // exist in the schema even though nothing places it directly on a page.
+  mediaImage,
+  mediaVideo,
+  mediaRowSection,
+  mediaTextSection,
 ]

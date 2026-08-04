@@ -50,13 +50,16 @@ export default defineType({
       type: 'array',
       description:
         'Freeform layout blocks for this page - mix and reorder full images, ' +
-        'split images, and image+text blocks. Same block system as Case Study pages.',
+        'split images, media rows and media+text blocks. Same block system as ' +
+        'Case Study pages.',
       of: [
         {type: 'fullImageSection'},
         {type: 'twoUpSection'},
         {type: 'threeUpSection'},
         {type: 'imageTextSection'},
         {type: 'videoSection'},
+        {type: 'mediaRowSection'},
+        {type: 'mediaTextSection'},
       ],
     }),
   ],

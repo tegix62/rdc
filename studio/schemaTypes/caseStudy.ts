@@ -177,8 +177,11 @@ export default defineType({
       title: 'Case Study Sections',
       type: 'array',
       description:
-        'Freeform layout blocks for the case study page - mix and reorder full images, ' +
-        'split images, and image+text blocks to build the page.',
+        'Freeform layout blocks for the case study page. Media Row takes two to ' +
+        'four items across and each one is independently an image or a video, so ' +
+        'three animated GIFs, two videos side by side, or a video next to a ' +
+        'mockup are all the same block. Media + Text is the same idea with copy ' +
+        'beside it.',
       of: [
         {type: 'fullImageSection'},
         {type: 'twoUpSection'},
@@ -189,6 +192,8 @@ export default defineType({
         {type: 'textSection'},
         {type: 'achievementsSection'},
         {type: 'videoHeroSection'},
+        {type: 'mediaRowSection'},
+        {type: 'mediaTextSection'},
       ],
     }),
   ],

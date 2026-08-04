@@ -1150,6 +1150,13 @@ main {
   align-items: center;
 }
 
+/* Media + Text puts a video iframe in the media half. An iframe's intrinsic
+   width can push a 1fr track wider than its share, which is how this site
+   scrolled sideways on phones once already. */
+.work-section--image-text > * {
+  min-width: 0;
+}
+
 .work-section--image-text.is-reversed {
   direction: rtl;
 }
@@ -1713,6 +1720,48 @@ main {
   display: block;
 }
 
+
+/*
+  Media Row.
+
+  --media-count comes from the block, so two items get halves and three get
+  thirds without a class per count. Items are aligned to the top rather than
+  stretched: a row can mix a 16:9 video with a tall mockup, and forcing those
+  to equal heights would crop or letterbox one of them.
+*/
+.media-row__heading {
+  margin: 0 0 var(--space-3);
+}
+
+.media-row__items {
+  display: grid;
+  grid-template-columns: repeat(var(--media-count, 3), minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.media-row__item {
+  margin: 0;
+  /* min-width: 0 on a grid child stops a wide iframe forcing the track wider
+     than its share - the same class of overflow that made the site scroll
+     sideways on phones earlier in this port. */
+  min-width: 0;
+}
+
+.media-row__item figcaption {
+  margin-top: var(--space-1);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--color-gray);
+}
+
+/* Three things side by side on a 390px screen is unreadable, whatever the
+   block says. */
+@media (max-width: 40rem) {
+  .media-row__items {
+    grid-template-columns: 1fr;
+  }
+}
 
 /*
   Tap targets.

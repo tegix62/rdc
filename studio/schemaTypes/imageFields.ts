@@ -22,6 +22,29 @@ import {defineField} from 'sanity'
   automatically rather than silently missing it.
 */
 export const imageBehaviourFields = [
+  /*
+    First in the list so it is the first thing you see after choosing a file,
+    rather than buried under the technical toggles.
+
+    No image field on this site had one until now - and Sections.astro was
+    reading `section.alt` on Full Image, a field that never existed, so every
+    image in every case study shipped with alt="". That is a page of portfolio
+    work that screen readers describe as nothing at all, and that image search
+    cannot read either.
+
+    Deliberately not required: a decorative texture or a background slab is
+    better with an empty alt than with a made-up description, and forcing the
+    field would just train you to type junk.
+  */
+  defineField({
+    name: 'alt',
+    title: 'Alt text',
+    type: 'string',
+    description:
+      'What this image shows, for screen readers and image search. Describe ' +
+      'the work, not the file - "Hug a Mug wordmark in cream on a green mug" ' +
+      'rather than "logo.png". Leave blank if the image is purely decorative.',
+  }),
   defineField({
     name: 'noRecompress',
     title: 'Serve exactly as uploaded (no re-compression)',

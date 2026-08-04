@@ -544,3 +544,92 @@ piece and currently the LEAST accurately represented by our placeholder.
 
 ### About/Video/Collage/Privacy Policy - already migrated (decision #2), source preserved in `studio/migration/data/pages.json`
 
+
+---
+
+## Session 2026-08-04 (early hours, Chris asleep)
+
+### Decision #15 — the visual editing failure was never a failure
+
+The Edit toggle was the last open item and the one thing I'd been unable to
+test, because the seam is a browser-to-browser handshake and I'd been asking
+Chris to read a console for me. He was on a phone. So the diagnosis was moved
+into CI instead.
+
+Everything statically checkable was fine. Both halves are on `@sanity/comlink`
+3.1.1 and `@sanity/presentation-comlink` 1.0.33. Presentation posts
+`presentation/toggle-overlay`; the site listens for exactly that and answers on
+`visual-editing/toggle`, which Presentation listens for. The Studio has
+redeployed 32 times, so `allowOrigins` is live and not stale. Version skew,
+protocol skew and stale config were all ruled out by reading the two bundles
+rather than the docs.
+
+That left the runtime handshake, so `scripts/test-presentation-handshake.mjs`
+builds a fake Presentation host out of `studio/node_modules` — literally the
+Studio's own comlink, wired the way `sanity`'s `PreviewFrame` wires it — serves
+it over http so the iframe is genuinely cross-origin, and posts what the toggle
+posts.
+
+Result: connected in **27ms**, overlay mounted in **555ms**, page answered
+`visual-editing/toggle {enabled: true}` on connect and flipped to `false` when
+toggled. **The site half works.** The reported failure was the test's own bad
+assertion: the overlay comes up *enabled*, so toggling turns it *off*, and the
+check expected the element count to rise. It went 8 → 1 and a working toggle
+was called broken.
+
+Second thing this exposed: the "[sanity] visual editing enabled" log the
+overlay bundle printed meant nothing. `enableVisualEditing()` schedules a
+dynamic import and returns immediately, so the `try/catch` caught nothing and
+an overlay that loaded and then failed to mount looked identical to a working
+one. It now waits for the `<sanity-visual-editing>` element. Also:
+`scripts/build-overlay.mjs` was missing from the deploy workflow's path filter,
+so overlay changes were silently never shipping.
+
+### Decision #16 — eight CMS fields did nothing; four now do
+
+Chris said Asset Type was unusable. It was, and it wasn't alone.
+`scripts/audit-cms.mjs` checks all 170 schema fields at once for three
+distinct failures: nothing reads it, every document leaves it empty, or a
+dropdown holds a value that isn't one of its options (which is what an
+unmapped Webflow reference hash looks like).
+
+Eight editor-facing fields were read by nothing. Three of them made an
+explicit promise in their Studio description that no code kept.
+
+Wired up: `siteTitle`, `footerText`, `resultStat`, `filmEmbed`.
+
+Left deliberately unwired, with descriptions that now open with NOT WIRED UP
+YET and point at PUNCH-LIST.md: `assetType`, `heroTile`, `archiveMark`,
+`principalType`. Each describes a feature this site doesn't have — a homepage
+work grid, an Archive view. Building four features unasked at 4am is worse
+than saying so plainly. `assetType` is the one worth Chris's eye: 22 items are
+Identity / Brand Sheet, 21 are Apparel, and using it to give the portfolio grid
+deliberate shape instead of ragged masonry would visibly change the page.
+
+One fix the audit needed on itself: `assetType` escaped the first run because
+its name appears in `NON_TEXT_FIELDS` in `src/lib/sanity.ts` — the list of
+fields that must NOT get stega markers. Every name there is a mention, not a
+use, and it was hiding exactly the fields most likely to be dead.
+
+### Decision #17 — CI publishes its reports to git, not just to the API
+
+The scheduled 09:40 session was warned it will not carry the GitHub MCP tools,
+and this sandbox has no outbound network at all. That combination would leave a
+future session able to start measurements but not read them.
+
+So `.github/workflows/audit.yml` commits everything it measures to an orphan
+`ci-reports` branch as well as the step summary and artifacts:
+
+    git fetch origin ci-reports
+    git show origin/ci-reports:latest/pages.md
+    git show origin/ci-reports:latest/cms.md
+    git show origin/ci-reports:latest/visual-editing.md
+
+Git works from the sandbox. That's the whole point.
+
+`scripts/audit-pages.mjs` loads all ten pages at 1440px and 390px and records
+bytes by resource type, requests, LCP, CLS, sideways-scroll offenders,
+character measure and line-height per run of body copy, sub-44px touch
+targets, and unsized images. Bytes come from `Content-Length` — Playwright's
+`responseBodySize` reported a 71 KB image as 10.7 MB earlier in this port and
+an entire diagnosis was built on it.

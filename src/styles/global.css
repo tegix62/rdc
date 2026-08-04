@@ -1266,6 +1266,13 @@ main {
   padding-left: 1.25rem;
 }
 
+/* Achievements renders its items as rich text outside .prose, so it missed the
+   measure cap and the audit measured its list at 138 characters a line - the
+   longest remaining anywhere, and on a real case study rather than a demo. */
+.work-section--achievements :is(li, p) {
+  max-width: 62ch;
+}
+
 @media (max-width: 40rem) {
   .work-section--achievements__images {
     grid-template-columns: 1fr;
@@ -1800,6 +1807,9 @@ main {
 @media (pointer: coarse), (max-width: 40rem) {
   .pf-btn {
     min-height: 44px;
+    /* Height alone wasn't enough: the shuffle row's - and + buttons measured
+       29px wide, so they cleared the floor in one dimension only. */
+    min-width: 44px;
     padding-block: 0.625rem;
   }
 

@@ -88,9 +88,13 @@ export default defineType({
       title: 'Hero Tile',
       type: 'boolean',
       description:
-        'NOT WIRED UP YET. This described spanning two columns in a homepage ' +
-        'work grid, and this site has no homepage work grid - the homepage ' +
-        'leads with proof and a call to action instead. See PUNCH-LIST.md.',
+        'Gives this tile presence in the portfolio grid: it spans two columns ' +
+        'AND is cropped to a 3:2 landscape, so it reads as a spread among the ' +
+        'usual vertical tiles. Clicking it does not grow it further. IMPORTANT: ' +
+        'set the hotspot on the thumbnail, because cropping a portrait image to ' +
+        '3:2 throws away most of its height and without one Sanity crops from ' +
+        'the centre - which cuts the top off a logo or a face. Use sparingly; ' +
+        'one or two per screenful is what makes them work.',
     }),
     defineField({name: 'thumbnail', type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}),
     defineField({

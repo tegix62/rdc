@@ -45,6 +45,20 @@ const cleanKey = (value: unknown): string =>
 */
 const MARK_ASSET_TYPES = new Set(['Identity / Brand Sheet', 'Vinyl / Record']);
 
+/*
+  A hero tile spans two columns AND crops to landscape.
+
+  The span alone would be wrong. Most tiles here are portrait, so doubling a
+  portrait tile's width in a masonry grid produces an enormous TALL tile that
+  dominates by height - the opposite of the presence this is for. Cropping to
+  3:2 is what makes it read as a spread: a wide thing among vertical ones, which
+  breaks the rhythm and gives the eye somewhere to land.
+
+  3:2 rather than 16:9 because 16:9 across two columns is a thin band that
+  loses too much of a portrait source.
+*/
+const HERO_RATIO = {w: 3, h: 2};
+
 const treatmentOf = (item: any): 'mark' | 'bleed' => {
   const explicit = cleanKey(item.tileTreatment);
   if (explicit === 'mark' || explicit === 'bleed') return explicit;
@@ -117,7 +131,12 @@ if (emptyFilters.length > 0) {
         // and debugging.
         return img ? (
           <div
-            class:list={['pf-item', cat, treatmentOf(item) === 'mark' && 'pf-item--mark']}
+            class:list={[
+              'pf-item',
+              cat,
+              treatmentOf(item) === 'mark' && 'pf-item--mark',
+              item.heroTile && 'pf-item--hero',
+            ]}
             data-category={cat}
           >
             {/*
@@ -126,13 +145,20 @@ if (emptyFilters.length > 0) {
               read as two stacked outlines with a gap between them.
             */}
             <div class="pf-item__frame">
+              {/*
+                Passing height alongside width is what makes Img crop rather
+                than keep the source aspect - and the crop follows the hotspot
+                set in Studio, so a mark or a face stays in frame instead of
+                being cut out of the middle.
+              */}
               <Img
                 class="pf-item__img"
                 image={img}
                 archive={item.archiveMark}
                 alt={item.title}
-                width={800}
-                sizes="(max-width: 48rem) 33vw, 17vw"
+                width={item.heroTile ? 1600 : 800}
+                height={item.heroTile ? Math.round((1600 * HERO_RATIO.h) / HERO_RATIO.w) : undefined}
+                sizes={item.heroTile ? '(max-width: 48rem) 66vw, 34vw' : '(max-width: 48rem) 33vw, 17vw'}
               />
               {parentHref && (
                 <a class="pf-item__jump" href={parentHref}>

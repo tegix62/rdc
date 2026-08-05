@@ -852,6 +852,24 @@ main {
   width: calc(var(--pf-col-w, 16.666%) * 2);
 }
 
+/*
+  Hero tile: two columns wide, permanently.
+
+  Selecting one deliberately does NOT grow it. It is already at the expanded
+  width, so this rule mostly just pins that - but stating it explicitly means a
+  future change to the expanded width cannot start making hero tiles jump. The
+  tile already has the presence; growing on click would be movement for its own
+  sake, which is what made the old grid feel unruly.
+
+  The landscape crop lives in portfolio.astro, not here: it is done at the image
+  level so the CDN delivers an actually-landscape file rather than a portrait
+  one squashed by CSS.
+*/
+.pf-item--hero,
+.pf-item--hero.is-expanded {
+  width: calc(var(--pf-col-w, 16.666%) * 2);
+}
+
 .pf-item__img {
   display: block;
   width: 100%;

@@ -1,205 +1,218 @@
-# Parity punch list: Astro port vs. live Webflow site
+# Punch list — Rumeau Design Co
 
-Compiled from a structural audit of the live Webflow site (page inventory,
-forms, real case-study content) plus a code-level review of the Astro port.
-Ordered roughly by impact. Nothing here has been actioned unless marked done.
+Three lists, in the order they matter:
 
-## Done
+1. **[Finish the port](#1-finish-the-port)** — what's still missing or wrong versus the live Webflow site.
+2. **[Launch](#2-launch)** — the cutover itself, in order.
+3. **[Ideas and loose ends](#3-ideas-and-loose-ends)** — half-built things and "wouldn't it be cool".
 
-- [x] About/Video/Collage/Privacy Policy real content migrated (was showing
-  "Content coming soon" - see `WORKLOG-overnight.md` decision #2)
-- [x] Footer built out with real logo/social/contact/legal (prior session)
-- [x] Work page identity band + homepage full-bleed fixes (prior session)
-- [x] Homepage content moved into Sanity - `contactUrl`, `bioText`,
-  `checklist`, `proofStats`, closer heading, final CTA heading are all
-  editable in Studio now (`WORKLOG-overnight.md` decision #7)
-- [x] Case study pages rebuilt with real content for Hug a Mug, DumpStat,
-  and Adelante, including 4 new block types (`WORKLOG-overnight.md`
-  decision #8). Along the way, fixed Adelante's lorem-ipsum summary and
-  wrong hero/logo images, and DumpStat's wrong hero/logo images - these were
-  real content bugs on the live Webflow site or in the migration data, not
-  new work.
-- [x] `work/[slug].astro` now imports the shared `src/components/Sections.astro`
-  instead of duplicating the block-rendering switch statement.
-- [x] **Migration no longer overwrites Studio edits.** Re-running the content
-  migration used to reset hand-edited content back to the JSON snapshot (hit
-  three times during the port). It now only fills fields that are still
-  empty; anything you've typed in Studio survives. Overwriting is still
-  possible but only via a deliberate manual run with the "force" box ticked -
-  never automatically (`WORKLOG-overnight.md` decision #9).
+Reasoning for every decision is in `WORKLOG-overnight.md`. Current measurements
+are in the `ci-reports` branch — see `HANDOFF.md` for how to read them without
+the GitHub API.
 
-- [x] **`/ms-paint` ported** - the last real content gap vs the live Webflow
-  site (`WORKLOG-overnight.md` decision #11). Note it carries the live page's
-  own "(UNDER CONSTRUCTION)" line; say the word and I'll drop it.
-- [x] **Responsive images.** Every image now carries dimensions and a srcset,
-  fixing both the layout shift that made scrolling feel worse than Webflow
-  and the oversized payloads on phones (decision #10).
+---
 
-## Performance — measured, mostly fixed, one thing needs you
+## 1. Finish the port
 
-Full numbers and reasoning in `WORKLOG-overnight.md` decisions #20-21.
+### Needs something only you have
 
-- [x] Homepage **10,938 KB → 4,445 KB** (−59%), `/portfolio` mobile
-  **12,318 KB → 8,021 KB** (−35%), `/merchfolio` desktop −33%. Cause was the
-  CDN being asked to *enlarge* small images, plus an animation probe that
-  could never detect an animated GIF (it searched 64 bytes for a marker that
-  lives past byte 780).
-- [x] Reading measure capped: `/video` **141 → 71 characters** a line,
-  `/about` 94 → 71. `.prose` had no `max-width` at all.
-- [x] Tap targets: the hamburger was 32×32 — smallest control on the site and
-  the first one any phone visitor hits. Now 44×44, along with the portfolio
-  filter row, print swatches and footer links.
-- [x] Smallest text on the site was 11px (homepage tagline on phones). Now 13px.
+- [ ] **Meta Pixel: port it, replace it, or drop it.** The live site runs
+  `fbq('init', '1641640693737739')` + PageView. If any Meta/Instagram ads,
+  retargeting audiences or conversion tracking lean on it, they go dark at
+  cutover **silently** — nothing visibly breaks. This is the one item on the
+  list that can quietly cost money.
+- [ ] **Upload a favicon.** It's now a field in Studio (Site Settings →
+  Favicon) so no code change is needed. Until something is there, every page
+  load 404s on `/favicon.svg` and tabs show a blank icon. You sent a portrait
+  earlier that I couldn't read as a file — re-send or upload it directly.
+- [ ] **SEO titles per case study.** Ours use the project name ("DumpStat, a
+  D&D Podcast"); Webflow has real titles ("DumpStat Podcast — Brand Identity |
+  Rumeau Design Co"). Needs an `seoTitle` field (mine to add) and one line of
+  copy per project (yours to write, not mine to invent).
+- [ ] **Missing video sources.** Two Instagram-video grids on Hug a Mug and
+  DumpStat's three audiogram clips have no URL recoverable from Webflow's API.
+  Left out entirely rather than filled with placeholders. Send the links and
+  they drop straight into a Media Row.
+- [ ] **Photography has no tagged work.** The filter button is hidden rather
+  than shown-and-broken, and a warning is logged at build time. Tag anything
+  Photography in Studio and the button returns by itself.
+- [ ] **Privacy Policy needs real legal review.** Not a migration issue — the
+  *live* page is already incomplete: it stops after section 4, has no
+  rights/retention/cookies/contact sections, no last-updated date, and cites
+  UK "HM Revenue & Customs" for a New Jersey business. Ported faithfully,
+  flagged as-is.
 
-- [ ] **One source file needs re-exporting — this one is yours.** The homepage
-  hero background is an 800×800 file that is **3,981 KB**. No code change fixes
-  a 4 MB source; it wants a re-export at a sane quality. Everything else on the
-  site is now within reason.
-- [ ] **`/portfolio` desktop CLS is 0.4722** (under 0.1 is "good"). This is the
-  worst number left and it is precisely the jank you can feel: Isotope lays the
-  masonry grid out *after* the page paints, so everything jumps once. Fixing it
-  means reserving the grid's height before layout.
-- [ ] **`/portfolio` is still ~7.3–8.0 MB** for 68 thumbnails. The rule
-  "animated images never go through the resize pipeline" turns out to be too
-  absolute — at small widths the re-encode genuinely beats the original, and
-  which way it goes depends on the width being asked for. The fix is a
-  per-asset, per-width decision made from measured bytes and cached in Sanity.
-  Deliberately not attempted at 4am.
-- [ ] `/work/adelante-barbell-club` went **446 KB → 1,270 KB** as a side effect
-  of fixing the GIF detection: its converted videos started being served. Same
-  root cause as the item above, and it is the clearest case for fixing it.
+### Decisions on the four dead CMS fields
 
-## Dead CMS fields (found by `npm run audit:cms`)
+Each is in Studio, read by nothing, and now says **NOT WIRED UP YET** in its
+description rather than promising something false.
 
-An audit of all 170 schema fields found eight that no template read: editing
-them in Studio changed nothing on the site. Asset Type was the one you
-noticed; it was not alone, and three of them made an explicit promise in
-their description that no code kept.
+- [ ] **`assetType`** — migrated cleanly (22 Identity / Brand Sheet, 21
+  Apparel, 37 untagged). Wire it to grid tile shape, or delete it. See
+  §3 for what wiring it would look like.
+- [ ] **`heroTile`** — described spanning two columns in a homepage work grid.
+  This site has no homepage work grid. Build one or drop the field.
+- [ ] **`archiveMark`** — described an Archive view that doesn't exist. Your
+  uploaded marks are safe either way.
+- [ ] **`principalType`** — a Webflow leftover whose purpose didn't survive.
+  Delete once you confirm it meant nothing you want.
 
-Four are now wired up:
+### Mine to build
 
-- [x] `siteSettings.siteTitle` - drives `og:site_name`, the logo's alt text,
-  the text fallback when no logo is set, and the copyright line.
-- [x] `siteSettings.footerText` - renders as a short line beside the footer
-  columns, capped at 28 characters of measure so it can't unbalance the row.
-- [x] `caseStudy.resultStat` - the one headline number per project, shown
-  under the summary at the top of the case study. This is the metrics
-  surface you asked about.
-- [x] `caseStudy.filmEmbed` - a YouTube/Vimeo link embedded below the
-  project intro (distinct from Hero Video, which replaces the hero image).
+- [ ] **JSON-LD structured data.** The live site registers a
+  `SchemaMarkupJSONLD` script; the port has none. This also means the earlier
+  SEO parity check was incomplete — it covered meta/OG/canonical/sitemap/robots
+  but not structured data.
+- [ ] **A production deploy workflow.** There is currently *only* a preview
+  deploy. Nothing yet builds this site for a real domain, and the preview
+  build deliberately sets noindex and embeds editing markers. This is the
+  single biggest missing piece for launch.
+- [ ] **Confirm two live scripts are genuinely unused** before assuming:
+  ShareThis inline share buttons (+ Finsweet `socialshare` attributes) and
+  `webflow-lottie-lazy-loader`. No matching content turned up in the full
+  extraction, so they look like leftovers.
+- [ ] **Hug a Mug: static hero vs video hero.** Every case study shows a static
+  `mainImage` hero above the title band. Hug a Mug's real page has no such
+  hero — it opens straight into video. Worth suppressing the static one when a
+  video hero exists, but that's a layout call I didn't make unilaterally.
 
-Four describe features this site doesn't have. Rather than invent them
-unasked, their Studio descriptions now start with NOT WIRED UP YET so the
-field stops lying, and the decision is yours:
+### Performance still open
 
-- [ ] **`assetType`** ("Asset Type"). Migrated cleanly - 22 items are
-  Identity / Brand Sheet, 21 are Apparel, 37 are untagged. The obvious job
-  for it is giving the portfolio grid deliberate shape instead of ragged
-  masonry: Apparel to a 4:5 portrait crop, Social Card and Vinyl to a
-  square, Wide Video to 16:9 across two columns. That is a visible change to
-  how the whole grid reads, so it wants your eye on a before/after rather
-  than me choosing at 4am.
-- [ ] **`heroTile`** ("Spans two columns in the homepage grid"). There is no
-  homepage work grid in this port - the homepage leads with proof and a call
-  to action. Either build the grid or drop the field.
-- [ ] **`archiveMark`** ("Black and white logomark shown in Archive view").
-  There is no Archive view. The marks you uploaded are safe either way.
-- [ ] **`principalType`**. A Webflow leftover whose purpose didn't survive
-  the move. Candidate for deletion once you confirm it meant nothing.
+Verified numbers, not estimates. Homepage is already down 59% and `/video` 89%.
 
-## High impact - visible to every visitor
+- [ ] **`/portfolio` is ~7.3 MB** for 68 thumbnails — the heaviest page left.
+  The rule "animated images never go through the resize pipeline" is too
+  absolute: at small widths the CDN's re-encode genuinely beats the original,
+  and which way it falls depends on the width being requested. The fix is a
+  per-asset, per-width decision from measured bytes, cached in Sanity.
+- [ ] **`/portfolio` desktop CLS is 0.4722** (under 0.1 is "good"). The worst
+  number on the site and precisely the jank you can feel: Isotope lays the
+  masonry grid out *after* the page paints, so everything jumps once. Fix means
+  reserving the grid's height before layout. Mobile measures 0, which is
+  suspicious enough to be worth understanding before trusting.
+- [ ] **One source file is 3,981 KB** — the homepage hero background, an
+  800×800 file. No code change fixes a 4 MB export; it needs re-saving. Yours.
+- [ ] Three anchors on the homepage measure 36–43px wide (44px tall). Height is
+  fine, width slightly short. The audit reports size but not a selector and
+  their labels are empty, so I left them rather than guess.
 
-- [ ] Nothing outstanding here - see "Needs your input" below.
+---
 
-## Custom code on the live site that the port does not have
+## 2. Launch
 
-Found by reading the live site's head/footer custom code and registered
-scripts - a blind spot in the original audit, which covered pages and content
-but not custom code. Two of these are real:
+In order. Nothing here is hard; the risk is doing it in the wrong sequence.
 
-- [ ] **Meta Pixel is missing** (`fbq('init', '1641640693737739')` +
-  PageView). If any Meta/Instagram ads, retargeting audiences, or conversion
-  tracking depend on this, they go dark at cutover and the loss is silent -
-  nothing breaks visibly. Needs a decision: port it, replace it, or drop it
-  deliberately.
-- [ ] **JSON-LD structured data is missing.** The live site has a registered
-  `SchemaMarkupJSONLD` script (v1.0.1, added Feb 2026). This means the SEO
-  parity report in decision #12 was incomplete - it covered meta/OG/canonical
-  /sitemap/robots but not structured data.
+1. [ ] **Map the URLs first.** Compare every live Webflow URL against this
+   site's routes and write redirects for anything that moved. Skipping this
+   silently drops whatever SEO the old URLs have earned. Cloudflare Pages does
+   this with a `_redirects` file.
+2. [ ] **Build the production deploy** (above) with `PUBLIC_IS_PREVIEW` and
+   `PUBLIC_SANITY_VISUAL_EDITING` **both false**. The first makes the site
+   noindex itself; the second embeds invisible editing markers in every string
+   of page text. Neither belongs on a live site.
+3. [ ] **Decide how you edit privately.** Once visual editing is off in
+   production you need somewhere it *is* on: either password-protect the
+   preview with Cloudflare Access, or run `npm run dev` locally (which also
+   gives live-as-you-type editing). Your call; nothing is blocked on it.
+4. [ ] **Check the paperwork on a real build**: `robots.txt` flips from
+   `Disallow: /` to `Allow` plus a sitemap line, canonicals point at
+   `rumeaudesign.co`, and `sitemap.xml` lists every page you expect.
+5. [ ] **Point DNS at Cloudflare Pages.** Keep Webflow running.
+6. [ ] **Walk the site on a real phone.** Every page, every Contact button
+   through to the Tally form, print mode, the portfolio filters. Automated
+   checks cover bytes and layout, not whether a form actually submits.
+7. [ ] **Then cancel Webflow.** Not before. $39/month is cheap insurance for a
+   week of overlap, and the Webflow site is the only copy of some source
+   content.
+8. [ ] **Decide on analytics.** No analytics is a legitimate choice; noticing
+   in three months that you have no data is not.
 
-Loaded on the live site but apparently unused - no matching content found in
-the full Webflow extraction, so these look like leftovers rather than
-features. Worth confirming before assuming:
+---
 
-- [ ] ShareThis inline share buttons + Finsweet `socialshare` attributes.
-- [ ] `webflow-lottie-lazy-loader` - no Lottie animations found anywhere in
-  the extracted content.
+## 3. Ideas and loose ends
 
-Already ported, no action needed:
+### Half-built, waiting on you
 
-- [x] Image protection (right-click and drag blocking, `user-drag: none`) is
-  in `Layout.astro`.
+- [ ] **Aesthetic Range tray needs icons.** The block is built and renders; each
+  item shows a placeholder marker that holds its shape until artwork exists.
+  Three icons and it's done.
+- [ ] **Print mode is functional and experimental.** Grain is now ~16× coarser
+  and the bar collapses to a corner handle. Two knobs if it still isn't right:
+  `--ink-grain-scale` and `--ink-grain-opacity` in `global.css`.
+- [ ] **The `resultStat` field is live but empty** on most projects. One
+  headline number per case study — "+22% yearly revenue" — is the thing an
+  agency scans for. Your copy.
+
+### Wouldn't it be cool
+
+- [ ] **`assetType` driving the portfolio grid.** Apparel to a 4:5 portrait
+  crop, Social Card and Vinyl square, Wide Video 16:9 across two columns.
+  Turns ragged masonry into deliberate rhythm — a real change to how the whole
+  page reads, so it wants your eye on a before/after rather than my judgement.
+- [ ] **An Archive view.** Would make `archiveMark` mean something: a dense
+  black-and-white index of every logomark, which is a genuinely different way
+  to show range.
+- [ ] **A homepage work grid**, which would make `heroTile` mean something.
+- [ ] **An achievements / metrics surface.** You said your metrics are worth
+  having somewhere and the contact buttons all lead to Tally. There's a
+  `statCalloutSection` and an `achievementsSection` already built but empty in
+  every document — the pieces exist, the arrangement doesn't.
+- [ ] **Cloudflare R2 for video** if uploads outgrow Sanity. Not needed yet:
+  only short silent loops get uploaded, and the long sets stay on YouTube.
+- [ ] **Design tokens editable in Studio** — colours and type scale from the
+  CMS rather than CSS. Powerful and easy to make a mess with; worth it only if
+  you actually want to reskin the site without touching code.
+- [ ] **Case study page transitions / view transitions.** You mentioned wanting
+  to get experimental. Astro has this built in and the site is static, so it's
+  cheap to try.
+
+### Deferred deliberately
+
+- [ ] `actions/checkout` and `actions/setup-node` are on v4 and log Node 20
+  deprecation warnings. Cosmetic — GitHub already force-runs them on Node 24.
+  Bumping to v5 across six workflows wasn't verifiable before pushing.
+- [ ] No lockfile is committed, so a clean CI install can float to an
+  incompatible version — which broke two deploys earlier in this port. Adding
+  `package-lock.json` would fix that class of failure permanently.
+- [x] `/ms-paint` removed at your request; its Sanity document is retained.
+- [x] `image-license-info` dropped — unedited Webflow boilerplate about
+  Unsplash licensing, not real content.
+- [x] Duplicate Webflow drafts (`Home 2`, `Home Copy`, `Portfolio Copy 1-3`,
+  `Turbo`, `Chateau Seven`) correctly excluded as abandoned.
 - [x] The Ctrl+Shift+G baseline grid overlay is a debug tool, not site
-  functionality - deliberately not ported.
+  functionality — deliberately not ported.
+- [x] Image protection (right-click/drag blocking) is ported and live.
 
-## Medium impact
+---
 
-- [ ] **14 animated GIFs are the last real weight problem.** One of them (the
-  Pisces animation) is 10.7 MB and single-handedly makes the homepage 42%
-  heavier than Webflow, which served the same animation at 4 MB. Sanity does
-  not usefully re-encode animated GIFs. Converting them to MP4/WebM would cut
-  that to a few hundred KB, but it swaps `<img>` for `<video>` - a behaviour
-  change, so it needs your say-so (`WORKLOG-overnight.md` decision #14).
+## Already done
 
-- [ ] **The site has no favicon.** `Layout.astro` points every page at
-  `/favicon.svg`, but `public/` has never contained one, so every page load
-  404s and browser tabs show a blank icon. Pre-existing, found while
-  debugging visual editing. Needs an actual icon from Chris (or derive one
-  from the logomark) - not something to invent.
-- [ ] Privacy Policy is legally incomplete on the REAL site (cuts off after
-  section 4, no rights/retention/cookies/contact sections, no last-updated
-  date, references UK "HM Revenue & Customs" despite being a NJ business).
-  Ported faithfully as-is; flagging that it needs real legal review
-  independent of any migration work.
+Kept short; the detail is in `WORKLOG-overnight.md`.
 
-## Low impact / cleanup
-
-- [ ] **Case study page titles are weaker than Webflow's.** Ours use the
-  project name ("DumpStat, a D&D Podcast"); Webflow has a real SEO title
-  ("DumpStat Podcast — Brand Identity | Rumeau Design Co"). Needs an
-  `seoTitle` field on the caseStudy schema and a line of copy per project -
-  your writing, not mine to invent.
-- [ ] **"actions target Node.js 20" warnings in every workflow log.** Cosmetic
-  today: GitHub already force-runs those actions on Node 24. The fix is
-  bumping `actions/checkout` and `actions/setup-node` to v5, left undone
-  because this session couldn't verify those tags exist before pushing to
-  five pipelines (`WORKLOG-overnight.md` decision #13).
-- [ ] **Before pointing the real domain here:** set `PUBLIC_IS_PREVIEW` and
-  `PUBLIC_SANITY_VISUAL_EDITING` to false in `deploy-pages.yml`. The first
-  makes the site noindex itself; the second embeds invisible editing markers
-  in page text.
-
-- [ ] Several duplicate/draft Webflow pages exist (`Home 2`, `Home Copy`,
-  `Home Copy 2`, `Portfolio Copy`, `Portfolio Copy 2`, `Portfolio Copy 3`,
-  `Turbo`, `Chateau Seven` [case study, in-progress draft]) - all correctly
-  excluded from the port since they're drafts/abandoned. No action needed,
-  noted for completeness.
-- [ ] `image-license-info` intentionally dropped - it's unedited Webflow
-  template boilerplate about Unsplash stock licensing, not real content.
-
-## Needs your input before I can act
-
-1. **The "(UNDER CONSTRUCTION)" line on `/ms-paint`.** Ported because it's
-   your copy on the live page, but it probably shouldn't follow you onto the
-   new site. One word and it's gone.
-2. **Hug a Mug's static hero vs. its new video hero.** Every case study page
-   shows a static `mainImage` hero above the title band. Hug a Mug's real
-   page doesn't have one of those at all - it opens straight into the new
-   video hero section. Worth suppressing the static hero specifically when a
-   video hero section exists, but that's a layout call, not made
-   unilaterally - see `WORKLOG-overnight.md` decision #8.
-3. **A few video sources are still unresolved** - two Instagram-video grids
-   on Hug a Mug and DumpStat's 3 audiogram clips have no recoverable source
-   URLs from Webflow's API. Left out of the rebuilt pages entirely rather
-   than filled with placeholders. If you have the real Instagram/audiogram
-   links, they can be added as `videoSection`s once you do.
+- [x] **Content parity** with the live site, all pages and case studies.
+- [x] **Speed.** Homepage 10,938 → 4,445 KB (−59%). `/video` 1,199 → 130 KB
+  (−89%). `/portfolio` 12,318 → 7,307 KB on mobile. Causes were the CDN being
+  asked to *enlarge* small images, an animation probe that could never detect
+  an animated GIF, and YouTube players loading on pages nobody watched.
+- [x] **Typography.** `/video` 141 → 71 characters a line, `/about` 94 → 71.
+  Nothing on the site now exceeds 75.
+- [x] **Mobile.** No page scrolls sideways at either width. Tap targets at 44px
+  — the hamburger was 32×32, the first thing any phone visitor touches.
+- [x] **Images.** Every one carries dimensions and a srcset; per-image
+  "serve exactly as uploaded" for work you compressed yourself; animated
+  sources bypass the re-encode pipeline; alt text on every image field.
+- [x] **Layout blocks.** Twelve, including Media Row (2–4 across, each slot
+  independently an image or a video) and Media + Text. Every one rendered from
+  fixtures on `/style-guide` so they're actually exercised.
+- [x] **Video.** Uploads autoplay silently and loop with no player script;
+  YouTube/Vimeo load behind a poster on click.
+- [x] **Visual editing** confirmed working end to end — handshake, toggle, and
+  hover-to-edit — against the live preview using the Studio's own code.
+- [x] **CMS.** 231 fields audited; eight were dead, four now wired
+  (`siteTitle`, `footerText`, `resultStat`, `filmEmbed`).
+- [x] **Migration no longer overwrites Studio edits.**
+- [x] **SEO**: meta, OG, Twitter, canonical, sitemap, robots.
+- [x] **The measurement loop itself**, which is what makes the numbers above
+  trustworthy: every audit states which build it describes and fails hard if
+  it cannot confirm it's measuring its own commit. That check caught a broken
+  deploy that three earlier runs had papered over.

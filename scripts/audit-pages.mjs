@@ -304,6 +304,11 @@ for (const p of paths) {
           typeIssues,
           smallTargets: small.slice(0, 10),
           smallTargetCount: small.length,
+          // Which build served this page. Reported per page so no future run
+          // can leave "is this even the code I just wrote?" ambiguous - it cost
+          // three rounds of debugging the video facade to not have it.
+          buildCommit:
+            document.querySelector('meta[name="build-commit"]')?.getAttribute('content') ?? 'absent',
           iframes: document.querySelectorAll('iframe').length,
           videos: document.querySelectorAll('video').length,
           facades: document.querySelectorAll('.video__facade').length,
@@ -355,6 +360,16 @@ await browser.close()
 const kb = (n) => `${Math.round(n / 1024)} KB`
 const lines = []
 lines.push(`# Page audit`, ``, `\`${BASE}\` — ${new Date().toISOString()}`, ``)
+
+const builds = [...new Set(results.map((r) => r.buildCommit).filter(Boolean))]
+lines.push(
+  `Serving build: ${builds.map((b) => `\`${b}\``).join(', ') || '(unknown)'}`,
+  ``,
+  builds.length > 1
+    ? `⚠️ More than one build answered during this run - numbers below may mix versions.`
+    : '',
+  ``,
+)
 
 lines.push(`## Speed`, ``)
 lines.push(`| Page | View | Bytes | Reqs | LCP | CLS | Load |`)

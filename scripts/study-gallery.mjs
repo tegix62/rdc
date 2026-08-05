@@ -50,9 +50,42 @@ const context = await browser.newContext({
 })
 const page = await context.newPage()
 
-console.log(`loading ${URL_ARG}\n`)
-const res = await page.goto(URL_ARG, {waitUntil: 'domcontentloaded', timeout: 60000});
-console.log(`  HTTP ${res?.status()}`)
+/*
+  The gallery page 403s even from a real Chromium, so the user agent is not the
+  problem. Two explanations remain and they need different responses, so check
+  the site root as well:
+
+    root 200, page 403  -> that page is not published. Nothing can reach it, and
+                           Chris would want to know.
+    both 403            -> Adobe Portfolio is refusing this IP range, which is
+                           what a GitHub Actions runner looks like. No amount of
+                           crawling fixes that; a screenshot is the way in.
+*/
+const root = new URL(URL_ARG).origin
+console.log(`checking ${root}`)
+const rootRes = await page.goto(root, {waitUntil: 'domcontentloaded', timeout: 60000}).catch(() => null)
+const rootStatus = rootRes?.status() ?? 'error'
+console.log(`  root HTTP ${rootStatus}`)
+
+console.log(`\nloading ${URL_ARG}`)
+const res = await page.goto(URL_ARG, {waitUntil: 'domcontentloaded', timeout: 60000}).catch(() => null)
+const pageStatus = res?.status() ?? 'error'
+console.log(`  page HTTP ${pageStatus}`)
+
+if (rootStatus === 200 && pageStatus === 403) {
+  console.log(`\n  VERDICT: the root loads and this page does not, so /copy-of-gallery`)
+  console.log(`  is almost certainly unpublished rather than blocked.`)
+} else if (pageStatus === 403) {
+  console.log(`\n  VERDICT: both refused. Adobe Portfolio is blocking this IP range,`)
+  console.log(`  which is what a CI runner looks like. Crawling cannot get past it.`)
+}
+
+if (pageStatus !== 200) {
+  console.log(`\n  Nothing to measure. Stopping here rather than publishing a`)
+  console.log(`  report full of zeroes that looks like a finding.`)
+  await browser.close()
+  process.exit(0)
+}
 
 // Adobe Portfolio lazy-loads on scroll, so walk the page before measuring or
 // most tiles are still placeholders.

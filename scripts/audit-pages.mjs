@@ -132,12 +132,20 @@ for (const p of paths) {
     // afternoon of "optimisation" was aimed at a file that was already fine.
     const bytes = {}
     const images = []
+    const scripts = []
     let requests = 0
     page.on('response', async (res) => {
       requests += 1
       const type = res.request().resourceType()
       const len = Number(res.headers()['content-length'] ?? 0)
       bytes[type] = (bytes[type] ?? 0) + (Number.isFinite(len) ? len : 0)
+      // Script URLs, because "script: 960 KB" on a page with no obvious
+      // JavaScript is unactionable. The lazy-embed change looked to have had no
+      // effect and the byte totals alone could not say why.
+      if (type === 'script' || type === 'document') {
+        const u = res.url()
+        if (u !== BASE + p) scripts.push({url: u, bytes: Number(res.headers()['content-length'] ?? 0), type})
+      }
       if (type === 'image') {
         const u = res.url()
         images.push({
@@ -296,6 +304,9 @@ for (const p of paths) {
           typeIssues,
           smallTargets: small.slice(0, 10),
           smallTargetCount: small.length,
+          iframes: document.querySelectorAll('iframe').length,
+          videos: document.querySelectorAll('video').length,
+          facades: document.querySelectorAll('.video__facade').length,
           imgCount: document.querySelectorAll('img').length,
           unsizedImages: unsized,
         }
@@ -316,6 +327,10 @@ for (const p of paths) {
       totalBytes,
       bytes,
       images: images.sort((a, b) => b.bytes - a.bytes).slice(0, 20),
+      scripts: scripts.sort((a, b) => b.bytes - a.bytes).slice(0, 15),
+      // How many iframes ended up on the page. A facade that works leaves none
+      // until something is clicked.
+      iframeCount: 0,
       imageRequests: images.length,
       passThroughBytes: images.filter((i) => i.passThrough).reduce((a, i) => a + i.bytes, 0),
       consoleErrors: [...new Set(consoleErrors)].slice(0, 5),
@@ -354,6 +369,26 @@ lines.push(``)
 
 const worst = [...results].filter((r) => !r.error).sort((a, b) => b.totalBytes - a.totalBytes).slice(0, 5)
 lines.push(`Heaviest: ${worst.map((r) => `\`${r.path}\` (${r.viewport}, ${kb(r.totalBytes)})`).join(', ')}`, ``)
+
+lines.push(`## Scripts and embeds`, ``)
+lines.push(`| Page | View | Script | iframes | facades | <video> |`)
+lines.push(`|---|---|--:|--:|--:|--:|`)
+for (const r of results) {
+  if (r.error) continue
+  if (!r.bytes?.script && !r.iframes) continue
+  lines.push(
+    `| \`${r.path}\` | ${r.viewport} | ${kb(r.bytes.script ?? 0)} | ${r.iframes ?? 0} | ${r.facades ?? 0} | ${r.videos ?? 0} |`,
+  )
+}
+lines.push(``)
+for (const r of results.filter((x) => (x.scripts ?? []).length)) {
+  if ((r.bytes?.script ?? 0) < 100_000) continue
+  lines.push(`**\`${r.path}\` (${r.viewport})** script detail`)
+  for (const sc of r.scripts.slice(0, 8)) {
+    lines.push(`  - ${kb(sc.bytes).padStart(8)} \`${sc.url.replace(/^https?:\/\//, '').slice(0, 90)}\``)
+  }
+  lines.push(``)
+}
 
 lines.push(`## Heaviest images`, ``)
 lines.push(

@@ -34,6 +34,20 @@ interface Props {
   height?: number;
   /** Defaults to full-viewport-width, which is right for most blocks here. */
   sizes?: string;
+  /*
+    An authored black-and-white alternate, shown instead of this image when the
+    site is in print mode.
+
+    Emitted as data attributes rather than a second <img>, because a hidden
+    image still gets fetched in most browsers - which would mean every visitor
+    downloading two versions of a portfolio they may never switch. InkMode swaps
+    the src when print mode turns on, so the alternate costs nothing until asked
+    for.
+
+    When absent, print mode's CSS threshold applies as before. So this improves
+    as more marks get drawn and never breaks while they haven't been.
+  */
+  archive?: any;
   /** Above-the-fold images should pass "eager". */
   loading?: 'lazy' | 'eager';
   fetchpriority?: 'high' | 'low' | 'auto';
@@ -43,6 +57,7 @@ interface Props {
 const {
   image,
   alt: altProp,
+  archive,
   width,
   height,
   sizes = '100vw',
@@ -52,6 +67,10 @@ const {
 } = Astro.props;
 
 const alt = altProp || image?.alt || '';
+
+// Built with the same width and crop as the main image so swapping one for the
+// other cannot shift the layout.
+const archiveSrc = archive ? urlFor(archive).width(cappedWidth(archive, width)) : null;
 
 const cropped = typeof height === 'number';
 const aspect = cropped ? {width, height: height!} : undefined;
@@ -138,6 +157,7 @@ if (manualPassThrough && (image?.crop || image?.hotspot)) {
 ) : (
 <img
   src={src}
+  data-archive-src={archiveSrc ? archiveSrc.url() : undefined}
   data-ink-mode={image?.inkMode && image.inkMode !== 'auto' ? image.inkMode : undefined}
   srcset={srcset}
   sizes={srcset ? sizes : undefined}

@@ -76,8 +76,12 @@ export default defineType({
       type: 'image',
       fields: imageBehaviourFields,
       description:
-        'NOT WIRED UP YET. There is no Archive view on this site, so nothing ' +
-        'displays this. The uploaded marks are kept. See PUNCH-LIST.md.',
+        'A hand-thresholded black-and-white version of this tile, shown instead ' +
+        'of the colour image whenever a visitor switches the site to print mode. ' +
+        'This beats anything a filter can do - a computed threshold flattens ' +
+        'midtones, yours are drawn. Optional per project: anything without one ' +
+        'falls back to the automatic threshold, so the archive gets better as ' +
+        'you make more.',
     }),
     defineField({name: 'mainImage', title: 'Main Project Image', type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}),
     defineField({
@@ -108,9 +112,19 @@ export default defineType({
       title: 'Principal Type',
       type: 'string',
       description:
-        'NOT WIRED UP YET, and its purpose did not survive the move from ' +
-        'Webflow. Nothing reads it. A candidate for deletion once you confirm ' +
-        'it meant nothing you still want.',
+        'The typeface this project is built on, credited the way a typography ' +
+        'book lists the principal type used - e.g. "Söhne, Klim Type Foundry" ' +
+        'or "Cooper Black, Oswald Cooper". Shown as a credit in the project ' +
+        'header. Credit the people you borrowed from whether or not they know ' +
+        'you: it is the kind of detail that tells a client how you think.',
+    }),
+    defineField({
+      name: 'principalTypeUrl',
+      title: 'Principal Type - link',
+      type: 'url',
+      description:
+        'Optional. The foundry or designer, so the credit is a real link rather ' +
+        'than a name. Left empty it just reads as text.',
     }),
     defineField({
       name: 'body',

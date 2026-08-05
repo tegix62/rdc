@@ -1730,6 +1730,49 @@ main {
   mix-blend-mode: normal;
 }
 
+/*
+  Archive chrome.
+
+  Print mode is not only a colour treatment - Chris's reference for it is a
+  black-and-white grid with "no borders, very minimal invisible buttons", where
+  the white space does the work. So the selected-tile hairline goes, and the
+  jump button stops being a filled navy slab and becomes a quiet underline.
+
+  The frame keeps its padding, so nothing moves when the treatment changes.
+*/
+:root[data-ink] .pf-item.is-expanded .pf-item__frame {
+  box-shadow: none;
+}
+
+:root[data-ink] .pf-item.is-expanded .pf-item__jump {
+  background: transparent;
+  color: var(--ink-ink);
+  border-bottom: 1px solid var(--ink-ink);
+}
+
+:root[data-ink] .pf-item.is-expanded .pf-item__jump:hover,
+:root[data-ink] .pf-item.is-expanded .pf-item__jump:focus-visible {
+  background: transparent;
+  opacity: 0.65;
+}
+
+/* An authored mark is already thresholded, so running the CSS threshold over it
+   as well crushes what was drawn. */
+:root[data-ink] img[data-archive-src] {
+  filter: none;
+}
+
+/* The credit line, which is a quieter thing than the role credits above it. */
+.work-identity__type {
+  margin-top: var(--space-2);
+}
+
+.work-identity__type a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* The handle has to sit in the ink palette too, or it stays site-navy on
    coloured stock and is the one thing on screen that didn't convert. */
 :root[data-ink] .ink-bar__handle {

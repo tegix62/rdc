@@ -25,6 +25,13 @@
 // near-black rather than pure black - slightly lifted reads more like real
 // press ink and less like a screenshot.
 const PAPERS = [
+  /*
+    Press is the archive: plain white stock, black ink, no colour cast. Chris
+    wanted the black-and-white archive view and the riso zine treatment to be
+    one idea rather than two controls, and a white paper stock is what makes
+    that work - the archive is simply print mode on white.
+  */
+  { id: 'press', label: 'Press', paper: '#ffffff', ink: '#0d0d0d' },
   { id: 'bone', label: 'Bone', paper: '#f4efe3', ink: '#141110' },
   { id: 'blood', label: 'Blood', paper: '#e5473c', ink: '#150605' },
   { id: 'acid', label: 'Acid', paper: '#c3e84f', ink: '#101504' },
@@ -104,6 +111,38 @@ const PAPERS = [
       else root.removeAttribute('data-ink-grain');
     };
 
+    /*
+      Swap in authored black-and-white alternates.
+
+      Any image carrying data-archive-src has a hand-thresholded version, which
+      beats anything the CSS filter can do - a computed threshold flattens
+      midtones, whereas these were drawn. Images without one keep the filter, so
+      this gets better as more are made and never breaks while they aren't.
+
+      Swapped rather than rendered as a hidden second <img>, because a hidden
+      image is still fetched in most browsers and that would mean every visitor
+      downloading two portfolios to look at one. The original src is stashed on
+      first swap so turning print mode off restores it exactly.
+    */
+    const swapArchive = (on) => {
+      for (const img of document.querySelectorAll('img[data-archive-src]')) {
+        if (on) {
+          if (!img.dataset.originalSrc) {
+            img.dataset.originalSrc = img.getAttribute('src') || '';
+            img.dataset.originalSrcset = img.getAttribute('srcset') || '';
+          }
+          img.setAttribute('src', img.dataset.archiveSrc);
+          // The archive file is one fixed rendering, so any srcset from the
+          // colour version would point the browser back at colour candidates.
+          img.removeAttribute('srcset');
+          img.removeAttribute('sizes');
+        } else if (img.dataset.originalSrc) {
+          img.setAttribute('src', img.dataset.originalSrc);
+          if (img.dataset.originalSrcset) img.setAttribute('srcset', img.dataset.originalSrcset);
+        }
+      }
+    };
+
     // `open` is only the panel's visibility, kept with the rest so the tool
     // stays where you left it rather than re-collapsing on every page.
     let state = { on: false, paper: 'bone', grain: true, open: false };
@@ -161,9 +200,14 @@ const PAPERS = [
         }
       });
 
+      // Runs on load as well as on click, so arriving already in print mode
+      // shows the marks rather than waiting for a toggle.
+      swapArchive(state.on);
+
       toggle.addEventListener('click', () => {
         state.on = !state.on;
         apply(state);
+        swapArchive(state.on);
         save();
         sync();
       });
@@ -174,6 +218,7 @@ const PAPERS = [
         state.paper = btn.dataset.paper;
         state.on = true;
         apply(state);
+        swapArchive(true);
         save();
         sync();
       });

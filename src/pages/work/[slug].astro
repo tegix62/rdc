@@ -92,7 +92,7 @@ const ogImage = ogSource
         */}
         {caseStudy.resultStat && <p class="work-identity__stat">{caseStudy.resultStat}</p>}
       </div>
-      {(caseStudy.clientLogo || caseStudy.credits?.length > 0) && (
+      {(caseStudy.clientLogo || caseStudy.credits?.length > 0 || caseStudy.principalType) && (
         <div class="work-identity__aside">
           {caseStudy.clientLogo && (
             <div class="work-identity__mark">
@@ -104,6 +104,25 @@ const ogImage = ogSource
               {caseStudy.credits.map((c: any) => (
                 <p><strong>{c.role}</strong>{c.name && ` — ${c.name}`}</p>
               ))}
+            </div>
+          )}
+          {/*
+            Principal type, credited the way a typography book does it. Sits
+            with the credits because that is what it is - crediting the
+            typographers the work borrows from, whether or not they know it.
+          */}
+          {caseStudy.principalType && (
+            <div class="work-identity__credits work-identity__type">
+              <p>
+                <strong>Principal Type</strong>{' — '}
+                {caseStudy.principalTypeUrl ? (
+                  <a href={caseStudy.principalTypeUrl} target="_blank" rel="noopener noreferrer">
+                    {caseStudy.principalType}
+                  </a>
+                ) : (
+                  caseStudy.principalType
+                )}
+              </p>
             </div>
           )}
         </div>

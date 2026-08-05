@@ -99,7 +99,7 @@ export function getSiteSettings() {
 export function getAllGridItems() {
   return sanityClient.fetch(
     `*[_type == "caseStudy" && pageType == "Grid Item"]{
-      title, slug, thumbnail, mainImage, category,
+      title, slug, thumbnail, mainImage, category, archiveMark, heroTile,
       "parentSlug": parentBrand->slug.current,
       "parentTitle": parentBrand->title,
       "parentType": parentBrand->pageType

@@ -78,7 +78,14 @@ const embed = !selfHosted && url ? embedUrl(url) : null;
 const youTubeId = embed?.includes('youtube.com/embed/')
   ? embed.split('/embed/')[1]?.split(/[?&]/)[0]
   : null;
-const fallbackPoster = youTubeId ? `https://i.ytimg.com/vi/${youTubeId}/hqdefault.jpg` : null;
+/*
+  sddefault (640x480) rather than hqdefault (480x360): a facade poster can be
+  standing in for a full-bleed hero, and 480px wide is visibly soft at that
+  size. Deliberately not maxresdefault - that only exists for videos uploaded
+  at 1080p or above and 404s for the rest, which would leave a broken image
+  where the poster should be.
+*/
+const fallbackPoster = youTubeId ? `https://i.ytimg.com/vi/${youTubeId}/sddefault.jpg` : null;
 const posterUrl = poster ? urlFor(poster).width(width).url() : null;
 ---
 
@@ -124,7 +131,7 @@ const posterUrl = poster ? urlFor(poster).width(width).url() : null;
       ) : fallbackPoster ? (
         /* Not through Img: this is a third-party URL, not a Sanity asset, so
            there is no reference to derive dimensions or a srcset from. */
-        <img src={fallbackPoster} alt="" loading="lazy" width="480" height="360" />
+        <img src={fallbackPoster} alt="" loading="lazy" width="640" height="480" />
       ) : (
         <span class="video__facade-blank" aria-hidden="true"></span>
       )}

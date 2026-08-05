@@ -5,7 +5,21 @@
   the same implementation - two copies would drift, and this already carries a
   fix for a real malformed URL in the migrated content.
 */
-export function embedUrl(url: string) {
+/**
+ * A YouTube/Vimeo embed URL, or null if the input cannot produce one.
+ *
+ * Returning `string | null` rather than echoing the input back is the whole
+ * point. This used to `return url` from its catch block, which quietly handed
+ * back whatever it was given - and when one migrated document held a non-string
+ * in a url field, that object travelled onward until something called
+ * `.includes` on it and the entire build died with "embed?.includes is not a
+ * function". The build then stayed broken for three commits while the audit
+ * kept measuring the last good deploy.
+ *
+ * Nothing downstream can now receive something that isn't a usable URL.
+ */
+export function embedUrl(url: unknown): string | null {
+  if (typeof url !== 'string' || !url.trim()) return null;
   try {
     const u = new URL(url);
     if (u.hostname.includes('youtube.com') || u.hostname.includes('youtu.be')) {
@@ -17,14 +31,16 @@ export function embedUrl(url: string) {
         ? u.pathname.slice(1)
         : (u.searchParams.get('v') ?? '');
       const id = raw.split(/[?&/]/)[0];
-      return id ? `https://www.youtube.com/embed/${id}` : url;
+      return id ? `https://www.youtube.com/embed/${id}` : null;
     }
     if (u.hostname.includes('vimeo.com')) {
       const id = u.pathname.split('/').filter(Boolean).pop();
-      return id ? `https://player.vimeo.com/video/${id}` : url;
+      return id ? `https://player.vimeo.com/video/${id}` : null;
     }
-    return url;
+    // A link to something that is neither provider. Handing it to an iframe
+    // would embed an arbitrary page, so it is not an embed.
+    return null;
   } catch {
-    return url;
+    return null;
   }
 }

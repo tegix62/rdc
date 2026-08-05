@@ -66,12 +66,24 @@ jobs:
             echo "attempt $attempt: live=${live:-none} want=$want"
             sleep 15
           done
-          echo "::warning::Preview still serving ${live:-unknown}, expected $want. Numbers below describe an OLDER build."
+          # Hard failure, not a warning.
+          #
+          # A warning was not enough. The deploy failed on three consecutive
+          # commits - a build error in Video.astro - and the audit went right on
+          # publishing numbers for the last good deploy. Three rounds of
+          # debugging went into a component that had never actually shipped.
+          # A run that cannot measure the commit it was triggered for has
+          # nothing useful to say, so it stops.
+          echo "::error::Preview is serving ${live:-unknown}, expected $want. The deploy for this commit has not landed - check the Deploy to Cloudflare Pages run, it has probably failed."
           {
             echo ""
-            echo "**⚠️ Measured build mismatch** — preview served \`${live:-unknown}\`, this run is \`$want\`."
-            echo "Everything below describes an older build."
+            echo "## ❌ Audit did not run"
+            echo ""
+            echo "Preview served \`${live:-unknown}\`, this commit is \`$want\`."
+            echo "The deploy has not landed - most likely the build failed."
+            echo "No numbers are published, because they would describe a different build."
           } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
 
       # 2>&1 on every step below: the animated audit's first run wrote a 0-byte
       # report because tee only captures stdout, so a crash that killed the

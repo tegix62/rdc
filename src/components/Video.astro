@@ -62,7 +62,21 @@ const webmUrl = webm?.asset?.url ?? null;
 const selfHosted = Boolean(mp4 || webmUrl);
 const autoplay = selfHosted && playback === 'autoplay';
 
-const embed = !selfHosted && url ? embedUrl(url) : null;
+/*
+  embedUrl now guarantees string-or-null, so this is belt and braces rather than
+  the fix - but a component that renders whatever it is handed should not be the
+  thing that takes a build down, and a video that silently does not appear is a
+  far better failure than a blank site.
+*/
+const embed = !selfHosted ? embedUrl(url) : null;
+
+// Content problems should be visible to whoever can fix them, not swallowed.
+if (!selfHosted && url && !embed) {
+  console.warn(
+    `[Video] "${String(url).slice(0, 80)}" is not a YouTube or Vimeo link, so ` +
+      `nothing will render here. Only those two are embeddable.`,
+  );
+}
 
 /*
   The poster for an embed facade, in order of preference:

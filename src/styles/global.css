@@ -881,6 +881,26 @@ main {
   A shadow paints inside the existing box and changes no geometry at all.
 */
 /*
+  Logomark tiles.
+
+  From Chris's own gallery, and the whole idea behind it: a mark strong enough to
+  speak for itself is given room rather than cropped to fill a box. So these get
+  generous inset and sit on the page colour, while photographs and posters
+  continue to fill their tile edge to edge.
+
+  This is what makes that layout read as flowing rather than gridded. Nothing
+  about the grid changes - the air inside the marks' own tiles is what breaks
+  the rows up, and it costs no extra markup.
+
+  A percentage rather than a fixed value, so the inset stays proportional as the
+  grid's column count changes with the +/- control.
+*/
+.pf-item--mark .pf-item__img {
+  padding: var(--pf-mark-inset, 14%);
+  background: var(--color-white);
+}
+
+/*
   The padding is on EVERY tile, not only the selected one, and that is the whole
   trick. Adding it on select would change the tile's height, and Isotope places
   tiles from measured offsetHeight - so every tile below the selected one would
@@ -1580,9 +1600,23 @@ main {
   color: var(--color-white);
 }
 
+/*
+  Wraps, right-aligned. Adding the white "Press" stock made six papers plus the
+  grain toggle, and at 44px each on a touch pointer that is wider than the bar -
+  which dropped the grain button onto its own line, ragged.
+*/
 .ink-bar__papers {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.25rem;
+  max-width: 16rem;
+}
+
+/* The grain toggle is a modifier rather than a stock, so it gets separated
+   deliberately instead of wrapping by accident. */
+.ink-bar__swatch--grain {
+  margin-left: 0.5rem;
 }
 
 .ink-bar__swatch {
@@ -1685,15 +1719,15 @@ main {
   each image: one cheap layer instead of per-element work, and it reads like
   press texture sitting on top of the whole sheet.
 
-  Made much coarser. It was baseFrequency 0.9, which puts the noise features at
-  roughly a pixel each - at that scale it reads as sensor noise or a dirty
-  screen, not as press texture, which is why it looked inconsequential.
-  baseFrequency is in cycles per pixel, so 0.055 puts a feature at about 18px:
-  around sixteen times larger, and in the range where riso grain actually lives.
+  Two passes to land this. It started at baseFrequency 0.9, which puts each
+  noise feature at roughly a pixel - sensor noise, not press texture, and it
+  read as inconsequential. Then 0.055, about 18px a feature, which Chris called
+  gigantic and was right to.
 
-  numOctaves down from 3 to 1 as well. Extra octaves layer finer detail on top,
-  which is exactly the fine speckle being got rid of - one octave leaves clean
-  blobs.
+  0.3 is the middle: features around 3-4px. That is the scale real riso grain
+  sits at - clearly present as texture, not resolving into blobs you can count.
+  Two octaves rather than one, because a little finer detail on top keeps it
+  from looking like a regular pattern.
 
   Two knobs, both here rather than buried in the data URI:
     --ink-grain-scale    stretches the tile. Above 1 makes grain larger still.
@@ -1705,13 +1739,13 @@ main {
   inset: 0;
   z-index: 50;
   pointer-events: none;
-  opacity: var(--ink-grain-opacity, 0.5);
+  opacity: var(--ink-grain-opacity, 0.38);
   mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.055' numOctaves='1' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='discrete' tableValues='0 0 0 1 1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.3' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='discrete' tableValues='0 0 1 1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
   background-repeat: repeat;
-  /* 320px is the tile's own size, so scale 1 is 1:1 and anything above it
+  /* 220px is the tile's own size, so scale 1 is 1:1 and anything above it
      enlarges the grain without regenerating the SVG. */
-  background-size: calc(320px * var(--ink-grain-scale, 1));
+  background-size: calc(220px * var(--ink-grain-scale, 1));
 }
 
 /* The controls must not be converted along with the artwork, or the swatches

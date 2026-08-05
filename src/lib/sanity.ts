@@ -39,6 +39,7 @@ const NON_TEXT_FIELDS = new Set([
   'pageType',
   'parentType',
   'assetType',
+  'tileTreatment',
   'inkMode',
   /*
     Alt text lands in an attribute, not in visible prose, and a screen reader

@@ -41,15 +41,38 @@ export default defineType({
       type: 'string',
       options: {list: CATEGORIES},
     }),
+    /*
+      Tile treatment, which is the idea Chris's Adobe Portfolio gallery is built
+      on: a logomark strong enough to speak for itself gets room and no caption,
+      while a photograph or poster fills its frame. It is a presentation choice,
+      not a subject taxonomy, which is why it has two values rather than six.
+    */
+    defineField({
+      name: 'tileTreatment',
+      title: 'Tile Treatment',
+      type: 'string',
+      options: {
+        list: [
+          {title: 'Logomark - floats, with air around it', value: 'mark'},
+          {title: 'Image - fills the tile edge to edge', value: 'bleed'},
+        ],
+        layout: 'radio',
+      },
+      description:
+        'How this tile sits in the portfolio grid. A logomark gets padding and ' +
+        'space so the mark reads on its own; an image or poster is cropped to ' +
+        'fill. Left empty, it is inferred from Asset Type below - so the work ' +
+        'already tagged there needs no re-entry.',
+    }),
     defineField({
       name: 'assetType',
       title: 'Asset Type',
       type: 'string',
       description:
-        'NOT WIRED UP YET. This said it controls grid tile shape, and nothing ' +
-        'on the site reads it - changing it has no effect. Kept because the ' +
-        'values migrated cleanly from Webflow and are worth keeping; see ' +
-        'PUNCH-LIST.md for the decision on what it should do.',
+        'What kind of artefact this is. Now used as the fallback for Tile ' +
+        'Treatment above when that is left empty: Identity / Brand Sheet and ' +
+        'Vinyl / Record are treated as logomarks, everything else fills its ' +
+        'tile. Set Tile Treatment directly to override.',
       options: {list: ASSET_TYPES},
     }),
     defineField({

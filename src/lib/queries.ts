@@ -100,6 +100,7 @@ export function getAllGridItems() {
   return sanityClient.fetch(
     `*[_type == "caseStudy" && pageType == "Grid Item"]{
       title, slug, thumbnail, mainImage, category, archiveMark, heroTile,
+      tileTreatment, assetType,
       "parentSlug": parentBrand->slug.current,
       "parentTitle": parentBrand->title,
       "parentType": parentBrand->pageType

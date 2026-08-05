@@ -32,6 +32,25 @@ const CATEGORY_FILTER: Record<string, string> = {
 const cleanKey = (value: unknown): string =>
   typeof value === 'string' ? value.replace(/[\u200B-\u200F\uFEFF\u2060]/g, '').trim() : '';
 
+/*
+  How a tile is presented, which is the one idea Chris's Adobe Portfolio gallery
+  actually rests on: a logomark strong enough to carry itself gets room and no
+  caption, while a photograph fills its frame. The white space between the marks
+  is what makes that page read as flowing rather than gridded.
+
+  `tileTreatment` is explicit. When it is unset the value is inferred from
+  `assetType`, which means the 43 items already tagged in Webflow work with no
+  re-entry - Identity / Brand Sheet and Vinyl / Record are marks, everything
+  else fills.
+*/
+const MARK_ASSET_TYPES = new Set(['Identity / Brand Sheet', 'Vinyl / Record']);
+
+const treatmentOf = (item: any): 'mark' | 'bleed' => {
+  const explicit = cleanKey(item.tileTreatment);
+  if (explicit === 'mark' || explicit === 'bleed') return explicit;
+  return MARK_ASSET_TYPES.has(cleanKey(item.assetType)) ? 'mark' : 'bleed';
+};
+
 const ALL_FILTERS = [
   { value: '.brand-identity', label: 'Brand Identity' },
   { value: '.merch-apparel', label: 'Merch & Apparel' },
@@ -97,7 +116,10 @@ if (emptyFilters.length > 0) {
         // buttons appeared to do nothing. data-category is kept for styling
         // and debugging.
         return img ? (
-          <div class:list={['pf-item', cat]} data-category={cat}>
+          <div
+            class:list={['pf-item', cat, treatmentOf(item) === 'mark' && 'pf-item--mark']}
+            data-category={cat}
+          >
             {/*
               The frame wraps the image and the jump button so a selected tile
               can carry ONE border around both. Bordering each separately would

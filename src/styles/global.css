@@ -899,21 +899,20 @@ main {
   A shadow paints inside the existing box and changes no geometry at all.
 */
 /*
-  Logomark tiles.
+  Logomark tiles - archive mode only.
 
-  From Chris's own gallery, and the whole idea behind it: a mark strong enough to
-  speak for itself is given room rather than cropped to fill a box. So these get
-  generous inset and sit on the page colour, while photographs and posters
-  continue to fill their tile edge to edge.
-
-  This is what makes that layout read as flowing rather than gridded. Nothing
-  about the grid changes - the air inside the marks' own tiles is what breaks
-  the rows up, and it costs no extra markup.
+  In the normal grid these stay exactly as they were: full-bleed, edge to edge,
+  the dense look that grid is for. The inset applies only under [data-ink],
+  because the point is two separate experiences rather than one compromise
+  between them. Giving marks air in the default grid bought the archive's
+  negative space at the cost of the original feel, which is not a trade worth
+  making - the archive should be somewhere you go, not a dilution of where you
+  started.
 
   A percentage rather than a fixed value, so the inset stays proportional as the
   grid's column count changes with the +/- control.
 */
-.pf-item--mark .pf-item__img {
+:root[data-ink] .pf-item--mark .pf-item__img {
   padding: var(--pf-mark-inset, 14%);
   background: var(--color-white);
 }

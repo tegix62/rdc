@@ -19,6 +19,27 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+
+      # An unbalanced /* in a stylesheet is still VALID CSS - it just runs on
+      # until the next */ and silently eats every rule in between. A parser
+      # reports no error, the build succeeds, and the only symptom is styling
+      # that quietly stopped applying. It happened while moving the ink-mode
+      # chrome out: a leftover comment fragment swallowed the footer's
+      # tap-target rules, and esbuild parsed the result without complaint.
+      - name: No stylesheet comment eats the rules after it
+        run: |
+          set -euo pipefail
+          fail=0
+          for f in $(find src -name '*.css'); do
+            open=$(grep -o '/\*' "$f" | wc -l)
+            close=$(grep -o '\*/' "$f" | wc -l)
+            if [ "$open" -ne "$close" ]; then
+              echo "::error file=$f::$open '/*' vs $close '*/' - a comment is swallowing rules"
+              fail=1
+            fi
+          done
+          [ "$fail" -eq 0 ] && echo "comments balanced in every stylesheet"
+
       # A malformed srcset still renders the image - the browser just falls
       # back to src and quietly stops being responsive - so this can't be
       # caught by looking at the site.

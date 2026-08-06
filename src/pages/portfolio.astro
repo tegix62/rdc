@@ -2,8 +2,12 @@
 import Layout from '../layouts/Layout.astro';
 import Img from '../components/Img.astro';
 import Sections from '../components/Sections.astro';
+import InkMode from '../components/InkMode.astro';
 import { getPage, getAllGridItems } from '../lib/queries';
 import { urlFor } from '../lib/image';
+// Shared with the homepage's miniature grid, so the two cannot disagree about
+// what counts as a logomark or how wide a hero tile is. See lib/tiles.ts.
+import { cleanKey, treatmentOf, tileHref, heroHeight } from '../lib/tiles';
 
 const page = await getPage('portfolio');
 const items = await getAllGridItems();
@@ -18,51 +22,6 @@ const CATEGORY_FILTER: Record<string, string> = {
   Typography: 'type-lettering',
   Illustration: 'type-lettering',
   Photography: 'photography',
-};
-
-/*
-  Strips zero-width characters before using a value as a lookup key.
-
-  Belt and braces on top of the stega exclusion list in lib/sanity.ts. Visual
-  editing embeds invisible markers in strings, and a contaminated key fails a
-  lookup with no visible symptom anywhere - which cost several rounds of
-  debugging here. Any field added later that ends up as a key or class name
-  gets this for free, whether or not someone remembers the exclusion list.
-*/
-const cleanKey = (value: unknown): string =>
-  typeof value === 'string' ? value.replace(/[\u200B-\u200F\uFEFF\u2060]/g, '').trim() : '';
-
-/*
-  How a tile is presented, which is the one idea Chris's Adobe Portfolio gallery
-  actually rests on: a logomark strong enough to carry itself gets room and no
-  caption, while a photograph fills its frame. The white space between the marks
-  is what makes that page read as flowing rather than gridded.
-
-  `tileTreatment` is explicit. When it is unset the value is inferred from
-  `assetType`, which means the 43 items already tagged in Webflow work with no
-  re-entry - Identity / Brand Sheet and Vinyl / Record are marks, everything
-  else fills.
-*/
-const MARK_ASSET_TYPES = new Set(['Identity / Brand Sheet', 'Vinyl / Record']);
-
-/*
-  A hero tile spans two columns AND crops to landscape.
-
-  The span alone would be wrong. Most tiles here are portrait, so doubling a
-  portrait tile's width in a masonry grid produces an enormous TALL tile that
-  dominates by height - the opposite of the presence this is for. Cropping to
-  3:2 is what makes it read as a spread: a wide thing among vertical ones, which
-  breaks the rhythm and gives the eye somewhere to land.
-
-  3:2 rather than 16:9 because 16:9 across two columns is a thin band that
-  loses too much of a portrait source.
-*/
-const HERO_RATIO = {w: 3, h: 2};
-
-const treatmentOf = (item: any): 'mark' | 'bleed' => {
-  const explicit = cleanKey(item.tileTreatment);
-  if (explicit === 'mark' || explicit === 'bleed') return explicit;
-  return MARK_ASSET_TYPES.has(cleanKey(item.assetType)) ? 'mark' : 'bleed';
 };
 
 const ALL_FILTERS = [
@@ -112,6 +71,12 @@ if (emptyFilters.length > 0) {
         </button>
       ))}
       <span class="pf-divider" aria-hidden="true"></span>
+      {/*
+        The archive view. Used to be a button in the corner of every page;
+        it belongs here, among the other ways of looking at this grid.
+      */}
+      <InkMode />
+      <span class="pf-divider" aria-hidden="true"></span>
       <button type="button" class="pf-btn" id="pf-shuffle">Shuffle</button>
       <button type="button" class="pf-btn" id="pf-minus" aria-label="Smaller tiles">&minus;</button>
       <button type="button" class="pf-btn" id="pf-plus" aria-label="Larger tiles">+</button>
@@ -139,9 +104,7 @@ if (emptyFilters.length > 0) {
       {items.map((item: any, i: number) => {
         const img = item.thumbnail || item.mainImage;
         const cat = CATEGORY_FILTER[cleanKey(item.category)] ?? '';
-        // Only link to a parent that actually has a page.
-        const parentHref =
-          item.parentSlug && cleanKey(item.parentType) === 'Case Study' ? `/work/${item.parentSlug}` : null;
+        const parentHref = tileHref(item);
         // The category has to be a real CLASS, not just a data attribute:
         // Isotope filters with CSS selectors (".brand-identity"), so with the
         // value only in data-category every filter matched zero tiles and the
@@ -188,7 +151,7 @@ if (emptyFilters.length > 0) {
                 archive={item.archiveMark}
                 alt={item.title}
                 width={item.heroTile ? 1600 : 800}
-                height={item.heroTile ? Math.round((1600 * HERO_RATIO.h) / HERO_RATIO.w) : undefined}
+                height={item.heroTile ? heroHeight(1600) : undefined}
                 sizes={item.heroTile ? '(max-width: 48rem) 66vw, 34vw' : '(max-width: 48rem) 33vw, 17vw'}
               />
               {parentHref && (

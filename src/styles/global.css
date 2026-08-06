@@ -38,9 +38,6 @@
   `el.hidden = true` quietly made the assignment do nothing, and the control
   driving it looked dead while firing correctly every time.
 
-  Still load-bearing: `.ink-bar__papers` has `display: grid` and is hidden this
-  way whenever print mode is off.
-
   A one-line reset, because the next component to use `hidden` alongside a
   display rule would hit exactly the same thing and it is invisible in the
   markup - the attribute is right there, it just isn't winning.
@@ -579,6 +576,121 @@ main {
   gap: var(--space-2);
   flex-wrap: wrap;
   padding: var(--space-4) 0 var(--space-6);
+}
+
+/*
+  Homepage work grid - a miniature of the Portfolio grid.
+
+  CSS grid, not Isotope. Masonry here would mean two CDN scripts and a layout
+  pass after paint on the page whose whole job is to be immediate; the Portfolio
+  page needed a dedicated fix to get its layout shift from 0.4722 down to
+  0.0006, and none of that machinery earns its place above the fold.
+
+  Uniform boxes are what let a plain grid read as deliberate rather than ragged:
+  every tile is square, hero tiles are 3:2 across two columns. `dense` so a hero
+  tile that cannot fit at the end of a row doesn't leave a hole behind it.
+*/
+.peek {
+  margin: var(--space-5) 0;
+}
+
+.peek__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.peek__label {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-gray);
+}
+
+.peek__more {
+  font-family: var(--font-heading);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.peek__more:hover { text-decoration: underline; }
+
+.peek__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-flow: dense;
+  gap: 0.5rem;
+}
+
+/*
+  Overrides the Portfolio grid's float/percentage sizing, which these tiles
+  inherit along with everything else useful about `.pf-item`. Grid places them;
+  the float rules would fight it.
+*/
+.peek__item {
+  width: auto;
+  float: none;
+  padding: 0;
+  cursor: default;
+}
+
+.peek__item.pf-item--hero { grid-column: span 2; }
+
+.peek__link {
+  display: block;
+  position: relative;
+  text-decoration: none;
+  color: inherit;
+}
+
+/*
+  The project name, revealed on hover and always present for a screen reader.
+  Chris's point about logomarks is that they carry themselves, so the caption
+  stays out of the way until someone is actually pointing at a tile - but a grid
+  of unlabelled images with no accessible name is not navigable without it.
+*/
+.peek__caption {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 0.5rem 0.625rem;
+  background: var(--color-navy);
+  color: var(--color-white);
+  font-family: var(--font-heading);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.peek__link:hover .peek__caption,
+.peek__link:focus-visible .peek__caption {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .peek__caption { transition: none; }
+}
+
+/* Touch has no hover, so the caption would never appear. Always on below the
+   breakpoint rather than a state nobody can reach. */
+@media (hover: none) {
+  .peek__caption { opacity: 1; }
+}
+
+@media (max-width: 40rem) {
+  .peek__grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* Homepage: bio + video */
@@ -1670,114 +1782,13 @@ main {
    INK MODE - one ink on coloured stock, after 80s zine printing
    ============================================================ */
 
-.ink-bar {
-  position: fixed;
-  right: var(--space-2);
-  bottom: var(--space-2);
-  z-index: 60;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.375rem;
-}
-
 /*
-  The only control in the corner, and it is the mode switch itself. The `▚`
-  handle that used to expand a panel is gone: two controls to reach one switch,
-  with an icon that said nothing about what it did.
-
-  Quiet on purpose. This is an experimental tool sitting on top of a portfolio,
-  so it reads as a small utility rather than a call to action - hairline border,
-  no fill, part opacity - and comes up to full on hover, on keyboard focus, or
-  whenever print mode is actually on.
-
-  min-height 44px because the page audit measures every control against a 44px
-  floor. The text is deliberately small; the padding does the rest.
+  The archive toggle is a `pf-btn` now, styled with the rest of the Portfolio
+  controls, so it needs no rules of its own. What used to live here - a fixed
+  corner bar, a collapse handle, a row of stock swatches - went with it when the
+  control moved onto the Portfolio page. The ink treatment itself is untouched;
+  only its chrome is gone.
 */
-.ink-bar__toggle {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  font-family: var(--font-heading);
-  font-size: 0.5625rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 0.3125rem 0.75rem;
-  background: var(--color-white);
-  color: var(--color-navy);
-  border: 1px solid currentColor;
-  opacity: 0.6;
-  cursor: pointer;
-  transition: opacity 120ms ease, background-color 120ms ease, color 120ms ease;
-}
-
-.ink-bar__toggle:hover,
-.ink-bar__toggle:focus-visible,
-.ink-bar__toggle[data-active='true'] {
-  opacity: 1;
-}
-
-/* Print mode is on: fill in, so the corner reads as active at a glance. */
-.ink-bar__toggle[data-active='true'] {
-  background: var(--color-navy);
-  color: var(--color-white);
-}
-
-/*
-  One row of six.
-
-  With the grain toggle gone there are exactly six stocks, and six 44px buttons
-  is 264px - narrower than any phone. A single row reads as one control instead
-  of a block of squares, and there is no wrapping left to go ragged.
-
-  gap: 0 because the buttons already carry their own space: each is a 44px tap
-  target holding a smaller chip, so adjacent chips sit apart by the padding
-  whatever the gap says. Adding gap on top of that was what made them look
-  scattered.
-*/
-.ink-bar__papers {
-  display: grid;
-  grid-template-columns: repeat(6, auto);
-  justify-content: end;
-  gap: 0;
-}
-
-/*
-  The button is the tap target; the chip inside it is what you see. That split
-  is what lets the panel stay small without the controls becoming unhittable.
-*/
-.ink-bar__swatch {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  padding: 0;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: 0.75rem;
-  line-height: 1;
-  color: var(--swatch-ink, #000);
-}
-
-.ink-bar__chip {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  background: var(--swatch, #fff);
-  border: 1px solid var(--color-ink);
-}
-
-/* On the chip, not the button - the button is a 44px tap target on touch and
-   an outline around that would ring empty space. */
-.ink-bar__swatch.is-active .ink-bar__chip {
-  outline: 2px solid var(--color-ink);
-  outline-offset: 2px;
-}
 
 /*
   Tokens are remapped rather than every rule being rewritten, so the whole site
@@ -1901,25 +1912,14 @@ body {
   background-size: calc(220px * var(--ink-grain-scale, 1));
 }
 
-/* The controls must not be converted along with the artwork, or the swatches
-   stop showing their own colours. */
-:root[data-ink] .ink-bar img {
-  filter: none;
-  mix-blend-mode: normal;
-}
-
 /*
-  Outlined rather than filled, even when active. A solid black block was the
-  heaviest element on a page whose entire subject is the artwork underneath it.
-  The state is legible from the swatch outline and the handle without shouting.
+  The Archive button must not be converted along with the artwork. It is a
+  `pf-btn`, and the whole control row sits outside the treatment - filtering the
+  buttons that turn the treatment on and off makes them read as part of the
+  artwork.
 */
-:root[data-ink] .ink-bar__toggle {
-  background: transparent;
-  color: var(--ink-ink);
-  border-color: var(--ink-ink);
-}
-
-:root[data-ink] .ink-bar__swatch {
+:root[data-ink] .pf-controls img {
+  filter: none;
   mix-blend-mode: normal;
 }
 
@@ -1970,14 +1970,6 @@ body {
    and --color-navy, and both are remapped to the stock and its ink above, so
    it converts with everything else. The handle needed its own rule only
    because it used --color-ink directly. */
-
-@media (max-width: 40rem) {
-  .ink-bar {
-    right: var(--space-1);
-    bottom: var(--space-1);
-  }
-}
-
 
 /*
   Mobile overrides, deliberately last.
@@ -2270,9 +2262,10 @@ body {
   Tap targets.
 
   The page audit measured every interactive control at 390px. These were all
-  under the 44x44 floor: the portfolio filter row at 24px tall, the print-mode
-  paper swatches at 24x24, and the footer links at 21px. On a phone that is
-  the difference between a control and a coin toss.
+  under the 44x44 floor: the portfolio filter row at 24px tall and the footer
+  links at 21px. On a phone that is the difference between a control and a coin
+  toss. The Archive button inherits the .pf-btn rule below along with every
+  other control in that row.
 
   Last block in the file so it lands after every component rule it adjusts,
   including the mobile block above it - source order is what decides these,
@@ -2286,32 +2279,6 @@ body {
        29px wide, so they cleared the floor in one dimension only. */
     min-width: 44px;
     padding-block: 0.625rem;
-  }
-
-  /*
-    44px of TAP TARGET, 24px of visible swatch.
-
-    Straight 44px squares made the panel enormous - six of them plus a grain
-    toggle is most of a phone's width, for a tool that is meant to stay out of
-    the way. Padding plus background-clip keeps the colour confined to the
-    middle while the button itself stays a full 44px, so the target passes and
-    the panel still reads as small.
-  */
-  .ink-bar__swatch {
-    width: 44px;
-    height: 44px;
-  }
-
-  /* 44px of button, 32px of visible colour. Bigger than the 24px it started at
-     now that the gap between buttons is gone - the chips were reading as
-     scattered dots rather than a row of stock samples. */
-  .ink-bar__chip {
-    width: 32px;
-    height: 32px;
-  }
-
-  .ink-bar__toggle {
-    min-height: 44px;
   }
 
   /* Footer links measured 21px tall. Padding rather than a min-height keeps

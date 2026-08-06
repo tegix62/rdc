@@ -96,14 +96,47 @@ export function getSiteSettings() {
   slug would produce a 404 that reads as a broken site, so the Portfolio page
   only renders the jump button when the parent is a real case study.
 */
+// Everything a tile needs to render, wherever it is rendered. Shared so the
+// homepage grid and the Portfolio grid cannot drift into showing different
+// things about the same piece of work.
+const TILE = `
+  title, slug, thumbnail, mainImage, category, archiveMark, heroTile,
+  tileTreatment, assetType,
+  "parentSlug": parentBrand->slug.current,
+  "parentTitle": parentBrand->title,
+  "parentType": parentBrand->pageType
+`;
+
 export function getAllGridItems() {
   return sanityClient.fetch(
-    `*[_type == "caseStudy" && pageType == "Grid Item"]{
-      title, slug, thumbnail, mainImage, category, archiveMark, heroTile,
-      tileTreatment, assetType,
-      "parentSlug": parentBrand->slug.current,
-      "parentTitle": parentBrand->title,
-      "parentType": parentBrand->pageType
-    } | order(title asc)`,
+    `*[_type == "caseStudy" && pageType == "Grid Item"]{${TILE}} | order(title asc)`,
+  );
+}
+
+/*
+  The homepage work grid.
+
+  Curated first: whatever is in Site Settings → Homepage Work Grid, in that
+  order. "Most recent" is a decent default and a poor showcase - it puts
+  whatever was uploaded last in front of a client rather than whatever is
+  strongest - so recency is only the fallback, and only while the picker is
+  empty. That way the grid is never blank on a fresh dataset but is never
+  automatic once Chris has chosen.
+
+  The filter on the curated list matters: a reference to a deleted document
+  resolves to null, and one stale pick would otherwise blow up the map in the
+  template.
+*/
+export async function getFeaturedWork(limit = 8) {
+  const curated: any[] | null = await sanityClient.fetch(
+    `*[_type == "siteSettings"][0].featuredWork[]->{${TILE}}`,
+  );
+  const picked = (curated ?? []).filter((item) => item && (item.thumbnail || item.mainImage));
+  if (picked.length) return picked;
+
+  return sanityClient.fetch(
+    `*[_type == "caseStudy" && pageType == "Grid Item" && defined(thumbnail)]
+      | order(_createdAt desc)[0...$limit]{${TILE}}`,
+    { limit },
   );
 }

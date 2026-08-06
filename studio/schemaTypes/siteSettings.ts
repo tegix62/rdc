@@ -151,6 +151,43 @@ export default defineType({
       title: 'Final CTA Heading',
       type: 'string',
     }),
+
+    /*
+      The homepage work grid.
+
+      A miniature of the Portfolio grid, sitting high on the homepage so a
+      visitor sees actual work before the bio - without pushing the contact
+      button below the fold, which was the whole point of the original layout.
+
+      Curated by hand rather than automatic. "Most recent" is a decent default
+      and a poor showcase: it puts whatever was uploaded last in front of a
+      client instead of whatever is strongest. So this is a picker, and the
+      recency fallback only runs while it is empty, so the grid is never blank.
+
+      Tiles marked "Hero tile" span two columns here exactly as they do on the
+      Portfolio page - same field, same meaning, so nothing has to be set twice.
+    */
+    defineField({
+      name: 'featuredWork',
+      title: 'Homepage Work Grid',
+      description:
+        'Tiles to show on the homepage, in this order. Leave empty to fall back ' +
+        'to the most recently added work. Mark a tile "Hero tile" on the tile ' +
+        'itself to make it span two columns.',
+      type: 'array',
+      of: [{type: 'reference', to: [{type: 'caseStudy'}]}],
+      validation: (Rule) =>
+        Rule.max(12).warning(
+          'More than 12 turns the homepage peek into a second portfolio page. ' +
+            'The Portfolio page is one click away.',
+        ),
+    }),
+    defineField({
+      name: 'featuredWorkHeading',
+      title: 'Homepage Work Grid - Label',
+      type: 'string',
+      description: 'Small label above the grid. Defaults to "Selected work".',
+    }),
   ],
   preview: {
     prepare() {

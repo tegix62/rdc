@@ -1,5 +1,5 @@
 /*
-  Clicks the print mode button and checks it actually does something.
+  Clicks the Archive button and checks it actually does something.
 
   This component has already shipped a control that did nothing. The collapse
   handle fired its click handler correctly every time, but `panel.hidden = true`
@@ -13,15 +13,16 @@
 
   What it checks, and why each one:
 
-    visible       the button exists and is on screen at all
-    tap target    44px floor, the same one the page audit enforces
-    turns on      data-ink lands on <html>, which is what every ink rule keys off
-    swatches      the paper stocks appear - they are hidden until print mode is
-                  on, and that hiding is the exact mechanism that broke before
-    label flips   "Print mode" -> "Screen mode", so the button says what it does
-    stock switch  clicking a swatch actually repaints the page
+    in the row    it lives among the Portfolio filters now, not in a corner
+    tap target    matches its siblings on desktop, clears 44px on a phone
+    turns on      data-ink lands on <html>, which every ink rule keys off
+    pressed       aria-pressed and .is-active, the same state signal the other
+                  buttons in that row use
+    press stock   the archive is white/black, not one of the shelved riso colours
+    filtered      the tiles are genuinely treated, and the controls are not
     turns off     and back, leaving no data-ink behind
-    persists      a reload comes back in print mode rather than flashing colour
+    persists      a reload comes back in archive view without flashing colour
+    nowhere else  no stray button on a page it was just removed from
 
   Usage: node scripts/test-ink-mode.mjs [url]
 */
@@ -42,24 +43,31 @@ await page.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60
 await page.waitForTimeout(1500)
 
 const toggle = page.locator('#ink-toggle')
-const papers = page.locator('#ink-papers')
 
 check('the button is visible', await toggle.isVisible().catch(() => false))
 
+/*
+  On desktop it should match its siblings, not clear an arbitrary floor - a
+  44px button in a row of 26px ones would look like a mistake. The 44px rule
+  applies at phone widths, and is checked there at the end.
+*/
 const box = await toggle.boundingBox().catch(() => null)
+const shuffleBox = await page.locator('#pf-shuffle').boundingBox().catch(() => null)
 check(
-  'the button meets the 44px tap floor',
-  Boolean(box && box.height >= 44 && box.width >= 44),
-  box ? `${Math.round(box.width)}x${Math.round(box.height)}` : 'no box',
+  'it is the same height as the other controls',
+  Boolean(box && shuffleBox && Math.abs(box.height - shuffleBox.height) < 2),
+  box && shuffleBox ? `${Math.round(box.height)}px vs ${Math.round(shuffleBox.height)}px` : 'no box',
 )
 
 // Nothing should be in print mode before it is asked for.
 const inkBefore = await page.getAttribute('html', 'data-ink')
 check('starts on screen, not in print', inkBefore === null, `data-ink=${inkBefore}`)
-check('paper stocks are hidden until print mode is on', !(await papers.isVisible()))
-
 const labelBefore = (await toggle.innerText()).trim()
-check('reads "Print mode" while on screen', /print mode/i.test(labelBefore), labelBefore)
+check('is labelled Archive', /archive/i.test(labelBefore), labelBefore)
+check(
+  'sits in the portfolio controls row, not floating in a corner',
+  await page.locator('#pf-controls #ink-toggle').count() === 1,
+)
 
 // --- the click that used to do nothing -------------------------------------
 await toggle.click()
@@ -69,40 +77,32 @@ const inkAfter = await page.getAttribute('html', 'data-ink')
 check('clicking turns print mode on', Boolean(inkAfter), `data-ink=${inkAfter}`)
 
 check(
-  'the paper stocks appear',
-  await papers.isVisible(),
-  'this is the exact mechanism that silently broke before',
+  'the button reads as pressed, like the other filters',
+  (await toggle.getAttribute('aria-pressed')) === 'true' &&
+    (await toggle.evaluate((el) => el.classList.contains('is-active'))),
 )
 
-const labelAfter = (await toggle.innerText()).trim()
-check('the label flips to "Screen mode"', /screen mode/i.test(labelAfter), labelAfter)
+// The archive is the white/black press stock, not one of the shelved riso
+// colours - a saved `paper` from an older visit must not resurrect those.
+check('lands on the press stock', inkAfter === 'press', `data-ink=${inkAfter}`)
 
-check(
-  'the button fills in so the corner reads as active',
-  (await toggle.getAttribute('data-active')) === 'true',
-)
+// The artwork is actually being treated, not just an attribute set.
+const filtered = await page
+  .locator('.pf-item__img')
+  .first()
+  .evaluate((el) => getComputedStyle(el).filter)
+check('the tiles are actually filtered', filtered !== 'none', filtered)
 
-// The page actually repaints, not just the attribute.
-const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor)
-check('the page is painted on stock', bg !== 'rgb(255, 255, 255)' || inkAfter === 'press', bg)
-
-// --- switching stock --------------------------------------------------------
-const swatches = papers.locator('[data-paper]')
-const swatchCount = await swatches.count()
-check('every stock is offered', swatchCount === 6, `${swatchCount} swatches`)
-
-if (swatchCount > 1) {
-  await swatches.nth(2).click()
-  await page.waitForTimeout(300)
-  const changed = await page.getAttribute('html', 'data-ink')
-  check('choosing a stock switches it', changed !== inkAfter, `${inkAfter} -> ${changed}`)
-}
+// The controls must stay out of the treatment, or the buttons that turn it on
+// and off read as part of the artwork.
+const btnFilter = await toggle.evaluate((el) => getComputedStyle(el).filter)
+check('the controls are not filtered', btnFilter === 'none', btnFilter)
 
 // --- and back ---------------------------------------------------------------
 await toggle.click()
 await page.waitForTimeout(400)
-check('clicking again returns to screen', (await page.getAttribute('html', 'data-ink')) === null)
-check('the stocks go away again', !(await papers.isVisible()))
+check('clicking again returns to the colour grid', (await page.getAttribute('html', 'data-ink')) === null)
+check('and the button is unpressed', (await toggle.getAttribute('aria-pressed')) === 'false')
 
 // --- it remembers -----------------------------------------------------------
 await toggle.click()
@@ -111,9 +111,27 @@ const chosen = await page.getAttribute('html', 'data-ink')
 await page.reload({waitUntil: 'domcontentloaded'})
 await page.waitForTimeout(800)
 check(
-  'a reload comes back in print mode',
+  'a reload comes back in archive view',
   (await page.getAttribute('html', 'data-ink')) === chosen,
-  'set before first paint, so no flash of colour',
+  'set before first paint, so no flash of the colour grid',
+)
+
+// It was a control on every page and is now only here. A stray one on a case
+// study would mean the move was half-done.
+await page.goto(`${BASE}/about`, {waitUntil: 'domcontentloaded'})
+await page.waitForTimeout(500)
+check('no archive button on other pages', (await page.locator('#ink-toggle').count()) === 0)
+
+// The 44px floor, at the width where it matters. The whole control row is
+// bumped by one rule, so this catches the row rather than just this button.
+await page.setViewportSize({width: 390, height: 844})
+await page.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded'})
+await page.waitForTimeout(900)
+const phoneBox = await page.locator('#ink-toggle').boundingBox().catch(() => null)
+check(
+  'clears the 44px tap floor on a phone',
+  Boolean(phoneBox && phoneBox.height >= 44 && phoneBox.width >= 44),
+  phoneBox ? `${Math.round(phoneBox.width)}x${Math.round(phoneBox.height)}` : 'no box',
 )
 
 await page.screenshot({path: 'ink-mode.png', fullPage: false})

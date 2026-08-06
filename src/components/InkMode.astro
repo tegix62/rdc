@@ -1,7 +1,13 @@
 ---
 /*
-  "Ink mode" - collapses the whole site to one ink colour on coloured stock,
-  after 1980s one-colour offset/riso fantasy zines.
+  Archive view for the Portfolio grid.
+
+  Was a button in the corner of every page. That was the wrong place for it:
+  as Chris put it, the idea isn't developed enough to be site furniture, and a
+  control that recolours the entire site sitting on a case study is a gimmick
+  rather than a feature. So it lives on the Portfolio page now, as one more
+  button in the row that already holds the filters, Shuffle and the size
+  controls - a view mode alongside the other ways of looking at the grid.
 
   How it works, and why this way:
 
@@ -10,7 +16,7 @@
   colour and dark areas stay dark, which is exactly what one ink on coloured
   stock does. Crucially this is all `filter` and `mix-blend-mode` - both
   compositor-friendly - rather than SVG filters, which Chrome does not
-  GPU-accelerate and which would visibly stall a 66-tile portfolio grid.
+  GPU-accelerate and which would visibly stall a 66-tile grid.
 
   Threshold is `contrast()` taken far past 100%, with `brightness()` shifting
   where the cut falls. That is the cheap 1-bit trick and it is tunable per
@@ -18,12 +24,20 @@
   photographic needs a softer setting or none at all.
 
   The choice is written to <html> before first paint by an inline script, so
-  reloading in ink mode doesn't flash the full-colour site first.
+  reloading in archive view doesn't flash the colour grid first.
 */
 
-// Named after the stock colours in the reference zines. `ink` is deliberately
-// near-black rather than pure black - slightly lifted reads more like real
-// press ink and less like a screenshot.
+/*
+  Stock colours, named after the reference zines. `ink` is deliberately
+  near-black rather than pure black - slightly lifted reads more like real press
+  ink and less like a screenshot.
+
+  Only `press` is reachable today. The riso stocks below are shelved rather than
+  deleted: the treatment works and is worth keeping, but picking a paper colour
+  is a second idea on top of the archive view and it isn't developed enough to
+  put in front of a client. Restoring the picker is a matter of rendering these
+  as swatches again - nothing else has to change.
+*/
 const PAPERS = [
   /*
     Press is the archive: plain white stock, black ink, no colour cast. Chris
@@ -41,49 +55,25 @@ const PAPERS = [
 ---
 
 {/*
-  One button in the corner, and it is the mode itself.
+  Rendered inside .pf-controls on the Portfolio page, so it is a `pf-btn` like
+  Shuffle and the filters rather than a control with a look of its own. That is
+  the point of moving it: it stops being a tool bolted onto the site and becomes
+  one of the ways of looking at the grid.
 
-  There used to be two things here: a `▚` handle that expanded a panel, and the
-  mode toggle inside that panel. Two controls to reach one switch, and the
-  handle's icon said nothing about what it did. Now the corner button IS the
-  switch, and the paper stocks appear beside it only once print mode is on -
-  which is the only time a stock means anything.
-
-  The label names the destination rather than the current state: "Print mode"
-  when you are on screen, "Screen mode" when you are in print. That reads
-  correctly whether or not you can see the page behind it, so no aria-pressed
-  is needed - the accessible name already says what pressing does.
-
-  Still deliberately recessed. This is an experimental tool rather than site
-  furniture and it sits on top of a page meant to show work to a client, so it
-  stays quiet until hovered or until print mode is actually on.
+  aria-pressed rather than a changing label. In a row of toggle buttons that all
+  show state by filling in, this one should behave the same way - "Archive" is
+  the name of the view, and whether you are in it is state, not a different
+  button.
 */}
-<div class="ink-bar" role="group" aria-label="Print mode" data-on="false" id="ink-bar">
-  <div class="ink-bar__papers" id="ink-papers" hidden>
-    {PAPERS.map((p) => (
-      <button
-        type="button"
-        class="ink-bar__swatch"
-        data-paper={p.id}
-        style={`--swatch: ${p.paper}; --swatch-ink: ${p.ink}`}
-        aria-label={`${p.label} stock`}
-        title={p.label}
-      >
-        {/*
-          The colour lives on an inner span, not the button, so the visible
-          swatch can be small while the button keeps a full 44px tap target.
-          Painting the button itself would mean choosing between a row that
-          dominates the corner and a control too small to hit on a phone.
-        */}
-        <span class="ink-bar__chip" aria-hidden="true"></span>
-      </button>
-    ))}
-  </div>
-
-  <button type="button" class="ink-bar__toggle" id="ink-toggle" data-active="false">
-    <span class="ink-bar__toggle-label" id="ink-toggle-label">Print mode</span>
-  </button>
-</div>
+<button
+  type="button"
+  class="pf-btn"
+  id="ink-toggle"
+  aria-pressed="false"
+  title="Black-and-white archive view"
+>
+  Archive
+</button>
 
 {/* Inline and un-bundled so it runs before the first paint. */}
 <script is:inline define:vars={{ PAPERS }}>
@@ -155,14 +145,16 @@ const PAPERS = [
       }
     };
 
-    // There is no panel any more, so there is no open/closed to remember -
-    // just whether print mode is on and which stock. An `open` key left in
-    // localStorage by an older visit spreads in harmlessly and is read by
-    // nothing.
-    let state = { on: false, paper: 'bone' };
+    /*
+      `press` - white stock, black ink - because that is the archive Chris
+      described: a black-and-white index of the marks. The warmer riso stocks
+      are shelved, so a `paper` left in localStorage by an older visit is
+      ignored rather than resurrecting a pink page nobody can now turn off.
+    */
+    let state = { on: false, paper: 'press' };
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
-      if (saved) state = { ...state, ...saved };
+      if (saved) state = { ...state, on: Boolean(saved.on) };
     } catch {}
     apply(state);
 
@@ -172,28 +164,20 @@ const PAPERS = [
       } catch {}
     };
 
-    // The controls are below this script in the document, so wait for them.
+    // The button is below this script in the document, so wait for it.
     document.addEventListener('DOMContentLoaded', () => {
-      const bar = document.getElementById('ink-bar');
       const toggle = document.getElementById('ink-toggle');
-      const label = document.getElementById('ink-toggle-label');
-      const papers = document.getElementById('ink-papers');
-      if (!toggle || !label || !papers || !bar) return;
+      if (!toggle) return;
 
       const sync = () => {
-        // The label names what pressing will do, not where you are.
-        label.textContent = state.on ? 'Screen mode' : 'Print mode';
-        papers.hidden = !state.on;
-        for (const b of papers.querySelectorAll('[data-paper]')) {
-          b.classList.toggle('is-active', state.on && b.dataset.paper === state.paper);
-        }
-        // Fills in while print mode is on, so the corner reads as active.
-        toggle.setAttribute('data-active', String(!!state.on));
-        bar.setAttribute('data-on', String(!!state.on));
+        // Same state signal as every other button in the row: aria-pressed for
+        // assistive tech, .is-active for the fill.
+        toggle.setAttribute('aria-pressed', String(!!state.on));
+        toggle.classList.toggle('is-active', !!state.on);
       };
       sync();
 
-      // Runs on load as well as on click, so arriving already in print mode
+      // Runs on load as well as on click, so arriving already in archive view
       // shows the marks rather than waiting for a toggle.
       swapArchive(state.on);
       announce(state.on);
@@ -205,18 +189,6 @@ const PAPERS = [
         save();
         sync();
         announce(state.on);
-      });
-
-      papers.addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-paper]');
-        if (!btn) return;
-        state.paper = btn.dataset.paper;
-        state.on = true;
-        apply(state);
-        swapArchive(true);
-        save();
-        sync();
-        announce(true);
       });
     });
   })();

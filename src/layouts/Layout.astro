@@ -8,7 +8,6 @@ import { getSiteSettings } from '../lib/queries';
 import Img from '../components/Img.astro';
 import { urlFor } from '../lib/image';
 import VisualEditing from '../components/VisualEditing.astro';
-import InkMode from '../components/InkMode.astro';
 import { buildGraph, serialise, type SiteContext } from '../lib/structuredData';
 
 interface Props {
@@ -206,7 +205,6 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
         -webkit-touch-callout: none;
       }
     </style>
-    <InkMode />
     <VisualEditing />
     <script>
       const navToggle = document.querySelector<HTMLButtonElement>('#site-nav-toggle');

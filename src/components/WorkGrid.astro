@@ -1,0 +1,97 @@
+---
+/*
+  The homepage work grid - a miniature of the Portfolio page's grid.
+
+  Deliberately NOT the Portfolio grid itself. That one is a masonry layout run
+  by Isotope, which means two CDN scripts, a layout pass after paint, and the
+  0.4722 layout shift it took a dedicated fix to get rid of. None of that
+  belongs above the fold on the homepage, whose entire job is to put work and a
+  contact button in front of someone inside half a scroll.
+
+  So: plain CSS grid, no JavaScript, no measurement, nothing to download.
+  Every tile's box is known from the markup, so there is nothing to shift.
+
+  What it keeps from the Portfolio grid is the part that matters - the tiles
+  themselves. Same `pf-item` classes, so the mark/bleed treatment, the archive
+  swap and the ink-mode rules all apply without a parallel set of styles to
+  keep in sync. `heroTile` spans two columns here exactly as it does there:
+  same field, same meaning, nothing to set twice.
+
+  Tiles are links rather than click-to-expand. Expanding is a browsing gesture
+  and belongs on the Portfolio page; here the job is to get someone into the
+  work in one click.
+*/
+import Img from './Img.astro';
+import { treatmentOf, tileHref, heroHeight } from '../lib/tiles';
+
+interface Props {
+  items: any[];
+  heading?: string;
+  /** Where the "see everything" link goes. */
+  moreHref?: string;
+}
+
+const { items = [], heading = 'Selected work', moreHref = '/portfolio' } = Astro.props;
+---
+
+{items.length > 0 && (
+  <section class="peek" aria-labelledby="peek-heading">
+    <div class="peek__head">
+      <h2 class="peek__label" id="peek-heading">{heading}</h2>
+      <a class="peek__more" href={moreHref}>
+        All work <span aria-hidden="true">&rarr;</span>
+      </a>
+    </div>
+
+    <div class="peek__grid">
+      {items.map((item: any) => {
+        const img = item.thumbnail || item.mainImage;
+        if (!img) return null;
+        const href = tileHref(item);
+        const hero = Boolean(item.heroTile);
+
+        /*
+          Both width and height are passed so Img crops rather than keeping the
+          source aspect - and the crop follows the hotspot set in Studio, so a
+          mark or a face stays in frame. Uniform boxes are what make a grid with
+          no masonry read as deliberate instead of ragged.
+        */
+        const tile = (
+          <Img
+            class="pf-item__img"
+            image={img}
+            archive={item.archiveMark}
+            alt={item.title}
+            width={hero ? 1200 : 600}
+            height={hero ? heroHeight(1200) : 600}
+            sizes={hero ? '(max-width: 40rem) 100vw, 44vw' : '(max-width: 40rem) 50vw, 22vw'}
+          />
+        );
+
+        return (
+          <div
+            class:list={[
+              'pf-item',
+              'peek__item',
+              treatmentOf(item) === 'mark' && 'pf-item--mark',
+              hero && 'pf-item--hero',
+            ]}
+          >
+            <div class="pf-item__frame">
+              {href ? (
+                <a class="peek__link" href={href}>
+                  {tile}
+                  <span class="peek__caption">
+                    {item.parentTitle ?? item.title}
+                  </span>
+                </a>
+              ) : (
+                tile
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </section>
+)}

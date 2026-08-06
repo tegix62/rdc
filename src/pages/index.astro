@@ -2,12 +2,27 @@
 import Layout from '../layouts/Layout.astro';
 import Img from '../components/Img.astro';
 import Sections from '../components/Sections.astro';
-import { getPage, getSiteSettings } from '../lib/queries';
+import WorkGrid from '../components/WorkGrid.astro';
+import { getPage, getSiteSettings, getFeaturedWork } from '../lib/queries';
 import { backgroundUrl } from '../lib/image';
 
 const page = await getPage('home');
 const settings = await getSiteSettings();
 const clientLogos = settings?.clientLogos ?? [];
+
+/*
+  Work, high on the page.
+
+  The homepage's job - Chris's own brief for it - is a contact button and all
+  the context someone needs inside half a scroll. It did the context part with
+  words: a bio, four testimonials and a checklist, with the work itself nowhere
+  on the page. This puts a handful of tiles directly under the hero's buttons,
+  so the CTA still comes first and the evidence arrives immediately after it
+  rather than three screens down.
+
+  Curated in Studio, falling back to the most recent while the picker is empty.
+*/
+const featuredWork = await getFeaturedWork(8);
 
 // Editable in Studio under Site Settings. Fallbacks match what was already
 // live on the site, so nothing changes visually if a field is left blank.
@@ -87,6 +102,8 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
     <a class="button button--outline" href="/portfolio">See Portfolio</a>
     <a class="button" href={TALLY_URL}>Let's Work</a>
   </div>
+
+  <WorkGrid items={featuredWork} heading={settings?.featuredWorkHeading || 'Selected work'} />
 
   <section class="bio-row">
     <h2 class="bio-row__text">{bioText}</h2>

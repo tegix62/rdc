@@ -68,10 +68,18 @@ const PAPERS = [
         style={`--swatch: ${p.paper}; --swatch-ink: ${p.ink}`}
         aria-label={`${p.label} stock`}
         title={p.label}
-      ></button>
+      >
+        {/*
+          The colour lives on an inner span, not the button, so the visible
+          swatch can be small while the button keeps a full 44px tap target.
+          Painting the button itself would mean choosing between a panel that
+          dominates the corner and a control too small to hit on a phone.
+        */}
+        <span class="ink-bar__chip" aria-hidden="true"></span>
+      </button>
     ))}
       <button type="button" class="ink-bar__swatch ink-bar__swatch--grain" id="ink-grain" aria-pressed="false" title="Grain">
-        <span aria-hidden="true">▚</span>
+        <span class="ink-bar__chip" aria-hidden="true">▚</span>
       </button>
     </div>
   </div>

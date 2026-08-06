@@ -1596,17 +1596,30 @@ main {
   opacity: 1;
 }
 
+/*
+  Quiet. This is an experimental tool sitting on top of a portfolio, so it
+  should read as a small utility rather than a call to action - the 2px border
+  and 0.75rem padding made it the loudest thing in the corner, competing with
+  the work.
+*/
 .ink-bar__toggle {
   font-family: var(--font-heading);
-  font-size: 0.625rem;
+  font-size: 0.5625rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 0.5rem 0.75rem;
+  padding: 0.3125rem 0.5rem;
   background: var(--color-white);
   color: var(--color-navy);
-  border: 2px solid currentColor;
+  border: 1px solid currentColor;
+  opacity: 0.75;
   cursor: pointer;
+}
+
+.ink-bar__toggle:hover,
+.ink-bar__toggle:focus-visible,
+.ink-bar__toggle[aria-pressed='true'] {
+  opacity: 1;
 }
 
 .ink-bar__toggle[aria-pressed='true'] {
@@ -1615,42 +1628,57 @@ main {
 }
 
 /*
-  Wraps, right-aligned. Adding the white "Press" stock made six papers plus the
-  grain toggle, and at 44px each on a touch pointer that is wider than the bar -
-  which dropped the grain button onto its own line, ragged.
+  A fixed grid, not a wrapping flex row.
+
+  Wrapping produced a staircase - five swatches, then two, then one - because
+  the row's width and the item count don't divide evenly. Four columns puts the
+  six stocks on two tidy rows with the grain toggle beside them, and it stays
+  tidy whatever the swatch size resolves to.
 */
 .ink-bar__papers {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  justify-content: end;
   gap: 0.25rem;
-  max-width: 16rem;
 }
 
-/* The grain toggle is a modifier rather than a stock, so it gets separated
-   deliberately instead of wrapping by accident. */
-.ink-bar__swatch--grain {
-  margin-left: 0.5rem;
-}
-
+/*
+  The button is the tap target; the chip inside it is what you see. That split
+  is what lets the panel stay small without the controls becoming unhittable.
+*/
 .ink-bar__swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 1.5rem;
   height: 1.5rem;
   padding: 0;
+  border: none;
+  background: none;
   cursor: pointer;
-  background: var(--swatch, #fff);
-  border: 2px solid var(--color-ink);
   font-size: 0.75rem;
   line-height: 1;
   color: var(--swatch-ink, #000);
 }
 
-.ink-bar__swatch.is-active {
+.ink-bar__chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: var(--swatch, #fff);
+  border: 1px solid var(--color-ink);
+}
+
+/* On the chip, not the button - the button is a 44px tap target on touch and
+   an outline around that would ring empty space. */
+.ink-bar__swatch.is-active .ink-bar__chip {
   outline: 2px solid var(--color-ink);
   outline-offset: 2px;
 }
 
-.ink-bar__swatch--grain[aria-pressed='true'] {
+.ink-bar__swatch--grain[aria-pressed='true'] .ink-bar__chip {
   background: var(--color-ink);
   color: var(--color-white);
 }
@@ -1733,29 +1761,44 @@ main {
   each image: one cheap layer instead of per-element work, and it reads like
   press texture sitting on top of the whole sheet.
 
-  Two passes to land this. It started at baseFrequency 0.9, which puts each
-  noise feature at roughly a pixel - sensor noise, not press texture, and it
-  read as inconsequential. Then 0.055, about 18px a feature, which Chris called
-  gigantic and was right to.
+  Sizing took four passes: 0.9 (a pixel a feature - sensor noise), 0.055 (18px -
+  gigantic), 0.3 (still too large), now 0.6, which puts features near 1.5-2px.
 
-  0.3 is the middle: features around 3-4px. That is the scale real riso grain
-  sits at - clearly present as texture, not resolving into blobs you can count.
-  Two octaves rather than one, because a little finer detail on top keeps it
-  from looking like a regular pattern.
+  The posterisation was doing as much damage as the frequency. A discrete
+  feFuncA snaps the noise to hard-edged patches, and hard edges read bigger than
+  the same feature soft - so the grain looked coarser than its numbers. It is
+  gone; plain fractal noise at this scale is closer to paper tooth anyway.
+
+  AND IT SCROLLS WITH THE PAGE. This was the real problem. `position: fixed`
+  pinned the texture to the viewport, so content slid underneath it and the
+  whole thing read as a filter laid over a screen rather than a surface the page
+  is printed on. Paper does not stay still while the ink moves. Absolute
+  positioning against the body means the grain travels with the content, which
+  is most of what makes it read as stock at all.
 
   Two knobs, both here rather than buried in the data URI:
     --ink-grain-scale    stretches the tile. Above 1 makes grain larger still.
     --ink-grain-opacity  how heavy the texture sits.
 */
-:root[data-ink][data-ink-grain]::after {
+body {
+  /* Containing block for the grain layer below. */
+  position: relative;
+}
+
+:root[data-ink][data-ink-grain] body::after {
   content: '';
-  position: fixed;
-  inset: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  /* The whole document, not the viewport, so it scrolls with the content. */
+  height: 100%;
+  min-height: 100vh;
   z-index: 50;
   pointer-events: none;
   opacity: var(--ink-grain-opacity, 0.38);
   mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.3' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='discrete' tableValues='0 0 1 1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
   background-repeat: repeat;
   /* 220px is the tile's own size, so scale 1 is 1:1 and anything above it
      enlarges the grain without regenerating the SVG. */
@@ -2150,12 +2193,26 @@ main {
     padding-block: 0.625rem;
   }
 
-  /* 36px still measured under the 44px floor, so it stayed on the audit's
-     list. These are the print-mode paper colours - small targets sitting
-     close together, which is the worst combination on a phone. */
+  /*
+    44px of TAP TARGET, 24px of visible swatch.
+
+    Straight 44px squares made the panel enormous - six of them plus a grain
+    toggle is most of a phone's width, for a tool that is meant to stay out of
+    the way. Padding plus background-clip keeps the colour confined to the
+    middle while the button itself stays a full 44px, so the target passes and
+    the panel still reads as small.
+  */
   .ink-bar__swatch {
     width: 44px;
     height: 44px;
+  }
+
+  /* 44px of button, 24px of visible colour. Six full-size squares plus a grain
+     toggle is most of a phone's width, for a tool meant to stay out of the
+     way. */
+  .ink-bar__chip {
+    width: 24px;
+    height: 24px;
   }
 
   .ink-bar__toggle {

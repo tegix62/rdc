@@ -9,7 +9,9 @@
     "preview": "astro preview",
     "test:images": "node scripts/test-images.mjs",
     "audit:cms": "node scripts/audit-cms.mjs",
-    "audit:pages": "node scripts/audit-pages.mjs"
+    "audit:pages": "node scripts/audit-pages.mjs",
+    "check:production": "node scripts/check-production-build.mjs",
+    "test:production-check": "node scripts/test-production-check.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter-tight": "^5.1.1",

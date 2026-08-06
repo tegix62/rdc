@@ -65,10 +65,23 @@ now built. The CMS audit reports **0 dead fields across 233**.
   `SchemaMarkupJSONLD` script; the port has none. This also means the earlier
   SEO parity check was incomplete — it covered meta/OG/canonical/sitemap/robots
   but not structured data.
-- [ ] **A production deploy workflow.** There is currently *only* a preview
-  deploy. Nothing yet builds this site for a real domain, and the preview
-  build deliberately sets noindex and embeds editing markers. This is the
-  single biggest missing piece for launch.
+- [x] **A production deploy workflow.** Built:
+  `.github/workflows/deploy-production.yml`. Runs only when you ask it to, and
+  *doesn't publish unless you tick the box* — dispatching it builds the real
+  bundle and puts it through a gate, which you can do as often as you like
+  without anything going live. The gate
+  (`scripts/check-production-build.mjs`) reads the built files rather than
+  trusting the workflow's own settings: robots.txt rules, every canonical
+  host and path, the sitemap's contents, invisible stega markers, the editing
+  overlay, and whether every page is stamped with the commit being deployed.
+  Nothing deploys unless it passes. The gate is itself tested — 18 cases,
+  each a dist broken one specific way — and that test runs first in the same
+  job, because this project has shipped a check that could never fail before.
+- [ ] **Production builds read Sanity through its CDN** (`useCdn: !VISUAL_EDITING`),
+  which is right for speed but means a deploy fired seconds after you hit
+  Publish can build from a slightly stale copy. Usually fresh within a few
+  seconds; worth knowing if a change ever seems not to have shipped. The fix,
+  if it bites, is one line.
 - [ ] **Confirm two live scripts are genuinely unused** before assuming:
   ShareThis inline share buttons (+ Finsweet `socialshare` attributes) and
   `webflow-lottie-lazy-loader`. No matching content turned up in the full
@@ -108,18 +121,23 @@ In order. Nothing here is hard; the risk is doing it in the wrong sequence.
    site's routes and write redirects for anything that moved. Skipping this
    silently drops whatever SEO the old URLs have earned. Cloudflare Pages does
    this with a `_redirects` file.
-2. [ ] **Build the production deploy** (above) with `PUBLIC_IS_PREVIEW` and
-   `PUBLIC_SANITY_VISUAL_EDITING` **both false**. The first makes the site
-   noindex itself; the second embeds invisible editing markers in every string
-   of page text. Neither belongs on a live site.
+2. [x] **Build the production deploy** — done, see above. Both preview flags
+   are absent, and the gate refuses the deploy if either reappears.
 3. [ ] **Decide how you edit privately.** Once visual editing is off in
    production you need somewhere it *is* on: either password-protect the
    preview with Cloudflare Access, or run `npm run dev` locally (which also
    gives live-as-you-type editing). Your call; nothing is blocked on it.
-4. [ ] **Check the paperwork on a real build**: `robots.txt` flips from
-   `Disallow: /` to `Allow` plus a sitemap line, canonicals point at
-   `rumeaudesign.co`, and `sitemap.xml` lists every page you expect.
-5. [ ] **Point DNS at Cloudflare Pages.** Keep Webflow running.
+4. [x] **Check the paperwork on a real build** — this is now the gate in step
+   2 rather than a thing to remember. It also re-checks the live URL after
+   publishing, because "the file on disk is right" and "the CDN is serving it"
+   are different claims.
+5. [ ] **Point DNS at Cloudflare Pages.** Keep Webflow running. Then run the
+   production workflow once with **publish** ticked. Worth knowing: the
+   production build is also reachable at `rumeau-design-co.pages.dev`, which
+   is crawlable once `Allow: /` ships. Every canonical points at
+   `rumeaudesign.co`, which is the normal fix for that, but if it ever shows
+   up in search results the answer is a Cloudflare redirect from the pages.dev
+   host to the real domain.
 6. [ ] **Walk the site on a real phone.** Every page, every Contact button
    through to the Tally form, print mode, the portfolio filters. Automated
    checks cover bytes and layout, not whether a form actually submits.

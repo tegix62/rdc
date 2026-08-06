@@ -155,10 +155,15 @@ Verified numbers, not estimates. Homepage is already down 59% and `/video` 89%.
 
 In order. Nothing here is hard; the risk is doing it in the wrong sequence.
 
-1. [ ] **Map the URLs first.** Compare every live Webflow URL against this
-   site's routes and write redirects for anything that moved. Skipping this
-   silently drops whatever SEO the old URLs have earned. Cloudflare Pages does
-   this with a `_redirects` file.
+1. [x] **Map the URLs first** — done. `public/_redirects`, eight rules, built
+   from Webflow's own sitemap by `scripts/audit-urls.mjs` and then checked by
+   hand. The finding that mattered: Webflow serves case studies at
+   `/case-studies/` and posts at `/post/`, where this site uses `/work/` and
+   `/blog/` — so **every** case study and post URL moves at cutover, even the
+   ones whose slug is unchanged. Without the file they would all have 404'd.
+   Webflow publishes 18 URLs in total, not the 80 the migration data suggested;
+   the grid items never had public pages. The production gate now fails the
+   deploy if any redirect points at a page that doesn't exist.
 2. [x] **Build the production deploy** — done, see above. Both preview flags
    are absent, and the gate refuses the deploy if either reappears.
 3. [ ] **Decide how you edit privately.** Once visual editing is off in

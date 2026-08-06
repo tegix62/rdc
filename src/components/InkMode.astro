@@ -41,25 +41,25 @@ const PAPERS = [
 ---
 
 {/*
-  Collapsed to a single corner button by default.
+  One button in the corner, and it is the mode itself.
 
-  This is an experimental tool rather than site furniture, so it should not cost
-  screen space or pull the eye on a page meant to show work to a client. The
-  handle stays deliberately recessed - thin outline, no fill, part opacity -
-  until hovered or until print mode is actually on, at which point it fills in so
-  the state is legible without expanding anything.
+  There used to be two things here: a `▚` handle that expanded a panel, and the
+  mode toggle inside that panel. Two controls to reach one switch, and the
+  handle's icon said nothing about what it did. Now the corner button IS the
+  switch, and the paper stocks appear beside it only once print mode is on -
+  which is the only time a stock means anything.
 
-  44x44 even so. It would be smaller still as a slim edge tab, but the page audit
-  measures every control against a 44px floor and a knowingly-failing one is
-  worse than a slightly larger button.
+  The label names the destination rather than the current state: "Print mode"
+  when you are on screen, "Screen mode" when you are in print. That reads
+  correctly whether or not you can see the page behind it, so no aria-pressed
+  is needed - the accessible name already says what pressing does.
+
+  Still deliberately recessed. This is an experimental tool rather than site
+  furniture and it sits on top of a page meant to show work to a client, so it
+  stays quiet until hovered or until print mode is actually on.
 */}
-<div class="ink-bar" role="group" aria-label="Print mode" data-open="false" id="ink-bar">
-  <div class="ink-bar__panel" id="ink-panel" hidden>
-    <button type="button" class="ink-bar__toggle" id="ink-toggle" aria-pressed="false">
-      <span class="ink-bar__toggle-label">Print mode</span>
-    </button>
-
-    <div class="ink-bar__papers" id="ink-papers" hidden>
+<div class="ink-bar" role="group" aria-label="Print mode" data-on="false" id="ink-bar">
+  <div class="ink-bar__papers" id="ink-papers" hidden>
     {PAPERS.map((p) => (
       <button
         type="button"
@@ -72,25 +72,16 @@ const PAPERS = [
         {/*
           The colour lives on an inner span, not the button, so the visible
           swatch can be small while the button keeps a full 44px tap target.
-          Painting the button itself would mean choosing between a panel that
+          Painting the button itself would mean choosing between a row that
           dominates the corner and a control too small to hit on a phone.
         */}
         <span class="ink-bar__chip" aria-hidden="true"></span>
       </button>
     ))}
-    </div>
   </div>
 
-  <button
-    type="button"
-    class="ink-bar__handle"
-    id="ink-handle"
-    aria-expanded="false"
-    aria-controls="ink-panel"
-    aria-label="Print mode options"
-    title="Print mode"
-  >
-    <span aria-hidden="true">▚</span>
+  <button type="button" class="ink-bar__toggle" id="ink-toggle" data-active="false">
+    <span class="ink-bar__toggle-label" id="ink-toggle-label">Print mode</span>
   </button>
 </div>
 
@@ -164,9 +155,11 @@ const PAPERS = [
       }
     };
 
-    // `open` is only the panel's visibility, kept with the rest so the tool
-    // stays where you left it rather than re-collapsing on every page.
-    let state = { on: false, paper: 'bone', open: false };
+    // There is no panel any more, so there is no open/closed to remember -
+    // just whether print mode is on and which stock. An `open` key left in
+    // localStorage by an older visit spreads in harmlessly and is read by
+    // nothing.
+    let state = { on: false, paper: 'bone' };
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
       if (saved) state = { ...state, ...saved };
@@ -182,42 +175,23 @@ const PAPERS = [
     // The controls are below this script in the document, so wait for them.
     document.addEventListener('DOMContentLoaded', () => {
       const bar = document.getElementById('ink-bar');
-      const handle = document.getElementById('ink-handle');
-      const panel = document.getElementById('ink-panel');
       const toggle = document.getElementById('ink-toggle');
+      const label = document.getElementById('ink-toggle-label');
       const papers = document.getElementById('ink-papers');
-      if (!toggle || !papers || !bar || !handle || !panel) return;
+      if (!toggle || !label || !papers || !bar) return;
 
       const sync = () => {
-        toggle.setAttribute('aria-pressed', String(state.on));
+        // The label names what pressing will do, not where you are.
+        label.textContent = state.on ? 'Screen mode' : 'Print mode';
         papers.hidden = !state.on;
         for (const b of papers.querySelectorAll('[data-paper]')) {
           b.classList.toggle('is-active', state.on && b.dataset.paper === state.paper);
         }
-        panel.hidden = !state.open;
-        bar.setAttribute('data-open', String(!!state.open));
-        handle.setAttribute('aria-expanded', String(!!state.open));
-        // The handle fills in when print mode is active, so the state is
-        // readable while collapsed.
-        handle.setAttribute('data-active', String(!!state.on));
+        // Fills in while print mode is on, so the corner reads as active.
+        toggle.setAttribute('data-active', String(!!state.on));
+        bar.setAttribute('data-on', String(!!state.on));
       };
       sync();
-
-      handle.addEventListener('click', () => {
-        state.open = !state.open;
-        save();
-        sync();
-      });
-
-      // Escape collapses it, which is the expected way out of a panel that
-      // covers part of the page.
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && state.open) {
-          state.open = false;
-          save();
-          sync();
-        }
-      });
 
       // Runs on load as well as on click, so arriving already in print mode
       // shows the marks rather than waiting for a toggle.

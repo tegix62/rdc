@@ -34,9 +34,12 @@
 /*
   The `hidden` attribute only hides things via the browser's default stylesheet,
   and ANY author `display` rule beats it - author styles win over UA styles
-  regardless of specificity. So `.ink-bar__panel { display: flex }` quietly made
-  `panel.hidden = true` do nothing, and the collapse handle looked dead while
-  firing correctly every time.
+  regardless of specificity. A `display: flex` on an element being hidden with
+  `el.hidden = true` quietly made the assignment do nothing, and the control
+  driving it looked dead while firing correctly every time.
+
+  Still load-bearing: `.ink-bar__papers` has `display: grid` and is hidden this
+  way whenever print mode is off.
 
   A one-line reset, because the next component to use `hidden` alongside a
   display rule would hit exactly the same thing and it is invisible in the
@@ -441,10 +444,19 @@ main {
   color: var(--color-white);
 }
 
-.button--dark {
-  background: var(--color-black);
-}
+/*
+  There is no black button variant.
 
+  There used to be - `.button--dark` on the footer's "Get in Touch" and on the
+  homepage proof card's "Let's Work" - and it put pure black next to the navy
+  outlined "Contact" in the nav, two treatments for the same action in a
+  palette that otherwise has no black in it. Removed rather than recoloured, so
+  it cannot come back by someone reaching for a class that still exists.
+
+  `--white` stays, because it is not a second brand colour: it is the navy
+  button inverted for the navy card it sits on, where a navy button would be
+  invisible.
+*/
 .button--white {
   background: var(--color-white);
   color: var(--color-navy);
@@ -452,10 +464,6 @@ main {
 
 .button--white:hover {
   background: var(--color-gray-light);
-}
-
-.button--dark:hover {
-  background: var(--color-navy-dark);
 }
 
 /* Homepage: statement / hero - full-bleed dark navy section with the
@@ -1673,84 +1681,45 @@ main {
   gap: 0.375rem;
 }
 
-.ink-bar__panel {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.375rem;
-}
-
 /*
-  The collapsed handle.
+  The only control in the corner, and it is the mode switch itself. The `▚`
+  handle that used to expand a panel is gone: two controls to reach one switch,
+  with an icon that said nothing about what it did.
 
-  Recessed on purpose: this is an experimental tool, not site furniture, and on a
-  page being shown to a client it should not be the thing that catches the eye. A
-  hairline and no fill at 45% opacity reads as "something is there" without
-  announcing itself, and it comes up to full on hover, on keyboard focus, or
-  whenever print mode is actually on - so the state stays legible while collapsed.
-*/
-.ink-bar__handle {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 1px solid var(--color-ink);
-  background: transparent;
-  color: var(--color-ink);
-  font-size: 0.875rem;
-  line-height: 1;
-  cursor: pointer;
-  opacity: 0.45;
-  transition: opacity 120ms ease, background-color 120ms ease, color 120ms ease;
-  appearance: none;
-  -webkit-appearance: none;
-}
+  Quiet on purpose. This is an experimental tool sitting on top of a portfolio,
+  so it reads as a small utility rather than a call to action - hairline border,
+  no fill, part opacity - and comes up to full on hover, on keyboard focus, or
+  whenever print mode is actually on.
 
-.ink-bar__handle:hover,
-.ink-bar__handle:focus-visible {
-  opacity: 1;
-}
-
-/* Print mode is on: fill in, so you can tell from the corner alone. */
-.ink-bar__handle[data-active='true'] {
-  opacity: 1;
-  background: var(--color-ink);
-  color: var(--color-white);
-}
-
-.ink-bar[data-open='true'] .ink-bar__handle {
-  opacity: 1;
-}
-
-/*
-  Quiet. This is an experimental tool sitting on top of a portfolio, so it
-  should read as a small utility rather than a call to action - the 2px border
-  and 0.75rem padding made it the loudest thing in the corner, competing with
-  the work.
+  min-height 44px because the page audit measures every control against a 44px
+  floor. The text is deliberately small; the padding does the rest.
 */
 .ink-bar__toggle {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-family: var(--font-heading);
   font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 0.3125rem 0.5rem;
+  padding: 0.3125rem 0.75rem;
   background: var(--color-white);
   color: var(--color-navy);
   border: 1px solid currentColor;
-  opacity: 0.75;
+  opacity: 0.6;
   cursor: pointer;
+  transition: opacity 120ms ease, background-color 120ms ease, color 120ms ease;
 }
 
 .ink-bar__toggle:hover,
 .ink-bar__toggle:focus-visible,
-.ink-bar__toggle[aria-pressed='true'] {
+.ink-bar__toggle[data-active='true'] {
   opacity: 1;
 }
 
-.ink-bar__toggle[aria-pressed='true'] {
+/* Print mode is on: fill in, so the corner reads as active at a glance. */
+.ink-bar__toggle[data-active='true'] {
   background: var(--color-navy);
   color: var(--color-white);
 }
@@ -1808,11 +1777,6 @@ main {
 .ink-bar__swatch.is-active .ink-bar__chip {
   outline: 2px solid var(--color-ink);
   outline-offset: 2px;
-}
-
-.ink-bar__swatch--grain[aria-pressed='true'] .ink-bar__chip {
-  background: var(--color-ink);
-  color: var(--color-white);
 }
 
 /*
@@ -2002,17 +1966,10 @@ body {
   text-underline-offset: 2px;
 }
 
-/* The handle has to sit in the ink palette too, or it stays site-navy on
-   coloured stock and is the one thing on screen that didn't convert. */
-:root[data-ink] .ink-bar__handle {
-  border-color: var(--ink-ink);
-  color: var(--ink-ink);
-}
-
-:root[data-ink] .ink-bar__handle[data-active='true'] {
-  background: var(--ink-ink);
-  color: var(--ink-paper);
-}
+/* No ink-mode override for the corner button: it is painted in --color-white
+   and --color-navy, and both are remapped to the stock and its ink above, so
+   it converts with everything else. The handle needed its own rule only
+   because it used --color-ink directly. */
 
 @media (max-width: 40rem) {
   .ink-bar {

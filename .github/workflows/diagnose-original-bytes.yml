@@ -1,0 +1,55 @@
+name: Diagnose the impossible image sizes
+
+# The animated audit reports a 200x200 asset whose original is 620 KB - four
+# times the size of its own uncompressed bitmap. Something in that row is
+# describing a different file than the one that was uploaded. This finds out
+# which, by fetching the same URLs several ways and comparing.
+#
+# Runs in CI because the sandbox has no egress to cdn.sanity.io.
+#
+# Results go to the run summary and to the `study-reports` branch's
+# diagnosis/ directory, so a later session can read them with git alone.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/diagnose-original-bytes.mjs'
+      - '.github/workflows/diagnose-original-bytes.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Measure
+        run: |
+          set -o pipefail
+          mkdir -p diagnosis
+          node scripts/diagnose-original-bytes.mjs --out diagnosis 2>&1 \
+            | tee diagnosis/measurements.txt
+
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Original bytes, by Accept header'
+            echo ''
+            echo '```'
+            cat diagnosis/measurements.txt 2>/dev/null || echo '(nothing produced)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: diagnosis
+          path: diagnosis
+          if-no-files-found: ignore

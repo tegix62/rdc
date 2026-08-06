@@ -21,6 +21,33 @@ import {originalUrl, mayBeAnimated} from './image';
 
 const cache = new Map<string, Promise<boolean>>();
 
+/*
+  The Accept header a browser sends, and the single most important line in this
+  file.
+
+  Sanity content-negotiates the bare asset URL, not just transform URLs. Asked
+  for `<id>-300x300.webp` with Node's default `* / *`, the CDN returns a static
+  15 KB JPEG. Asked for the same URL with a browser's Accept header, it returns
+  the real 1,348 KB animated WebP, ANIM chunk and all.
+
+  So this probe spent its life reading a still frame and concluding, correctly
+  about the bytes it was given and wrongly about the file, that these assets
+  were not animated. The site then sent animated WebPs through the resize
+  pipeline - which is what /portfolio's 7.6 MB is made of, and why the
+  animated-sources audit reported a 200x200 asset weighing 620 KB: 15 bytes per
+  pixel, four times its own uncompressed bitmap, which no still image can be.
+
+  Measured, with controls, in scripts/diagnose-original-bytes.mjs. An animated
+  GIF is byte-identical under every Accept header - there is nothing to
+  negotiate, GIF being universally supported - which is precisely why GIF
+  detection worked all along and WebP detection never could.
+
+  Any future code that measures or reads image bytes needs this header too. A
+  request without it describes a response no visitor receives.
+*/
+const BROWSER_ACCEPT =
+  'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8';
+
 async function probe(url: string): Promise<boolean> {
   try {
     // 4 KB, not 256 bytes. A GIF's NETSCAPE application extension - the loop
@@ -30,7 +57,9 @@ async function probe(url: string): Promise<boolean> {
     // window could never reach it. Measured: 13 animated GIFs in this dataset
     // were reported static, including the 400x400 one that the CDN turns from
     // 867 KB into 4,602 KB.
-    const res = await fetch(url, {headers: {Range: 'bytes=0-4095'}});
+    const res = await fetch(url, {
+      headers: {Range: 'bytes=0-4095', Accept: BROWSER_ACCEPT},
+    });
     if (!res.ok && res.status !== 206) return false;
     const bytes = new Uint8Array(await res.arrayBuffer());
     const ascii = (start: number, len: number) =>

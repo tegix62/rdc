@@ -120,10 +120,22 @@ console.log(
 const truthOf = (bytes) => {
   const ascii = (start, len) => String.fromCharCode(...bytes.slice(start, start + len))
   if (ascii(0, 3) === 'GIF') {
+    /*
+      The whole window, not the first 200 bytes.
+
+      A GIF's NETSCAPE looping extension sits after the logical screen
+      descriptor AND the global colour table, and a 256-colour table alone is
+      768 bytes - so on a typical GIF the marker lives past offset 780 and a
+      200-byte read can never reach it. The shipped probe was fixed for this;
+      this cross-check was not, which made it useless in the one direction that
+      matters: it agreed with the probe when the probe was right, and reported
+      "no loop block in first 200B" on a real animated GIF.
+    */
+    const loop = ascii(0, bytes.length).includes('NETSCAPE')
     return {
       format: 'gif',
-      animated: ascii(0, 200).includes('NETSCAPE'),
-      note: ascii(0, 200).includes('NETSCAPE') ? 'NETSCAPE loop block' : 'no loop block in first 200B',
+      animated: loop,
+      note: loop ? 'NETSCAPE loop block' : `no loop block in first ${bytes.length}B`,
     }
   }
   if (ascii(1, 3) === 'PNG') {
@@ -211,11 +223,22 @@ for (const a of candidates) {
     continue
   }
 
-  // 512 bytes rather than the shipped probe's 256: this needs room to see
-  // whether a marker sits just past the window the probe reads.
+  /*
+    The same window the shipped probe reads, and - the part that was missing -
+    the same Accept header a browser sends.
+
+    Without it the CDN content-negotiates the bare asset URL down to a static
+    JPEG or PNG fallback, so this read the first frame of an animation and
+    reported "unrecognised magic: ff d8 ff db" on assets that are animated
+    WebP. `measure()` above already sent the header for byte counts; this call
+    did not, so the sizes in this report were a browser's and the verdicts were
+    not. Two halves of one row describing two different responses.
+  */
   let bytes = new Uint8Array()
   try {
-    const res = await fetch(url, {headers: {Range: 'bytes=0-511'}})
+    const res = await fetch(url, {
+      headers: {Range: 'bytes=0-4095', Accept: BROWSER_ACCEPT},
+    })
     bytes = new Uint8Array(await res.arrayBuffer())
   } catch (err) {
     console.log(`  ?? header fetch failed for ${a.ref}: ${err}`)

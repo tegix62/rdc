@@ -118,7 +118,7 @@ if (emptyFilters.length > 0) {
     </div>
 
     <div class="pf-grid" id="pf-grid">
-      {items.map((item: any) => {
+      {items.map((item: any, i: number) => {
         const img = item.thumbnail || item.mainImage;
         const cat = CATEGORY_FILTER[cleanKey(item.category)] ?? '';
         // Only link to a parent that actually has a page.
@@ -144,6 +144,19 @@ if (emptyFilters.length > 0) {
               can carry ONE border around both. Bordering each separately would
               read as two stacked outlines with a gap between them.
             */}
+            {/*
+              Plate number. Only visible in archive mode, where it turns a
+              gallery into a catalogue - the convention every plate book and
+              type specimen uses. Not a title: Chris's whole point about
+              logomarks is that they carry themselves without one, and an index
+              number indexes rather than describes.
+
+              Source order, not display order, so a given piece keeps its number
+              when the grid is shuffled or filtered.
+            */}
+            <span class="pf-item__plate" aria-hidden="true">
+              {String(i + 1).padStart(2, '0')}
+            </span>
             <div class="pf-item__frame">
               {/*
                 Passing height alongside width is what makes Img crop rather
@@ -289,7 +302,22 @@ if (emptyFilters.length > 0) {
       Two frames again, for the same reason: the CSS has to apply and the
       browser reflow before Isotope reads real heights.
     */
-    document.addEventListener('inkmodechange', () => {
+    document.addEventListener('inkmodechange', (e: any) => {
+      /*
+        The categorical change: masonry becomes fitRows.
+
+        Masonry is a feed - ragged columns, items packing into whatever gap is
+        nearest, no shared horizontal line. An archive is the opposite: ruled
+        rows, every plate on a common baseline, the way a specimen sheet or a
+        catalogue is set. Combined with the square cells the CSS gives archive
+        tiles, that turns the same content into a plate book rather than a
+        recoloured feed.
+
+        Isotope has fitRows built in, so this is a mode switch rather than a
+        second layout engine.
+      */
+      const on = Boolean(e?.detail?.on);
+      iso.arrange({layoutMode: on ? 'fitRows' : 'masonry'});
       requestAnimationFrame(() => requestAnimationFrame(() => iso.layout()));
     });
   });

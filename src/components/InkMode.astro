@@ -78,9 +78,6 @@ const PAPERS = [
         <span class="ink-bar__chip" aria-hidden="true"></span>
       </button>
     ))}
-      <button type="button" class="ink-bar__swatch ink-bar__swatch--grain" id="ink-grain" aria-pressed="false" title="Grain">
-        <span class="ink-bar__chip" aria-hidden="true">▚</span>
-      </button>
     </div>
   </div>
 
@@ -115,8 +112,12 @@ const PAPERS = [
       root.setAttribute('data-ink', paper.id);
       root.style.setProperty('--ink-paper', paper.paper);
       root.style.setProperty('--ink-ink', paper.ink);
-      if (state.grain) root.setAttribute('data-ink-grain', 'on');
-      else root.removeAttribute('data-ink-grain');
+      /*
+        Grain is not a setting any more. Paper has tooth; being asked whether
+        you would like some was a question with one sensible answer, and it cost
+        a control in a panel that should be as small as possible.
+      */
+      root.setAttribute('data-ink-grain', 'on');
     };
 
     /*
@@ -165,7 +166,7 @@ const PAPERS = [
 
     // `open` is only the panel's visibility, kept with the rest so the tool
     // stays where you left it rather than re-collapsing on every page.
-    let state = { on: false, paper: 'bone', grain: true, open: false };
+    let state = { on: false, paper: 'bone', open: false };
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
       if (saved) state = { ...state, ...saved };
@@ -185,13 +186,11 @@ const PAPERS = [
       const panel = document.getElementById('ink-panel');
       const toggle = document.getElementById('ink-toggle');
       const papers = document.getElementById('ink-papers');
-      const grain = document.getElementById('ink-grain');
       if (!toggle || !papers || !bar || !handle || !panel) return;
 
       const sync = () => {
         toggle.setAttribute('aria-pressed', String(state.on));
         papers.hidden = !state.on;
-        grain?.setAttribute('aria-pressed', String(!!state.grain));
         for (const b of papers.querySelectorAll('[data-paper]')) {
           b.classList.toggle('is-active', state.on && b.dataset.paper === state.paper);
         }
@@ -244,13 +243,6 @@ const PAPERS = [
         save();
         sync();
         announce(true);
-      });
-
-      grain?.addEventListener('click', () => {
-        state.grain = !state.grain;
-        apply(state);
-        save();
-        sync();
       });
     });
   })();

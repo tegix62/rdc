@@ -930,8 +930,48 @@ main {
   a sheet with something printed on it rather than as a wall.
 */
 :root[data-ink] .pf-grid {
-  max-width: var(--pf-archive-width, 82%);
+  max-width: var(--pf-archive-width, 94%);
   margin-inline: auto;
+}
+
+/*
+  Square plates.
+
+  This is what makes the archive stop being the same grid decolourised. Every
+  tile becomes an equal square cell and the artwork is CONTAINED inside it
+  rather than filling it - so a wide poster and a tall photograph both sit
+  centred in the same frame with air around them, exactly as plates do on a
+  specimen sheet.
+
+  Masonry exists to avoid this: it packs varied heights so nothing is wasted.
+  The archive wants the waste. The empty space around an odd-shaped piece is
+  the point, and it is what a page of plates looks like.
+
+  Paired with fitRows in portfolio.astro, so rows share a baseline instead of
+  ragging.
+*/
+:root[data-ink] .pf-item__img {
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+
+/*
+  Plate numbers. Hidden by default - the standard grid has no captions and
+  should not gain one - and revealed in archive mode, where numbering is what
+  makes it read as a catalogue rather than a gallery.
+*/
+.pf-item__plate {
+  display: none;
+}
+
+:root[data-ink] .pf-item__plate {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-family: var(--font-heading);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: color-mix(in srgb, var(--ink-ink) 45%, var(--ink-paper));
 }
 
 /*

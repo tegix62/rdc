@@ -7,6 +7,7 @@ import { getCaseStudy, getGridItems, getOtherCaseStudies } from '../../lib/queri
 import { urlFor } from '../../lib/image';
 import { renderPortableText } from '../../lib/portableText';
 import Video from '../../components/Video.astro';
+import { caseStudyNode } from '../../lib/structuredData';
 
 export async function getStaticPaths() {
   const slugs = await sanityClient.fetch(
@@ -42,6 +43,7 @@ const ogImage = ogSource
   description={caseStudy.oneLineSummary}
   ogType="article"
   ogImage={ogImage}
+  jsonLd={(ctx) => caseStudyNode(ctx, caseStudy)}
 >
   {/*
     A case study leads with either a video or an image, never both. Hug a Mug's

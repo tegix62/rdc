@@ -61,10 +61,14 @@ now built. The CMS audit reports **0 dead fields across 233**.
 
 ### Mine to build
 
-- [ ] **JSON-LD structured data.** The live site registers a
-  `SchemaMarkupJSONLD` script; the port has none. This also means the earlier
-  SEO parity check was incomplete — it covered meta/OG/canonical/sitemap/robots
-  but not structured data.
+- [x] **JSON-LD structured data.** Every page now carries one `@graph`:
+  Organization (name, logo, and your social links as `sameAs`), WebSite, and a
+  WebPage node for itself. Case studies add a CreativeWork naming the client
+  and the category; blog posts add a BlogPosting; both add breadcrumbs. Built
+  only from filled Sanity fields — an empty field states nothing rather than
+  guessing. The production gate parses the block on every page and fails the
+  deploy if it is malformed, missing a node, or describing a different URL,
+  because a broken JSON-LD block is invisible and is discarded silently.
 - [x] **A production deploy workflow.** Built:
   `.github/workflows/deploy-production.yml`. Runs only when you ask it to, and
   *doesn't publish unless you tick the box* — dispatching it builds the real

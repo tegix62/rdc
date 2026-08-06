@@ -5,6 +5,7 @@ import { sanityClient } from '../../lib/sanity';
 import { getBlogPost } from '../../lib/queries';
 import { urlFor } from '../../lib/image';
 import { renderPortableText } from '../../lib/portableText';
+import { blogPostNode } from '../../lib/structuredData';
 
 export async function getStaticPaths() {
   const slugs = await sanityClient.fetch(`*[_type == "blogPost"].slug.current`);
@@ -32,6 +33,7 @@ const ogImage = ogSource
   description={post.metaDescription ?? post.excerpt}
   ogType="article"
   ogImage={ogImage}
+  jsonLd={(ctx) => blogPostNode(ctx, post)}
 >
   <article>
     <h1>{post.title}</h1>

@@ -9,6 +9,7 @@ import Img from '../components/Img.astro';
 import { urlFor } from '../lib/image';
 import VisualEditing from '../components/VisualEditing.astro';
 import InkMode from '../components/InkMode.astro';
+import { buildGraph, serialise, type SiteContext } from '../lib/structuredData';
 
 interface Props {
   title: string;
@@ -17,9 +18,20 @@ interface Props {
   ogImage?: string;
   /** 'article' for blog posts and case studies. */
   ogType?: 'website' | 'article';
+  /**
+   * Extra Schema.org nodes for this page - a CreativeWork for a case study, a
+   * BlogPosting for a post. They join the sitewide Organization/WebSite/WebPage
+   * nodes in one @graph. See src/lib/structuredData.ts.
+   *
+   * A function rather than an array because the nodes need this page's
+   * canonical URL, which is worked out below - passing an array would mean
+   * every template re-deriving the same URL and eventually one of them getting
+   * it wrong.
+   */
+  jsonLd?: (ctx: SiteContext) => Record<string, unknown>[];
 }
 
-const { title, description = 'Rumeau Design Co', ogImage, ogType = 'website' } = Astro.props;
+const { title, description = 'Rumeau Design Co', ogImage, ogType = 'website', jsonLd } = Astro.props;
 
 const settings = await getSiteSettings();
 
@@ -52,6 +64,25 @@ const TALLY_URL = settings?.contactUrl || 'https://tally.so/r/mZ8LXz';
 // nothing to the site - the audit in scripts/audit-cms.mjs found them.
 const SITE_NAME = settings?.siteTitle || 'Rumeau Design Co';
 const FOOTER_TEXT = settings?.footerText;
+
+/*
+  Structured data. The live Webflow site emits a JSON-LD block and this one
+  did not, which is the gap the SEO parity check missed - it compared meta, OG,
+  canonical, sitemap and robots and never looked for this.
+
+  Built here for every page so the Organization and WebSite nodes are stated
+  once and referenced by @id, rather than each template restating the business.
+*/
+const structuredDataContext: SiteContext = {
+  origin: (Astro.site?.origin ?? 'https://rumeaudesign.co').replace(/\/$/, ''),
+  canonical,
+  title,
+  description,
+  image: ogImage,
+  logoUrl: settings?.logo ? urlFor(settings.logo).width(512).url() : undefined,
+  settings,
+};
+const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) ?? []);
 ---
 
 <!doctype html>
@@ -94,6 +125,10 @@ const FOOTER_TEXT = settings?.footerText;
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     {ogImage && <meta name="twitter:image" content={ogImage} />}
+
+    {/* Explicit closing tag: a self-closed <script/> is not valid HTML and
+        browsers swallow the rest of the head. */}
+    <script type="application/ld+json" is:inline set:html={serialise(graph)}></script>
   </head>
   <body>
     <header class="site-nav">

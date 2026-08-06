@@ -219,6 +219,61 @@ for (const file of htmlFiles) {
     }
   }
 
+  /*
+    Structured data. Worth checking rather than eyeballing because it is the
+    one part of a page nobody ever looks at: it is invisible in a browser, and
+    a malformed block is silently discarded by every crawler that reads it. A
+    JSON-LD block that does not parse is indistinguishable, from the outside,
+    from having none at all - which is the state this site was in until now.
+  */
+  const ldBlocks = [
+    ...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi),
+  ].map((m) => m[1])
+
+  if (ldBlocks.length === 0) {
+    fail('json-ld', `${route} has no structured data`)
+  } else if (ldBlocks.length > 1) {
+    // Several blocks is legal, but this site emits one @graph on purpose, so
+    // more than one means something is being stated twice.
+    fail('json-ld', `${route} has ${ldBlocks.length} JSON-LD blocks, expected one @graph`)
+  } else {
+    let graph = null
+    try {
+      graph = JSON.parse(ldBlocks[0])
+    } catch (err) {
+      fail('json-ld', `${route} JSON-LD does not parse: ${String(err).slice(0, 90)}`)
+    }
+    if (graph) {
+      const nodes = Array.isArray(graph['@graph']) ? graph['@graph'] : []
+      if (graph['@context'] !== 'https://schema.org') {
+        fail('json-ld', `${route} @context is ${graph['@context']}`)
+      }
+      if (!nodes.length) {
+        fail('json-ld', `${route} @graph is empty`)
+      }
+      const types = new Set(nodes.map((n) => n?.['@type']))
+      for (const required of ['Organization', 'WebSite', 'WebPage']) {
+        if (!types.has(required)) fail('json-ld', `${route} @graph has no ${required} node`)
+      }
+      for (const node of nodes) {
+        if (!node || !node['@type']) fail('json-ld', `${route} has a node with no @type`)
+      }
+      // The WebPage node has to name this page, or the graph describes some
+      // other URL - which is how a template that hardcoded a canonical would
+      // look, and it would look fine.
+      const webpage = nodes.find((n) => n?.['@type'] === 'WebPage')
+      if (webpage && webpage.url && webpage.url.replace(/(.)\/$/, '$1') !== `${ORIGIN}${route === '/' ? '' : route}`) {
+        fail('json-ld', `${route} WebPage node claims ${webpage.url}`)
+      }
+      // An empty string is not "no value" - it is a claim that the business
+      // has no name. compact() in structuredData.ts should have dropped these.
+      const emptyStrings = JSON.stringify(graph).match(/:""/g)
+      if (emptyStrings) {
+        fail('json-ld', `${route} states ${emptyStrings.length} empty value(s)`)
+      }
+    }
+  }
+
   // Nothing on the live site should link back to where it was staged.
   for (const host of ['pages.dev', 'localhost:', '127.0.0.1']) {
     if (html.includes(`//${host}`) || html.includes(`.${host}`)) {

@@ -51,14 +51,31 @@ const WORK = ['/work/dumpstat', '/work/hug-a-mug']
 */
 const STEGA_RUN = '​​​​‌‍⁢﻿'
 
-function page(route, {stamp = SHA, canonical, noindex = false, extraHead = '', body = ''} = {}) {
+/* The @graph Layout.astro emits, in miniature. */
+function graphFor(route) {
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {'@type': 'Organization', '@id': `${ORIGIN}/#organization`, name: 'Rumeau Design Co'},
+      {'@type': 'WebSite', '@id': `${ORIGIN}/#website`, url: `${ORIGIN}/`},
+      {'@type': 'WebPage', '@id': `${ORIGIN}${route}#webpage`, url: `${ORIGIN}${route}`},
+    ],
+  }
+}
+
+function page(
+  route,
+  {stamp = SHA, canonical, noindex = false, extraHead = '', body = '', jsonLd} = {},
+) {
   const href = canonical ?? `${ORIGIN}${route}`
+  const ld = jsonLd === false ? '' : (jsonLd ?? JSON.stringify(graphFor(route)))
   return `<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="build-commit" content="${stamp}">
 ${href === false ? '' : `<link rel="canonical" href="${href}">`}
 ${noindex ? '<meta name="robots" content="noindex, nofollow">' : ''}
+${ld ? `<script type="application/ld+json">${ld}</script>` : ''}
 ${extraHead}
 <title>${route}</title>
 </head><body><h1>${route}</h1>${body}</body></html>
@@ -223,6 +240,50 @@ await scenario('catches a sitemap missing a static page', 'sitemap', {
 
 await scenario('catches a sitemap URL with no page behind it', 'sitemap', {
   sitemapRoutes: [...STATIC, ...WORK, '/work/never-built'],
+})
+
+await scenario('catches a page with no structured data', 'json-ld', {'/about': {jsonLd: false}})
+
+await scenario('catches structured data that does not parse', 'json-ld', {
+  '/about': {jsonLd: '{"@context": "https://schema.org", "@graph": [ '},
+})
+
+await scenario('catches structured data missing the Organization', 'json-ld', {
+  '/about': {
+    jsonLd: JSON.stringify({
+      '@context': 'https://schema.org',
+      '@graph': [
+        {'@type': 'WebSite', '@id': `${ORIGIN}/#website`},
+        {'@type': 'WebPage', url: `${ORIGIN}/about`},
+      ],
+    }),
+  },
+})
+
+await scenario('catches structured data describing a different page', 'json-ld', {
+  '/about': {
+    jsonLd: JSON.stringify({
+      '@context': 'https://schema.org',
+      '@graph': [
+        {'@type': 'Organization', '@id': `${ORIGIN}/#organization`},
+        {'@type': 'WebSite', '@id': `${ORIGIN}/#website`},
+        {'@type': 'WebPage', url: `${ORIGIN}/video`},
+      ],
+    }),
+  },
+})
+
+await scenario('catches structured data stating an empty value', 'json-ld', {
+  '/about': {
+    jsonLd: JSON.stringify({
+      '@context': 'https://schema.org',
+      '@graph': [
+        {'@type': 'Organization', '@id': `${ORIGIN}/#organization`, name: ''},
+        {'@type': 'WebSite', '@id': `${ORIGIN}/#website`},
+        {'@type': 'WebPage', url: `${ORIGIN}/about`},
+      ],
+    }),
+  },
 })
 
 await scenario('catches a sitemap on the wrong origin', 'sitemap', {

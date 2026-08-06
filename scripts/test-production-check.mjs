@@ -286,6 +286,23 @@ await scenario('catches structured data stating an empty value', 'json-ld', {
   },
 })
 
+await scenario('catches a redirect pointing at a page that does not exist', 'redirects', {}, {
+  after: (dist) =>
+    writeFile(path.join(dist, '_redirects'), '/old-thing  /work/never-built  301\n'),
+})
+
+await scenario('catches a redirect that shadows a real page', 'redirects', {}, {
+  after: (dist) => writeFile(path.join(dist, '_redirects'), '/about  /portfolio  301\n'),
+})
+
+await scenario('accepts a correct redirects file', null, {}, {
+  after: (dist) =>
+    writeFile(
+      path.join(dist, '_redirects'),
+      '# a comment\n\n/old-case-study  /work/dumpstat  301\n',
+    ),
+})
+
 await scenario('catches a sitemap on the wrong origin', 'sitemap', {
   sitemap: `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

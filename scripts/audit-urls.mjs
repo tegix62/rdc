@@ -125,6 +125,20 @@ function targetFor(p) {
     if (newSet.has(candidate)) return {to: candidate, why: 'same page, new prefix'}
   }
 
+  /*
+    Slugs Webflow and Sanity disagree about. Only these two: Webflow named the
+    case studies after their full titles, Sanity after the brand. No rule can
+    derive one from the other, and getting them wrong sends the two best-linked
+    pages on the old site to a grid instead of to themselves.
+  */
+  const RENAMED = {
+    '/case-studies/dumpstat-podcast': '/work/dumpstat',
+    '/case-studies/hug-a-mug-coffeehouse-ceramics-studio': '/work/hug-a-mug',
+  }
+  if (RENAMED[p] && newSet.has(RENAMED[p])) {
+    return {to: RENAMED[p], why: 'same page, renamed slug'}
+  }
+
   const doc = bySlug.get(slug)
   if (doc?.parentSlug && doc.parentType === 'Case Study' && newSet.has(`/work/${doc.parentSlug}`)) {
     return {to: `/work/${doc.parentSlug}`, why: `tile from ${doc.parentSlug}`}

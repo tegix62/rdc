@@ -368,6 +368,44 @@ if (!existsSync(sitemapPath)) {
 }
 
 // ---------------------------------------------------------------------------
+// _redirects
+//
+// Every rule points somewhere. A redirect to a page that does not exist is
+// worse than no redirect at all: the crawler follows it and finds a 404, so the
+// old URL's ranking is spent on nothing. The targets are slugs typed by hand,
+// which is precisely the kind of thing that is wrong once and never noticed.
+// ---------------------------------------------------------------------------
+const redirectsPath = path.join(DIST, '_redirects')
+if (existsSync(redirectsPath)) {
+  const built = new Set(htmlFiles.map(routeOf))
+  const text = await readFile(redirectsPath, 'utf8')
+  let count = 0
+
+  for (const line of text.split('\n')) {
+    const clean = line.split('#')[0].trim()
+    if (!clean) continue
+    const [from, to, code] = clean.split(/\s+/)
+    if (!from || !to) continue
+    count += 1
+
+    // A wildcard or a placeholder cannot be resolved against a file list.
+    if (to.includes(':') || to.includes('*') || /^https?:/.test(to)) continue
+
+    const target = to.replace(/(.)\/$/, '$1')
+    if (!built.has(target)) {
+      fail('redirects', `${from} -> ${target}, which does not exist`)
+    }
+    if (built.has(from.replace(/(.)\/$/, '$1'))) {
+      fail('redirects', `${from} redirects away from a page this site actually builds`)
+    }
+    if (code && code !== '301' && code !== '308') {
+      notes.push(`${from} uses ${code} rather than 301 - crawlers keep the old URL as canonical`)
+    }
+  }
+  notes.push(`_redirects: ${count} rule(s), every target checked against the build`)
+}
+
+// ---------------------------------------------------------------------------
 // Report
 // ---------------------------------------------------------------------------
 const totalBytes = (

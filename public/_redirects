@@ -1,0 +1,31 @@
+# Redirects from the Webflow site this replaced.
+#
+# Derived from Webflow's own sitemap (18 published URLs) by
+# scripts/audit-urls.mjs, then checked by hand. Re-run that workflow if the
+# live site changes before cutover.
+#
+# 301, not 302: these moves are permanent. A 302 asks crawlers to keep the OLD
+# URL as canonical, which is the opposite of the point - the whole reason this
+# file exists is to pass the old pages' ranking and inbound links on to the new
+# ones. Without it every case study and post 404s the moment DNS moves.
+#
+# Not listed, because they are already identical on both sites: /, /about,
+# /blog, /collage, /merchfolio, /portfolio, /privacy-policy, /video,
+# /image-license-info and /work/hug-a-mug.
+
+# Case studies. Webflow served these under /case-studies/; this site uses
+# /work/. Every one moves even where the slug is unchanged.
+/case-studies/adelante-barbell-club                    /work/adelante-barbell-club   301
+/case-studies/dumpstat-podcast                         /work/dumpstat                301
+/case-studies/hug-a-mug-coffeehouse-ceramics-studio    /work/hug-a-mug               301
+
+# Blog. Webflow served posts under /post/; this site uses /blog/.
+/post/brand-identity-cost-why-400-is-too-low   /blog/brand-identity-cost-why-400-is-too-low   301
+/post/logo-design-worth-paying-for             /blog/logo-design-worth-paying-for             301
+
+# Published Webflow leftovers, deliberately not ported: two abandoned duplicate
+# drafts and an unused collection template. Sent somewhere sensible rather than
+# left to 404, since they may still be indexed or linked.
+/home2026                            /              301
+/portfolio-copy-3                    /portfolio     301
+/case-studies/case-study-template    /portfolio     301

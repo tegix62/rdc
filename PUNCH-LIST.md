@@ -112,7 +112,13 @@ Verified numbers, not estimates. Homepage is already down 59% and `/video` 89%.
   under every header, which is why GIF detection always worked and WebP
   detection never could.
 
-  The header is fixed. What remains is the real prize: those five have never
+  **Fixed and confirmed.** The audit now detects 19 animated assets where it
+  found 13, reports zero "unrecognised magic" rows where it had many, and its
+  independent cross-check agrees with the shipped verdict on every one. Serving
+  the originals is the right call for all six newly-found assets, by a wide
+  margin — the 300×300 is 1,348 KB as uploaded against 3,887 KB transformed.
+
+  What remains is the real prize: those six have never
   been eligible for the animation→video conversion, because that path is gated
   on the detection. Re-running `convert-animations` should turn multi-megabyte
   animations into looping h264. **That writes new assets to your Sanity dataset,
@@ -129,6 +135,16 @@ Verified numbers, not estimates. Homepage is already down 59% and `/video` 89%.
   exported still. It reads as a 71 KB JPEG to anything that asks without a
   browser `Accept` header, which is how it was mis-filed. Nothing to re-export;
   see the animation entry below.
+- [ ] **Page weight numbers bounce between runs and shouldn't be read closely.**
+  The same page measured 74, 79, 82 and 100 image requests across four runs,
+  because how many lazy images load before the measurement depends on timing.
+  Treat byte totals as a band, not a figure. CLS and the per-asset numbers in
+  `animated.md` are stable and can be trusted.
+- [ ] **The homepage hero is the single worst asset on the site**: 3,981 KB, and
+  it's an animation, so it can't be fixed by re-saving a still. One run measured
+  desktop LCP at 10.5 seconds against 428ms on mobile for the same bytes —
+  almost certainly runner variance, but it shows how badly this can stall.
+  Converting it to video is the fix.
 - [ ] Three anchors on the homepage measure 36–43px wide (44px tall). Height is
   fine, width slightly short. The audit reports size but not a selector and
   their labels are empty, so I left them rather than guess.

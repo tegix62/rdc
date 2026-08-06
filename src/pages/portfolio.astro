@@ -117,6 +117,24 @@ if (emptyFilters.length > 0) {
       <button type="button" class="pf-btn" id="pf-plus" aria-label="Larger tiles">+</button>
     </div>
 
+    {/*
+      `is-laying-out` hides the tiles until Isotope has positioned them.
+
+      The grid's markup is a column of floated divs; Isotope then absolutely
+      positions every one of them. Both layouts are valid and they look nothing
+      alike, so the browser paints the first and then, a moment later, moves 68
+      tiles at once. That is the 0.4722 layout shift the audit measures on this
+      page - the worst number on the site, and precisely the jank you can feel.
+
+      Hiding them means the wrong layout is never painted, so there is nothing
+      to shift from. Two things make that safe rather than a way to lose the
+      whole grid:
+
+        - the class is added by an inline script below rather than being in the
+          markup, so with JavaScript off the grid is simply visible;
+        - a timeout removes it regardless, so if Isotope fails to load the
+          tiles come back in float order instead of staying invisible.
+    */}
     <div class="pf-grid" id="pf-grid">
       {items.map((item: any, i: number) => {
         const img = item.thumbnail || item.mainImage;
@@ -184,6 +202,26 @@ if (emptyFilters.length > 0) {
         ) : null;
       })}
     </div>
+    {/*
+      Inline and immediately after the grid on purpose. It has to run during
+      parsing, before the browser has had a chance to paint the float layout -
+      a module script is deferred and would run after that first paint, which
+      is the whole problem. `is:inline` keeps Astro from bundling and deferring
+      it.
+    */}
+    <script is:inline>
+      (function () {
+        var grid = document.getElementById('pf-grid');
+        if (!grid) return;
+        grid.classList.add('is-laying-out');
+        // If Isotope never loads - a blocked CDN, an offline runner - show the
+        // tiles anyway. An unstyled grid beats a blank page.
+        setTimeout(function () {
+          grid.classList.remove('is-laying-out');
+        }, 3000);
+      })();
+    </script>
+
     {items.length === 0 && <p>No items found.</p>}
   </section>
 
@@ -223,7 +261,24 @@ if (emptyFilters.length > 0) {
       transitionDuration: 0,
     });
 
-    imagesLoaded(grid).on('progress', () => iso.layout());
+    // Isotope has positioned everything, so the tiles can be shown. Anything
+    // after this point is a deliberate rearrangement the visitor asked for.
+    grid.classList.remove('is-laying-out');
+
+    /*
+      One relayout when every image has finished, not one per image.
+
+      This used to be `.on('progress', ...)`, which relaid the whole grid 68
+      times on a cold load - each one moving every tile. It was there to cope
+      with images whose height was unknown until they arrived, and that stopped
+      being true when Img started emitting width and height on every image: the
+      browser now reserves each tile's box from the markup, so Isotope's first
+      layout is already measuring the final heights.
+
+      The `always` pass stays as a safety net for anything whose intrinsic size
+      the CDN did not report.
+    */
+    imagesLoaded(grid).on('always', () => iso.layout());
 
     document.querySelectorAll<HTMLElement>('.pf-btn[data-filter]').forEach((btn) => {
       btn.addEventListener('click', () => {

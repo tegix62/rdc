@@ -844,6 +844,20 @@ main {
   overflow: hidden;
 }
 
+/*
+  While Isotope is working out where the tiles go. See the comment on the grid
+  in portfolio.astro: the floated markup layout and the masonry layout look
+  nothing alike, and painting the first before replacing it with the second is
+  what produced this page's 0.4722 layout shift.
+
+  visibility rather than display: the tiles keep their boxes, so the grid still
+  has roughly the right height and the page below it does not jump either. It
+  also lets the images load during this window instead of waiting for it.
+*/
+.pf-grid.is-laying-out .pf-item {
+  visibility: hidden;
+}
+
 .pf-sizer,
 .pf-item {
   box-sizing: border-box;

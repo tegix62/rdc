@@ -31,6 +31,21 @@
   box-sizing: border-box;
 }
 
+/*
+  The `hidden` attribute only hides things via the browser's default stylesheet,
+  and ANY author `display` rule beats it - author styles win over UA styles
+  regardless of specificity. So `.ink-bar__panel { display: flex }` quietly made
+  `panel.hidden = true` do nothing, and the collapse handle looked dead while
+  firing correctly every time.
+
+  A one-line reset, because the next component to use `hidden` alongside a
+  display rule would hit exactly the same thing and it is invisible in the
+  markup - the attribute is right there, it just isn't winning.
+*/
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   font-family: var(--font-body);
@@ -1704,18 +1719,22 @@ main {
 }
 
 /*
-  A fixed grid, not a wrapping flex row.
+  One row of six.
 
-  Wrapping produced a staircase - five swatches, then two, then one - because
-  the row's width and the item count don't divide evenly. Four columns puts the
-  six stocks on two tidy rows with the grain toggle beside them, and it stays
-  tidy whatever the swatch size resolves to.
+  With the grain toggle gone there are exactly six stocks, and six 44px buttons
+  is 264px - narrower than any phone. A single row reads as one control instead
+  of a block of squares, and there is no wrapping left to go ragged.
+
+  gap: 0 because the buttons already carry their own space: each is a 44px tap
+  target holding a smaller chip, so adjacent chips sit apart by the padding
+  whatever the gap says. Adding gap on top of that was what made them look
+  scattered.
 */
 .ink-bar__papers {
   display: grid;
-  grid-template-columns: repeat(4, auto);
+  grid-template-columns: repeat(6, auto);
   justify-content: end;
-  gap: 0.25rem;
+  gap: 0;
 }
 
 /*
@@ -1888,9 +1907,15 @@ body {
   mix-blend-mode: normal;
 }
 
+/*
+  Outlined rather than filled, even when active. A solid black block was the
+  heaviest element on a page whose entire subject is the artwork underneath it.
+  The state is legible from the swatch outline and the handle without shouting.
+*/
 :root[data-ink] .ink-bar__toggle {
-  background: var(--ink-ink);
-  color: var(--ink-paper);
+  background: transparent;
+  color: var(--ink-ink);
+  border-color: var(--ink-ink);
 }
 
 :root[data-ink] .ink-bar__swatch {
@@ -2283,12 +2308,12 @@ body {
     height: 44px;
   }
 
-  /* 44px of button, 24px of visible colour. Six full-size squares plus a grain
-     toggle is most of a phone's width, for a tool meant to stay out of the
-     way. */
+  /* 44px of button, 32px of visible colour. Bigger than the 24px it started at
+     now that the gap between buttons is gone - the chips were reading as
+     scattered dots rather than a row of stock samples. */
   .ink-bar__chip {
-    width: 24px;
-    height: 24px;
+    width: 32px;
+    height: 32px;
   }
 
   .ink-bar__toggle {

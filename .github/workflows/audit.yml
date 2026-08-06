@@ -34,6 +34,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: the deploy-wait below asks whether the live commit is
+          # an ancestor of this one and what changed between them, and a
+          # depth-1 clone knows neither.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -88,6 +93,39 @@ jobs:
             fi
             sleep 10
           done
+          # Before failing: is the live build actually equivalent?
+          #
+          # This workflow triggers on its own file and on scripts/audit-*.mjs,
+          # and the deploy does not - quite rightly, since neither changes the
+          # site. So a commit that only touches the audit can never see its own
+          # stamp go live, and the run below would fail forever. That is not
+          # integrity, it is just noise, and noise is how a real failure gets
+          # ignored.
+          #
+          # The guarantee is kept by proving equivalence rather than assuming
+          # it: the live commit must be an ancestor of this one, and the diff
+          # between them must touch nothing that ends up in the build. If both
+          # hold, the deployed site is byte-identical to what this commit would
+          # produce, and measuring it is measuring this commit. Anything else
+          # still fails.
+          if [ -n "$live" ] && git merge-base --is-ancestor "$live" "$GITHUB_SHA" 2>/dev/null; then
+            affecting=$(git diff --name-only "$live" "$GITHUB_SHA" -- \
+              src public astro.config.mjs package.json scripts/build-overlay.mjs)
+            if [ -z "$affecting" ]; then
+              echo "live build $live is an ancestor of $GITHUB_SHA and nothing"
+              echo "between them affects the built site - measuring it as equivalent."
+              {
+                echo ""
+                echo "> Measuring \`${live:0:8}\`, not \`${GITHUB_SHA:0:8}\`."
+                echo "> Nothing between them touches \`src\`, \`public\`, the Astro config or the"
+                echo "> build scripts, so the deployed site is what this commit would produce."
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "live build is an ancestor, but these affect the build:"
+            echo "$affecting"
+          fi
+
           # Hard failure, not a warning.
           #
           # A warning was not enough. The deploy failed on three consecutive

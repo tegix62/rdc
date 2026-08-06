@@ -71,6 +71,21 @@ check(
   await page.locator('#pf-controls #ink-toggle').count() === 1,
 )
 
+/*
+  In the palette. These were near-black while the whole site is navy, so the
+  one row of controls on the busiest page was the only thing off-theme.
+
+  Checked HERE, before anything is toggled, because in archive view
+  --color-navy is deliberately remapped to the stock's ink - so the same
+  assertion at the end of this file measured #0d0d0d and failed, correctly
+  describing a page that was still in archive view. The conversion is the
+  feature; this check just has to not stand in the middle of it.
+*/
+const navy = await page
+  .locator('#pf-shuffle')
+  .evaluate((el) => getComputedStyle(el).borderTopColor)
+check('the controls are navy, not near-black', navy === 'rgb(0, 40, 133)', navy)
+
 // --- the click that used to do nothing -------------------------------------
 await toggle.click()
 await page.waitForTimeout(400)
@@ -150,16 +165,6 @@ check(
   minus && plus ? `y ${Math.round(minus.y)} vs ${Math.round(plus.y)}` : 'no box',
 )
 
-/*
-  In the palette. These were near-black while the whole site is navy, so the
-  one row of controls on the busiest page was the only thing off-theme. Checked
-  as a computed colour rather than by eye, because it is a one-token slip that
-  looks deliberate.
-*/
-const navy = await page
-  .locator('#pf-shuffle')
-  .evaluate((el) => getComputedStyle(el).borderTopColor)
-check('the controls are navy, not near-black', navy === 'rgb(0, 40, 133)', navy)
 
 await page.screenshot({path: 'ink-mode.png', fullPage: false})
 

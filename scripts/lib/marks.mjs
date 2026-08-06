@@ -57,10 +57,14 @@ export async function buildMarks(analyzer, width, height, cfg, rng) {
     });
 
     composites.push({ input: mark.buffer, left: spot.left, top: spot.top, blend: 'over' });
-    placed.push({ left: spot.left, top: spot.top, width: mark.width, height: mark.height });
+    placed.push({
+      left: spot.left, top: spot.top,
+      width: mark.width, height: mark.height,
+      text, edge, color,
+    });
   }
 
-  return { composites, fontSize, count: composites.length };
+  return { composites, fontSize, count: composites.length, placed };
 }
 
 function chooseSpot({ analyzer, width, height, edge, inset, markW, markH, candidates, placed, rng }) {

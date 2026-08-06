@@ -20,6 +20,7 @@ import { createAnalyzer, scoreRegion } from './lib/analyze.mjs';
 import { makeRng } from './lib/rng.mjs';
 import { fingerprint } from './lib/manifest.mjs';
 import { makeAnimatedGif } from './lib/testfixtures.mjs';
+import { buildContactSheet } from './lib/sheet.mjs';
 
 const BASE = JSON.parse(await fs.readFile(new URL('../watermark.config.json', import.meta.url), 'utf8'));
 delete BASE.$schema;
@@ -277,6 +278,45 @@ test('analyzer reports region luminance accurately', async () => {
   assert.ok(Math.abs(a.region(0, 0, 180, 200).luma - 30 / 255) < 0.05);
   assert.ok(Math.abs(a.region(220, 0, 180, 200).luma - 220 / 255) < 0.05);
   assert.ok(a.global().luma > 0.4 && a.global().luma < 0.6);
+});
+
+test('mark placements are reported, inside the frame, and match the config', async () => {
+  const src = await field(1600, 1200, 120);
+  const { result } = await run(src, cfg());
+  const { width: w, height: h } = result.variants[0];
+
+  assert.equal(result.marks.length, BASE.marks.count);
+  for (const m of result.marks) {
+    assert.ok(BASE.marks.variants.includes(m.text), `unexpected mark text: ${m.text}`);
+    assert.ok(BASE.marks.edges.includes(m.edge), `unexpected edge: ${m.edge}`);
+    assert.ok(m.left >= 0 && m.top >= 0, `mark starts off-frame at ${m.left},${m.top}`);
+    assert.ok(
+      m.left + m.width <= w && m.top + m.height <= h,
+      `mark overflows the frame: ${m.left + m.width}×${m.top + m.height} vs ${w}×${h}`
+    );
+    assert.match(m.color, /^#[0-9a-f]{6}$/);
+  }
+});
+
+test('contact sheet renders every preset plus a detail strip', async () => {
+  const dir = await outDir();
+  const sheet = await buildContactSheet({
+    input: await field(1600, 1200, 120),
+    name: 'fixture.jpg',
+    config: cfg(),
+    outDir: dir,
+    panelWidth: 240,
+  });
+
+  const meta = await sharp(sheet).metadata();
+  assert.equal(meta.format, 'png');
+  // 6 presets in a 3-wide grid, so two rows of panels plus header and strip.
+  assert.ok(meta.width >= 240 * 3, `sheet too narrow: ${meta.width}`);
+  assert.ok(meta.height > 240 * 2, `sheet too short to hold two rows: ${meta.height}`);
+
+  // The working directory of intermediate panel renders must not survive.
+  const left = await fs.readdir(dir);
+  assert.equal(left.filter((f) => f.startsWith('panels-')).length, 0, 'temp panel dir leaked');
 });
 
 test.after(async () => {

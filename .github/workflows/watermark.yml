@@ -10,13 +10,21 @@ name: Watermark portfolio images
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        description: "preview = comparison sheets to look at; full = watermark everything"
+        type: choice
+        options: [preview, full]
+        default: preview
+      sheets:
+        description: "preview mode: how many images to build sheets for"
+        default: "6"
       source:
         description: Where originals come from
         type: choice
         options: [sanity, local]
         default: sanity
       force:
-        description: Ignore the cache and rebuild everything
+        description: "full mode: ignore the cache and rebuild everything"
         type: boolean
         default: false
   repository_dispatch:
@@ -54,7 +62,22 @@ jobs:
             watermark-${{ hashFiles('watermark.config.json', 'scripts/**') }}-
             watermark-
 
-      - name: Watermark
+      # Preview: contact sheets to actually look at before committing to
+      # settings. Nothing is deployed and nothing is written back anywhere —
+      # the sheets come out as a downloadable artifact.
+      - name: Build preview sheets
+        if: ${{ (github.event.inputs.mode || 'preview') == 'preview' }}
+        env:
+          SANITY_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID || '8337vjtf' }}
+          SANITY_DATASET: ${{ vars.SANITY_DATASET || 'production' }}
+          SANITY_READ_TOKEN: ${{ secrets.SANITY_READ_TOKEN }}
+        run: |
+          node scripts/watermark.mjs \
+            --source "${{ github.event.inputs.source || 'sanity' }}" \
+            --sheets "${{ github.event.inputs.sheets || '6' }}"
+
+      - name: Watermark everything
+        if: ${{ github.event.inputs.mode == 'full' || github.event_name == 'repository_dispatch' }}
         env:
           SANITY_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID || '8337vjtf' }}
           SANITY_DATASET: ${{ vars.SANITY_DATASET || 'production' }}
@@ -72,15 +95,26 @@ jobs:
           {
             echo "### Watermark run"
             echo
+            if [ -d .watermark/preview ]; then
+              echo "- preview sheets: $(find .watermark/preview -name '*-sheet.png' | wc -l)"
+              echo "- download them from the **Artifacts** section of this run"
+            fi
             if [ -d public/portfolio ]; then
               echo "- files: $(find public/portfolio -type f | wc -l)"
               echo "- total: $(du -sh public/portfolio | cut -f1)"
-            else
-              echo "- no output directory produced"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
+        if: ${{ (github.event.inputs.mode || 'preview') == 'preview' }}
+        with:
+          name: watermark-preview-sheets
+          path: .watermark/preview/*-sheet.png
+          if-no-files-found: warn
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ github.event.inputs.mode == 'full' || github.event_name == 'repository_dispatch' }}
         with:
           name: watermarked-portfolio
           path: |

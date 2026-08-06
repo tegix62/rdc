@@ -16,6 +16,7 @@ import sharp from 'sharp';
 import { listLocal, slugify } from './lib/sources/local.mjs';
 import { listSanity } from './lib/sources/sanity.mjs';
 import { processImage } from './lib/process.mjs';
+import { buildContactSheet } from './lib/sheet.mjs';
 import { fingerprint, hashBuffer, loadManifest, saveManifest, isFresh } from './lib/manifest.mjs';
 
 const MANIFEST = '.watermark/manifest.json';
@@ -27,6 +28,7 @@ async function main() {
   const config = await loadConfig(args.config ?? 'watermark.config.json', args);
 
   if (args.preview) return preview(args.preview, config, args);
+  if (args.sheets) return previewSet(args, config);
 
   const outDir = path.resolve(args.out ?? config.output.dir);
   await fs.mkdir(outDir, { recursive: true });
@@ -100,11 +102,28 @@ async function main() {
   if (failed) process.exitCode = 1;
 }
 
-/** Render a single image at one width so settings can be eyeballed quickly. */
+/**
+ * Render one image so settings can be judged before committing to a full run.
+ *
+ * `--sheet` is the mode worth using: it renders the same image under several
+ * strengths side by side and adds 100% crops of each covert mark, which is the
+ * only way to actually see whether a mark is legible — at contact-sheet scale
+ * they are, by design, invisible.
+ */
 async function preview(file, config, args) {
-  const buf = await fs.readFile(file);
   const outDir = path.resolve(args.out ?? '.watermark/preview');
   await fs.mkdir(outDir, { recursive: true });
+  const stem = slugify(path.basename(file).replace(/\.[^.]+$/, ''));
+
+  const buf = await fs.readFile(file);
+
+  if (args.sheet) {
+    const dest = await writeSheet({
+      input: buf, name: path.basename(file), stem, config, outDir, args,
+    });
+    console.log(`contact sheet → ${path.relative(process.cwd(), dest)}`);
+    return;
+  }
 
   const cfg = {
     ...config,
@@ -112,11 +131,60 @@ async function preview(file, config, args) {
   };
   const result = await processImage({
     key: path.basename(file),
-    slug: slugify(path.basename(file).replace(/\.[^.]+$/, '')) + '-preview',
+    slug: `${stem}-preview`,
     input: buf, config: cfg, outDir,
   });
   for (const v of result.variants) {
     console.log(`preview → ${path.join(path.relative(process.cwd(), outDir), v.file)}  (${v.width}×${v.height}, ${(v.bytes / 1024).toFixed(0)} KB)`);
+  }
+  for (const m of result.marks) {
+    console.log(`  mark: "${m.text}" on the ${m.edge} edge at ${m.left},${m.top} (${m.width}×${m.height}px)`);
+  }
+}
+
+async function writeSheet({ input, name, stem, config, outDir, args }) {
+  const sheet = await buildContactSheet({
+    input, name, config, outDir, panelWidth: args.width ?? 620,
+  });
+  const dest = path.join(outDir, `${stem}-sheet.png`);
+  await fs.writeFile(dest, sheet);
+  return dest;
+}
+
+/**
+ * Contact sheets for the first N images of whatever source is configured.
+ *
+ * This is the mode that answers "what will this look like on my actual work"
+ * without anything installed locally: run it in CI against Sanity and the
+ * sheets come back as a downloadable artifact.
+ */
+async function previewSet(args, config) {
+  const outDir = path.resolve(args.out ?? '.watermark/preview');
+  await fs.mkdir(outDir, { recursive: true });
+
+  const items = await collect(args, config);
+  const filtered = args.only
+    ? items.filter((i) => i.key.toLowerCase().includes(args.only.toLowerCase()))
+    : items;
+
+  const limit = Number(args.sheets) || 6;
+  const chosen = filtered.slice(0, limit);
+  if (!chosen.length) {
+    console.log('No source images found. Nothing to preview.');
+    return;
+  }
+
+  console.log(`Building ${chosen.length} contact sheet(s) → ${path.relative(process.cwd(), outDir)}`);
+  for (const item of chosen) {
+    try {
+      const dest = await writeSheet({
+        input: await item.read(), name: item.key, stem: item.slug, config, outDir, args,
+      });
+      console.log(`  ✓ ${item.key} → ${path.basename(dest)}`);
+    } catch (err) {
+      if (err.skip) console.log(`  – ${item.key}: ${err.message}`);
+      else console.error(`  ✗ ${item.key}: ${err.message}`);
+    }
   }
 }
 
@@ -211,7 +279,7 @@ function parseArgs(argv) {
     if (!a.startsWith('-')) continue;
     a = a.replace(/^--?/, '');
     const key = alias[a] ?? camel(a);
-    const flags = ['help', 'force', 'dryRun', 'noVeil', 'noMarks'];
+    const flags = ['help', 'force', 'dryRun', 'noVeil', 'noMarks', 'sheet'];
     if (flags.includes(key)) out[key] = true;
     else out[key] = argv[++i];
   }
@@ -233,7 +301,12 @@ Portfolio watermarking
   --map <file>              where to write the image map     (default: config mapFile)
   --only <substring>        process matching keys only
   --preview <file>          render one image and stop
-  --width <px>              preview long edge                (default: 1600)
+  --sheet                   with --preview: a labelled comparison sheet plus
+                            100% crops of each edge mark
+  --sheets <n>              contact sheets for the first n images of the
+                            source, instead of a full run
+  --width <px>              preview long edge   (default: 1600, or 620 a panel
+                            with --sheet)
   --no-veil / --no-marks    disable one layer (useful for A/B)
   --force, -f               ignore the cache and rebuild
   --dry-run                 list what would be processed

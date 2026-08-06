@@ -52,6 +52,7 @@ export async function processImage({ key, slug, input, config, outDir }) {
   )].sort((a, b) => a - b);
 
   const variants = [];
+  const markPlacements = new Map();
 
   for (const long of widths) {
     const scale = long / srcLong;
@@ -63,7 +64,11 @@ export async function processImage({ key, slug, input, config, outDir }) {
       .toColourspace('srgb')
       .toBuffer();
 
-    const stamped = await stamp(base, w, h, config, key);
+    const { buffer: stamped, marks } = await stamp(base, w, h, config, key);
+    // Where the covert marks landed, at this width. Surfaced so a preview can
+    // crop to them at 100% — they are deliberately hard to spot, which makes
+    // "is that one actually legible?" impossible to answer by eye otherwise.
+    markPlacements.set(long, marks);
 
     for (const fmt of config.output.formats) {
       const ext = EXT[fmt];
@@ -109,6 +114,7 @@ export async function processImage({ key, slug, input, config, outDir }) {
     aspectRatio: +(srcW / srcH).toFixed(6),
     lqip,
     variants,
+    marks: markPlacements.get(widths[widths.length - 1]) ?? [],
   };
 }
 
@@ -127,13 +133,15 @@ async function stamp(base, w, h, config, key) {
     layers.push({ input: veil.buffer, left: 0, top: 0, blend: config.veil.blend || 'over' });
   }
 
+  let placed = [];
   if (config.marks?.enabled) {
     const marks = await buildMarks(analyzer, w, h, config.marks, rng);
     layers.push(...marks.composites);
+    placed = marks.placed;
   }
 
-  if (!layers.length) return base;
-  return sharp(base).composite(layers).toBuffer();
+  if (!layers.length) return { buffer: base, marks: [] };
+  return { buffer: await sharp(base).composite(layers).toBuffer(), marks: placed };
 }
 
 function exifFor(config) {

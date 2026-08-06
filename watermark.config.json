@@ -4,7 +4,7 @@
   "identity": {
     "name": "Chris Rumeau",
     "studio": "Rumeau Design Co.",
-    "instagram": "@rumeaudesign",
+    "instagram": "@rumeaudesign.co",
     "site": "rumeaudesign.co",
     "copyrightNotice": "© {year} Rumeau Design Co. — All rights reserved."
   },
@@ -31,7 +31,7 @@
 
   "veil": {
     "enabled": true,
-    "text": "RUMEAU DESIGN CO · RUMEAUDESIGN.CO",
+    "text": "RUMEAU DESIGN CO · @RUMEAUDESIGN.CO",
     "fontFamily": "Inter Tight, Liberation Sans, DejaVu Sans, sans-serif",
     "fontWeight": 600,
     "letterSpacing": 0.18,
@@ -52,7 +52,7 @@
   "marks": {
     "enabled": true,
     "count": 3,
-    "variants": ["Chris Rumeau", "rumeaudesign.co", "© Rumeau Design Co."],
+    "variants": ["Chris Rumeau", "@rumeaudesign.co", "© Rumeau Design Co."],
     "fontFamily": "Inter Tight, Liberation Sans, DejaVu Sans, sans-serif",
     "fontWeight": 500,
     "letterSpacing": 0.08,

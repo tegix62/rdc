@@ -11,11 +11,47 @@ watermarked derivatives out.
 
 ```bash
 npm install
-npm test                                      # 16 behavioural tests
-node scripts/watermark.mjs --preview photo.jpg   # try the settings on one image
+npm test                                              # 18 behavioural tests
+node scripts/watermark.mjs --preview photo.jpg --sheet   # ← start here
 node scripts/watermark.mjs --source local --in ~/masters
-node scripts/watermark.mjs --source sanity       # pull originals from the CMS
+node scripts/watermark.mjs --source sanity            # pull originals from the CMS
 ```
+
+---
+
+## Previewing before you commit to settings
+
+Three ways, easiest first.
+
+**1. From GitHub, nothing installed.** Actions → *Watermark portfolio images* →
+*Run workflow*, leave mode on `preview`. It pulls the first few images from
+Sanity, builds a comparison sheet for each, and attaches them to the run as a
+downloadable artifact. Nothing is deployed and nothing is written back to the
+CMS. `sheets` controls how many images.
+
+**2. Locally, on real files.**
+
+```bash
+node scripts/watermark.mjs --preview ~/masters/hero.jpg --sheet
+node scripts/watermark.mjs --sheets 8 --source local --in ~/masters
+```
+
+**3. In the browser.** Open `tools/watermark-studio.html`, drag an image in, and
+move the sliders. Immediate feedback, nothing uploads.
+
+### What a contact sheet shows
+
+Six panels of the same image — original, subtle (veil ×0.55), current settings,
+stronger (veil ×1.6), marks only, veil only — so the decision is a comparison
+rather than a guess. Underneath, **100% crops of each edge mark**, rotated back
+to horizontal and labelled with which edge they're on.
+
+That strip is the part that matters. The marks are meant to be hard to spot, so
+a contact-sheet-sized panel physically cannot tell you whether one is legible,
+well placed, or about to be cropped off. The crops are actual delivered size.
+
+Then edit `watermark.config.json` and run it again. `veil.edgeOpacity` is the
+main dial; `marks.contrastDelta` is the other one.
 
 ---
 
@@ -130,7 +166,7 @@ The brief asks proposals to state their costs up front, so:
 - **Phone / JS-disabled:** the watermark is in the pixels, so it behaves
   identically. The provided component emits `width`/`height` and a srcset, so it
   doesn't reintroduce layout shift.
-- **Measured:** 16 tests, run with `npm test`. Not yet measured against the real
+- **Measured:** 18 tests, run with `npm test`. Not yet measured against the real
   dataset — see the caveat at the end.
 
 Three ways to connect it, in the order I'd recommend them.
@@ -201,16 +237,11 @@ before anything is wired into a deploy.
 
 ## Before this goes live
 
-Two things need Chris:
-
-1. **The Instagram handle.** `@rumeaudesign` is a guess — it isn't in the brief.
-   It's currently only in `marks.variants`; the veil uses `rumeaudesign.co`,
-   which is certain. Worth fixing before anything is stamped at scale.
-2. **A look at real work.** The settings were tuned against synthetic fixtures.
-   Hand-drawn logomarks on flat backgrounds are a harder case than photographs —
-   flat areas give the marks nowhere to hide, and `tileTreatment: "mark"` tiles
-   may want `marks.enabled: false` and a lighter veil than the photographic
-   ones. Run `--preview` over a few real pieces and adjust.
+**A look at real work.** The settings were tuned against synthetic fixtures.
+Hand-drawn logomarks on flat backgrounds are a harder case than photographs —
+flat areas give the marks nowhere to hide, and `tileTreatment: "mark"` tiles may
+want `marks.enabled: false` and a lighter veil than the photographic ones. Run a
+preview over a few real pieces and adjust.
 
 Also worth knowing: this repo's `main` is a bare README — the site lives on
 `claude/webflow-astro-sanity-port-ig55e2`. Nothing here has been run against the

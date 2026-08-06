@@ -24,9 +24,13 @@
   Writes a proposed _redirects (Cloudflare Pages format) but does not install
   it - the fallbacks need a human eye before they ship.
 
-  Usage: node scripts/audit-urls.mjs [--live https://rumeaudesign.co]
-                                     [--new  https://preview...pages.dev]
-                                     [--out DIR]
+  Our side of the comparison comes from Sanity plus the static route list, NOT
+  from the deployed sitemap. The preview build deliberately omits every
+  Sanity-driven route - that is the difference the production gate checks for -
+  so reading the preview's sitemap reported 8 of our URLs instead of 26 and made
+  ten live URLs look unmapped when most of them have a perfectly good home.
+
+  Usage: node scripts/audit-urls.mjs [--live https://rumeaudesign.co] [--out DIR]
 */
 import {mkdir, writeFile} from 'node:fs/promises'
 import path from 'node:path'
@@ -38,7 +42,6 @@ const arg = (name, fallback) => {
 }
 
 const LIVE = arg('live', 'https://rumeaudesign.co').replace(/\/$/, '')
-const NEW = arg('new', 'https://preview.rumeau-design-co.pages.dev').replace(/\/$/, '')
 const OUT = arg('out', 'urls')
 await mkdir(OUT, {recursive: true})
 
@@ -67,14 +70,30 @@ async function sitemapUrls(base) {
     .filter(Boolean)
 }
 
-console.log(`live: ${LIVE}`)
-console.log(`new:  ${NEW}\n`)
+console.log(`live: ${LIVE}\n`)
 
-const [livePaths, newPaths] = await Promise.all([sitemapUrls(LIVE), sitemapUrls(NEW)])
+// Kept in step with STATIC_PATHS in src/pages/sitemap.xml.ts.
+const STATIC = [
+  '/', '/portfolio', '/about', '/video',
+  '/collage', '/merchfolio', '/blog', '/privacy-policy',
+]
+
+const [livePaths, studies, posts] = await Promise.all([
+  sitemapUrls(LIVE),
+  sanity.fetch(`*[_type == "caseStudy" && pageType == "Case Study" && defined(slug.current)].slug.current`),
+  sanity.fetch(`*[_type == "blogPost" && defined(slug.current)].slug.current`),
+])
+
+const newPaths = [
+  ...STATIC,
+  ...studies.map((s) => `/work/${s}`),
+  ...posts.map((s) => `/blog/${s}`),
+]
 const newSet = new Set(newPaths)
 
 console.log(`Webflow publishes ${livePaths.length} URLs`)
-console.log(`This site builds   ${newPaths.length} URLs\n`)
+console.log(`This site builds   ${newPaths.length} URLs ` +
+  `(${STATIC.length} static, ${studies.length} case studies, ${posts.length} posts)\n`)
 
 /*
   Where a Grid Item should send someone.
@@ -94,11 +113,16 @@ const tiles = await sanity.fetch(`
 const bySlug = new Map(tiles.map((t) => [t.slug, t]))
 
 function targetFor(p) {
-  const slug = p.replace(/^\/(work|projects)\//, '').replace(/^\//, '')
+  /*
+    Webflow's actual prefixes, read off its sitemap rather than assumed:
+    case studies live at /case-studies/, blog posts at /post/. Both differ from
+    ours, so every one of those URLs moves even where the slug is identical -
+    which is exactly the kind of change that silently drops ranking.
+  */
+  const slug = p.replace(/^\/(work|projects|case-studies|post|blog)\//, '').replace(/^\//, '')
 
-  // An exact match under a different prefix.
-  for (const candidate of [`/work/${slug}`, `/${slug}`]) {
-    if (newSet.has(candidate)) return {to: candidate, why: 'same page, same slug'}
+  for (const candidate of [`/work/${slug}`, `/blog/${slug}`, `/${slug}`]) {
+    if (newSet.has(candidate)) return {to: candidate, why: 'same page, new prefix'}
   }
 
   const doc = bySlug.get(slug)
@@ -107,7 +131,22 @@ function targetFor(p) {
   }
   if (doc) return {to: '/portfolio', why: 'tile with no case study parent'}
 
-  if (p.startsWith('/blog/')) return {to: '/blog', why: 'post not carried over'}
+  /*
+    Known Webflow leftovers. These were deliberately not ported - abandoned
+    duplicate drafts, an unused template, and unedited Unsplash boilerplate -
+    but they are published and possibly indexed, so they get sent somewhere
+    sensible rather than left to 404.
+  */
+  const RETIRED = {
+    '/home2026': ['/', 'abandoned duplicate of the homepage'],
+    '/portfolio-copy-3': ['/portfolio', 'abandoned duplicate of the portfolio'],
+    '/case-studies/case-study-template': ['/portfolio', 'unused Webflow template'],
+    '/image-license-info': ['/', 'unedited Webflow boilerplate, not ported'],
+  }
+  if (RETIRED[p]) return {to: RETIRED[p][0], why: RETIRED[p][1]}
+
+  if (p.startsWith('/post/') || p.startsWith('/blog/'))
+    return {to: '/blog', why: 'post not carried over'}
   return {to: '/portfolio', why: 'NEEDS A DECISION - defaulting to the grid'}
 }
 

@@ -64,22 +64,44 @@ if (emptyFilters.length > 0) {
 
 <Layout title={page?.title ?? 'Portfolio'} description={page?.seoDescription}>
   <section class="pf-section">
+    {/*
+      Three groups rather than one long run of buttons: what to show, how to
+      show it, and how to arrange it.
+
+      The grouping is not decoration. Flat, the row wrapped wherever it ran out
+      of width, which on a phone put the `+` on a line by itself under eight
+      other buttons - an orphan, and a control that no longer reads as the
+      partner of the `-` next to it. Groups wrap as units, and the zoom pair
+      never splits at all.
+
+      The dividers are gone with them. They were doing the grouping's job badly,
+      and on a narrow screen they ended up starting and ending lines.
+    */}
     <div class="pf-controls" id="pf-controls">
-      {filters.map((f, i) => (
-        <button type="button" class:list={['pf-btn', i === 0 && 'is-active']} data-filter={f.value}>
-          {f.label}
-        </button>
-      ))}
-      <span class="pf-divider" aria-hidden="true"></span>
-      {/*
-        The archive view. Used to be a button in the corner of every page;
-        it belongs here, among the other ways of looking at this grid.
-      */}
-      <InkMode />
-      <span class="pf-divider" aria-hidden="true"></span>
-      <button type="button" class="pf-btn" id="pf-shuffle">Shuffle</button>
-      <button type="button" class="pf-btn" id="pf-minus" aria-label="Smaller tiles">&minus;</button>
-      <button type="button" class="pf-btn" id="pf-plus" aria-label="Larger tiles">+</button>
+      <div class="pf-group" role="group" aria-label="Filter by category">
+        {filters.map((f, i) => (
+          <button type="button" class:list={['pf-btn', i === 0 && 'is-active']} data-filter={f.value}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      <div class="pf-group" role="group" aria-label="View">
+        {/*
+          The archive view. Used to be a button in the corner of every page;
+          it belongs here, among the other ways of looking at this grid.
+        */}
+        <InkMode />
+      </div>
+
+      <div class="pf-group" role="group" aria-label="Arrange">
+        <button type="button" class="pf-btn" id="pf-shuffle">Shuffle</button>
+        {/* nowrap: these two are one control in two halves. */}
+        <span class="pf-zoom">
+          <button type="button" class="pf-btn" id="pf-minus" aria-label="Smaller tiles">&minus;</button>
+          <button type="button" class="pf-btn" id="pf-plus" aria-label="Larger tiles">+</button>
+        </span>
+      </div>
     </div>
 
     {/*

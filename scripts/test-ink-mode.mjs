@@ -23,6 +23,8 @@
     turns off     and back, leaving no data-ink behind
     persists      a reload comes back in archive view without flashing colour
     nowhere else  no stray button on a page it was just removed from
+    in palette    navy like the rest of the site, not the near-black it was
+    no orphan     the zoom pair stays on one line on a phone
 
   Usage: node scripts/test-ink-mode.mjs [url]
 */
@@ -133,6 +135,31 @@ check(
   Boolean(phoneBox && phoneBox.height >= 44 && phoneBox.width >= 44),
   phoneBox ? `${Math.round(phoneBox.width)}x${Math.round(phoneBox.height)}` : 'no box',
 )
+
+/*
+  The orphan. On a phone the flat control row wrapped wherever it ran out of
+  width and left `+` alone on a line under eight other buttons - visible in a
+  photo Chris sent, invisible to every check. `-` and `+` are one control in two
+  halves, so they sharing a line is the thing to assert.
+*/
+const minus = await page.locator('#pf-minus').boundingBox().catch(() => null)
+const plus = await page.locator('#pf-plus').boundingBox().catch(() => null)
+check(
+  'the zoom pair stays on one line',
+  Boolean(minus && plus && Math.abs(minus.y - plus.y) < 4),
+  minus && plus ? `y ${Math.round(minus.y)} vs ${Math.round(plus.y)}` : 'no box',
+)
+
+/*
+  In the palette. These were near-black while the whole site is navy, so the
+  one row of controls on the busiest page was the only thing off-theme. Checked
+  as a computed colour rather than by eye, because it is a one-token slip that
+  looks deliberate.
+*/
+const navy = await page
+  .locator('#pf-shuffle')
+  .evaluate((el) => getComputedStyle(el).borderTopColor)
+check('the controls are navy, not near-black', navy === 'rgb(0, 40, 133)', navy)
 
 await page.screenshot({path: 'ink-mode.png', fullPage: false})
 

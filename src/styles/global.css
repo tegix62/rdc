@@ -797,11 +797,17 @@ main {
   }
 }
 
+/*
+  Groups, not buttons, are what this row lays out. The gap between them is
+  wider than the gap inside them, which is what makes the grouping readable
+  without the hairline dividers that used to do the job - badly, since on a
+  narrow screen they ended up starting and ending lines.
+*/
 .pf-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-1) var(--space-3);
   margin: 0 var(--space-2) var(--space-3);
 }
 
@@ -812,28 +818,67 @@ main {
   }
 }
 
+/*
+  Navy, like everything else.
+
+  These were drawn in near-black while the nav, the headings, the links and
+  every button on the site are navy - so the one row of controls on the busiest
+  page was the only element not in the palette. Matching `.button--outline`
+  keeps the outlined-navy-fills-on-active behaviour consistent wherever it
+  appears.
+
+  Navy also converts correctly in archive view: `--color-navy` is remapped to
+  the stock's ink, so the controls follow the treatment instead of staying blue
+  on paper.
+*/
 .pf-btn {
   padding: 0.375rem 0.875rem;
-  border: 1px solid var(--color-ink);
+  border: 1px solid var(--color-navy);
   background: transparent;
-  color: var(--color-ink);
+  color: var(--color-navy);
   font-family: var(--font-heading);
   font-size: 0.75rem;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.pf-btn:hover {
+  background: color-mix(in srgb, var(--color-navy) 10%, transparent);
 }
 
 .pf-btn.is-active {
-  background: var(--color-ink);
+  background: var(--color-navy);
   color: var(--color-white);
 }
 
-.pf-divider {
-  width: 1px;
-  height: 1.25rem;
-  margin: 0 var(--space-1);
-  background: var(--color-border);
+.pf-btn.is-active:hover {
+  background: var(--color-navy-dark);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-btn { transition: none; }
+}
+
+/*
+  A group wraps as a unit, so the row breaks between ideas rather than in the
+  middle of one.
+*/
+.pf-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* The two halves of one control. nowrap so `+` can never orphan onto its own
+   line, which is exactly what it did on a phone. */
+.pf-zoom {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: var(--space-1);
 }
 
 @media (max-width: 30rem) {

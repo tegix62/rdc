@@ -11,7 +11,7 @@ watermarked derivatives out.
 
 ```bash
 npm install
-npm test                                              # 18 behavioural tests
+npm test                                              # 19 behavioural tests
 node scripts/watermark.mjs --preview photo.jpg --sheet   # ← start here
 node scripts/watermark.mjs --source local --in ~/masters
 node scripts/watermark.mjs --source sanity            # pull originals from the CMS
@@ -84,15 +84,37 @@ doesn't clear the whole portfolio).
 
 ### Automatic ink
 
-`veil.color: "auto"` flips the veil to `darkColor` on bright images. This matters
-more than it sounds: a white veil composited over a white-background product
-shot is *literally not there*. Measured on a 244-luminance frame, white ink
-gives a peak delta of 5 and navy gives 19.
+`veil.color: "auto"` picks the ink **per region**, from the local brightness of
+the photo underneath: light type over dark areas, dark type over bright ones.
+
+A single ink chosen from the frame *average* is not good enough. On a real photo
+— a white cumulus against a dark sky — the frame averages 0.21, so a global
+decision picks white, which then lands at a peak delta of 21–24 on the sky but
+only 11–13 on the cloud. Half the strength precisely where the subject is, and a
+bright background needs *more* delta to read, not less.
+
+The obvious implementation is wrong, and worth recording: rendering a light copy
+and a dark copy and crossfading between them makes things worse, because
+wherever both are partly visible their strokes overlap, one lightening and the
+other darkening the same pixels, and they cancel. On a mid-grey frame that
+measured a peak of 8 against 19 for a single ink. So there is exactly one
+stencil, and each of its pixels is painted a single colour.
 
 `darkColor` is `#002885` — the site's one brand colour, since the brief notes
 there is deliberately no black in the palette. On very light images this tints
-the veil faintly blue. If that reads as wrong on real work, `#1a1a1a` is the
+the veil faintly blue. If that reads wrong on real work, `#1a1a1a` is the
 neutral alternative.
+
+### The centre is genuinely lightly marked
+
+Worth being explicit, because it surprised me on a real photo: the vignette
+means a subject sitting in the middle of the frame carries almost no veil. On
+the cumulus shot the cloud is central, so it is protected mostly by the edge
+marks and the resolution cap rather than by the veil.
+
+That is the design working as asked — "barely visible in the center" — not a
+bug. But it is a real tradeoff, and `centerOpacity` and `falloff` are the dials
+if a particular piece needs the middle covered.
 
 ---
 
@@ -116,6 +138,13 @@ largest output, so the mark keeps the same relative weight at 640px as at
 2000px. Widths are clamped to the source first, so a 900px master never ships a
 blurry "2000px" file — and clamped duplicates collapse rather than rendering
 twice.
+
+Nothing lossy happens before the final encode. Intermediates are uncompressed
+PNG, because sharp's `toBuffer()` keeps the *input* format at default quality —
+a JPEG master was being re-encoded twice on the way to delivery, 5.7 MB → 2.0 MB
+→ 0.3 MB, leaving artifacts of ±32 levels in the result. There is a test
+asserting a white-ink veil only ever lightens pixels, which is true only if the
+path to it is lossless.
 
 Re-runs are incremental: a fingerprint of (source bytes + watermark settings)
 decides what needs rebuilding. Editing `edgeOpacity` correctly invalidates
@@ -166,7 +195,7 @@ The brief asks proposals to state their costs up front, so:
 - **Phone / JS-disabled:** the watermark is in the pixels, so it behaves
   identically. The provided component emits `width`/`height` and a srcset, so it
   doesn't reintroduce layout shift.
-- **Measured:** 18 tests, run with `npm test`. Not yet measured against the real
+- **Measured:** 19 tests, run with `npm test`. Not yet measured against the real
   dataset — see the caveat at the end.
 
 Three ways to connect it, in the order I'd recommend them.

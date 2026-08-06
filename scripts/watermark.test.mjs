@@ -119,6 +119,71 @@ test('veil ink flips to dark on a bright image so it stays visible', async () =>
   );
 });
 
+test('veil survives on both halves of a split-brightness frame', async () => {
+  // Dark on the left, blown-out on the right — the shape of any photo with
+  // real dynamic range. A single ink chosen from the frame average is wrong
+  // for one half of this by construction.
+  const W = 1600, H = 1000;
+  const raw = Buffer.alloc(W * H * 3);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const v = x < W / 2 ? 26 : 242;
+      const i = (y * W + x) * 3;
+      raw[i] = v; raw[i + 1] = v; raw[i + 2] = v;
+    }
+  }
+  const src = await sharp(raw, { raw: { width: W, height: H, channels: 3 } }).png().toBuffer();
+
+  const adaptive = await run(src, cfg({ marks: { ...BASE.marks, enabled: false } }));
+  const white = await run(src, cfg({
+    marks: { ...BASE.marks, enabled: false },
+    veil: { ...BASE.veil, color: '#ffffff' },
+  }));
+
+  const { width: w, height: h } = adaptive.result.variants[0];
+  const plain = await plainAt(src, w, h);
+  // Sample the top corners. The vignette is elliptical and follows the frame,
+  // so even the middle of a long edge is only about a third of full strength —
+  // measuring there would confound ink choice with the fade. The corners are
+  // where the veil is actually at `edgeOpacity`.
+  const S = Math.round(h * 0.22);
+  const darkSide = { left: 6, top: 6, width: S, height: S };
+  const brightSide = { left: w - S - 6, top: 6, width: S, height: S };
+
+  const aDark = await peakDelta(plain, adaptive.buffer, darkSide);
+  const aBright = await peakDelta(plain, adaptive.buffer, brightSide);
+  const wBright = await peakDelta(plain, white.buffer, brightSide);
+
+  assert.ok(aDark > 10, `veil lost on the dark half (${aDark})`);
+  assert.ok(aBright > 10, `veil lost on the bright half (${aBright})`);
+  // The point of per-region ink: fixed white ink is the failing case here.
+  assert.ok(
+    aBright > wBright * 2,
+    `per-region ink is no better than fixed white on the bright half (${aBright} vs ${wBright})`
+  );
+});
+
+test('the path to the final encode is lossless', async () => {
+  // A white veil can only ever lighten a pixel. Any darkened pixel means
+  // something lossy happened to the base before the watermark was applied —
+  // which is exactly the bug that an intermediate re-encode introduced.
+  const src = await field(1200, 900, 120, 'jpeg');
+  const { result, buffer } = await run(src, cfg({
+    marks: { ...BASE.marks, enabled: false },
+    veil: { ...BASE.veil, color: '#ffffff' },
+  }));
+  const { width: w, height: h } = result.variants[0];
+  const plain = await plainAt(src, w, h);
+
+  const A = await sharp(plain).raw().toBuffer();
+  const B = await sharp(buffer).raw().toBuffer();
+  assert.equal(A.length, B.length, 'channel count changed — a stray alpha channel?');
+
+  let darkened = 0;
+  for (let i = 0; i < A.length; i++) if (B[i] < A[i]) darkened++;
+  assert.equal(darkened, 0, `${darkened} pixels were darkened by a white veil`);
+});
+
 test('marks stay legible on a near-black image', async () => {
   const dark = await field(1400, 1000, 14);
   const { result, buffer } = await run(dark, cfg({ veil: { ...BASE.veil, enabled: false } }));

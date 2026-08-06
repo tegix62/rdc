@@ -55,16 +55,38 @@ jobs:
           BASE="https://preview.rumeau-design-co.pages.dev"
           want="$GITHUB_SHA"
           live=""
-          for attempt in $(seq 1 40); do
+
+          # Three matches in a row, not one.
+          #
+          # A Cloudflare rollout is not atomic across edge nodes, so the first
+          # response carrying the new stamp only proves that ONE node has it.
+          # Measuring immediately after that meant later page fetches could
+          # still land on a node serving the previous build - which is exactly
+          # what "More than one build answered during this run" in the report
+          # means, and it has now happened on two runs in a row. Numbers that
+          # silently mix two builds are worse than no numbers, because nothing
+          # about them looks wrong.
+          #
+          # Consecutive, so a single lucky sample resets rather than counts.
+          need=3
+          streak=0
+          for attempt in $(seq 1 60); do
             live=$(curl -s --max-time 20 "$BASE" \
               | grep -o 'name="build-commit" content="[^"]*"' \
               | head -1 | sed 's/.*content="\([^"]*\)".*/\1/')
             if [ "$live" = "$want" ]; then
-              echo "deployed commit is live after $((attempt * 15))s"
-              exit 0
+              streak=$((streak + 1))
+              echo "attempt $attempt: match $streak/$need"
+              if [ "$streak" -ge "$need" ]; then
+                echo "deployed commit is live and stable across $need consecutive checks"
+                exit 0
+              fi
+            else
+              [ "$streak" -gt 0 ] && echo "attempt $attempt: streak broken by ${live:-none}"
+              streak=0
+              echo "attempt $attempt: live=${live:-none} want=$want"
             fi
-            echo "attempt $attempt: live=${live:-none} want=$want"
-            sleep 15
+            sleep 10
           done
           # Hard failure, not a warning.
           #

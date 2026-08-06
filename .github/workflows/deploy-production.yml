@@ -33,6 +33,17 @@ on:
       verify_url:
         description: 'URL to verify after publishing'
         default: 'https://rumeau-design-co.pages.dev'
+  # GitHub only offers "Run workflow" for files that exist on the default
+  # branch, so until this is merged there is no way to dispatch it - and an
+  # untested launch gate is not a launch gate. This trigger covers only the
+  # three files that make up the gate itself, and cannot publish: `publish` is
+  # an input, and inputs are empty on a push. So a change here builds the real
+  # production bundle and checks it, and stops there.
+  push:
+    paths:
+      - '.github/workflows/deploy-production.yml'
+      - 'scripts/check-production-build.mjs'
+      - 'scripts/test-production-check.mjs'
 
 jobs:
   deploy:

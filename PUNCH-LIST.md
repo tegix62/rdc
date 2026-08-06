@@ -99,18 +99,36 @@ now built. The CMS audit reports **0 dead fields across 233**.
 
 Verified numbers, not estimates. Homepage is already down 59% and `/video` 89%.
 
-- [ ] **`/portfolio` is ~7.3 MB** for 68 thumbnails — the heaviest page left.
-  The rule "animated images never go through the resize pipeline" is too
-  absolute: at small widths the CDN's re-encode genuinely beats the original,
-  and which way it falls depends on the width being requested. The fix is a
-  per-asset, per-width decision from measured bytes, cached in Sanity.
-- [ ] **`/portfolio` desktop CLS is 0.4722** (under 0.1 is "good"). The worst
-  number on the site and precisely the jank you can feel: Isotope lays the
-  masonry grid out *after* the page paints, so everything jumps once. Fix means
-  reserving the grid's height before layout. Mobile measures 0, which is
-  suspicious enough to be worth understanding before trusting.
-- [ ] **One source file is 3,981 KB** — the homepage hero background, an
-  800×800 file. No code change fixes a 4 MB export; it needs re-saving. Yours.
+- [ ] **`/portfolio` is the heaviest page left**, and the reason turned out not
+  to be the rule about animated images at all. Five assets account for most of
+  its weight, and every one was being *mis-detected as still*.
+
+  Sanity content-negotiates the bare asset URL. Asked without a browser
+  `Accept` header — which is what Node's `fetch` sends — it hands back a static
+  JPEG fallback. So the probe read a first frame and said "not animated", and
+  the build fed animated WebPs into the resize pipeline. One `-300x300` asset
+  is a 1,348 KB animation that reads as a 15 KB JPEG. Measured with controls in
+  `scripts/diagnose-original-bytes.mjs`; an animated GIF is byte-identical
+  under every header, which is why GIF detection always worked and WebP
+  detection never could.
+
+  The header is fixed. What remains is the real prize: those five have never
+  been eligible for the animation→video conversion, because that path is gated
+  on the detection. Re-running `convert-animations` should turn multi-megabyte
+  animations into looping h264. **That writes new assets to your Sanity dataset,
+  so I've left it for you to say go on.** It already refuses any transcode
+  larger than the file it replaces — on the last run 10 of 13 came out bigger,
+  and it declined all ten.
+- [x] **`/portfolio` desktop CLS: 0.4722 → 0.0006.** Measured on a clean run
+  against a single build. The cause wasn't slow images — the markup is floated
+  tiles, Isotope then absolutely positions all 68, and the browser painted the
+  first layout before replacing it. Nothing makes those two agree, so the tiles
+  are now hidden until Isotope has placed them.
+- [x] ~~**One source file is 3,981 KB** — the homepage hero, needs re-saving.
+  Yours.~~ **Wrong, and not yours.** It is an animated WebP, not a badly
+  exported still. It reads as a 71 KB JPEG to anything that asks without a
+  browser `Accept` header, which is how it was mis-filed. Nothing to re-export;
+  see the animation entry below.
 - [ ] Three anchors on the homepage measure 36–43px wide (44px tall). Height is
   fine, width slightly short. The audit reports size but not a selector and
   their labels are empty, so I left them rather than guess.

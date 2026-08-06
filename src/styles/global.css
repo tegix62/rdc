@@ -1267,6 +1267,29 @@ main {
 .work-band {
   background: var(--work-accent, transparent);
   padding: var(--space-5) 0;
+  /*
+    Set alongside --work-accent in work/[slug].astro, chosen by luminance from
+    the accent itself. Falls back to the inherited ink when a project has no
+    accent, which is also when the band has no background to contrast with.
+  */
+  color: var(--work-accent-fg, inherit);
+}
+
+/*
+  Everything inside follows the band rather than the site default. Headings and
+  prose set their own colour, so without this the band's text colour applied to
+  loose text and nothing else - which on a dark accent is the worst outcome:
+  some of the copy legible and some of it not.
+*/
+.work-band :is(h1, h2, h3, h4, h5, h6, p, li, blockquote, figcaption, .prose, .prose *) {
+  color: inherit;
+}
+
+/* Links keep their underline to stay distinguishable once they are the same
+   colour as the surrounding text. */
+.work-band a {
+  color: inherit;
+  text-decoration: underline;
 }
 
 .work-band__inner {

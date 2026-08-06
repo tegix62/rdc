@@ -8,6 +8,7 @@ import { urlFor } from '../../lib/image';
 import { renderPortableText } from '../../lib/portableText';
 import Video from '../../components/Video.astro';
 import { caseStudyNode } from '../../lib/structuredData';
+import { readableOn } from '../../lib/color';
 
 export async function getStaticPaths() {
   const slugs = await sanityClient.fetch(
@@ -25,7 +26,23 @@ const gridItems = await getGridItems(caseStudy._id);
 const otherWork = await getOtherCaseStudies(caseStudy._id);
 const galleries = ['merchGrid', 'flyerGrid', 'processGrid'] as const;
 
-const bandStyle = caseStudy.accentColor ? `--work-accent: ${caseStudy.accentColor}` : undefined;
+/*
+  The sections band is painted with the project's own accent colour, so its
+  text colour has to be chosen from that colour rather than fixed. Without
+  this the copy inherited the site's near-black ink: Adelante Barbell Club's
+  accent is #333333, and its entire body section shipped as #1a1a1a on #333333.
+
+  Computed rather than authored per project, because the colour is Chris's to
+  pick in Studio and any value has to work.
+*/
+const bandStyle = caseStudy.accentColor
+  ? [
+      `--work-accent: ${caseStudy.accentColor}`,
+      readableOn(caseStudy.accentColor) && `--work-accent-fg: ${readableOn(caseStudy.accentColor)}`,
+    ]
+      .filter(Boolean)
+      .join('; ')
+  : undefined;
 
 // Social previews need an absolute URL and a predictable crop.
 const ogSource = caseStudy.mainImage ?? caseStudy.thumbnail;

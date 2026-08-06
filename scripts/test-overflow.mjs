@@ -7,8 +7,17 @@
   clientWidth, then walks the DOM for every element whose right edge sits past
   the viewport, reporting a usable selector and how far over it goes.
 
-  Runs at phone, tablet and desktop widths, and with print mode both off and on,
-  because the question that prompted it was whether print mode introduced this.
+  Runs at phone, tablet and desktop widths, and with archive view both off and
+  on, because the question that prompted it was whether the ink treatment
+  introduced this.
+
+  It also checks the inverse failure, which is just as invisible and which
+  shipped once: an element laid out correctly but rendered at a fraction of its
+  intended size. The homepage work grid did exactly that - `.peek__item` and
+  `.pf-item` set `width` at the same specificity, the peek block sat earlier in
+  the file, so every tile came out at 16.666% of its grid cell. Roughly 40px,
+  in the right place, and almost invisible. Nothing overflowed, nothing errored,
+  and only a screenshot showed it.
 
   Usage: node scripts/test-overflow.mjs [baseUrl]
 */
@@ -111,10 +120,55 @@ for (const vp of WIDTHS) {
   }
 }
 
+/*
+  The homepage work grid, at a size that means it is actually doing its job.
+
+  A tile should fill most of its column. Anything under half of one is not a
+  small tile, it is a collapsed one - the CSS lost a fight it looked like it
+  had won.
+*/
+{
+  const context = await browser.newContext({viewport: {width: 1440, height: 900}})
+  const page = await context.newPage()
+  await page.goto(`${BASE}/`, {waitUntil: 'domcontentloaded', timeout: 60000})
+  await page.waitForTimeout(1200)
+
+  const measured = await page.evaluate(() => {
+    const grid = document.querySelector('.peek__grid')
+    if (!grid) return null
+    const gridWidth = grid.getBoundingClientRect().width
+    const tiles = [...grid.querySelectorAll('.peek__item')].map(
+      (t) => t.getBoundingClientRect().width,
+    )
+    return {gridWidth, tiles, columns: getComputedStyle(grid).gridTemplateColumns}
+  })
+
+  if (!measured) {
+    console.log('\nhomepage work grid: not present (nothing picked and nothing recent?)')
+  } else {
+    // Four columns with gaps, so a single-width tile is a bit under a quarter.
+    const floor = (measured.gridWidth / 4) * 0.5
+    const runts = measured.tiles.filter((w) => w < floor)
+    console.log(`\nhomepage work grid: ${measured.tiles.length} tiles in ${Math.round(measured.gridWidth)}px`)
+    console.log(`  columns: ${measured.columns}`)
+    console.log(`  widths:  ${measured.tiles.map((w) => Math.round(w)).join(', ')}`)
+    if (runts.length) {
+      console.log(`  FAIL ${runts.length} tile(s) under ${Math.round(floor)}px - the grid has collapsed`)
+      problems += 1
+    } else {
+      console.log('  ok, every tile fills its column')
+    }
+  }
+  await context.close()
+}
+
+// Deliberately not "scroll sideways" any more - the grid-collapse check above
+// also increments this, and a summary that names the wrong failure is how a
+// real one gets misread.
 console.log(
   problems
-    ? `\n\n${problems} page/width combination(s) scroll sideways.`
-    : '\n\nNo horizontal overflow anywhere.',
+    ? `\n\n${problems} layout problem(s) found.`
+    : '\n\nNo horizontal overflow, and the homepage grid fills its columns.',
 )
 await browser.close()
 process.exit(problems ? 1 : 0)

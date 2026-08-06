@@ -1,4 +1,5 @@
 import {defineField} from 'sanity'
+import {InkModePreview} from '../components/InkModePreview'
 
 /*
   Extra fields added to every image field on the site.
@@ -77,6 +78,12 @@ export const imageBehaviourFields = [
       ],
       layout: 'radio',
     },
+    /*
+      Renders the actual image under each treatment instead of four words.
+      Falls back to the radio list above when no file has been chosen yet, so
+      the options list is still the source of truth and still works.
+    */
+    components: {input: InkModePreview},
     initialValue: 'auto',
   }),
 ]

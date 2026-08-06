@@ -1,0 +1,100 @@
+name: Map the live URLs against ours
+
+# Launch step one. Skipping it is the one cutover mistake that costs something
+# unrecoverable: whatever ranking and inbound links the Webflow URLs have
+# earned. And it cannot be done afterwards - the list of old URLs disappears
+# with the old site.
+#
+# Runs in CI because the sandbox's proxy refuses rumeaudesign.co, and because
+# the answer depends on the LIVE sitemap rather than anything in this repo.
+
+on:
+  workflow_dispatch:
+    inputs:
+      live:
+        description: 'The site being replaced'
+        default: 'https://rumeaudesign.co'
+  push:
+    paths:
+      - 'scripts/audit-urls.mjs'
+      - '.github/workflows/audit-urls.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  urls:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+
+      - name: Compare
+        run: |
+          set -o pipefail
+          mkdir -p urls
+          node scripts/audit-urls.mjs \
+            --live "${{ inputs.live || 'https://rumeaudesign.co' }}" \
+            --out urls 2>&1 | tee urls/report.txt
+
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## URL map'
+            echo ''
+            echo '```'
+            cat urls/report.txt 2>/dev/null || echo '(nothing produced)'
+            echo '```'
+            echo ''
+            echo '### Proposed _redirects'
+            echo ''
+            echo '```'
+            head -60 urls/_redirects 2>/dev/null || echo '(none)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: urls
+          path: urls
+          if-no-files-found: ignore
+
+      # To the study-reports branch, so a session with no GitHub API can still
+      # read it with git alone. Deliberately NOT installed as public/_redirects:
+      # the fallbacks are guesses and want a human eye before they ship.
+      - name: Keep it somewhere git can reach
+        if: always()
+        run: |
+          set -euo pipefail
+          [ -d urls ] || exit 0
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir -p /tmp/urls && cp -r urls/* /tmp/urls/ 2>/dev/null || true
+
+          git fetch origin study-reports:study-reports 2>/dev/null || true
+          git checkout study-reports 2>/dev/null || git checkout --orphan study-reports
+          git rm -rf --cached . >/dev/null 2>&1 || true
+          find . -maxdepth 1 -mindepth 1 ! -name .git -exec rm -rf {} +
+
+          mkdir -p urls && cp -r /tmp/urls/* urls/ 2>/dev/null || true
+          {
+            echo "# URL map"
+            echo ""
+            echo '```'
+            echo "git fetch origin study-reports"
+            echo "git show origin/study-reports:urls/report.txt"
+            echo "git show origin/study-reports:urls/_redirects"
+            echo '```'
+          } > README.md
+
+          git add -A
+          git commit -q -m "URL map $(date -u +%Y-%m-%dT%H-%M-%SZ)" || exit 0
+          for attempt in 1 2 3 4; do
+            git push -f origin study-reports && break
+            sleep $((2 ** attempt))
+          done

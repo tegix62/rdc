@@ -1,0 +1,90 @@
+name: Watermark portfolio images
+
+# Runs on demand, and on a Sanity webhook. The site build itself is untouched:
+# this produces the watermarked derivatives and uploads them as an artifact, so
+# it can be inspected and measured before anything is wired into a deploy.
+#
+# To have Sanity trigger it, add a webhook in Studio pointing at
+# POST https://api.github.com/repos/tegix62/rdc/dispatches
+# with body {"event_type":"sanity-assets-changed"}.
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Where originals come from
+        type: choice
+        options: [sanity, local]
+        default: sanity
+      force:
+        description: Ignore the cache and rebuild everything
+        type: boolean
+        default: false
+  repository_dispatch:
+    types: [sanity-assets-changed]
+
+concurrency:
+  group: watermark-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  watermark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install
+        run: npm ci
+
+      # The fingerprint cache is what keeps this cheap: only images whose bytes
+      # or watermark settings actually changed get re-rendered. Without it every
+      # run would re-composite all ~80 assets from scratch.
+      - name: Restore watermark cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            .watermark
+            public/portfolio
+          key: watermark-${{ hashFiles('watermark.config.json', 'scripts/**') }}-${{ github.run_id }}
+          restore-keys: |
+            watermark-${{ hashFiles('watermark.config.json', 'scripts/**') }}-
+            watermark-
+
+      - name: Watermark
+        env:
+          SANITY_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID || '8337vjtf' }}
+          SANITY_DATASET: ${{ vars.SANITY_DATASET || 'production' }}
+          # Only required if the dataset is private. Unset is fine for a public one.
+          SANITY_READ_TOKEN: ${{ secrets.SANITY_READ_TOKEN }}
+        run: |
+          node scripts/watermark.mjs \
+            --source "${{ github.event.inputs.source || 'sanity' }}" \
+            ${{ github.event.inputs.force == 'true' && '--force' || '' }} \
+            --concurrency 4
+
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            echo "### Watermark run"
+            echo
+            if [ -d public/portfolio ]; then
+              echo "- files: $(find public/portfolio -type f | wc -l)"
+              echo "- total: $(du -sh public/portfolio | cut -f1)"
+            else
+              echo "- no output directory produced"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: watermarked-portfolio
+          path: |
+            public/portfolio
+            src/data/watermarked.json
+          if-no-files-found: warn
+          retention-days: 14

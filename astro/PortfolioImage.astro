@@ -1,0 +1,111 @@
+---
+/**
+ * Renders a watermarked portfolio image from the map the build script emits.
+ *
+ * Copy this to `src/components/PortfolioImage.astro` in the site repo. The
+ * import below assumes the map lands at `src/data/watermarked.json` (the
+ * `output.mapFile` default) — adjust if you move it.
+ *
+ *   <PortfolioImage id={asset._id} alt="Brand identity, 2026" />
+ *
+ * `id` is the map key: the Sanity asset `_id` in sanity mode, or the path
+ * relative to the source directory in local mode.
+ */
+import mapData from '../src/data/watermarked.json';
+
+interface Variant {
+  width: number;
+  height: number;
+  longEdge: number;
+  format: string;
+  file: string;
+  bytes: number;
+}
+
+interface Entry {
+  slug: string;
+  basePath: string;
+  source: { width: number; height: number };
+  aspectRatio: number;
+  lqip: string | null;
+  variants: Variant[];
+}
+
+interface Props {
+  id: string;
+  alt: string;
+  sizes?: string;
+  loading?: 'lazy' | 'eager';
+  fetchpriority?: 'high' | 'low' | 'auto';
+  class?: string;
+  /** Adds the light-touch deterrents (no right-click menu, no drag). */
+  deter?: boolean;
+}
+
+const {
+  id,
+  alt,
+  sizes = '(max-width: 768px) 100vw, (max-width: 1280px) 90vw, 1200px',
+  loading = 'lazy',
+  fetchpriority = 'auto',
+  class: className,
+  deter = true,
+} = Astro.props;
+
+const images = (mapData as any).images as Record<string, Entry>;
+const entry = images?.[id];
+
+if (!entry) {
+  // Fail loudly at build time. A missing key means the image was never
+  // watermarked, and silently rendering nothing is how an unprotected
+  // original quietly ends up on the page instead.
+  throw new Error(
+    `PortfolioImage: no watermarked entry for "${id}". ` +
+      `Run the watermark script, or check the key against src/data/watermarked.json.`
+  );
+}
+
+const base = entry.basePath.replace(/\/$/, '');
+const byFormat = new Map<string, Variant[]>();
+for (const v of entry.variants) {
+  if (!byFormat.has(v.format)) byFormat.set(v.format, []);
+  byFormat.get(v.format)!.push(v);
+}
+for (const list of byFormat.values()) list.sort((a, b) => a.width - b.width);
+
+const srcsetFor = (list: Variant[]) =>
+  list.map((v) => `${base}/${v.file} ${v.width}w`).join(', ');
+
+// The <img> fallback should be a format every browser understands.
+const fallback = byFormat.get('jpg') ?? byFormat.get('png') ?? [...byFormat.values()][0];
+const largest = fallback[fallback.length - 1];
+const modern = [...byFormat.entries()].filter(([f]) => f === 'avif' || f === 'webp');
+const MIME: Record<string, string> = { avif: 'image/avif', webp: 'image/webp' };
+---
+
+<picture class={className}>
+  {modern.map(([format, list]) => (
+    <source type={MIME[format]} srcset={srcsetFor(list)} sizes={sizes} />
+  ))}
+  <img
+    src={`${base}/${largest.file}`}
+    srcset={srcsetFor(fallback)}
+    sizes={sizes}
+    alt={alt}
+    width={largest.width}
+    height={largest.height}
+    loading={loading}
+    fetchpriority={fetchpriority}
+    decoding="async"
+    draggable={deter ? 'false' : undefined}
+    oncontextmenu={deter ? 'return false' : undefined}
+    style={entry.lqip
+      ? `background-image:url(${entry.lqip});background-size:cover;background-position:center;aspect-ratio:${entry.aspectRatio};`
+      : `aspect-ratio:${entry.aspectRatio};`}
+  />
+</picture>
+
+<style>
+  picture { display: block; }
+  img { display: block; width: 100%; height: auto; -webkit-user-drag: none; user-select: none; }
+</style>

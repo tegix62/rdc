@@ -1,0 +1,21 @@
+node_modules/
+dist/
+.astro/
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Incremental watermark cache and preview renders.
+.watermark/
+
+# Generated watermark output. Derivatives are rebuilt from the masters, so
+# there is nothing here worth versioning.
+public/portfolio/
+
+# Full-resolution masters must never be committed: every previous revision of
+# a committed file stays fetchable from git history forever, which defeats the
+# entire point of watermarking the derivatives. Keep them outside the repo and
+# point --in at them.
+originals/
+samples/

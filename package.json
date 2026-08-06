@@ -1,0 +1,20 @@
+{
+  "name": "rdc-watermark",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Automated portfolio watermarking for Rumeau Design Co.",
+  "scripts": {
+    "watermark": "node scripts/watermark.mjs",
+    "watermark:sanity": "node scripts/watermark.mjs --source sanity",
+    "watermark:preview": "node scripts/watermark.mjs --preview",
+    "watermark:force": "node scripts/watermark.mjs --force",
+    "test": "node scripts/watermark.test.mjs"
+  },
+  "dependencies": {
+    "sharp": "^0.34.2"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

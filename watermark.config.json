@@ -1,0 +1,67 @@
+{
+  "$schema": "./scripts/config.schema.json",
+
+  "identity": {
+    "name": "Chris Rumeau",
+    "studio": "Rumeau Design Co.",
+    "instagram": "@rumeaudesign",
+    "site": "rumeaudesign.co",
+    "copyrightNotice": "© {year} Rumeau Design Co. — All rights reserved."
+  },
+
+  "seed": "rumeaudesign",
+
+  "input": {
+    "dir": "originals"
+  },
+
+  "sanity": {
+    "projectId": "8337vjtf",
+    "dataset": "production"
+  },
+
+  "output": {
+    "dir": "public/portfolio",
+    "mapFile": "src/data/watermarked.json",
+    "widths": [640, 1280, 2000],
+    "formats": ["webp", "jpg"],
+    "quality": { "webp": 82, "jpg": 84 },
+    "lqip": true
+  },
+
+  "veil": {
+    "enabled": true,
+    "text": "RUMEAU DESIGN CO · RUMEAUDESIGN.CO",
+    "fontFamily": "Inter Tight, Liberation Sans, DejaVu Sans, sans-serif",
+    "fontWeight": 600,
+    "letterSpacing": 0.18,
+    "angle": -30,
+    "sizeRatio": 0.021,
+    "gapRatio": 0.85,
+    "rowGapRatio": 2.6,
+    "color": "auto",
+    "lightColor": "#ffffff",
+    "darkColor": "#002885",
+    "darkOpacityScale": 0.72,
+    "blend": "over",
+    "centerOpacity": 0.018,
+    "edgeOpacity": 0.13,
+    "falloff": 2.4
+  },
+
+  "marks": {
+    "enabled": true,
+    "count": 3,
+    "variants": ["Chris Rumeau", "rumeaudesign.co", "© Rumeau Design Co."],
+    "fontFamily": "Inter Tight, Liberation Sans, DejaVu Sans, sans-serif",
+    "fontWeight": 500,
+    "letterSpacing": 0.08,
+    "sizeRatio": 0.0105,
+    "minPx": 7,
+    "insetRatio": 0.02,
+    "contrastDelta": 0.075,
+    "followEdge": true,
+    "candidatesPerEdge": 8,
+    "edges": ["top", "right", "bottom", "left"]
+  }
+}

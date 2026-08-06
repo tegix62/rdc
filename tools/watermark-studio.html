@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Watermark Studio — Rumeau Design Co.</title>
+<style>
+  :root {
+    --bg: #0e0e10; --panel: #17171b; --line: #2a2a31;
+    --ink: #e8e8ea; --muted: #9a9aa4; --accent: #c8a97e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", sans-serif;
+    display: grid; grid-template-columns: 320px 1fr; min-height: 100vh;
+  }
+  @media (max-width: 860px) { body { grid-template-columns: 1fr; } }
+
+  aside { background: var(--panel); border-right: 1px solid var(--line); padding: 20px; overflow-y: auto; }
+  h1 { font-size: 15px; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 12px; margin-bottom: 20px; }
+  fieldset { border: 0; border-top: 1px solid var(--line); margin: 0 0 14px; padding: 14px 0 0; }
+  legend { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); padding-right: 8px; }
+  label { display: block; margin-bottom: 10px; font-size: 12px; color: var(--muted); }
+  label span { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  input[type=text], select {
+    width: 100%; background: #0b0b0d; border: 1px solid var(--line);
+    color: var(--ink); padding: 7px 9px; border-radius: 5px; font-size: 13px;
+  }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  input[type=checkbox] { accent-color: var(--accent); margin-right: 6px; }
+  button {
+    width: 100%; padding: 10px; border: 0; border-radius: 6px; cursor: pointer;
+    background: var(--accent); color: #1a1408; font-weight: 650; font-size: 13px;
+  }
+  button.ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); font-weight: 500; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  .stack > * + * { margin-top: 8px; }
+
+  main { padding: 24px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  #drop {
+    border: 1.5px dashed var(--line); border-radius: 10px; flex: 1;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    color: var(--muted); padding: 40px; transition: .15s;
+  }
+  #drop.hot { border-color: var(--accent); background: rgba(200,169,126,.06); }
+  #stage { display: none; flex-direction: column; gap: 12px; min-height: 0; }
+  canvas { max-width: 100%; max-height: 72vh; object-fit: contain; border-radius: 8px; background: #000; }
+  .meta { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .note { color: var(--muted); font-size: 11px; line-height: 1.5; margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<aside>
+  <h1>Watermark Studio</h1>
+  <div class="sub">One-offs, in the browser. Nothing uploads — the file never leaves this tab.</div>
+
+  <fieldset>
+    <legend>Identity</legend>
+    <label><span>Veil text</span><input type="text" id="veilText" value="RUMEAU DESIGN CO · @rumeaudesign"></label>
+    <label><span>Edge marks (one per line)</span></label>
+    <textarea id="markText" rows="3" style="width:100%;background:#0b0b0d;border:1px solid var(--line);color:var(--ink);padding:7px 9px;border-radius:5px;font-size:12px;">Chris Rumeau
+rumeaudesign.co
+@rumeaudesign</textarea>
+  </fieldset>
+
+  <fieldset>
+    <legend>Veil</legend>
+    <label><input type="checkbox" id="veilOn" checked> Enabled</label>
+    <label><span>Edge opacity <b id="vEdgeV">0.13</b></span><input type="range" id="vEdge" min="0" max="0.4" step="0.005" value="0.13"></label>
+    <label><span>Centre opacity <b id="vCenterV">0.018</b></span><input type="range" id="vCenter" min="0" max="0.2" step="0.002" value="0.018"></label>
+    <label><span>Falloff <b id="vFalloffV">2.4</b></span><input type="range" id="vFalloff" min="0.5" max="6" step="0.1" value="2.4"></label>
+    <label><span>Size <b id="vSizeV">0.021</b></span><input type="range" id="vSize" min="0.008" max="0.05" step="0.001" value="0.021"></label>
+    <label><span>Angle <b id="vAngleV">-30°</b></span><input type="range" id="vAngle" min="-90" max="90" step="1" value="-30"></label>
+    <label><span>Ink</span>
+      <select id="vInk"><option value="auto">Auto (flip on bright images)</option><option value="light">Always light</option><option value="dark">Always dark</option></select>
+    </label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Edge marks</legend>
+    <label><input type="checkbox" id="marksOn" checked> Enabled</label>
+    <label><span>Count <b id="mCountV">3</b></span><input type="range" id="mCount" min="0" max="6" step="1" value="3"></label>
+    <label><span>Size <b id="mSizeV">0.0105</b></span><input type="range" id="mSize" min="0.005" max="0.03" step="0.0005" value="0.0105"></label>
+    <label><span>Contrast <b id="mContrastV">0.075</b></span><input type="range" id="mContrast" min="0.01" max="0.35" step="0.005" value="0.075"></label>
+    <label><span>Seed</span><input type="text" id="seed" value="rumeaudesign"></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Export</legend>
+    <label><span>Max long edge <b id="maxLongV">2000</b>px</span><input type="range" id="maxLong" min="600" max="4000" step="100" value="2000"></label>
+    <label><span>JPEG quality <b id="qualV">0.86</b></span><input type="range" id="qual" min="0.5" max="1" step="0.01" value="0.86"></label>
+    <div class="stack">
+      <button id="save" disabled>Download watermarked</button>
+      <button class="ghost" id="reset">Load another image</button>
+    </div>
+  </fieldset>
+
+  <div class="note">
+    Matches <code>scripts/watermark.mjs</code>, so a one-off here looks like the
+    build output. For the portfolio itself, let the build do it.
+  </div>
+</aside>
+
+<main>
+  <div id="drop">
+    <div>
+      <div style="font-size:15px;color:var(--ink);margin-bottom:6px;">Drop an image here</div>
+      <div>or <button class="ghost" style="width:auto;display:inline-block;padding:6px 14px;" id="pick">choose a file</button></div>
+      <input type="file" id="file" accept="image/*" hidden>
+    </div>
+  </div>
+  <div id="stage">
+    <canvas id="canvas"></canvas>
+    <div class="meta" id="meta"></div>
+  </div>
+</main>
+
+<script type="module">
+/* Seeded RNG — same construction as scripts/lib/rng.mjs, so a given seed
+   places marks the same way here as it does in the build. */
+function xmur3(str){let h=1779033703^str.length;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=(h<<13)|(h>>>19);}return()=>{h=Math.imul(h^(h>>>16),2246822507);h=Math.imul(h^(h>>>13),3266489909);h^=h>>>16;return h>>>0;};}
+function mulberry32(a){return()=>{a|=0;a=(a+0x6d2b79f5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};}
+function makeRng(...parts){const next=mulberry32(xmur3(parts.join('::'))());return{next,range:(a,b)=>a+next()*(b-a),shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(next()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}};}
+
+const $ = (id) => document.getElementById(id);
+const canvas = $('canvas'), ctx = canvas.getContext('2d', { willReadFrequently: true });
+let source = null, sourceName = 'image';
+
+/* ---- input ---------------------------------------------------------- */
+const drop = $('drop');
+$('pick').onclick = () => $('file').click();
+$('file').onchange = (e) => e.target.files[0] && load(e.target.files[0]);
+$('reset').onclick = () => { $('stage').style.display='none'; drop.style.display='flex'; $('save').disabled=true; source=null; };
+['dragenter','dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('hot'); }));
+['dragleave','drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('hot'); }));
+drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f && f.type.startsWith('image/')) load(f); });
+
+async function load(file) {
+  sourceName = file.name.replace(/\.[^.]+$/, '');
+  // createImageBitmap honours EXIF orientation, matching the build's .rotate().
+  source = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  drop.style.display = 'none';
+  $('stage').style.display = 'flex';
+  $('save').disabled = false;
+  render();
+}
+
+/* ---- controls ------------------------------------------------------- */
+const controls = ['veilText','markText','veilOn','vEdge','vCenter','vFalloff','vSize','vAngle','vInk','marksOn','mCount','mSize','mContrast','seed','maxLong','qual'];
+const readouts = { vEdge:'vEdgeV', vCenter:'vCenterV', vFalloff:'vFalloffV', vSize:'vSizeV', mCount:'mCountV', mSize:'mSizeV', mContrast:'mContrastV', maxLong:'maxLongV', qual:'qualV' };
+let pending = null;
+for (const id of controls) {
+  $(id).addEventListener('input', () => {
+    if (readouts[id]) $(readouts[id]).textContent = $(id).value;
+    if (id === 'vAngle') $('vAngleV').textContent = $(id).value + '°';
+    // Coalesce slider spam into one render per frame.
+    if (pending) cancelAnimationFrame(pending);
+    pending = requestAnimationFrame(() => { pending = null; render(); });
+  });
+}
+
+/* ---- render --------------------------------------------------------- */
+function render() {
+  if (!source) return;
+  const maxLong = +$('maxLong').value;
+  const srcLong = Math.max(source.width, source.height);
+  const scale = Math.min(1, maxLong / srcLong); // never upscale
+  const w = Math.round(source.width * scale), h = Math.round(source.height * scale);
+
+  canvas.width = w; canvas.height = h;
+  ctx.drawImage(source, 0, 0, w, h);
+
+  const rng = makeRng($('seed').value, sourceName);
+  const stats = globalStats(w, h);
+
+  if ($('veilOn').checked) drawVeil(w, h, stats, rng);
+  if ($('marksOn').checked) drawMarks(w, h, rng);
+
+  $('meta').textContent =
+    `${source.width}×${source.height} source → ${w}×${h} export · veil ${$('veilOn').checked ? 'on' : 'off'}` +
+    ` · ${$('marksOn').checked ? $('mCount').value : 0} edge marks · mean luma ${stats.luma.toFixed(2)}`;
+}
+
+function globalStats(w, h) {
+  const d = ctx.getImageData(0, 0, w, h).data;
+  let sum = 0, n = 0;
+  const step = Math.max(1, Math.floor(d.length / 4 / 20000)) * 4; // ~20k samples
+  for (let i = 0; i < d.length; i += step) {
+    sum += (0.2126 * d[i] + 0.7152 * d[i+1] + 0.0722 * d[i+2]) / 255; n++;
+  }
+  return { luma: sum / n };
+}
+
+function veilInk(stats) {
+  const mode = $('vInk').value;
+  const dark = mode === 'dark' || (mode === 'auto' && stats.luma > 0.55);
+  return dark ? { color: '10,10,10', scale: 0.72 } : { color: '255,255,255', scale: 1 };
+}
+
+function drawVeil(w, h, stats, rng) {
+  const edge = +$('vEdge').value, center = +$('vCenter').value, falloff = +$('vFalloff').value;
+  const angle = (+$('vAngle').value * Math.PI) / 180;
+  const fontSize = Math.max(9, Math.round(+$('vSize').value * Math.max(w, h)));
+  const text = $('veilText').value;
+  const ink = veilInk(stats);
+
+  const off = document.createElement('canvas');
+  off.width = w; off.height = h;
+  const o = off.getContext('2d');
+  o.font = `600 ${fontSize}px ui-sans-serif, system-ui, "Helvetica Neue", sans-serif`;
+  o.fillStyle = `rgba(${ink.color},${edge * ink.scale})`;
+  o.textBaseline = 'alphabetic';
+
+  const tw = o.measureText(text).width;
+  const stepX = tw * 1.85, stepY = fontSize * 2.9;
+  const diag = Math.hypot(w, h);
+
+  o.save();
+  o.translate(w / 2, h / 2);
+  o.rotate(angle);
+  let row = 0;
+  for (let y = -diag / 2; y <= diag / 2; y += stepY) {
+    // Brick offset plus seeded jitter: a perfectly regular lattice is easy to
+    // model and subtract, an irregular one is not.
+    const jitter = (row % 2) * (stepX / 2) + rng.range(-0.12, 0.12) * stepX;
+    for (let x = -diag / 2 - stepX + jitter; x <= diag / 2; x += stepX) o.fillText(text, x, y);
+    row++;
+  }
+  o.restore();
+
+  // Fade toward the centre. The gradient is drawn in a scaled space so it
+  // becomes an ellipse following the frame, not a circle on a wide crop.
+  o.globalCompositeOperation = 'destination-in';
+  o.save();
+  const r = Math.max(w, h) / 2;
+  o.translate(w / 2, h / 2);
+  o.scale(w >= h ? 1 : w / h, h > w ? 1 : h / w);
+  const grad = o.createRadialGradient(0, 0, 0, 0, 0, r * 1.44);
+  const ratio = edge > 0 ? center / edge : 0;
+  for (let i = 0; i <= 12; i++) {
+    const t = i / 12;
+    grad.addColorStop(t, `rgba(255,255,255,${ratio + (1 - ratio) * Math.pow(t, falloff)})`);
+  }
+  o.fillStyle = grad;
+  o.fillRect(-w, -h, w * 2, h * 2);
+  o.restore();
+
+  ctx.drawImage(off, 0, 0);
+}
+
+function drawMarks(w, h, rng) {
+  const count = +$('mCount').value;
+  if (!count) return;
+  const variants = $('markText').value.split('\n').map(s => s.trim()).filter(Boolean);
+  if (!variants.length) return;
+
+  const fontSize = Math.max(7, Math.round(+$('mSize').value * Math.max(w, h)));
+  const inset = Math.round(0.02 * Math.max(w, h));
+  const delta = +$('mContrast').value;
+  const edges = rng.shuffle(['top', 'right', 'bottom', 'left']);
+  const texts = rng.shuffle(variants);
+  const placed = [];
+
+  ctx.font = `500 ${fontSize}px ui-sans-serif, system-ui, "Helvetica Neue", sans-serif`;
+  ctx.textBaseline = 'top';
+
+  for (let i = 0; i < count; i++) {
+    const edge = edges[i % edges.length], text = texts[i % texts.length];
+    const vertical = edge === 'left' || edge === 'right';
+    const tw = ctx.measureText(text).width, th = fontSize * 1.25;
+    const bw = vertical ? th : tw, bh = vertical ? tw : th;
+
+    let best = null;
+    for (let c = 0; c < 8; c++) {
+      let left, top;
+      if (!vertical) {
+        const span = w - inset * 2 - bw; if (span <= 0) continue;
+        left = Math.round(inset + rng.next() * span);
+        top = edge === 'top' ? inset : h - inset - bh;
+      } else {
+        const span = h - inset * 2 - bh; if (span <= 0) continue;
+        top = Math.round(inset + rng.next() * span);
+        left = edge === 'left' ? inset : w - inset - bw;
+      }
+      if (placed.some(p => left < p.l + p.w && left + bw > p.l && top < p.t + p.h && top + bh > p.t)) continue;
+      const s = regionStats(left, top, bw, bh);
+      // Busy mid-tone areas hide small low-contrast type best, and are the
+      // hardest for an inpainting remover to reconstruct convincingly.
+      const score = Math.min(1, s.stdev / 0.18) * 0.65 + Math.max(0.12, 1 - Math.abs(s.luma - 0.5) * 1.7) * 0.35;
+      if (!best || score > best.score) best = { left, top, score, stats: s };
+    }
+    if (!best) continue;
+
+    ctx.fillStyle = contrastingColor(best.stats, delta);
+    ctx.save();
+    if (vertical) {
+      ctx.translate(best.left, best.top);
+      if (edge === 'left') { ctx.translate(0, bh); ctx.rotate(-Math.PI / 2); }
+      else { ctx.translate(bw, 0); ctx.rotate(Math.PI / 2); }
+      ctx.fillText(text, 0, 0);
+    } else {
+      ctx.fillText(text, best.left, best.top);
+    }
+    ctx.restore();
+    placed.push({ l: best.left, t: best.top, w: bw, h: bh });
+  }
+}
+
+function regionStats(x, y, w, h) {
+  const cx = Math.max(0, Math.min(canvas.width - 1, Math.round(x)));
+  const cy = Math.max(0, Math.min(canvas.height - 1, Math.round(y)));
+  const cw = Math.max(1, Math.min(canvas.width - cx, Math.round(w)));
+  const ch = Math.max(1, Math.min(canvas.height - cy, Math.round(h)));
+  const d = ctx.getImageData(cx, cy, cw, ch).data;
+  let r = 0, g = 0, b = 0, sl = 0, sl2 = 0, n = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    const l = (0.2126 * d[i] + 0.7152 * d[i+1] + 0.0722 * d[i+2]) / 255;
+    r += d[i]; g += d[i+1]; b += d[i+2]; sl += l; sl2 += l * l; n++;
+  }
+  const luma = sl / n;
+  return { rgb: [r/n, g/n, b/n], luma, stdev: Math.sqrt(Math.max(0, sl2/n - luma*luma)) };
+}
+
+/* Solve for an exact luminance delta so `contrast` means the same thing on a
+   near-black frame as on a near-white one. */
+function contrastingColor({ rgb, luma }, delta) {
+  const target = Math.min(0.98, Math.max(0.02, luma + (luma < 0.5 ? delta : -delta)));
+  let ch;
+  if (luma > 0.08) { const f = target / luma; ch = rgb.map(v => v * f); }
+  else { const lift = (target - luma) * 255; ch = rgb.map(v => v + lift); }
+  return `rgb(${ch.map(v => Math.round(Math.min(255, Math.max(0, v)))).join(',')})`;
+}
+
+/* ---- export --------------------------------------------------------- */
+$('save').onclick = () => {
+  canvas.toBlob((blob) => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${sourceName}-wm.jpg`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }, 'image/jpeg', +$('qual').value);
+};
+</script>
+</body>
+</html>

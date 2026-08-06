@@ -42,20 +42,22 @@ the GitHub API.
   UK "HM Revenue & Customs" for a New Jersey business. Ported faithfully,
   flagged as-is.
 
-### Decisions on the four dead CMS fields
+### The four dead fields — all resolved
 
-Each is in Studio, read by nothing, and now says **NOT WIRED UP YET** in its
-description rather than promising something false.
+Every one turned out to be a real idea rather than a leftover, and all four are
+now built. The CMS audit reports **0 dead fields across 233**.
 
-- [ ] **`assetType`** — migrated cleanly (22 Identity / Brand Sheet, 21
-  Apparel, 37 untagged). Wire it to grid tile shape, or delete it. See
-  §3 for what wiring it would look like.
-- [ ] **`heroTile`** — described spanning two columns in a homepage work grid.
-  This site has no homepage work grid. Build one or drop the field.
-- [ ] **`archiveMark`** — described an Archive view that doesn't exist. Your
-  uploaded marks are safe either way.
-- [ ] **`principalType`** — a Webflow leftover whose purpose didn't survive.
-  Delete once you confirm it meant nothing you want.
+- [x] **`principalType`** — the typeface a project is built on, credited the way
+  a typography book lists principal type, with an optional link to the foundry.
+  The most distinctive field on the schema, and I had it filed for deletion.
+- [x] **`archiveMark`** — your hand-thresholded alternate, swapped in whenever
+  print mode is on, falling back to the CSS threshold where you haven't made
+  one. Gets better as you draw more; never breaks while you haven't.
+- [x] **`heroTile`** — spans two columns *and* crops to 3:2 landscape, so it
+  reads as a spread among the vertical tiles. Doesn't grow when clicked.
+- [x] **`assetType`** — not retired after all. It carries exactly the signal
+  needed to tell a logomark from an image, so it's the fallback for
+  `tileTreatment` and your 43 tagged items work with no re-entry.
 
 ### Mine to build
 

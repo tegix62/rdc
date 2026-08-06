@@ -881,6 +881,44 @@ main {
   gap: var(--space-1);
 }
 
+/*
+  On a phone the filters scroll sideways instead of wrapping.
+
+  Grouping the row fixed the `+` orphan and then produced a new one a row up:
+  four filters do not fit across 390px, so TYPE/LETTERING ended up alone on its
+  own line and the controls took three rows before any work was visible.
+
+  Wrapping cannot solve this - there is no arrangement of four buttons that
+  fills two lines evenly at every width. One scrolling line always fits, always
+  looks deliberate, and cannot orphan anything. It is also the house rule
+  already: wide content scrolls inside its own container so the page body never
+  does.
+
+  No fade or arrow. With nowrap the next button is visibly cut off at the edge,
+  which is the affordance - an added gradient would hide the very thing that
+  signals there is more.
+*/
+@media (max-width: 40rem) {
+  .pf-group--scroll {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    /* Room for the focus ring, which a clipped overflow would cut off. */
+    padding: 2px;
+    margin: -2px;
+    scrollbar-width: none;
+  }
+
+  .pf-group--scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Or they compress to fit and stop being readable, which is the failure this
+     is meant to avoid. */
+  .pf-group--scroll .pf-btn {
+    flex: none;
+  }
+}
+
 @media (max-width: 30rem) {
   .pf-btn {
     padding: 0.3125rem 0.625rem;

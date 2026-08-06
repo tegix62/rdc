@@ -24,7 +24,7 @@
     persists      a reload comes back in archive view without flashing colour
     nowhere else  no stray button on a page it was just removed from
     in palette    navy like the rest of the site, not the near-black it was
-    no orphan     the zoom pair stays on one line on a phone
+    no orphan     at most two lines, and no line holding one lone button
 
   Usage: node scripts/test-ink-mode.mjs [url]
 */
@@ -152,11 +152,36 @@ check(
 )
 
 /*
-  The orphan. On a phone the flat control row wrapped wherever it ran out of
-  width and left `+` alone on a line under eight other buttons - visible in a
-  photo Chris sent, invisible to every check. `-` and `+` are one control in two
-  halves, so they sharing a line is the thing to assert.
+  Orphans, generally.
+
+  Two have shipped now. First `+` alone on a line under eight other buttons;
+  then, after grouping fixed that, TYPE/LETTERING alone a row up. Both were
+  found in photos Chris sent and neither was visible to any check, so this
+  asserts the shape of the row rather than the position of one button: how many
+  lines it occupies, and whether any line holds a single control.
 */
+const rowShape = await page.evaluate(() => {
+  const btns = [...document.querySelectorAll('#pf-controls .pf-btn')]
+  const lines = new Map()
+  for (const b of btns) {
+    const y = Math.round(b.getBoundingClientRect().y / 8) * 8
+    lines.set(y, (lines.get(y) ?? 0) + 1)
+  }
+  return {buttons: btns.length, lines: [...lines.values()]}
+})
+check(
+  'the controls fit two lines or fewer',
+  rowShape.lines.length <= 2,
+  `${rowShape.buttons} buttons over ${rowShape.lines.length} line(s)`,
+)
+check(
+  'no control is stranded alone on a line',
+  !rowShape.lines.includes(1),
+  `per line: ${rowShape.lines.join(', ')}`,
+)
+
+// The zoom pair specifically: two halves of one control, so they must share a
+// line even if the rest of the row rearranges.
 const minus = await page.locator('#pf-minus').boundingBox().catch(() => null)
 const plus = await page.locator('#pf-plus').boundingBox().catch(() => null)
 check(
@@ -164,6 +189,12 @@ check(
   Boolean(minus && plus && Math.abs(minus.y - plus.y) < 4),
   minus && plus ? `y ${Math.round(minus.y)} vs ${Math.round(plus.y)}` : 'no box',
 )
+
+// Scrolling sideways is the filters' own business; the page must not.
+const pageScrolls = await page.evaluate(
+  () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+)
+check('the page itself still does not scroll sideways', !pageScrolls)
 
 
 await page.screenshot({path: 'ink-mode.png', fullPage: false})

@@ -279,5 +279,18 @@ if (emptyFilters.length > 0) {
       // call here measures the pre-reveal height and leaves tiles overlapping.
       requestAnimationFrame(() => requestAnimationFrame(() => iso.layout()));
     });
+
+    /*
+      Archive mode changes tile heights - gutters open up and logomarks get
+      inset - so the grid has to be re-measured the same way. InkMode fires this
+      rather than reaching into the grid itself, so neither component needs to
+      know about the other's internals.
+
+      Two frames again, for the same reason: the CSS has to apply and the
+      browser reflow before Isotope reads real heights.
+    */
+    document.addEventListener('inkmodechange', () => {
+      requestAnimationFrame(() => requestAnimationFrame(() => iso.layout()));
+    });
   });
 </script>

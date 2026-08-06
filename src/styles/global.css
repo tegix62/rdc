@@ -899,6 +899,42 @@ main {
   A shadow paints inside the existing box and changes no geometry at all.
 */
 /*
+  The archive grid.
+
+  The default grid is dense on purpose - tiles edge to edge, nothing between
+  them. The archive is the opposite argument: fewer things competing, each one
+  given room, negative space doing the work. That difference has to be
+  structural or the two modes are just the same page in different colours.
+
+  Gutters come from padding INSIDE each tile rather than from Isotope's own
+  gutter option. Isotope positions tiles by percentage and a real gutter would
+  mean recalculating column widths against it; with box-sizing: border-box the
+  padding shrinks the image while the tile's outer box stays exactly where
+  Isotope put it. No layout maths changes, and the +/- column control keeps
+  working untouched.
+
+  Tile heights DO change, which is why InkMode fires `inkmodechange` and
+  portfolio.astro re-runs the layout.
+
+  --pf-archive-gutter is a percentage so the spacing stays proportional as the
+  column count changes: at six columns it reads as a hairline of air, at two it
+  opens right up.
+*/
+:root[data-ink] .pf-item {
+  padding: var(--pf-archive-gutter, 0.9%);
+}
+
+/*
+  And the grid itself pulls in from the edges. A dense grid wants the full
+  width; an archive wants a margin around the whole plate, so the page reads as
+  a sheet with something printed on it rather than as a wall.
+*/
+:root[data-ink] .pf-grid {
+  max-width: var(--pf-archive-width, 82%);
+  margin-inline: auto;
+}
+
+/*
   Logomark tiles - archive mode only.
 
   In the normal grid these stay exactly as they were: full-bleed, edge to edge,

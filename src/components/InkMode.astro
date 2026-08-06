@@ -132,6 +132,18 @@ const PAPERS = [
       downloading two portfolios to look at one. The original src is stashed on
       first swap so turning print mode off restores it exactly.
     */
+    /*
+      Anything that has to re-measure when print mode changes listens for this.
+
+      The portfolio grid is laid out by Isotope from measured tile heights, and
+      archive mode changes those heights - gutters appear, marks get inset. A
+      custom event keeps that as one line in each component rather than InkMode
+      knowing what a grid is.
+    */
+    const announce = (on) => {
+      document.dispatchEvent(new CustomEvent('inkmodechange', {detail: {on}}));
+    };
+
     const swapArchive = (on) => {
       for (const img of document.querySelectorAll('img[data-archive-src]')) {
         if (on) {
@@ -211,6 +223,7 @@ const PAPERS = [
       // Runs on load as well as on click, so arriving already in print mode
       // shows the marks rather than waiting for a toggle.
       swapArchive(state.on);
+      announce(state.on);
 
       toggle.addEventListener('click', () => {
         state.on = !state.on;
@@ -218,6 +231,7 @@ const PAPERS = [
         swapArchive(state.on);
         save();
         sync();
+        announce(state.on);
       });
 
       papers.addEventListener('click', (e) => {
@@ -229,6 +243,7 @@ const PAPERS = [
         swapArchive(true);
         save();
         sync();
+        announce(true);
       });
 
       grain?.addEventListener('click', () => {

@@ -19,7 +19,7 @@
     a switch      role=switch with a track, and last in the row - NOT a fifth
                   filter, which is what identical form made it read as
     press stock   the archive is white/black, not one of the shelved riso colours
-    filtered      the tiles are genuinely treated, and the controls are not
+    treated       every tile is converted or authored, and the controls are not
     turns off     and back, leaving no data-ink behind
     persists      a reload comes back in archive view without flashing colour
     nowhere else  no stray button on a page it was just removed from
@@ -123,23 +123,35 @@ check('lands on the press stock', inkAfter === 'press', `data-ink=${inkAfter}`)
   on purpose. An assertion that depends on the sort order of the content is
   not testing the thing it claims to.
 
-  So: count them, and require that the great majority are converted while
-  allowing for the ones deliberately opted out.
+  There are three outcomes, not two, and reading "treated" as "has a CSS
+  filter" got that wrong: it failed at 68 of 79 while the page was correct.
+  The eleven it counted as untreated are the ones carrying an authored
+  black-and-white alternate, which is the BEST treatment - global.css gives
+  them `filter: none` on purpose, because running the computed threshold over
+  a hand-thresholded mark crushes what was drawn.
+
+  So a tile counts as treated if the CSS converted it or it swapped to its
+  authored archive source, and only a "skip" is allowed to be neither.
 */
 const inkStats = await page.evaluate(() => {
   const imgs = [...document.querySelectorAll('.pf-item__img')]
-  let filtered = 0
-  let skipped = 0
+  const stats = {total: imgs.length, filtered: 0, authored: 0, skipped: 0, untreated: []}
   for (const el of imgs) {
-    if (el.getAttribute('data-ink-mode') === 'skip') skipped += 1
-    else if (getComputedStyle(el).filter !== 'none') filtered += 1
+    if (el.getAttribute('data-ink-mode') === 'skip') stats.skipped += 1
+    // Not just carrying the attribute - actually showing that file now.
+    else if (el.dataset.archiveSrc && el.getAttribute('src') === el.dataset.archiveSrc)
+      stats.authored += 1
+    else if (getComputedStyle(el).filter !== 'none') stats.filtered += 1
+    else stats.untreated.push(el.getAttribute('alt') || '(no alt)')
   }
-  return {total: imgs.length, filtered, skipped}
+  return stats
 })
 check(
-  'the tiles are actually filtered',
-  inkStats.filtered > 0 && inkStats.filtered >= inkStats.total - inkStats.skipped,
-  `${inkStats.filtered} filtered, ${inkStats.skipped} set to skip, of ${inkStats.total}`,
+  'the tiles are actually treated',
+  inkStats.filtered + inkStats.authored > 0 && inkStats.untreated.length === 0,
+  `${inkStats.filtered} filtered, ${inkStats.authored} authored marks, ${inkStats.skipped} set to skip, of ${
+    inkStats.total
+  }${inkStats.untreated.length ? ` - untreated: ${inkStats.untreated.slice(0, 5).join(', ')}` : ''}`,
 )
 
 // The controls must stay out of the treatment, or the buttons that turn it on

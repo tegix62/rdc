@@ -113,12 +113,34 @@ check(
 // colours - a saved `paper` from an older visit must not resurrect those.
 check('lands on the press stock', inkAfter === 'press', `data-ink=${inkAfter}`)
 
-// The artwork is actually being treated, not just an attribute set.
-const filtered = await page
-  .locator('.pf-item__img')
-  .first()
-  .evaluate((el) => getComputedStyle(el).filter)
-check('the tiles are actually filtered', filtered !== 'none', filtered)
+/*
+  The artwork is actually being treated, not just an attribute set.
+
+  Across the grid rather than on the first tile. This checked tile #1 and
+  started failing the moment case studies were sorted to the front - not
+  because the treatment broke, but because whichever document now sits first
+  can legitimately be set to "skip" in Studio, which leaves it in full colour
+  on purpose. An assertion that depends on the sort order of the content is
+  not testing the thing it claims to.
+
+  So: count them, and require that the great majority are converted while
+  allowing for the ones deliberately opted out.
+*/
+const inkStats = await page.evaluate(() => {
+  const imgs = [...document.querySelectorAll('.pf-item__img')]
+  let filtered = 0
+  let skipped = 0
+  for (const el of imgs) {
+    if (el.getAttribute('data-ink-mode') === 'skip') skipped += 1
+    else if (getComputedStyle(el).filter !== 'none') filtered += 1
+  }
+  return {total: imgs.length, filtered, skipped}
+})
+check(
+  'the tiles are actually filtered',
+  inkStats.filtered > 0 && inkStats.filtered >= inkStats.total - inkStats.skipped,
+  `${inkStats.filtered} filtered, ${inkStats.skipped} set to skip, of ${inkStats.total}`,
+)
 
 // The controls must stay out of the treatment, or the buttons that turn it on
 // and off read as part of the artwork.

@@ -7,10 +7,18 @@
       "type": "object",
       "description": "Who owns the work. Used for the marks and the EXIF ownership tags.",
       "properties": {
-        "name": { "type": "string" },
-        "studio": { "type": "string" },
-        "instagram": { "type": "string" },
-        "site": { "type": "string" },
+        "name": {
+          "type": "string"
+        },
+        "studio": {
+          "type": "string"
+        },
+        "instagram": {
+          "type": "string"
+        },
+        "site": {
+          "type": "string"
+        },
         "copyrightNotice": {
           "type": "string",
           "description": "Written to EXIF Copyright. {year} is substituted at build time."
@@ -23,73 +31,392 @@
     },
     "input": {
       "type": "object",
-      "properties": { "dir": { "type": "string" } }
+      "properties": {
+        "dir": {
+          "type": "string"
+        }
+      }
     },
     "sanity": {
       "type": "object",
       "properties": {
-        "query": { "type": "string", "description": "Override the GROQ query used to list assets." }
+        "query": {
+          "type": "string",
+          "description": "Override the GROQ query used to list assets."
+        }
       }
     },
     "output": {
       "type": "object",
       "properties": {
-        "dir": { "type": "string" },
-        "mapFile": { "type": "string", "description": "Where to write the key→files lookup the site renders from." },
-        "publicBase": { "type": "string", "description": "URL prefix for the outputs. Inferred from dir when omitted." },
+        "dir": {
+          "type": "string"
+        },
+        "mapFile": {
+          "type": "string",
+          "description": "Where to write the key→files lookup the site renders from."
+        },
+        "publicBase": {
+          "type": "string",
+          "description": "URL prefix for the outputs. Inferred from dir when omitted."
+        },
         "widths": {
           "type": "array",
-          "items": { "type": "integer", "minimum": 16 },
+          "items": {
+            "type": "integer",
+            "minimum": 16
+          },
           "description": "Long-edge sizes to emit. Never upscaled past the source."
         },
         "formats": {
           "type": "array",
-          "items": { "enum": ["webp", "jpg", "jpeg", "avif", "png"] }
+          "items": {
+            "enum": [
+              "webp",
+              "jpg",
+              "jpeg",
+              "avif",
+              "png"
+            ]
+          }
         },
-        "quality": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 1, "maximum": 100 } },
-        "lqip": { "type": "boolean", "description": "Emit a 20px blurred base64 placeholder." }
+        "quality": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "lqip": {
+          "type": "boolean",
+          "description": "Emit a 20px blurred base64 placeholder."
+        }
       }
     },
     "veil": {
       "type": "object",
       "description": "The tiled pattern layer: strongest at the frame edge, fading through the centre.",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "text": { "type": "string" },
-        "fontFamily": { "type": "string" },
-        "fontWeight": { "type": ["integer", "string"] },
-        "letterSpacing": { "type": "number", "description": "In em." },
-        "angle": { "type": "number" },
-        "sizeRatio": { "type": "number", "description": "Font size as a fraction of the long edge." },
-        "gapRatio": { "type": "number", "description": "Horizontal gap between repeats, as a multiple of text width." },
-        "rowGapRatio": { "type": "number" },
-        "color": { "description": "A hex colour, or \"auto\" to flip to dark ink on bright images." },
-        "lightColor": { "type": "string" },
-        "darkColor": { "type": "string" },
-        "darkOpacityScale": { "type": "number", "description": "Dark ink reads stronger per unit opacity; this trims it back." },
-        "blend": { "type": "string", "description": "Any libvips blend mode. 'over' is literal; 'soft-light' is subtler." },
-        "centerOpacity": { "type": "number", "minimum": 0, "maximum": 1 },
-        "edgeOpacity": { "type": "number", "minimum": 0, "maximum": 1 },
-        "falloff": { "type": "number", "description": "Vignette curve exponent. Higher keeps the centre clean for longer." }
+        "enabled": {
+          "type": "boolean"
+        },
+        "text": {
+          "type": "string"
+        },
+        "fontFamily": {
+          "type": "string"
+        },
+        "fontWeight": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        },
+        "letterSpacing": {
+          "type": "number",
+          "description": "In em."
+        },
+        "angle": {
+          "type": "number"
+        },
+        "sizeRatio": {
+          "type": "number",
+          "description": "Font size as a fraction of the long edge."
+        },
+        "gapRatio": {
+          "type": "number",
+          "description": "Horizontal gap between repeats, as a multiple of text width."
+        },
+        "rowGapRatio": {
+          "type": "number"
+        },
+        "color": {
+          "description": "A hex colour, or \"auto\" to flip to dark ink on bright images."
+        },
+        "lightColor": {
+          "type": "string"
+        },
+        "darkColor": {
+          "type": "string"
+        },
+        "darkOpacityScale": {
+          "type": "number",
+          "description": "Dark ink reads stronger per unit opacity; this trims it back."
+        },
+        "blend": {
+          "type": "string",
+          "description": "Any libvips blend mode. 'over' is literal; 'soft-light' is subtler."
+        },
+        "centerOpacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "edgeOpacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "falloff": {
+          "type": "number",
+          "description": "Vignette curve exponent. Higher keeps the centre clean for longer."
+        }
       }
     },
     "marks": {
       "type": "object",
       "description": "The covert edge signatures, placed adaptively per image.",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "count": { "type": "integer", "minimum": 0 },
-        "variants": { "type": "array", "items": { "type": "string" } },
-        "fontFamily": { "type": "string" },
-        "fontWeight": { "type": ["integer", "string"] },
-        "letterSpacing": { "type": "number" },
-        "sizeRatio": { "type": "number" },
-        "minPx": { "type": "integer", "description": "Floor so marks stay legible on the smallest variant." },
-        "insetRatio": { "type": "number" },
-        "contrastDelta": { "type": "number", "description": "Luminance distance from the local background, 0–1." },
-        "followEdge": { "type": "boolean", "description": "Rotate marks to run along left/right edges." },
-        "candidatesPerEdge": { "type": "integer" },
-        "edges": { "type": "array", "items": { "enum": ["top", "right", "bottom", "left"] } }
+        "enabled": {
+          "type": "boolean"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "fontFamily": {
+          "type": "string"
+        },
+        "fontWeight": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        },
+        "letterSpacing": {
+          "type": "number"
+        },
+        "sizeRatio": {
+          "type": "number"
+        },
+        "minPx": {
+          "type": "integer",
+          "description": "Floor so marks stay legible on the smallest variant."
+        },
+        "insetRatio": {
+          "type": "number"
+        },
+        "contrastDelta": {
+          "type": "number",
+          "description": "Luminance distance from the local background, 0–1."
+        },
+        "followEdge": {
+          "type": "boolean",
+          "description": "Rotate marks to run along left/right edges."
+        },
+        "candidatesPerEdge": {
+          "type": "integer"
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "top",
+              "right",
+              "bottom",
+              "left"
+            ]
+          }
+        }
+      }
+    },
+    "colophon": {
+      "type": "object",
+      "description": "A single discreet credit line inside the frame, always in the same corner — a signature rather than a watermark.",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "text": {
+          "type": "string",
+          "description": "Supports {name} {studio} {site} {instagram} {year}."
+        },
+        "corner": {
+          "enum": [
+            "top-left",
+            "top-right",
+            "bottom-left",
+            "bottom-right"
+          ]
+        },
+        "fontFamily": {
+          "type": "string"
+        },
+        "fontWeight": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        },
+        "letterSpacing": {
+          "type": "number",
+          "description": "In em."
+        },
+        "sizeRatio": {
+          "type": "number",
+          "description": "Font size as a fraction of the long edge."
+        },
+        "displayWidth": {
+          "type": "integer",
+          "description": "CSS width the image is actually rendered at on the site. Used with minDisplayPx to keep credit legible after the browser scales the file down."
+        },
+        "minDisplayPx": {
+          "type": "number",
+          "description": "Smallest acceptable type size in CSS pixels *as rendered*. Scaled into the file by displayWidth. This is the setting that keeps a credit readable in a small tile."
+        },
+        "minPx": {
+          "type": "integer",
+          "description": "Absolute floor in file pixels."
+        },
+        "insetRatio": {
+          "type": "number"
+        },
+        "contrastDelta": {
+          "type": "number",
+          "description": "Luminance distance from the local background. Higher than the covert marks, because this one is meant to be read."
+        },
+        "opacity": {
+          "type": "number"
+        }
+      }
+    },
+    "deboss": {
+      "type": "object",
+      "description": "The credit pressed into the image rather than printed on it: a lighter and a darker pass offset by a pixel, like a blind deboss.",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "text": {
+          "type": "string"
+        },
+        "corner": {
+          "enum": [
+            "top-left",
+            "top-right",
+            "bottom-left",
+            "bottom-right"
+          ]
+        },
+        "fontFamily": {
+          "type": "string"
+        },
+        "fontWeight": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        },
+        "letterSpacing": {
+          "type": "number",
+          "description": "In em."
+        },
+        "sizeRatio": {
+          "type": "number",
+          "description": "Font size as a fraction of the long edge."
+        },
+        "displayWidth": {
+          "type": "integer",
+          "description": "CSS width the image is actually rendered at on the site. Used with minDisplayPx to keep credit legible after the browser scales the file down."
+        },
+        "minDisplayPx": {
+          "type": "number",
+          "description": "Smallest acceptable type size in CSS pixels *as rendered*. Scaled into the file by displayWidth. This is the setting that keeps a credit readable in a small tile."
+        },
+        "minPx": {
+          "type": "integer",
+          "description": "Absolute floor in file pixels."
+        },
+        "insetRatio": {
+          "type": "number"
+        },
+        "depth": {
+          "type": "number",
+          "description": "How far the two passes sit either side of the local tone."
+        },
+        "opacity": {
+          "type": "number"
+        }
+      }
+    },
+    "plate": {
+      "type": "object",
+      "description": "Mount the image on a margin and caption it there. Nothing is drawn on the photograph at all; the cost is a changed aspect ratio.",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "text": {
+          "type": "string"
+        },
+        "style": {
+          "enum": [
+            "flush",
+            "mat"
+          ],
+          "description": "flush = caption band below only; mat = margin on all sides, like a mounted print."
+        },
+        "fontFamily": {
+          "type": "string"
+        },
+        "fontWeight": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        },
+        "letterSpacing": {
+          "type": "number",
+          "description": "In em."
+        },
+        "sizeRatio": {
+          "type": "number",
+          "description": "Font size as a fraction of the long edge."
+        },
+        "displayWidth": {
+          "type": "integer",
+          "description": "CSS width the image is actually rendered at on the site. Used with minDisplayPx to keep credit legible after the browser scales the file down."
+        },
+        "minDisplayPx": {
+          "type": "number",
+          "description": "Smallest acceptable type size in CSS pixels *as rendered*. Scaled into the file by displayWidth. This is the setting that keeps a credit readable in a small tile."
+        },
+        "minPx": {
+          "type": "integer",
+          "description": "Absolute floor in file pixels."
+        },
+        "captionRatio": {
+          "type": "number",
+          "description": "Caption band height as a fraction of the long edge."
+        },
+        "matRatio": {
+          "type": "number",
+          "description": "Side margin, mat style only."
+        },
+        "align": {
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "rule": {
+          "type": "boolean",
+          "description": "Hairline between image and caption."
+        },
+        "ink": {
+          "type": "string"
+        },
+        "paper": {
+          "type": "string"
+        }
       }
     }
   }

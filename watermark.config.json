@@ -1,6 +1,5 @@
 {
   "$schema": "./scripts/config.schema.json",
-
   "identity": {
     "name": "Chris Rumeau",
     "studio": "Rumeau Design Co.",
@@ -8,27 +7,32 @@
     "site": "rumeaudesign.co",
     "copyrightNotice": "© {year} Rumeau Design Co. — All rights reserved."
   },
-
   "seed": "rumeaudesign",
-
   "input": {
     "dir": "originals"
   },
-
   "sanity": {
     "projectId": "8337vjtf",
     "dataset": "production"
   },
-
   "output": {
     "dir": "public/portfolio",
     "mapFile": "src/data/watermarked.json",
-    "widths": [640, 1280, 2000],
-    "formats": ["webp", "jpg"],
-    "quality": { "webp": 82, "jpg": 84 },
+    "widths": [
+      640,
+      1280,
+      2000
+    ],
+    "formats": [
+      "webp",
+      "jpg"
+    ],
+    "quality": {
+      "webp": 82,
+      "jpg": 84
+    },
     "lqip": true
   },
-
   "veil": {
     "enabled": true,
     "text": "RUMEAU DESIGN CO · @RUMEAUDESIGN.CO",
@@ -48,11 +52,14 @@
     "edgeOpacity": 0.13,
     "falloff": 2.4
   },
-
   "marks": {
     "enabled": true,
     "count": 3,
-    "variants": ["Chris Rumeau", "@rumeaudesign.co", "© Rumeau Design Co."],
+    "variants": [
+      "Chris Rumeau",
+      "@rumeaudesign.co",
+      "© Rumeau Design Co."
+    ],
     "fontFamily": "Inter Tight, Liberation Sans, DejaVu Sans, sans-serif",
     "fontWeight": 500,
     "letterSpacing": 0.08,
@@ -62,6 +69,59 @@
     "contrastDelta": 0.075,
     "followEdge": true,
     "candidatesPerEdge": 8,
-    "edges": ["top", "right", "bottom", "left"]
+    "edges": [
+      "top",
+      "right",
+      "bottom",
+      "left"
+    ]
+  },
+  "colophon": {
+    "enabled": false,
+    "text": "{studio}",
+    "corner": "bottom-right",
+    "fontFamily": "Inter Tight, Liberation Sans, DejaVu Sans, sans-serif",
+    "fontWeight": 500,
+    "letterSpacing": 0.16,
+    "sizeRatio": 0.026,
+    "displayWidth": 560,
+    "minDisplayPx": 11,
+    "minPx": 9,
+    "insetRatio": 0.03,
+    "contrastDelta": 0.28,
+    "opacity": 0.9
+  },
+  "deboss": {
+    "enabled": false,
+    "text": "{studio}",
+    "corner": "bottom-right",
+    "fontFamily": "Inter Tight, Liberation Sans, DejaVu Sans, sans-serif",
+    "fontWeight": 600,
+    "letterSpacing": 0.16,
+    "sizeRatio": 0.026,
+    "displayWidth": 560,
+    "minDisplayPx": 11,
+    "minPx": 9,
+    "insetRatio": 0.03,
+    "depth": 0.11,
+    "opacity": 0.95
+  },
+  "plate": {
+    "enabled": false,
+    "text": "{studio} · {site}",
+    "style": "flush",
+    "fontFamily": "Inter Tight, Liberation Sans, DejaVu Sans, sans-serif",
+    "fontWeight": 500,
+    "letterSpacing": 0.24,
+    "sizeRatio": 0.024,
+    "displayWidth": 560,
+    "minDisplayPx": 11,
+    "minPx": 9,
+    "captionRatio": 0.055,
+    "matRatio": 0.03,
+    "align": "center",
+    "rule": false,
+    "ink": "#002885",
+    "paper": "#ffffff"
   }
 }

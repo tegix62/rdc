@@ -21,6 +21,7 @@ import { makeRng } from './lib/rng.mjs';
 import { fingerprint } from './lib/manifest.mjs';
 import { makeAnimatedGif } from './lib/testfixtures.mjs';
 import { buildContactSheet } from './lib/sheet.mjs';
+import { fillTemplate, applyPlate, buildColophon } from './lib/credit.mjs';
 
 const BASE = JSON.parse(await fs.readFile(new URL('../watermark.config.json', import.meta.url), 'utf8'));
 delete BASE.$schema;
@@ -382,6 +383,86 @@ test('contact sheet renders every preset plus a detail strip', async () => {
   // The working directory of intermediate panel renders must not survive.
   const left = await fs.readdir(dir);
   assert.equal(left.filter((f) => f.startsWith('panels-')).length, 0, 'temp panel dir leaked');
+});
+
+const CREDIT_TYPE = 'Liberation Sans, DejaVu Sans, sans-serif';
+
+test('fillTemplate resolves identity fields and leaves unknowns alone', () => {
+  const id = { name: 'Chris Rumeau', studio: 'Rumeau Design Co.', site: 'rumeaudesign.co' };
+  assert.equal(fillTemplate('{name} · {site}', id), 'Chris Rumeau · rumeaudesign.co');
+  assert.equal(fillTemplate('© {year} {studio}', id), `© ${new Date().getFullYear()} Rumeau Design Co.`);
+  assert.equal(fillTemplate('{nope}', id), '{nope}', 'unknown field should survive, not vanish');
+});
+
+test('credit type is sized for the display width, not the file width', async () => {
+  // The whole point: a mark set as a fraction of a 2000px file is illegible in
+  // a 500px tile, which is the size a phone screenshot actually captures.
+  const src = await field(1600, 1200, 120);
+  const analyzer = await createAnalyzer(src, 1600, 1200);
+  // A deliberately small ratio, so the display-size floor is what binds —
+  // which is the case this parameter exists for.
+  const common = {
+    text: 'Rumeau Design Co.', corner: 'bottom-right', fontFamily: CREDIT_TYPE,
+    sizeRatio: 0.008, minDisplayPx: 11, minPx: 8, insetRatio: 0.03, contrastDelta: 0.28,
+  };
+  const small = await buildColophon(analyzer, 1600, 1200, { ...common, displayWidth: 400 }, {});
+  const large = await buildColophon(analyzer, 1600, 1200, { ...common, displayWidth: 1200 }, {});
+
+  // Same file, same sizeRatio: a narrower assumed display means the browser
+  // shrinks the file more, so the type has to start bigger to survive it.
+  assert.ok(
+    small.placement.fontSize > large.placement.fontSize,
+    `expected smaller display width to yield larger type (${small.placement.fontSize} vs ${large.placement.fontSize})`
+  );
+  // And the mark must land at roughly the requested on-screen size.
+  const onScreen = small.placement.fontSize / (1600 / 400);
+  assert.ok(Math.abs(onScreen - 11) < 1.5, `mark renders at ${onScreen.toFixed(1)}px on screen, wanted ~11`);
+});
+
+test('colophon lands inside the frame and is actually legible', async () => {
+  const src = await field(1400, 1000, 120);
+  const { result, buffer } = await run(src, cfg({
+    veil: { ...BASE.veil, enabled: false },
+    marks: { ...BASE.marks, enabled: false },
+    colophon: {
+      enabled: true, text: '{studio}', corner: 'bottom-right', fontFamily: CREDIT_TYPE,
+      sizeRatio: 0.026, displayWidth: 560, minPx: 9, insetRatio: 0.03,
+      contrastDelta: 0.28, opacity: 0.9,
+    },
+  }));
+  const { width: w, height: h } = result.variants[0];
+
+  const mark = result.marks.at(-1);
+  assert.equal(mark.text, BASE.identity.studio, 'colophon text was not templated');
+  assert.ok(mark.left + mark.width <= w && mark.top + mark.height <= h, 'colophon overflows the frame');
+  assert.ok(mark.left > w * 0.5 && mark.top > h * 0.5, 'colophon is not in the bottom-right corner');
+
+  // A credit mark has to be clearly readable, unlike the covert marks.
+  const plain = await plainAt(src, w, h);
+  const box = { left: mark.left - 4, top: mark.top - 4, width: mark.width + 8, height: mark.height + 8 };
+  assert.ok(await peakDelta(plain, buffer, box) > 30, 'colophon is too faint to read as credit');
+});
+
+test('plate adds a caption band and leaves the photograph untouched', async () => {
+  const W = 900, H = 600;
+  const src = await field(W, H, 120);
+  const image = await sharp(src).png({ compressionLevel: 0 }).toBuffer();
+  const plated = await applyPlate(image, W, H, {
+    text: '{studio} · {site}', fontFamily: CREDIT_TYPE, style: 'flush',
+    sizeRatio: 0.024, displayWidth: 560, minPx: 9, captionRatio: 0.06,
+    align: 'center', ink: '#002885', paper: '#ffffff',
+  }, BASE.identity);
+
+  assert.equal(plated.width, W, 'flush plate should not change width');
+  assert.ok(plated.height > H, 'plate added no caption band');
+  assert.ok(Number.isInteger(plated.width) && Number.isInteger(plated.height), 'non-integer canvas');
+  assert.equal(plated.text, `${BASE.identity.studio} · ${BASE.identity.site}`);
+
+  // The image region must be bit-identical: the credit lives beside the work,
+  // never on it. That is the entire argument for this mode.
+  const original = await sharp(image).raw().toBuffer();
+  const region = await sharp(plated.buffer).extract({ left: 0, top: 0, width: W, height: H }).raw().toBuffer();
+  assert.ok(original.equals(region), 'plate altered the photograph itself');
 });
 
 test.after(async () => {

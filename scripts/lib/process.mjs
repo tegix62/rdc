@@ -5,6 +5,7 @@ import { makeRng } from './rng.mjs';
 import { createAnalyzer } from './analyze.mjs';
 import { buildVeil } from './veil.mjs';
 import { buildMarks } from './marks.mjs';
+import { applyPlate, buildColophon, buildDeboss } from './credit.mjs';
 
 const EXT = { webp: 'webp', jpg: 'jpg', jpeg: 'jpg', avif: 'avif', png: 'png' };
 
@@ -61,11 +62,6 @@ export async function processImage({ key, slug, input, config, outDir }) {
     const h = Math.max(1, Math.round(srcH * scale));
 
     // Decoded from the original every time rather than from one shared
-    // intermediate. `sharp(input).rotate().toBuffer()` re-encodes to the input
-    // format at *default* quality — on this photo that turned a 5.7 MB master
-    // into 2.0 MB before any watermarking happened, spending a whole lossy
-    // generation for nothing. Re-decoding costs a little CPU and no fidelity.
-    // Decoded from the original every time rather than from one shared
     // intermediate, and held as uncompressed PNG rather than whatever
     // `toBuffer()` would have picked.
     //
@@ -89,6 +85,19 @@ export async function processImage({ key, slug, input, config, outDir }) {
     // "is that one actually legible?" impossible to answer by eye otherwise.
     markPlacements.set(long, marks);
 
+    // The plate mounts the finished image on a margin, so it runs last and
+    // changes the delivered dimensions — which is why the variant record below
+    // reads from it rather than from the resize.
+    let finished = stamped;
+    let outW = w;
+    let outH = h;
+    if (config.plate?.enabled) {
+      const plated = await applyPlate(stamped, w, h, config.plate, config.identity ?? {});
+      finished = plated.buffer;
+      outW = plated.width;
+      outH = plated.height;
+    }
+
     for (const fmt of config.output.formats) {
       const ext = EXT[fmt];
       if (!ext) throw new Error(`unsupported output format: ${fmt}`);
@@ -96,7 +105,7 @@ export async function processImage({ key, slug, input, config, outDir }) {
       const outPath = path.join(outDir, filename);
       const quality = config.output.quality?.[fmt] ?? 82;
 
-      let pipe = sharp(stamped);
+      let pipe = sharp(finished);
       if (ext === 'webp') pipe = pipe.webp({ quality, effort: 5 });
       else if (ext === 'jpg') pipe = pipe.jpeg({ quality, mozjpeg: true, chromaSubsampling: '4:4:4' });
       else if (ext === 'avif') pipe = pipe.avif({ quality });
@@ -109,7 +118,7 @@ export async function processImage({ key, slug, input, config, outDir }) {
       await fs.writeFile(outPath, buf);
 
       variants.push({
-        width: w, height: h, longEdge: long,
+        width: outW, height: outH, longEdge: long,
         format: ext, file: filename, bytes: buf.length,
       });
     }
@@ -145,7 +154,11 @@ async function stamp(base, w, h, config, key) {
 
   // Both layers key off what the image actually looks like, so the analysis
   // thumbnail is built once up front and shared.
-  const needsAnalysis = config.marks?.enabled || config.veil?.color === 'auto';
+  const needsAnalysis =
+    config.marks?.enabled ||
+    config.colophon?.enabled ||
+    config.deboss?.enabled ||
+    config.veil?.color === 'auto';
   const analyzer = needsAnalysis ? await createAnalyzer(base, w, h) : null;
 
   if (config.veil?.enabled) {
@@ -162,7 +175,25 @@ async function stamp(base, w, h, config, key) {
     placed = marks.placed;
   }
 
-  if (!layers.length) return { buffer: base, marks: [] };
+  const identity = config.identity ?? {};
+
+  if (config.colophon?.enabled) {
+    const colophon = await buildColophon(analyzer, w, h, config.colophon, identity);
+    if (colophon) {
+      layers.push(colophon.composite);
+      placed = [...placed, colophon.placement];
+    }
+  }
+
+  if (config.deboss?.enabled) {
+    const deboss = await buildDeboss(analyzer, w, h, config.deboss, identity);
+    if (deboss) {
+      layers.push(...deboss.composites);
+      placed = [...placed, deboss.placement];
+    }
+  }
+
+  if (!layers.length) return { buffer: base, marks: placed };
   return {
     // removeAlpha because compositing RGBA layers over an opaque base yields
     // an RGBA result, and an alpha channel every pixel of which is 255 is pure

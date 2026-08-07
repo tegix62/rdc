@@ -11,7 +11,7 @@ watermarked derivatives out.
 
 ```bash
 npm install
-npm test                                              # 19 behavioural tests
+npm test                                              # 24 behavioural tests
 node scripts/watermark.mjs --preview photo.jpg --sheet   # ← start here
 node scripts/watermark.mjs --source local --in ~/masters
 node scripts/watermark.mjs --source sanity            # pull originals from the CMS
@@ -152,9 +152,61 @@ everything; adding one photo rebuilds one photo.
 
 ---
 
+## Two different jobs: deterrence and credit
+
+These pull in opposite directions and it is worth naming which one you want.
+
+**Deterrence** — the `veil` and `marks` — is about making theft annoying. The
+covert marks are 7–10px in a 2000px file, which is the right size for hiding
+from someone removing them.
+
+**Credit** — `colophon`, `deboss`, `plate` — is about making sure your name
+travels with the work when someone screenshots it or a scraper lifts it.
+
+The mistake to avoid: **a mark that hides from a thief also hides from someone
+who would happily credit you.** If the goal is attribution, the covert marks
+do not achieve it — nobody will ever read them. They are forensic evidence for
+an argument after the fact, not a credit.
+
+### Size credit against the display width, not the file
+
+A mark set as a fraction of the file is scale-invariant, so `sizeRatio` alone
+cannot express "must still be readable on screen". A 10px mark in a 2000px
+master is 2px once the browser has scaled it into a 400px portfolio tile —
+which is exactly what a phone screenshot captures.
+
+So the credit modes take `displayWidth` (what the tile actually renders at) and
+`minDisplayPx` (the smallest type you would accept *on screen*), and scale that
+floor back up into the file. Set `displayWidth` to the real rendered width or
+the floor means nothing.
+
+### The three credit modes
+
+| Mode | What it does | Costs |
+|---|---|---|
+| `colophon` | One credit line, same corner every time, colour taken from the pixels beneath | Sits on the image, however lightly |
+| `deboss` | Same, but rendered as a light and a dark pass offset a pixel, so it reads as an impression in the surface rather than ink on top | Subtler, so less certain to be read |
+| `plate` | Mounts the image on a margin and captions it there | Changes the aspect ratio |
+
+`plate` is the only one that touches nothing: there is a test asserting the
+photograph's pixels are bit-identical inside a plated output. `style: "mat"`
+puts a margin on all four sides like a mounted print; `"flush"` adds a caption
+band below only.
+
+A reasonable split, given the grid is small and the expanded view is what gets
+screenshotted: `colophon` on tiles, `plate` on the expanded and case-study
+views.
+
+---
+
 ## What this actually protects against
 
 Worth being straight about, because watermarking invites overconfidence.
+
+Note that right-click blocking is not part of this. It stops nothing: the URL
+is in the DOM, view-source and devtools both hand it over, and a screenshot
+always works regardless. Treat it as a speed bump, not a control — which is
+precisely why the credit has to live in the pixels.
 
 **It does work against** casual reposting, screenshot-and-crop, reflex
 right-click-save, and the common automated watermark removers — those are tuned
@@ -195,7 +247,7 @@ The brief asks proposals to state their costs up front, so:
 - **Phone / JS-disabled:** the watermark is in the pixels, so it behaves
   identically. The provided component emits `width`/`height` and a srcset, so it
   doesn't reintroduce layout shift.
-- **Measured:** 19 tests, run with `npm test`. Not yet measured against the real
+- **Measured:** 24 tests, run with `npm test`. Not yet measured against the real
   dataset — see the caveat at the end.
 
 Three ways to connect it, in the order I'd recommend them.

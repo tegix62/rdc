@@ -1,0 +1,42 @@
+name: Diagnose the hero tile flag
+
+# Chris set "Hero tile" on Chateau Seven and saw nothing get wider. The CSS is
+# correct, so this checks where the flag actually is - the Portfolio grid draws
+# only Grid Item documents, and Chateau Seven is a Case Study.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/diagnose-hero-tiles.mjs'
+      - '.github/workflows/diagnose-hero-tiles.yml'
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Look
+        run: |
+          set -o pipefail
+          node scripts/diagnose-hero-tiles.mjs 2>&1 | tee hero-tiles.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo '## Hero tile'
+            echo ''
+            echo '```'
+            cat hero-tiles.txt 2>/dev/null || echo '(did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hero-tiles
+          path: hero-tiles.txt
+          if-no-files-found: ignore

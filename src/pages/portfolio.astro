@@ -86,14 +86,6 @@ if (emptyFilters.length > 0) {
         ))}
       </div>
 
-      <div class="pf-group" role="group" aria-label="View">
-        {/*
-          The archive view. Used to be a button in the corner of every page;
-          it belongs here, among the other ways of looking at this grid.
-        */}
-        <InkMode />
-      </div>
-
       <div class="pf-group" role="group" aria-label="Arrange">
         <button type="button" class="pf-btn" id="pf-shuffle">Shuffle</button>
         {/* nowrap: these two are one control in two halves. */}
@@ -101,6 +93,14 @@ if (emptyFilters.length > 0) {
           <button type="button" class="pf-btn" id="pf-minus" aria-label="Smaller tiles">&minus;</button>
           <button type="button" class="pf-btn" id="pf-plus" aria-label="Larger tiles">+</button>
         </span>
+      </div>
+
+      {/*
+        Last, and on a wide screen pushed to the far right - away from the
+        filters, because it is not one. See InkMode.astro.
+      */}
+      <div class="pf-group pf-group--view" role="group" aria-label="View">
+        <InkMode />
       </div>
     </div>
 

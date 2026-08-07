@@ -55,24 +55,34 @@ const PAPERS = [
 ---
 
 {/*
-  Rendered inside .pf-controls on the Portfolio page, so it is a `pf-btn` like
-  Shuffle and the filters rather than a control with a look of its own. That is
-  the point of moving it: it stops being a tool bolted onto the site and becomes
-  one of the ways of looking at the grid.
+  A switch, not a button.
 
-  aria-pressed rather than a changing label. In a row of toggle buttons that all
-  show state by filling in, this one should behave the same way - "Archive" is
-  the name of the view, and whether you are in it is state, not a different
-  button.
+  It was a `pf-btn` in the same row as the filters, and identical in size,
+  outline and colour - so a control that changes how the whole page renders read
+  as a fifth way to narrow the list. Chris noticed it as "the archive mode
+  becomes such an afterthought", which is exactly what identical form does to
+  two different kinds of control.
+
+  So it takes the shape of the thing it is. A track and a thumb is the one
+  widget everybody already reads as a mode, and putting it at the end of the row
+  rather than among the filters says the same thing again with position.
+
+  role="switch" rather than a pressed button, because that is what this is - on
+  or off, not selected or unselected. Screen readers announce it as a switch and
+  say "on"/"off" instead of "pressed".
 */}
 <button
   type="button"
-  class="pf-btn"
+  class="ink-switch"
   id="ink-toggle"
-  aria-pressed="false"
+  role="switch"
+  aria-checked="false"
   title="Black-and-white archive view"
 >
-  Archive
+  <span class="ink-switch__track" aria-hidden="true">
+    <span class="ink-switch__thumb"></span>
+  </span>
+  <span class="ink-switch__label">Archive</span>
 </button>
 
 {/* Inline and un-bundled so it runs before the first paint. */}
@@ -170,10 +180,9 @@ const PAPERS = [
       if (!toggle) return;
 
       const sync = () => {
-        // Same state signal as every other button in the row: aria-pressed for
-        // assistive tech, .is-active for the fill.
-        toggle.setAttribute('aria-pressed', String(!!state.on));
-        toggle.classList.toggle('is-active', !!state.on);
+        // aria-checked, because this is a switch rather than a pressed button.
+        toggle.setAttribute('aria-checked', String(!!state.on));
+        toggle.classList.toggle('is-on', !!state.on);
       };
       sync();
 

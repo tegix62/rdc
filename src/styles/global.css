@@ -873,6 +873,82 @@ main {
   gap: var(--space-1);
 }
 
+/*
+  The archive switch.
+
+  Deliberately not a .pf-btn. It was, and being identical in size, outline and
+  colour to the filters made a control that repaints the entire page read as a
+  fifth way to narrow the list. Form should say what a thing does, so this one
+  is a track and a thumb - the widget everybody already reads as a mode.
+
+  Colours come from the same tokens as everything else, so it converts with the
+  page when archive view is actually on.
+*/
+.ink-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem 0.375rem 0.375rem;
+  border: 0;
+  background: transparent;
+  color: var(--color-navy);
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.ink-switch__track {
+  position: relative;
+  flex: none;
+  width: 2.125rem;
+  height: 1.125rem;
+  border: 1px solid var(--color-navy);
+  background: transparent;
+  transition: background-color 140ms ease;
+}
+
+.ink-switch__thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: calc(1.125rem - 4px);
+  height: calc(1.125rem - 4px);
+  background: var(--color-navy);
+  transition: transform 140ms ease, background-color 140ms ease;
+}
+
+.ink-switch[aria-checked='true'] .ink-switch__track {
+  background: var(--color-navy);
+}
+
+.ink-switch[aria-checked='true'] .ink-switch__thumb {
+  background: var(--color-white);
+  transform: translateX(1rem);
+}
+
+.ink-switch:hover .ink-switch__track,
+.ink-switch:focus-visible .ink-switch__track {
+  border-color: var(--color-navy-dark);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ink-switch__track,
+  .ink-switch__thumb {
+    transition: none;
+  }
+}
+
+/* Pushed to the far right on a wide screen, so position says "not a filter"
+   as well. On a narrow one it simply wraps last, which says the same thing. */
+@media (min-width: 60rem) {
+  .pf-group--view {
+    margin-left: auto;
+  }
+}
+
 /* The two halves of one control. nowrap so `+` can never orphan onto its own
    line, which is exactly what it did on a phone. */
 .pf-zoom {
@@ -2464,6 +2540,10 @@ body {
   code the first time.
 */
 @media (pointer: coarse), (max-width: 40rem) {
+  .ink-switch {
+    min-height: 44px;
+  }
+
   .pf-btn {
     min-height: 44px;
     /* Height alone wasn't enough: the shuffle row's - and + buttons measured

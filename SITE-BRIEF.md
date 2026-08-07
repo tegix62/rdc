@@ -141,7 +141,9 @@ Worth knowing so a proposal doesn't reinvent them.
 - **Portfolio grid** — Isotope masonry, category filters, shuffle, zoom in/out
   (column count), click a tile to expand it and reveal a jump link to its
   project. Hero tiles span two columns.
-- **Archive view** — a toggle in the Portfolio control row. Converts the whole
+- **Archive view** — a switch at the end of the Portfolio control row,
+  deliberately shaped unlike the filters beside it because it is a mode, not a
+  filter. Converts the whole
   page to one ink on white stock: greyscale → contrast crank → multiply. Swaps
   in hand-drawn `archiveMark` alternates where they exist, and switches the
   grid from masonry to ruled rows so it reads as a plate book. There is shelved

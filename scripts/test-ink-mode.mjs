@@ -16,8 +16,8 @@
     in the row    it lives among the Portfolio filters now, not in a corner
     tap target    matches its siblings on desktop, clears 44px on a phone
     turns on      data-ink lands on <html>, which every ink rule keys off
-    pressed       aria-pressed and .is-active, the same state signal the other
-                  buttons in that row use
+    a switch      role=switch with a track, and last in the row - NOT a fifth
+                  filter, which is what identical form made it read as
     press stock   the archive is white/black, not one of the shelved riso colours
     filtered      the tiles are genuinely treated, and the controls are not
     turns off     and back, leaving no data-ink behind
@@ -54,12 +54,12 @@ check('the button is visible', await toggle.isVisible().catch(() => false))
   44px button in a row of 26px ones would look like a mistake. The 44px rule
   applies at phone widths, and is checked there at the end.
 */
-const box = await toggle.boundingBox().catch(() => null)
-const shuffleBox = await page.locator('#pf-shuffle').boundingBox().catch(() => null)
+// It is a switch now, so it should NOT look like the buttons beside it - that
+// identical form was the whole problem.
 check(
-  'it is the same height as the other controls',
-  Boolean(box && shuffleBox && Math.abs(box.height - shuffleBox.height) < 2),
-  box && shuffleBox ? `${Math.round(box.height)}px vs ${Math.round(shuffleBox.height)}px` : 'no box',
+  'it is a switch, not a button',
+  (await toggle.getAttribute('role')) === 'switch' &&
+    (await page.locator('#ink-toggle .ink-switch__track').count()) === 1,
 )
 
 // Nothing should be in print mode before it is asked for.
@@ -70,6 +70,15 @@ check('is labelled Archive', /archive/i.test(labelBefore), labelBefore)
 check(
   'sits in the portfolio controls row, not floating in a corner',
   await page.locator('#pf-controls #ink-toggle').count() === 1,
+)
+
+// And last in that row, away from the filters.
+check(
+  'sits after the filters, not among them',
+  await page.evaluate(() => {
+    const groups = [...document.querySelectorAll('#pf-controls .pf-group')]
+    return groups.length > 0 && groups[groups.length - 1].querySelector('#ink-toggle') !== null
+  }),
 )
 
 /*
@@ -95,9 +104,9 @@ const inkAfter = await page.getAttribute('html', 'data-ink')
 check('clicking turns print mode on', Boolean(inkAfter), `data-ink=${inkAfter}`)
 
 check(
-  'the button reads as pressed, like the other filters',
-  (await toggle.getAttribute('aria-pressed')) === 'true' &&
-    (await toggle.evaluate((el) => el.classList.contains('is-active'))),
+  'the switch reads as on',
+  (await toggle.getAttribute('aria-checked')) === 'true' &&
+    (await toggle.evaluate((el) => el.classList.contains('is-on'))),
 )
 
 // The archive is the white/black press stock, not one of the shelved riso
@@ -152,7 +161,7 @@ check(
 await toggle.click()
 await page.waitForTimeout(400)
 check('clicking again returns to the colour grid', (await page.getAttribute('html', 'data-ink')) === null)
-check('and the button is unpressed', (await toggle.getAttribute('aria-pressed')) === 'false')
+check('and the switch reads as off', (await toggle.getAttribute('aria-checked')) === 'false')
 
 // --- it remembers -----------------------------------------------------------
 await toggle.click()
@@ -194,7 +203,7 @@ check(
   lines it occupies, and whether any line holds a single control.
 */
 const rowShape = await page.evaluate(() => {
-  const btns = [...document.querySelectorAll('#pf-controls .pf-btn')]
+  const btns = [...document.querySelectorAll('#pf-controls .pf-btn, #pf-controls .ink-switch')]
   const lines = new Map()
   for (const b of btns) {
     const y = Math.round(b.getBoundingClientRect().y / 8) * 8

@@ -85,31 +85,42 @@ export function getSiteSettings() {
   return sanityClient.fetch(`*[_type == "siteSettings"][0]`);
 }
 
-// The real Portfolio page's shuffle/resize grid: every Grid Item in the
-// Work collection (thumbnail tiles that link back to a parent brand),
-// not just featured Case Studies.
 /*
-  Every Grid Item tile on the Portfolio page, plus its parent brand.
-
   `parentType` is fetched alongside the slug because only "Case Study"
-  documents get a page at /work/<slug>. Linking a tile to a Grid Item's own
-  slug would produce a 404 that reads as a broken site, so the Portfolio page
-  only renders the jump button when the parent is a real case study.
+  documents get a page at /work/<slug>. Linking a Grid Item to its own slug
+  would produce a 404 that reads as a broken site, so a tile only links to a
+  parent that is a real case study - or, for a Case Study tile, to itself.
 */
 // Everything a tile needs to render, wherever it is rendered. Shared so the
 // homepage grid and the Portfolio grid cannot drift into showing different
 // things about the same piece of work.
 const TILE = `
-  title, slug, thumbnail, mainImage, category, archiveMark, heroTile,
+  title, slug, pageType, thumbnail, mainImage, category, archiveMark, heroTile,
   tileTreatment, assetType,
   "parentSlug": parentBrand->slug.current,
   "parentTitle": parentBrand->title,
   "parentType": parentBrand->pageType
 `;
 
+/*
+  Every tile on the Portfolio grid: the projects themselves AND the pieces that
+  make them up.
+
+  It used to be Grid Items only, which meant Chris's 13 actual projects were
+  absent from the page most people browse. Chateau Seven simply was not on the
+  Portfolio grid, and the only route to a project page was the jump button on
+  one of its derivative tiles - so a visitor reached "Adelante Barbell Club"
+  by way of a photo of a hoodie. That is backwards.
+
+  Case studies sort first. The grid is shuffleable and the order is not sacred,
+  but the first screenful is what most people see, and it should be the work
+  rather than its offcuts.
+*/
 export function getAllGridItems() {
   return sanityClient.fetch(
-    `*[_type == "caseStudy" && pageType == "Grid Item"]{${TILE}} | order(title asc)`,
+    `*[_type == "caseStudy" && pageType in ["Case Study", "Grid Item"]
+       && (defined(thumbnail) || defined(mainImage))]{${TILE}}
+     | order(pageType asc, title asc)`,
   );
 }
 
@@ -117,11 +128,15 @@ export function getAllGridItems() {
   The homepage work grid.
 
   Curated first: whatever is in Site Settings → Homepage Work Grid, in that
-  order. "Most recent" is a decent default and a poor showcase - it puts
-  whatever was uploaded last in front of a client rather than whatever is
-  strongest - so recency is only the fallback, and only while the picker is
-  empty. That way the grid is never blank on a fresh dataset but is never
-  automatic once Chris has chosen.
+  order. The picker is the point; everything below is only what happens while
+  it is empty.
+
+  The fallback is the CASE STUDIES, not the most recent tiles. Recency was a
+  bad default and it showed: with the picker empty the homepage led with a
+  DoomWoken GIF standing in for DumpStat and an unfinished Terremoto, because
+  those happened to be uploaded last. The projects are the work; a derivative
+  tile is a detail from one. If the homepage has to guess, it should guess at
+  the projects.
 
   The filter on the curated list matters: a reference to a deleted document
   resolves to null, and one stale pick would otherwise blow up the map in the
@@ -135,8 +150,9 @@ export async function getFeaturedWork(limit = 8) {
   if (picked.length) return picked;
 
   return sanityClient.fetch(
-    `*[_type == "caseStudy" && pageType == "Grid Item" && defined(thumbnail)]
-      | order(_createdAt desc)[0...$limit]{${TILE}}`,
+    `*[_type == "caseStudy" && pageType == "Case Study"
+       && (defined(thumbnail) || defined(mainImage))]
+      | order(title asc)[0...$limit]{${TILE}}`,
     { limit },
   );
 }

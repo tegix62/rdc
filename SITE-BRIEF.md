@@ -85,8 +85,12 @@ Four document types in Sanity.
 
 **`caseStudy`** — does double duty, split by a `pageType` field:
 - `"Case Study"` (13) — gets a page at `/work/<slug>`
-- `"Grid Item"` (67) — a tile on the Portfolio grid with **no page of its own**;
-  links to its `parentBrand` instead
+- `"Grid Item"` (67) — a supporting piece with **no page of its own**; links to
+  its `parentBrand` instead
+
+Both appear as tiles on the Portfolio grid, case studies first. The intended
+division is that a Case Study is the project and a Grid Item is a detail from
+it, so the same image should not appear as both.
 
 Notable fields on it:
 - `thumbnail`, `mainImage`, `heroVideo`, `accentColor` (drives the case study's

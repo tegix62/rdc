@@ -56,10 +56,27 @@ export const HERO_RATIO = {w: 3, h: 2};
 export const heroHeight = (width: number) => Math.round((width * HERO_RATIO.h) / HERO_RATIO.w);
 
 /*
-  Only link to a parent that actually has a page. A Grid Item's own slug has no
-  route, so linking to one produces a 404 that reads as a broken site.
+  Where a tile goes when clicked.
+
+  A Case Study IS the project, so it links to its own page. A Grid Item is a
+  piece of one and has no route of its own, so it links to its parent - and
+  only when that parent is a Case Study, because linking to a Grid Item's slug
+  produces a 404 that reads as a broken site.
+
+  The Case Study branch matters now that both types share the grid: without it
+  every project tile would be unclickable, which is the opposite of the reason
+  they were added.
 */
-export function tileHref(item: {parentSlug?: string; parentType?: unknown}): string | null {
+export function tileHref(item: {
+  slug?: {current?: string} | string;
+  pageType?: unknown;
+  parentSlug?: string;
+  parentType?: unknown;
+}): string | null {
+  if (cleanKey(item?.pageType) === 'Case Study') {
+    const own = typeof item.slug === 'string' ? item.slug : item.slug?.current;
+    return own ? `/work/${cleanKey(own)}` : null;
+  }
   return item?.parentSlug && cleanKey(item.parentType) === 'Case Study'
     ? `/work/${item.parentSlug}`
     : null;

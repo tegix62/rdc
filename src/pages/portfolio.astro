@@ -178,7 +178,7 @@ if (emptyFilters.length > 0) {
               />
               {parentHref && (
                 <a class="pf-item__jump" href={parentHref}>
-                  <span class="pf-item__jump-label">{item.parentTitle ?? 'View project'}</span>
+                  <span class="pf-item__jump-label">{item.parentTitle ?? item.title ?? 'View project'}</span>
                   <span class="pf-item__jump-arrow" aria-hidden="true">&rarr;</span>
                 </a>
               )}

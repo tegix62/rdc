@@ -84,18 +84,15 @@ export default defineType({
     }),
     defineField({name: 'featured', title: 'Featured Project?', type: 'boolean'}),
     /*
-      This field reads as universal and is not.
+      Chris ticked this on Chateau Seven, saw nothing widen, and reasonably
+      concluded it was broken. It was not: at the time the Portfolio grid
+      rendered only "Grid Item" documents, so a Case Study could not be widened
+      there because it was not there at all.
 
-      Chris ticked it on Chateau Seven, saw nothing widen, and reasonably
-      concluded it was broken. It was not: the Portfolio grid renders only
-      "Grid Item" documents, Chateau Seven is a "Case Study", and no Case Study
-      appears in that grid at all. So the tick was real, saved, and inert - with
-      nothing anywhere saying why.
-
-      The field still belongs on both page types, because the homepage grid
-      renders whatever is picked in Site Settings regardless of type, and honours
-      this there. So the fix is not to hide it; it is to say plainly where it
-      applies, and to warn when it is ticked somewhere it will not show.
+      That turned out to be the real fault, and the grid now includes case
+      studies. The flag works on both types everywhere it is read, so there is
+      nothing left to warn about - only the crop to explain, which is the part
+      that still catches people out.
     */
     defineField({
       name: 'heroTile',
@@ -103,28 +100,12 @@ export default defineType({
       type: 'boolean',
       description:
         'Spans two columns AND crops to a 3:2 landscape, so it reads as a ' +
-        'spread among the usual vertical tiles. Clicking it does not grow it ' +
-        'further. WHERE IT APPLIES: the Portfolio grid shows Grid Items only, ' +
-        'so on a Case Study this affects the homepage grid instead - and only ' +
-        'if that project is picked in Site Settings → Homepage Work Grid. ' +
-        'ALSO: set the hotspot on the thumbnail, because cropping a portrait ' +
-        'image to 3:2 throws away most of its height and without one Sanity ' +
-        'crops from the centre, which cuts the top off a logo or a face. Use ' +
-        'sparingly; one or two per screenful is what makes them work.',
-      validation: (Rule) =>
-        Rule.custom((value, context) => {
-          const pageType = (context.document as {pageType?: string} | undefined)?.pageType
-          if (value && pageType === 'Case Study') {
-            return (
-              'Heads up: the Portfolio grid only shows Grid Items, so this will ' +
-              'not widen anything there. It works on the homepage grid if you add ' +
-              'this project to Site Settings → Homepage Work Grid. To feature it ' +
-              'on the Portfolio page instead, tick this on one of its Grid Item ' +
-              'tiles.'
-            )
-          }
-          return true
-        }).warning(),
+        'spread among the usual vertical tiles. Works on the Portfolio grid and ' +
+        'the homepage grid alike. Clicking it does not grow it further. ' +
+        'IMPORTANT: set the hotspot on the thumbnail, because cropping a ' +
+        'portrait image to 3:2 throws away most of its height and without one ' +
+        'Sanity crops from the centre, which cuts the top off a logo or a face. ' +
+        'Use sparingly; one or two per screenful is what makes them work.',
     }),
     defineField({name: 'thumbnail', type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}),
     defineField({

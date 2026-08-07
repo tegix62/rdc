@@ -78,9 +78,6 @@ const aspect = cropped ? {width, height: height!} : undefined;
 // Fall back to the requested box if the reference carries no dimensions, so
 // a malformed asset degrades to "no srcset" rather than breaking the build.
 const intrinsic = imageDimensions(image);
-const ratio = cropped
-  ? {width, height: height!}
-  : intrinsic ?? {width, height: Math.round(width * 0.75)};
 
 /*
   "Serve exactly as uploaded" wins over everything below: no transform
@@ -95,6 +92,39 @@ const ratio = cropped
 const animated = await isAnimatedSource(image);
 const passThrough = isPassThrough(image, animated);
 const original = passThrough ? originalUrl(image) : null;
+
+/*
+  A pass-through image is NOT cropped, so it must not claim to be.
+
+  Cropping means transform parameters, and pass-through exists precisely to
+  send none - so when both are asked for, the file arrives at its original
+  shape. The width/height attributes were still being set to the requested
+  crop, which made them a lie: `height: auto` in the CSS means the browser
+  renders at the file's real aspect and ignores the attribute, so the reserved
+  box was the wrong shape and corrected itself once the image loaded. Those
+  attributes exist to prevent exactly that.
+
+  Visible on the Portfolio grid: Chateau Seven is a hero tile asked to crop to
+  12:5 and rendering at roughly 1.45:1, because its thumbnail ships untouched.
+
+  So a pass-through image reports the size it will actually be.
+*/
+const ratio = cropped && !passThrough
+  ? {width, height: height!}
+  : intrinsic ?? {width, height: Math.round(width * 0.75)};
+
+if (cropped && passThrough && intrinsic) {
+  const asked = (width / height!).toFixed(2);
+  const real = (intrinsic.width / intrinsic.height).toFixed(2);
+  if (asked !== real) {
+    console.warn(
+      `[Img] "${alt || 'untitled'}" asks for a ${asked}:1 crop but is served ` +
+        `exactly as uploaded, so it renders at ${real}:1. Cropping needs a ` +
+        `transform; turn off "serve exactly as uploaded" on this image, or ` +
+        `accept its own shape.`,
+    );
+  }
+}
 
 /*
   An animation with a converted video version renders as <video> instead: a

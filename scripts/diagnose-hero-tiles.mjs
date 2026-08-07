@@ -30,6 +30,9 @@ const docs = await sanity.fetch(`
     _id, title, pageType, heroTile,
     "slug": slug.current,
     "hasThumb": defined(thumbnail) || defined(mainImage),
+    "noRecompress": thumbnail.noRecompress == true || mainImage.noRecompress == true,
+    "thumbRef": thumbnail.asset._ref,
+    "mainRef": mainImage.asset._ref,
     "parentTitle": parentBrand->title
   } | order(title asc)
 `)
@@ -84,6 +87,26 @@ if (featured.length) {
 } else {
   console.log('  (empty - falling back to the 8 most recent Grid Items)')
 }
+
+/*
+  A cropped pass-through image cannot actually be cropped - cropping needs a
+  transform and pass-through sends none - so a hero tile marked "serve exactly
+  as uploaded" keeps its own shape however landscape the crop asked for.
+*/
+const dims = (ref) => {
+  const m = typeof ref === 'string' ? ref.match(/-(\d+)x(\d+)-/) : null
+  return m ? {w: +m[1], h: +m[2]} : null
+}
+console.log('\nHero tiles that cannot be cropped (served exactly as uploaded):')
+let uncroppable = 0
+for (const d of marked) {
+  if (!d.noRecompress) continue
+  uncroppable += 1
+  const dim = dims(d.thumbRef) ?? dims(d.mainRef)
+  const shape = dim ? `${dim.w}x${dim.h} = ${(dim.w / dim.h).toFixed(2)}:1` : 'unknown'
+  console.log(`  ${String(d.title).slice(0, 42).padEnd(44)} renders at ${shape}, not the crop`)
+}
+if (!uncroppable) console.log('  (none - every hero tile can be cropped)')
 
 console.log('\n' + '='.repeat(70))
 const brokenOnes = marked.filter((d) => d.pageType !== 'Grid Item')

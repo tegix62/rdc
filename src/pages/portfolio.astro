@@ -7,7 +7,7 @@ import { getPage, getAllGridItems } from '../lib/queries';
 import { urlFor } from '../lib/image';
 // Shared with the homepage's miniature grid, so the two cannot disagree about
 // what counts as a logomark or how wide a hero tile is. See lib/tiles.ts.
-import { cleanKey, treatmentOf, tileHref, heroHeight } from '../lib/tiles';
+import { cleanKey, treatmentOf, tileHref, heroHeight, HERO_RATIO_PORTFOLIO } from '../lib/tiles';
 
 const page = await getPage('portfolio');
 const items = await getAllGridItems();
@@ -173,7 +173,7 @@ if (emptyFilters.length > 0) {
                 archive={item.archiveMark}
                 alt={item.title}
                 width={item.heroTile ? 1600 : 800}
-                height={item.heroTile ? heroHeight(1600) : undefined}
+                height={item.heroTile ? heroHeight(1600, HERO_RATIO_PORTFOLIO) : undefined}
                 sizes={item.heroTile ? '(max-width: 48rem) 66vw, 34vw' : '(max-width: 48rem) 33vw, 17vw'}
               />
               {parentHref && (

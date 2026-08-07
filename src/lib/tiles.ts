@@ -44,16 +44,32 @@ export function treatmentOf(item: {tileTreatment?: unknown; assetType?: unknown}
 
   The span alone would be wrong. Most tiles are portrait, so doubling a portrait
   tile's width produces an enormous TALL tile that dominates by height - the
-  opposite of the presence this is for. Cropping to 3:2 is what makes it read as
-  a spread: a wide thing among vertical ones.
+  opposite of the presence this is for. Cropping to landscape is what makes it
+  read as a spread: a wide thing among vertical ones.
 
-  3:2 rather than 16:9, because 16:9 across two columns is a thin band that
-  loses too much of a portrait source.
+  Two ratios, because the two grids need different amounts of it.
+
+  Isotope's masonry quantises width to whole columns - a tile is 1, 2 or 3
+  columns and nothing between - so "a bit wider" is not available on the
+  Portfolio grid. A 1.25-column tile makes Isotope reserve two columns and paint
+  into one and a quarter, leaving a hole beside it, which on a grid this dense
+  reads as a bug rather than as air.
+
+  So the Portfolio hero keeps its two columns and gets SHALLOW instead. At 12:5
+  it is the same width as before and about a third of the height it was, which
+  drops it from roughly twice a normal tile's area to roughly a third more -
+  still plainly the widest thing on screen, no longer the only thing.
+
+  The homepage grid is a fixed CSS grid with no masonry and only eight tiles, so
+  a 3:2 hero there is a proportion of a small set rather than one loud tile in
+  sixty. Chris likes it as it is; it keeps 3:2.
 */
 export const HERO_RATIO = {w: 3, h: 2};
+export const HERO_RATIO_PORTFOLIO = {w: 12, h: 5};
 
-/** Height for a hero tile rendered at `width`, preserving the 3:2 crop. */
-export const heroHeight = (width: number) => Math.round((width * HERO_RATIO.h) / HERO_RATIO.w);
+/** Height for a hero tile rendered at `width`, preserving the given crop. */
+export const heroHeight = (width: number, ratio: {w: number; h: number} = HERO_RATIO) =>
+  Math.round((width * ratio.h) / ratio.w);
 
 /*
   Where a tile goes when clicked.

@@ -6,13 +6,15 @@ actual code, not assumed. The full list of external hosts this site contacts is:
 
 ```
 cdn.sanity.io          every image on the site
-cdnjs.cloudflare.com   the grid layout script, /portfolio only
-unpkg.com              the image-loading script, /portfolio only
 i.ytimg.com            YouTube poster frames, on pages with a video
 www.youtube.com        only after someone presses play
 player.vimeo.com       only after someone presses play
 tally.so               only when someone clicks Contact
 ```
+
+(The Portfolio grid's two layout scripts used to be pulled from `cdnjs` and
+`unpkg` at request time. They're self-hosted now, so those two rows are gone
+rather than just harder to avoid.)
 
 And, as verified by grep across the whole source: **no analytics, no advertising
 pixel, no Meta Pixel, no Google Tag Manager, no session recording, no
@@ -23,11 +25,6 @@ this document.
 
 **Before publishing, fill in:** `[YOUR EMAIL]`, and pick a retention period in
 the "How long I keep it" section.
-
-**Worth knowing:** the two script CDNs (`cdnjs`, `unpkg`) are the only avoidable
-third parties here. They exist to load the portfolio grid's layout library, and
-they see a visitor's IP address. I can self-host both files, which would remove
-them from this policy entirely and make the page slightly faster. Say the word.
 
 ---
 
@@ -67,8 +64,6 @@ computers can see your IP address as part of that request. For this site:
 
 - **Cloudflare** hosts the site and serves every page.
 - **Sanity** hosts the images and video files.
-- **Cloudflare's cdnjs and unpkg** serve two small layout scripts, on the
-  Portfolio page only.
 - **YouTube** serves the still preview image on pages that have a video.
 
 None of these are given your information by me. They see the request your

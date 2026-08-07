@@ -217,8 +217,20 @@ if (emptyFilters.length > 0) {
   )}
 </Layout>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.isotope/3.0.6/isotope.pkgd.min.js"></script>
-<script src="https://unpkg.com/imagesloaded@5/imagesloaded.pkgd.min.js"></script>
+{/*
+  Self-hosted rather than pulled from cdnjs/unpkg at request time.
+
+  These were the only two avoidable third parties on the site - every visitor
+  to this page had their IP seen by two more companies just to load a layout
+  library. The files are the exact same builds (isotope-layout 3.0.6,
+  imagesloaded 5.0.0, both pulled from npm and diffed against the CDN's own
+  version string), copied into public/vendor rather than imported, because
+  they set globals (`Isotope`, `imagesLoaded`) that the script below already
+  expects - bundling them through Vite would mean rewriting that contract for
+  no behavioural gain.
+*/}
+<script src="/vendor/isotope-3.0.6.min.js"></script>
+<script src="/vendor/imagesloaded-5.0.0.min.js"></script>
 <script>
   declare const Isotope: any;
   declare const imagesLoaded: any;

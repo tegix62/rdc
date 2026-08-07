@@ -193,9 +193,10 @@ Things that will sink a proposal if ignored.
    being written around it. Anything that adds tracking changes that.
 3. **Content changes need a deploy.** Nothing is live-editable at runtime.
 4. **Third parties are kept to a minimum.** Current outbound hosts: Sanity's
-   CDN (images), Cloudflare (hosting), `cdnjs` + `unpkg` (two grid scripts,
-   Portfolio only), `i.ytimg.com` (video posters), Tally (contact). That's the
-   whole list, and there's an active intent to shrink it.
+   CDN (images), Cloudflare (hosting), `i.ytimg.com` (video posters), Tally
+   (contact). The Portfolio grid's two layout scripts used to be pulled from
+   `cdnjs` and `unpkg` at request time; they're self-hosted now, so that's two
+   fewer companies seeing every visitor's IP.
 5. **Performance is measured, not assumed.** Every page's bytes, LCP and CLS
    are audited in CI against the deployed build. `/portfolio` is the heaviest
    page and is watched closely.
@@ -215,8 +216,8 @@ missing video links, picking the homepage grid tiles, and filling in the
 privacy policy placeholders.
 
 **Known open items:** `/portfolio` page weight; an unexplained desktop LCP
-outlier on the homepage; self-hosting the two script CDNs; whether to convert
-several large animated images to video.
+outlier on the homepage; whether to convert several large animated images to
+video.
 
 ---
 

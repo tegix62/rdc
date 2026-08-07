@@ -29,10 +29,11 @@ page.on('console', (m) => {
 })
 
 let failures = 0
-const check = (name, actual, expected) => {
+const check = (name, actual, expected, detail = '') => {
   const pass = JSON.stringify(actual) === JSON.stringify(expected)
-  if (pass) console.log(`  ok   ${name}`)
+  if (pass) console.log(`  ok   ${name}${detail ? ` - ${detail}` : ''}`)
   else {
+    if (detail) console.log(`  ...  ${detail}`)
     failures += 1
     console.log(`  FAIL ${name}\n         expected ${JSON.stringify(expected)}\n         actual   ${JSON.stringify(actual)}`)
   }
@@ -114,28 +115,52 @@ for (const sel of markup.buttons.filter((b) => b !== '*')) {
 const restored = await visibleCount()
 check('All restores every tile', restored, baseline)
 
+/*
+  Expand a tile that actually HAS a jump button.
+
+  This clicked `.pf-item` - whichever tile happened to be first - and skipped
+  its own assertions with a friendly note when that tile had no parent case
+  study. So the width check could go green having measured nothing, which is
+  worse than no check at all. Pick a tile with a jump link and measure that one.
+*/
 console.log('\nexpand + jump button')
-await page.click('.pf-item')
-await page.waitForTimeout(600)
-const expanded = await page.evaluate(() => {
-  const el = document.querySelector('.pf-item.is-expanded')
-  if (!el) return null
-  const jump = el.querySelector('.pf-item__jump')
-  return {
-    hasExpanded: true,
-    jumpVisible: jump ? getComputedStyle(jump).display !== 'none' : false,
-    jumpHref: jump?.getAttribute('href') ?? null,
-    sameWidth: jump
-      ? Math.abs(jump.getBoundingClientRect().width - el.querySelector('img').getBoundingClientRect().width) < 2
-      : null,
-  }
-})
-check('a tile expands on click', expanded?.hasExpanded, true)
-if (expanded?.jumpHref) {
-  check('jump button is visible when expanded', expanded.jumpVisible, true)
-  check('jump button matches the image width', expanded.sameWidth, true)
-} else {
-  console.log('  --   first tile has no parent case study, so no jump button (expected for some tiles)')
+const jumpTile = page.locator('.pf-item:has(.pf-item__jump)').first()
+const haveJumpTile = (await jumpTile.count()) > 0
+check('at least one tile links to a project', haveJumpTile, true)
+
+if (haveJumpTile) {
+  await jumpTile.click()
+  await page.waitForTimeout(600)
+  const expanded = await page.evaluate(() => {
+    const el = document.querySelector('.pf-item.is-expanded')
+    if (!el) return null
+    const jump = el.querySelector('.pf-item__jump')
+    const img = el.querySelector('img')
+    if (!jump || !img) return {hasExpanded: true, jumpVisible: false}
+    const j = jump.getBoundingClientRect()
+    const i = img.getBoundingClientRect()
+    return {
+      hasExpanded: true,
+      jumpVisible: getComputedStyle(jump).display !== 'none',
+      /*
+        Edges, not width. Width alone passes for a button that is the right size
+        and offset sideways, and it was the width check that let a 6px inset on
+        each side ship - Chris caught that by eye as "a couple px too much
+        padding". The button and the image are children of the same padded
+        frame, so their left and right edges should be the same line.
+      */
+      leftGap: +(j.left - i.left).toFixed(1),
+      rightGap: +(i.right - j.right).toFixed(1),
+    }
+  })
+  check('a tile expands on click', expanded?.hasExpanded, true)
+  check('jump button is visible when expanded', expanded?.jumpVisible, true)
+  check(
+    'jump button lines up with the image edges',
+    Math.abs(expanded?.leftGap ?? 99) < 1 && Math.abs(expanded?.rightGap ?? 99) < 1,
+    true,
+    `left ${expanded?.leftGap}px, right ${expanded?.rightGap}px`,
+  )
 }
 
 if (failedRequests.length) {

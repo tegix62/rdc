@@ -78,7 +78,7 @@ if (emptyFilters.length > 0) {
       and on a narrow screen they ended up starting and ending lines.
     */}
     <div class="pf-controls" id="pf-controls">
-      <div class="pf-group pf-group--scroll" role="group" aria-label="Filter by category">
+      <div class="pf-group pf-group--filters" role="group" aria-label="Filter by category">
         {filters.map((f, i) => (
           <button type="button" class:list={['pf-btn', i === 0 && 'is-active']} data-filter={f.value}>
             {f.label}

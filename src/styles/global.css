@@ -958,40 +958,48 @@ main {
 }
 
 /*
-  On a phone the filters scroll sideways instead of wrapping.
+  On a phone the filters are a two-column block, not a row.
 
-  Grouping the row fixed the `+` orphan and then produced a new one a row up:
-  four filters do not fit across 390px, so TYPE/LETTERING ended up alone on its
-  own line and the controls took three rows before any work was visible.
+  Three attempts got here. Wrapping them freely put TYPE/LETTERING alone on its
+  own line - four unequal buttons cannot fill two ragged lines evenly at any
+  width. Scrolling them sideways fixed that and introduced a worse one: at rest
+  the last button is cut mid-word, and Chris read that as "the categories clip",
+  which is the correct reading. A cut-off word is a bug that happens to also be
+  an affordance, and nobody gives it the benefit of the doubt.
 
-  Wrapping cannot solve this - there is no arrangement of four buttons that
-  fills two lines evenly at every width. One scrolling line always fits, always
-  looks deliberate, and cannot orphan anything. It is also the house rule
-  already: wide content scrolls inside its own container so the page body never
-  does.
+  A grid answers both. Two equal columns means every label is fully visible on
+  one line at 390px, no gesture is required to find the fourth filter, and the
+  buttons get half the row each instead of hugging their text - a much better
+  target than the 44px floor they were scraping.
 
-  No fade or arrow. With nowrap the next button is visibly cut off at the edge,
-  which is the affordance - an added gradient would hide the very thing that
-  signals there is more.
+  It costs a third line of controls above the grid, which the scroller was
+  bought to avoid. That was the wrong thing to optimise: ~50px of scroll is
+  cheap, and a control you cannot read is not.
+
+  35rem rather than the 40rem the rest of the mobile block uses, because that is
+  where the row actually stops fitting. Measured: the four buttons need 531px at
+  the full type size and the container offers 544px at 35rem, so anything wider
+  is a comfortable single row and columns that wide would just look like a
+  stretched chip.
 */
-@media (max-width: 40rem) {
-  .pf-group--scroll {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    /* Room for the focus ring, which a clipped overflow would cut off. */
-    padding: 2px;
-    margin: -2px;
-    scrollbar-width: none;
+@media (max-width: 35rem) {
+  .pf-group--filters {
+    /* Its own line, so the arrange and view groups stay together below it
+       rather than being pulled up into a gap beside the last filter. */
+    flex: 1 1 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
 
-  .pf-group--scroll::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* Or they compress to fit and stop being readable, which is the failure this
-     is meant to avoid. */
-  .pf-group--scroll .pf-btn {
-    flex: none;
+  /*
+    Photography has no tagged items today so there are four filters, which fill
+    the grid exactly. Tag one and there are five, and the fifth would sit alone
+    in the left column looking dropped. Spanning it is the difference between a
+    stray button and a deliberate last row - and it costs one rule now rather
+    than a bug report later.
+  */
+  .pf-group--filters .pf-btn:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
 }
 
@@ -1228,29 +1236,27 @@ main {
 }
 
 /*
-  Inset from the frame, so it reads as a button rather than a strip.
+  Squared up with the image above it.
 
   Full-bleed to the tile's edges it looked like a caption bar bolted to the
   bottom of the image - the navy ran edge to edge and touched the hairline, so
-  there was nothing to distinguish "control" from "label". A margin all round
-  gives it its own edges, which is most of what makes a rectangle read as
-  pressable.
+  there was nothing to distinguish "control" from "label". Insetting it fixed
+  that and then overshot: a 6px margin inside a frame already padded by 4px put
+  the button 10px from the hairline against the image's 4px, so its edges sat
+  visibly short of the artwork's on both sides.
+
+  So it takes no side or bottom margin of its own and lets the frame's padding
+  do the insetting, exactly as the image does. Both are children of the same
+  padded box and now line up on all three edges. Only the top keeps a gap,
+  because that one is separation from the image rather than inset from the
+  frame - without it the navy touches the artwork.
 */
 .pf-item.is-expanded .pf-item__jump {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-1);
-  /*
-    More room above than at the sides.
-
-    An equal margin all round looked flush against the image: 6px of white
-    between a dark photograph and a navy button reads as a seam, not a gap,
-    while the same 6px at the sides is plainly an inset because the frame's
-    hairline is right there to measure against. So the top gets its own value.
-  */
-  margin: var(--pf-jump-gap, 0.625rem) var(--pf-jump-inset, 0.375rem)
-          var(--pf-jump-inset, 0.375rem);
+  margin: var(--pf-jump-gap, 0.625rem) 0 0;
   padding: 0.5rem 0.625rem;
   box-sizing: border-box;
   background: var(--color-navy);

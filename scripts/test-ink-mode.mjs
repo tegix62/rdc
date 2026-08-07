@@ -24,7 +24,7 @@
     persists      a reload comes back in archive view without flashing colour
     nowhere else  no stray button on a page it was just removed from
     in palette    navy like the rest of the site, not the near-black it was
-    no orphan     at most two lines, and no line holding one lone button
+    no orphan     no line holding one lone button, and no filter cut off
     uniform       in archive view every plate is the same width, clicked or not
 
   Usage: node scripts/test-ink-mode.mjs [url]
@@ -218,31 +218,67 @@ check(
 /*
   Orphans, generally.
 
-  Two have shipped now. First `+` alone on a line under eight other buttons;
-  then, after grouping fixed that, TYPE/LETTERING alone a row up. Both were
-  found in photos Chris sent and neither was visible to any check, so this
-  asserts the shape of the row rather than the position of one button: how many
-  lines it occupies, and whether any line holds a single control.
+  Three have shipped now. First `+` alone on a line under eight other buttons.
+  Then, after grouping fixed that, TYPE/LETTERING alone a row up. Then, after a
+  sideways scroller fixed THAT, TYPE/LETTERING cut off mid-word at the edge -
+  which Chris reported as "the categories clip", and he was right: a truncated
+  word reads as a bug first and an affordance never.
+
+  All three were found in photos he sent and none was visible to any check, so
+  this asserts the shape of the row rather than the position of one button.
+
+  Note what is NOT asserted any more: a line count. It used to require two lines
+  or fewer, and that limit is what made the scroller look like the answer. The
+  filters are a two-column block on a phone now and the controls take three
+  lines, on purpose - vertical space is cheap and a control you cannot read is
+  not. What matters is that nothing is stranded and nothing is cut.
 */
 const rowShape = await page.evaluate(() => {
   const btns = [...document.querySelectorAll('#pf-controls .pf-btn, #pf-controls .ink-switch')]
+  const row = document.getElementById('pf-controls').getBoundingClientRect()
   const lines = new Map()
   for (const b of btns) {
     const y = Math.round(b.getBoundingClientRect().y / 8) * 8
-    lines.set(y, (lines.get(y) ?? 0) + 1)
+    lines.set(y, [...(lines.get(y) ?? []), b])
   }
-  return {buttons: btns.length, lines: [...lines.values()]}
+  return {
+    buttons: btns.length,
+    lines: [...lines.values()].map((els) => els.length),
+    /*
+      One control on a line is only an orphan if it is ALSO narrow. A single
+      button spanning the full row - which is what an odd fifth filter does -
+      is a deliberate last row, not a stray.
+    */
+    stranded: [...lines.values()]
+      .filter((els) => els.length === 1 && els[0].getBoundingClientRect().width < row.width * 0.9)
+      .map((els) => els[0].textContent.trim()),
+  }
 })
 check(
-  'the controls fit two lines or fewer',
-  rowShape.lines.length <= 2,
-  `${rowShape.buttons} buttons over ${rowShape.lines.length} line(s)`,
-)
-check(
   'no control is stranded alone on a line',
-  !rowShape.lines.includes(1),
-  `per line: ${rowShape.lines.join(', ')}`,
+  rowShape.stranded.length === 0,
+  `${rowShape.buttons} buttons over ${rowShape.lines.length} line(s): ${rowShape.lines.join(', ')}${
+    rowShape.stranded.length ? ` - stranded: ${rowShape.stranded.join(', ')}` : ''
+  }`,
 )
+
+/*
+  And no filter is cut off by its own container. This is the bug the scroller
+  introduced: the group fit the page, the page did not scroll sideways, every
+  earlier check passed, and the last button was still sliced in half.
+*/
+const clipped = await page.evaluate(() => {
+  const group = document.querySelector('#pf-controls .pf-group--filters')
+  if (!group) return ['no filter group']
+  const box = group.getBoundingClientRect()
+  return [...group.querySelectorAll('.pf-btn')]
+    .filter((b) => {
+      const r = b.getBoundingClientRect()
+      return r.right > box.right + 0.5 || r.left < box.left - 0.5
+    })
+    .map((b) => b.textContent.trim())
+})
+check('no category filter is cut off', clipped.length === 0, clipped.join(' | ') || 'all four fully visible')
 
 // The zoom pair specifically: two halves of one control, so they must share a
 // line even if the rest of the row rearranges.

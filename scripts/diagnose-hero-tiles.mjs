@@ -6,13 +6,13 @@
   after the rule it overrides - so the suspicion is that the flag is being set
   on documents the grid never renders.
 
-  The Portfolio grid draws ONLY documents whose pageType is "Grid Item". The 13
-  "Case Study" documents are the project pages; they are not tiles. So ticking
-  Hero tile on a Case Study is a no-op there, and nothing in Studio says so.
+  That turned out to be right, and the grid now carries case studies too. What
+  this still answers is the follow-on: a hero tile marked "serve exactly as
+  uploaded" cannot be cropped at all, because cropping needs a transform and
+  pass-through sends none - so it keeps its own shape however landscape the crop
+  asked for.
 
-  This reports where the flag actually is, so the fix can be either "tick it on
-  the tile instead" or "make the field impossible to set where it does nothing"
-  rather than a guess between them.
+  Reports where the flag is, and which of those tiles can actually honour it.
 
   Usage: node scripts/diagnose-hero-tiles.mjs
 */
@@ -85,7 +85,7 @@ if (featured.length) {
     )
   }
 } else {
-  console.log('  (empty - falling back to the 8 most recent Grid Items)')
+  console.log('  (empty - falling back to the case studies)')
 }
 
 /*
@@ -109,16 +109,19 @@ for (const d of marked) {
 if (!uncroppable) console.log('  (none - every hero tile can be cropped)')
 
 console.log('\n' + '='.repeat(70))
-const brokenOnes = marked.filter((d) => d.pageType !== 'Grid Item')
-if (brokenOnes.length) {
-  console.log(`${brokenOnes.length} of ${marked.length} are set on a Case Study.`)
-  console.log('The Portfolio grid cannot show those. Either tick the flag on the')
-  console.log('matching Grid Item tile instead, or the field should be hidden on')
-  console.log('Case Study documents so it cannot be set where it does nothing.')
-} else if (marked.length) {
-  console.log('Every hero tile is on a Grid Item, so the data is right and the')
-  console.log('problem is elsewhere - look at the rendered grid next.')
-} else {
+/*
+  The original verdict here said a Case Study could not be widened because the
+  Portfolio grid did not render one. That was true when written and is not any
+  more - the grid now carries both types - so it is replaced rather than left to
+  mislead the next person who runs this.
+*/
+if (!marked.length) {
   console.log('The flag is not set anywhere, so there is nothing to render wide.')
+} else if (uncroppable) {
+  console.log(`${uncroppable} hero tile(s) are served exactly as uploaded, so the`)
+  console.log('landscape crop is skipped and they keep their own shape. Turn off')
+  console.log('"serve exactly as uploaded" on those images to let them crop.')
+} else {
+  console.log('Every hero tile is somewhere it renders and can be cropped.')
 }
 console.log('='.repeat(70))

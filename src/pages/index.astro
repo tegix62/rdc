@@ -91,8 +91,18 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
 <Layout title={page?.title ?? 'Rumeau Design Co'} description={page?.seoDescription}>
   <section class="statement" style={heroStyle}>
     <div class="statement__line" aria-hidden="true"></div>
+    {/*
+      Three words, three lines - always, not just at the width where they
+      happen to wrap that way. The vh-sized font wrapped naturally, so a wide
+      viewport fit RUMEAU and DESIGN on one line and dropped COMPANY to a
+      second, which is not the mark: the old site stacked all three, one per
+      line, at every width. A block per word guarantees that instead of
+      depending on where the browser breaks it.
+    */}
     <h1 class="statement__heading">
-      RUMEAU<span class="statement__sep"> </span>DESIGN<span class="statement__sep"> </span>COMPANY
+      <span class="statement__word">RUMEAU</span>
+      <span class="statement__word">DESIGN</span>
+      <span class="statement__word">COMPANY</span>
     </h1>
     <div class="statement__line" aria-hidden="true"></div>
     <p class="statement__sub">{settings?.tagline ?? 'Brand Identity & Merch Design for Heritage Apparel Brands.'}</p>

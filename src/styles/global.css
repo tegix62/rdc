@@ -533,9 +533,8 @@ main {
   }
 }
 
-.statement__sep {
-  display: inline-block;
-  width: 0.5em;
+.statement__word {
+  display: block;
 }
 
 .statement__sub {

@@ -25,6 +25,7 @@
     nowhere else  no stray button on a page it was just removed from
     in palette    navy like the rest of the site, not the near-black it was
     no orphan     at most two lines, and no line holding one lone button
+    uniform       in archive view every plate is the same width, clicked or not
 
   Usage: node scripts/test-ink-mode.mjs [url]
 */
@@ -114,6 +115,38 @@ check('the tiles are actually filtered', filtered !== 'none', filtered)
 // and off read as part of the artwork.
 const btnFilter = await toggle.evaluate((el) => getComputedStyle(el).filter)
 check('the controls are not filtered', btnFilter === 'none', btnFilter)
+
+/*
+  Every plate the same width.
+
+  An archive is a catalogue and a catalogue does not give one entry a double
+  spread. Two rules used to break that - the hero flag and the width a tile
+  takes when clicked - and both are correct on the normal grid, so this checks
+  the archive specifically rather than the rule in isolation.
+*/
+const widths = await page.evaluate(() => {
+  const tiles = [...document.querySelectorAll('#pf-grid .pf-item')]
+  const seen = new Set(tiles.map((t) => Math.round(t.getBoundingClientRect().width)))
+  return {count: tiles.length, widths: [...seen].sort((a, b) => a - b)}
+})
+check(
+  'every plate is the same width in archive view',
+  widths.widths.length === 1,
+  `${widths.count} tiles, width(s): ${widths.widths.join(', ')}`,
+)
+
+// And clicking one must not widen it either.
+await page.locator('#pf-grid .pf-item').first().click()
+await page.waitForTimeout(500)
+const afterClick = await page.evaluate(() => {
+  const tiles = [...document.querySelectorAll('#pf-grid .pf-item')]
+  return [...new Set(tiles.map((t) => Math.round(t.getBoundingClientRect().width)))]
+})
+check(
+  'clicking a plate does not widen it in archive view',
+  afterClick.length === 1,
+  `width(s): ${afterClick.join(', ')}`,
+)
 
 // --- and back ---------------------------------------------------------------
 await toggle.click()

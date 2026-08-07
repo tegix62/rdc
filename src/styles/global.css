@@ -2023,6 +2023,28 @@ body {
 
   The frame keeps its padding, so nothing moves when the treatment changes.
 */
+/*
+  Every plate the same size.
+
+  An archive is a catalogue, and a catalogue does not give one entry a double
+  spread - the whole point of the numbered plates and the ruled rows is that the
+  eye compares like with like. Two rules still made tiles unequal here: the hero
+  flag, and the width a tile takes when clicked.
+
+  Both are right on the normal grid, where the job is to give a piece presence
+  among its neighbours. Neither is right on a page whose subject is the set.
+
+  The hero's landscape crop still applies - it is baked into the file at build
+  time - so a hero tile shows as a wide band inside its square plate rather than
+  filling it. Drawing an Archive Mark for that tile is the fix if it bothers;
+  the plate itself is uniform either way.
+*/
+:root[data-ink] .pf-item--hero,
+:root[data-ink] .pf-item--hero.is-expanded,
+:root[data-ink] .pf-item.is-expanded {
+  width: var(--pf-col-w, 16.666%);
+}
+
 :root[data-ink] .pf-item.is-expanded .pf-item__frame {
   box-shadow: none;
 }

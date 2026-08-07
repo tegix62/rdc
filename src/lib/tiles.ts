@@ -65,6 +65,19 @@ export function treatmentOf(item: {tileTreatment?: unknown; assetType?: unknown}
   sixty. Chris likes it as it is; it keeps 3:2.
 */
 export const HERO_RATIO = {w: 3, h: 2};
+
+/*
+  The Portfolio hero's shape, and the only knob for how much presence it has.
+  Change this one line; the homepage is separate and is not affected.
+
+    {w: 3,  h: 2}   2.13x a typical tile - what it was, a full spread
+    {w: 2,  h: 1}   1.60x
+    {w: 12, h: 5}   1.33x - current
+    {w: 14, h: 5}   1.14x - barely more than its neighbours
+
+  Measured against a 4:5 portrait as "typical"; real tiles keep their natural
+  aspect, so the exact figure varies per tile.
+*/
 export const HERO_RATIO_PORTFOLIO = {w: 12, h: 5};
 
 /** Height for a hero tile rendered at `width`, preserving the given crop. */

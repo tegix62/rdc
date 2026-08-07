@@ -1165,7 +1165,16 @@ main {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-1);
-  margin: var(--pf-jump-inset, 0.375rem);
+  /*
+    More room above than at the sides.
+
+    An equal margin all round looked flush against the image: 6px of white
+    between a dark photograph and a navy button reads as a seam, not a gap,
+    while the same 6px at the sides is plainly an inset because the frame's
+    hairline is right there to measure against. So the top gets its own value.
+  */
+  margin: var(--pf-jump-gap, 0.625rem) var(--pf-jump-inset, 0.375rem)
+          var(--pf-jump-inset, 0.375rem);
   padding: 0.5rem 0.625rem;
   box-sizing: border-box;
   background: var(--color-navy);

@@ -987,6 +987,26 @@ main {
   width: calc(var(--pf-col-w, 16.666%) * 2);
 }
 
+/*
+  The landscape shape, held in CSS rather than left to the CDN.
+
+  The crop is normally baked into the file at build time - but an image marked
+  "serve exactly as uploaded" cannot be cropped at all, because cropping needs a
+  transform and pass-through sends none. Those images arrived at their own
+  aspect and a hero tile silently stopped being landscape. With "serve exactly
+  as uploaded" now the default for new images, that would have become the usual
+  case rather than the exception.
+
+  So the tile enforces its own shape. `cover` centre-crops in the browser, which
+  ignores the hotspot - the trade for a grid that holds together whatever the
+  compression setting says. Turn pass-through off on an image whose framing
+  matters and the CDN does it properly, hotspot and all.
+*/
+.pf-item--hero .pf-item__img {
+  aspect-ratio: 12 / 5;
+  object-fit: cover;
+}
+
 .pf-item__img {
   display: block;
   width: 100%;
@@ -1131,12 +1151,21 @@ main {
   display: none;
 }
 
+/*
+  Inset from the frame, so it reads as a button rather than a strip.
+
+  Full-bleed to the tile's edges it looked like a caption bar bolted to the
+  bottom of the image - the navy ran edge to edge and touched the hairline, so
+  there was nothing to distinguish "control" from "label". A margin all round
+  gives it its own edges, which is most of what makes a rectangle read as
+  pressable.
+*/
 .pf-item.is-expanded .pf-item__jump {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-1);
-  width: 100%;
+  margin: var(--pf-jump-inset, 0.375rem);
   padding: 0.5rem 0.625rem;
   box-sizing: border-box;
   background: var(--color-navy);
@@ -1154,12 +1183,25 @@ main {
   background: var(--color-navy-dark);
 }
 
-/* The project name can be long and the tile is only two columns wide, so it
-   truncates rather than wrapping and changing the tile's height. */
+/*
+  Wraps to two lines before it truncates.
+
+  It used to be a single nowrap line, which on a phone ran out of characters
+  almost immediately - "Adelante Barbell Club" became "Adelan..." in a tile only
+  one column wide. The reason for nowrap was that a taller button changes the
+  tile's height and Isotope would measure the old one, but the expand handler
+  already re-lays out across two animation frames precisely so it measures after
+  the reveal. So the constraint that justified truncating is gone.
+
+  Two lines, then ellipsis - a cap rather than no limit, so a long name still
+  cannot push a tile to twice its neighbours' height.
+*/
 .pf-item__jump-label {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .pf-item__jump-arrow {
@@ -1235,7 +1277,21 @@ main {
   cursor: default;
 }
 
+/*
+  Uniform squares are what make this read as deliberate rather than ragged, and
+  they cannot depend on the CDN cropping - see the Portfolio hero above. Held
+  here so the grid survives any image being served exactly as uploaded.
+*/
+.peek__item .pf-item__img {
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
 .peek__item.pf-item--hero { grid-column: span 2; }
+
+.peek__item.pf-item--hero .pf-item__img {
+  aspect-ratio: 3 / 2;
+}
 
 .peek__link {
   display: block;
@@ -1250,9 +1306,14 @@ main {
   stays out of the way until someone is actually pointing at a tile - but a grid
   of unlabelled images with no accessible name is not navigable without it.
 */
+/*
+  Inset for the same reason as the Portfolio jump button, and wrapping for the
+  same reason too - at two columns on a phone a project name lost most of its
+  characters to an ellipsis before anyone could read it.
+*/
 .peek__caption {
   position: absolute;
-  inset: auto 0 0 0;
+  inset: auto 0.375rem 0.375rem;
   padding: 0.5rem 0.625rem;
   background: var(--color-navy);
   color: var(--color-white);
@@ -1261,9 +1322,11 @@ main {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
   opacity: 0;
   transition: opacity 120ms ease;
 }

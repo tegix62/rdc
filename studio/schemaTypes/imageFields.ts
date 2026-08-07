@@ -46,18 +46,31 @@ export const imageBehaviourFields = [
       'the work, not the file - "Hug a Mug wordmark in cream on a green mug" ' +
       'rather than "logo.png". Leave blank if the image is purely decorative.',
   }),
+  /*
+    On by default, because Chris optimises his own files and would rather the
+    CDN left them alone than second-guess him.
+
+    That is a real trade and worth stating plainly rather than burying: a
+    pass-through image gets no srcset, so a phone downloads the same file a
+    desktop does, and no crop or hotspot can apply because cropping requires
+    re-encoding. Turn it OFF on anything that needs responsive sizes or a crop -
+    photography, hero tiles, anything wide and detailed.
+
+    initialValue only affects images added from now on. The ~120 already in the
+    dataset keep whatever they have.
+  */
   defineField({
     name: 'noRecompress',
     title: 'Serve exactly as uploaded (no re-compression)',
     type: 'boolean',
     description:
-      'For logos, wordmarks, flat-colour art, and anything you have already ' +
-      'compressed yourself. The file ships byte for byte with no resizing ' +
-      'and no format conversion. Two consequences worth knowing: phones ' +
-      'download the same file as desktops, so upload something sensibly ' +
-      'sized; and any crop or hotspot set here is ignored, because cropping ' +
-      'requires re-encoding.',
-    initialValue: false,
+      'ON by default: the file ships byte for byte, no resizing and no format ' +
+      'conversion, because you compress your own work. Turn it OFF when an ' +
+      'image needs the CDN: responsive sizes for phones, or a crop/hotspot - ' +
+      'both require re-encoding and are skipped while this is on. Left on, ' +
+      'upload something sensibly sized, because every device gets this exact ' +
+      'file.',
+    initialValue: true,
   }),
   defineField({
     name: 'inkMode',

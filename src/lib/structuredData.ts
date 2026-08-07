@@ -134,6 +134,30 @@ export function caseStudyNode(
   const client = clean(study.client);
   const category = clean(study.category);
 
+  /*
+    Contributors, as Person nodes with their own url.
+
+    Chris credits collaborators partly for SEO, and a link in the markup is only
+    half of that: it tells a crawler there is a link, not that the person
+    CONTRIBUTED to this piece of work. `contributor` states the relationship, so
+    the credit is legible as a credit rather than as an outbound link that
+    happens to sit near a name.
+
+    Only credits with a name; a role on its own describes nobody.
+  */
+  const contributors = (Array.isArray(study.credits) ? study.credits : [])
+    .map((c: any) =>
+      clean(c?.name)
+        ? compact({
+            '@type': 'Person',
+            name: clean(c.name),
+            url: clean(c.url),
+            jobTitle: clean(c.role),
+          })
+        : null,
+    )
+    .filter(Boolean);
+
   const work = compact({
     '@type': 'CreativeWork',
     '@id': `${canonical}#work`,
@@ -146,6 +170,7 @@ export function caseStudyNode(
     // Named on the page as the client, so it is the subject of the work.
     about: client ? {'@type': 'Organization', name: client} : undefined,
     genre: category,
+    contributor: contributors.length ? contributors : undefined,
     mainEntityOfPage: {'@id': `${canonical}#webpage`},
   });
 

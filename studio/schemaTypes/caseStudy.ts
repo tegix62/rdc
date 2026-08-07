@@ -213,14 +213,33 @@ export default defineType({
       name: 'credits',
       title: 'Credits',
       type: 'array',
-      description: 'Shown next to the project title, e.g. "Creative Director — Chris Rumeau".',
+      description:
+        'Everyone who worked on this, e.g. "Photography — Jane Doe". Add a link ' +
+        'and the name becomes a real link to their work: good manners, and the ' +
+        'credit also goes into the page\'s structured data so search engines ' +
+        'read them as contributors rather than as decoration.',
       of: [
         {
           type: 'object',
           fields: [
             {name: 'role', type: 'string'},
             {name: 'name', type: 'string'},
+            /*
+              Named `url` rather than `link` so lib/sanity.ts excludes it from
+              stega without another entry in NON_TEXT_FIELDS - a URL with
+              zero-width characters in it is a broken link, and that list is
+              keyed on field name.
+            */
+            {
+              name: 'url',
+              title: 'Link to their work',
+              type: 'url',
+              description: 'Optional. Left empty the name is just text.',
+            },
           ],
+          preview: {
+            select: {title: 'name', subtitle: 'role'},
+          },
         },
       ],
     }),

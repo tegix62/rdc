@@ -120,8 +120,21 @@ const ogImage = ogSource
           )}
           {caseStudy.credits?.length > 0 && (
             <div class="work-identity__credits">
+              {/*
+                The name links out when a URL is given, the same treatment
+                Principal Type already gets. Deliberately a normal followed
+                link rather than nofollow: Chris credits collaborators partly
+                so the credit is worth something to them, and a nofollow credit
+                passes nothing on.
+              */}
               {caseStudy.credits.map((c: any) => (
-                <p><strong>{c.role}</strong>{c.name && ` — ${c.name}`}</p>
+                <p>
+                  <strong>{c.role}</strong>
+                  {c.name && ' — '}
+                  {c.name && (c.url ? (
+                    <a href={c.url} target="_blank" rel="noopener noreferrer">{c.name}</a>
+                  ) : c.name)}
+                </p>
               ))}
             </div>
           )}

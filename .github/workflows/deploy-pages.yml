@@ -2,6 +2,13 @@ name: Deploy to Cloudflare Pages
 
 on:
   workflow_dispatch: {}
+  # Publishing in Sanity Studio changes nothing here: this is a static build,
+  # so the new content only reaches the preview once this workflow re-runs.
+  # A Sanity webhook can fire this event type on every publish - see
+  # docs/sanity-publish-webhook.md for the two things that need setting up
+  # outside this repo (a token, and the webhook itself) before it's live.
+  repository_dispatch:
+    types: [sanity-publish]
   push:
     branches: [main, 'claude/**']
     paths:

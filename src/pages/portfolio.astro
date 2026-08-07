@@ -228,9 +228,16 @@ if (emptyFilters.length > 0) {
   they set globals (`Isotope`, `imagesLoaded`) that the script below already
   expects - bundling them through Vite would mean rewriting that contract for
   no behavioural gain.
+
+  is:inline on both: without it Astro tries to process the src as a module to
+  bundle, which fails outright for a plain public/ path - "references an
+  asset in the public/ directory... add is:inline". A CDN URL never hit this
+  path because it's not a local file for Astro to try to load. Missed it
+  testing the two files in a plain HTML harness instead of through the real
+  Astro build, which is exactly the gap a local build check exists to close.
 */}
-<script src="/vendor/isotope-3.0.6.min.js"></script>
-<script src="/vendor/imagesloaded-5.0.0.min.js"></script>
+<script src="/vendor/isotope-3.0.6.min.js" is:inline></script>
+<script src="/vendor/imagesloaded-5.0.0.min.js" is:inline></script>
 <script>
   declare const Isotope: any;
   declare const imagesLoaded: any;

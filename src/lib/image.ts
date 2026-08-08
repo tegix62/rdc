@@ -87,6 +87,22 @@ export function isPassThrough(source: any, animated = false): boolean {
   return source?.noRecompress === true || animated;
 }
 
+/*
+  Whether an image field actually has a file attached, as opposed to an object
+  shell with sub-fields (crop, hotspot, inkMode, noRecompress...) saved but no
+  asset - which Sanity Studio can and does produce, e.g. by opening an image
+  field's options before dropping a file in.
+
+  urlFor() throws outright on a shell like that: "Unable to resolve image URL
+  from source". Nothing upstream filters it out - GROQ's `defined(field)` is
+  true for the shell too, since the field itself exists - so this is the one
+  check standing between a half-finished edit in Studio and every page on the
+  site failing to build.
+*/
+export function hasAsset(source: any): boolean {
+  return typeof (source?.asset?._ref ?? source?._ref) === 'string';
+}
+
 export function imageDimensions(source: any): {width: number; height: number} | null {
   const ref: string | undefined = source?.asset?._ref ?? source?._ref;
   if (typeof ref !== 'string') return null;

@@ -14,7 +14,7 @@
   Pass `width`/`height` together to crop to a fixed ratio; pass `width`
   alone to keep the source's own aspect.
 */
-import { urlFor, imageDimensions, buildSrcSet, originalUrl, isPassThrough, cappedWidth } from '../lib/image';
+import { urlFor, imageDimensions, buildSrcSet, originalUrl, isPassThrough, cappedWidth, hasAsset } from '../lib/image';
 import { isAnimatedSource } from '../lib/animated';
 import { getAnimatedVideo } from '../lib/animatedVideo';
 
@@ -68,9 +68,38 @@ const {
 
 const alt = altProp || image?.alt || '';
 
+/*
+  The main image field can be a shell with no file attached - see hasAsset()
+  in lib/image.ts. Every downstream helper here already degrades gracefully
+  when that happens (imageDimensions, isAnimatedSource, isPassThrough,
+  getAnimatedVideo all return null/false on a missing asset), but urlFor()
+  itself throws. This is the one guard standing between a half-finished Studio
+  edit and every page on the site failing to build - it broke /portfolio
+  outright the first time this shipped without it.
+*/
+const imageOk = hasAsset(image);
+if (!imageOk) {
+  console.error(
+    `[Img] "${alt || 'untitled'}" has an image field with no file attached - ` +
+      `skipping it rather than breaking the build. Check this document in ` +
+      `Studio: an image field can save its crop/hotspot/"serve as uploaded" ` +
+      `settings even when nothing was actually uploaded.`,
+  );
+}
+
 // Built with the same width and crop as the main image so swapping one for the
-// other cannot shift the layout.
-const archiveSrc = archive ? urlFor(archive).width(cappedWidth(archive, width)) : null;
+// other cannot shift the layout. Same shell risk as the main image, and the
+// documented fallback when `archive` is absent - CSS threshold applies as
+// before - is exactly right for a shell too, so it's treated the same way.
+const archiveHasAsset = archive && hasAsset(archive);
+if (archive && !archiveHasAsset) {
+  console.warn(
+    `[Img] "${alt || 'untitled'}" has an archive-mark field with no file ` +
+      `attached - falling back to the CSS threshold instead of the authored ` +
+      `mark. Upload a file or clear the field in Studio.`,
+  );
+}
+const archiveSrc = archiveHasAsset ? urlFor(archive).width(cappedWidth(archive, width)) : null;
 
 const cropped = typeof height === 'number';
 const aspect = cropped ? {width, height: height!} : undefined;
@@ -143,11 +172,11 @@ const video = passThrough ? await getAnimatedVideo(image, width) : null;
   the browser had.
 */
 const askWidth = cappedWidth(image, width);
-let builtSrc = urlFor(image).width(askWidth);
-if (cropped) builtSrc = builtSrc.height(Math.round((askWidth * height!) / width)).fit('crop');
+let builtSrc = imageOk ? urlFor(image).width(askWidth) : null;
+if (builtSrc && cropped) builtSrc = builtSrc.height(Math.round((askWidth * height!) / width)).fit('crop');
 
-const src = original ?? builtSrc.url();
-const srcset = passThrough ? undefined : buildSrcSet(image, width, aspect);
+const src = original ?? builtSrc?.url() ?? '';
+const srcset = imageOk && !passThrough ? buildSrcSet(image, width, aspect) : undefined;
 
 // A pass-through file is delivered at its full size to every device, so an
 // oversized one is a cost the CDN can no longer absorb. Flag it at build
@@ -168,7 +197,7 @@ if (manualPassThrough && (image?.crop || image?.hotspot)) {
 }
 ---
 
-{video ? (
+{!imageOk ? null : video ? (
   <video
     class={className}
     width={ratio.width}

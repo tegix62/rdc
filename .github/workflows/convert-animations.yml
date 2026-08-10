@@ -6,10 +6,22 @@ name: Convert animated images to video
 on:
   workflow_dispatch:
     inputs:
+      dry_run:
+        description: 'Report the numbers only - transcode, measure, write nothing'
+        type: boolean
+        default: true
       force:
         description: 'Re-convert everything, even assets already in the map'
         type: boolean
         default: false
+  # A push runs the DRY RUN and nothing else.
+  #
+  # It used to run the real conversion. Editing this script therefore uploaded
+  # new assets to the production dataset as a side effect of editing it, which
+  # is not something a push should ever do - and it is the same mistake the
+  # dead-field cleanup workflow was written to avoid. On a push there is no
+  # `inputs.dry_run`, so the step below forces DRY_RUN=1 explicitly rather than
+  # relying on an empty string being falsy.
   push:
     paths:
       - 'studio/migration/convert-animations.mjs'
@@ -48,3 +60,6 @@ jobs:
         env:
           SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
           FORCE: ${{ inputs.force && '1' || '0' }}
+          # Dry run unless a dispatch explicitly says otherwise. A push has no
+          # inputs at all, so this resolves to '1' and the run cannot write.
+          DRY_RUN: ${{ (github.event_name != 'workflow_dispatch' || inputs.dry_run) && '1' || '0' }}

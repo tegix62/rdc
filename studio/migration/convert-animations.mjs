@@ -12,8 +12,18 @@
   Safe to re-run. Already-converted assets are skipped unless FORCE=1, so it
   costs nothing to run again after adding one animation.
 
-  Requires: ffmpeg on PATH, and SANITY_API_TOKEN with write access.
-  Run: npm run convert:animations   (from studio/)
+  DRY_RUN=1 does everything except write: it downloads, transcodes, and reports
+  the exact per-file numbers, then uploads nothing and leaves the map alone.
+  Added because the first real run creates two new file assets per animation -
+  38 of them on this dataset - and "how much would this actually save" is a
+  question worth answering before that, not after. It also reports which files
+  would fail the 10% margin the frontend applies, since those get converted,
+  stored, and then never served.
+
+  Requires: ffmpeg on PATH. SANITY_API_TOKEN is needed to write, so DRY_RUN
+  works without one.
+  Run: npm run convert:animations              (from studio/)
+       DRY_RUN=1 npm run convert:animations    (report only)
 */
 import {createClient} from '@sanity/client'
 import {execFile} from 'node:child_process'
@@ -33,6 +43,7 @@ const client = createClient({
 })
 
 const FORCE = process.env.FORCE === '1'
+const DRY_RUN = process.env.DRY_RUN === '1'
 const MAP_ID = 'animatedVideoMap'
 const kb = (n) => `${(n / 1024).toFixed(0)} KB`
 
@@ -98,6 +109,11 @@ async function main() {
     console.error('SANITY_API_TOKEN is required (needs write access).')
     process.exit(1)
   }
+  if (!DRY_RUN && !process.env.SANITY_API_TOKEN) {
+    console.error('SANITY_API_TOKEN is required to write. Use DRY_RUN=1 to report only.')
+    process.exit(1)
+  }
+  if (DRY_RUN) console.log('DRY RUN - transcoding and measuring, writing nothing.\n')
   if (!(await ffmpegAvailable())) {
     console.error('ffmpeg not found on PATH.')
     process.exit(1)
@@ -159,6 +175,33 @@ async function main() {
         continue
       }
 
+      /*
+        The 10% margin the frontend applies, reported here rather than
+        discovered later. lib/animatedVideo.ts serves the video only when the
+        mp4 is under 90% of the source, so anything between 90% and 100%
+        converts, uploads, records - and is then never used. Better to say so.
+      */
+      const clearsMargin = mp4Buf.length < buf.length * 0.9
+      if (!clearsMargin) {
+        console.log(
+          `  ~ ${assetId} converts but only to ${kb(mp4Buf.length)} of ${kb(buf.length)} ` +
+            `- under the 10% margin, so the animation would still be served`,
+        )
+      }
+
+      if (DRY_RUN) {
+        const pctDry = (((mp4Buf.length - buf.length) / buf.length) * 100).toFixed(0)
+        console.log(
+          `  ? ${assetId}  ${asset.extension}  ${asset.w}x${asset.h}  ` +
+            `${kb(buf.length)} -> mp4 ${kb(mp4Buf.length)} (${pctDry}%), webm ${kb(webmBuf.length)}` +
+            `${clearsMargin ? '' : '  [would not be served]'}`,
+        )
+        converted += 1
+        sourceTotal += buf.length
+        outTotal += mp4Buf.length
+        continue
+      }
+
       const mp4Asset = await client.assets.upload('file', mp4Buf, {filename: `${assetId}.mp4`})
       const webmAsset = await client.assets.upload('file', webmBuf, {filename: `${assetId}.webm`})
 
@@ -187,20 +230,25 @@ async function main() {
     }
   }
 
-  await client.createOrReplace({
-    _id: MAP_ID,
-    _type: 'animatedVideoMap',
-    entries,
-    generatedAt: new Date().toISOString(),
-  })
+  if (!DRY_RUN) {
+    await client.createOrReplace({
+      _id: MAP_ID,
+      _type: 'animatedVideoMap',
+      entries,
+      generatedAt: new Date().toISOString(),
+    })
+  }
 
   console.log(
-    `\nconverted ${converted}, skipped ${skipped} already done, ${entries.length} total in the map`,
+    DRY_RUN
+      ? `\nwould convert ${converted}, skipping ${skipped} already done`
+      : `\nconverted ${converted}, skipped ${skipped} already done, ${entries.length} total in the map`,
   )
   if (converted) {
     const pct = (((outTotal - sourceTotal) / sourceTotal) * 100).toFixed(0)
     console.log(`animation weight: ${kb(sourceTotal)} -> ${kb(outTotal)} (${pct}%)`)
   }
+  if (DRY_RUN) console.log('Nothing was written. Drop DRY_RUN to do it for real.')
 }
 
 main().catch((err) => {

@@ -44,6 +44,30 @@ const client = createClient({
 
 const FORCE = process.env.FORCE === '1'
 const DRY_RUN = process.env.DRY_RUN === '1'
+
+/*
+  The Accept header a browser sends, and the reason this script has never
+  converted a single WebP.
+
+  Sanity content-negotiates the BARE asset URL, not just transform URLs. Asked
+  for an animated .webp with the wildcard Accept header Node sends by default,
+  the CDN hands back a static JPEG. isAnimatedWebp() then looks for a
+  RIFF/WEBP/VP8X header, finds JPEG, correctly answers "not animated" about the
+  bytes it was given, and the asset is skipped with no message at all.
+
+  So every animated WebP in the dataset - six of them, including the 3,981 KB
+  homepage hero, which is the single heaviest file on the site - has been
+  silently passed over on every run. The eleven files this script did attempt
+  were all GIFs, and GIF is byte-identical under any Accept header because there
+  is nothing to negotiate.
+
+  This exact bug was found and fixed once already, in src/lib/animated.ts, where
+  it had the probe reading a 1,348 KB animated WebP as a 15 KB JPEG. The fix did
+  not make it over here, because nothing connected the two - which is worth
+  remembering the next time something reads image bytes.
+*/
+const BROWSER_ACCEPT =
+  'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
 const MAP_ID = 'animatedVideoMap'
 const kb = (n) => `${(n / 1024).toFixed(0)} KB`
 
@@ -105,12 +129,17 @@ async function convert(dir, sourcePath) {
 }
 
 async function main() {
-  if (!process.env.SANITY_API_TOKEN) {
-    console.error('SANITY_API_TOKEN is required (needs write access).')
-    process.exit(1)
-  }
+  /*
+    A dry run only reads - the CDN for the bytes, and the public dataset for the
+    map - so it needs no token. The unconditional check that used to be here
+    exited first and made DRY_RUN unusable without one, which contradicted the
+    mode's whole purpose.
+  */
   if (!DRY_RUN && !process.env.SANITY_API_TOKEN) {
-    console.error('SANITY_API_TOKEN is required to write. Use DRY_RUN=1 to report only.')
+    console.error(
+      'SANITY_API_TOKEN is required to write (needs write access). ' +
+        'Use DRY_RUN=1 to report the numbers without one.',
+    )
     process.exit(1)
   }
   if (DRY_RUN) console.log('DRY RUN - transcoding and measuring, writing nothing.\n')
@@ -175,14 +204,27 @@ async function main() {
       continue
     }
 
-    const res = await fetch(asset.url)
+    const res = await fetch(asset.url, {headers: {Accept: BROWSER_ACCEPT}})
     if (!res.ok) {
       console.log(`  ! ${assetId} download failed (${res.status})`)
       continue
     }
     const buf = Buffer.from(await res.arrayBuffer())
 
-    if (asset.extension === 'webp' && !isAnimatedWebp(buf)) continue
+    /*
+      Say so, rather than `continue`. A silent skip is how six animated WebPs
+      went missing from every run of this script without leaving a trace.
+    */
+    if (asset.extension === 'webp' && !isAnimatedWebp(buf)) {
+      const magic = buf.toString('ascii', 0, 4)
+      if (magic !== 'RIFF') {
+        console.log(
+          `  ! ${assetId} downloaded as ${magic.replace(/[^\x20-\x7e]/g, '?')} not WEBP ` +
+            `- content negotiation returned the wrong format, so animation cannot be detected`,
+        )
+      }
+      continue
+    }
 
     const dir = await mkdtemp(path.join(tmpdir(), 'anim-'))
     try {

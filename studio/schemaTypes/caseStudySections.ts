@@ -1,9 +1,15 @@
 import {defineField, defineType} from 'sanity'
-import {imageBehaviourFields} from './imageFields'
+import {imageSpec} from './imageFields'
 import {videoBehaviourFields} from './videoFields'
 
-const image = (name: string, title: string) =>
-  defineField({name, title, type: 'image', fields: imageBehaviourFields, options: {hotspot: true}})
+/*
+  Every image in every section block goes through here, so alt text stays up
+  front and the compression toggle stays folded away. Deliberately not passing
+  `tile: true`: print mode is a toggle on /portfolio, and nothing inside a
+  section block ever renders there, so the print-mode treatment would be a
+  question with no consequence.
+*/
+const image = (name: string, title: string) => defineField(imageSpec({name, title}) as any)
 
 export const fullImageSection = defineType({
   name: 'fullImageSection',

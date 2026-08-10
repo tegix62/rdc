@@ -1,5 +1,5 @@
 import {defineField, defineType} from 'sanity'
-import {imageBehaviourFields} from './imageFields'
+import {imageSpec} from './imageFields'
 
 export default defineType({
   name: 'page',
@@ -32,17 +32,25 @@ export default defineType({
         '<title> tag / SEO title, which is usually longer - leave this blank to ' +
         'fall back to Title.',
     }),
-    defineField({
+    imageSpec({
       name: 'heroImage',
-      type: 'image',
-      fields: imageBehaviourFields,
-      options: {hotspot: true},
+      title: 'Hero image — top of this page',
     }),
-    defineField({name: 'heroAlt', title: 'Hero Image Alt Text', type: 'string'}),
+    /*
+      Overlaps with the hero image's own "Alt text" field, which is the same
+      information in two places. Kept for now because /about reads this one and
+      two pages have it filled; merging means a small content migration rather
+      than a schema edit. Labelled so it is at least obvious which one wins.
+    */
+    defineField({
+      name: 'heroAlt',
+      title: 'Hero image alt text (overrides the image\'s own Alt text)',
+      type: 'string',
+    }),
     defineField({
       name: 'body',
       type: 'array',
-      of: [{type: 'block'}, {type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}],
+      of: [{type: 'block'}, imageSpec()],
     }),
     defineField({
       name: 'sections',

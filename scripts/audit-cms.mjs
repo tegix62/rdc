@@ -33,11 +33,10 @@
 
   Usage: node scripts/audit-cms.mjs [--offline] [--json out.json]
 */
-import {build} from 'esbuild'
-import {readdir, readFile, writeFile, mkdtemp} from 'node:fs/promises'
-import {tmpdir} from 'node:os'
+import {readdir, readFile, writeFile} from 'node:fs/promises'
 import path from 'node:path'
 import {fileURLToPath} from 'node:url'
+import {loadSchemaTypes} from './lib/load-schema.mjs'
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const OFFLINE = process.argv.includes('--offline')
@@ -60,65 +59,14 @@ const INTERNAL_TYPES = new Set(['animatedVideoMap'])
 // ---------------------------------------------------------------------------
 // 1. The schema
 
-const stubSanity = {
-  name: 'stub-sanity',
-  setup(b) {
-    b.onResolve({filter: /^sanity$/}, () => ({path: 'sanity', namespace: 'stub'}))
-    b.onResolve({filter: /^sanity\//}, (a) => ({path: a.path, namespace: 'stub'}))
-    b.onResolve({filter: /^@sanity\//}, (a) => ({path: a.path, namespace: 'stub'}))
-    // React too: a schema field can point at a custom input component, and that
-    // component imports hooks. Nothing here renders, so identity is enough.
-    b.onResolve({filter: /^react$/}, () => ({path: 'react', namespace: 'stub'}))
-    b.onResolve({filter: /^react\//}, (a) => ({path: a.path, namespace: 'stub'}))
-    /*
-      CommonJS with a Proxy, not a fixed list of ESM named exports.
-
-      This used to export exactly four names. esbuild verifies ESM named
-      imports at build time, so the day a schema file pulled in a custom input
-      component - InkModePreview, which imports `set` and `useFormValue` - the
-      bundle failed and this whole audit died. It has been writing its own
-      crash log into latest/cms.md ever since, and because the step tolerates a
-      non-zero exit the workflow went on reporting success. The one job this
-      script has is finding CMS fields nothing reads, and it silently stopped
-      doing it.
-
-      A CJS export cannot be statically checked, so esbuild resolves named
-      imports through the Proxy at runtime and ANY name works - including
-      whatever the next Studio component happens to need.
-
-      defineType/defineField exist purely for editor types; at runtime they
-      hand back exactly what they were given, so identity is faithful.
-    */
-    b.onLoad({filter: /.*/, namespace: 'stub'}, () => ({
-      contents: `
-        const identity = (x) => x
-        module.exports = new Proxy(
-          {
-            defineType: identity,
-            defineField: identity,
-            defineArrayMember: identity,
-            definePlugin: identity,
-          },
-          {get: (target, key) => (key in target ? target[key] : identity)},
-        )
-      `,
-      loader: 'js',
-    }))
-  },
-}
-
-const outdir = await mkdtemp(path.join(tmpdir(), 'schema-'))
-const outfile = path.join(outdir, 'schema.mjs')
-await build({
-  entryPoints: [path.join(root, 'studio/schemaTypes/index.ts')],
-  outfile,
-  bundle: true,
-  format: 'esm',
-  platform: 'node',
-  plugins: [stubSanity],
-  logLevel: 'warning',
-})
-const {schemaTypes} = await import(outfile)
+/*
+  The loader lives in scripts/lib/load-schema.mjs, shared with
+  test-schema-shape.mjs. It used to be a private copy here, and a private copy
+  is what let this script die quietly: its stub exported four names, and the day
+  a schema file imported a fifth the bundle failed and this audit wrote its own
+  stack trace into the report for weeks.
+*/
+const schemaTypes = await loadSchemaTypes(root)
 
 // Flatten to (documentType, fieldPath, field) triples, walking into objects and
 // arrays so fields nested in a section block are audited too.

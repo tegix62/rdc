@@ -19,6 +19,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      # Before deploying, not after. The schema now leans on tabs, collapsed
+      # fieldsets and per-field `hidden` predicates, and every one of those is a
+      # reference that can dangle - a field naming a fieldset its parent never
+      # declares is valid JavaScript and a broken Studio. Nothing else in CI
+      # loads the schema, so without this the first sign of trouble would be
+      # Chris opening Studio and finding a document he cannot edit.
+      - name: Schema is internally consistent
+        working-directory: ${{ github.workspace }}
+        run: |
+          npm install
+          node scripts/test-schema-shape.mjs
+
       - run: npm install
       - run: npx sanity deploy --yes
         env:

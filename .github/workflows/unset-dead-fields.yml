@@ -1,0 +1,51 @@
+name: Clear removed CMS fields
+
+# Deleting a field from the schema does not delete its data, and Studio then
+# reports it as an unknown field on every document that still carries one. This
+# clears those leftovers so removing a dead field is actually a cleanup rather
+# than a swap of one banner for another.
+#
+# Dispatch-only, and dry-run unless `commit` is ticked. It writes to the
+# production dataset, so it should never be something a push can trigger.
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: 'Actually write the changes (leave off for a dry run)'
+        type: boolean
+        default: false
+
+jobs:
+  unset:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+
+      - name: Clear the fields
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+        run: |
+          set -o pipefail
+          if [ "${{ inputs.commit }}" = "true" ]; then
+            node studio/migration/unset-dead-fields.mjs --commit 2>&1 | tee unset.log
+          else
+            node studio/migration/unset-dead-fields.mjs 2>&1 | tee unset.log
+          fi
+
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "## Clear removed CMS fields"
+            echo ""
+            echo "Mode: **${{ inputs.commit == true && 'COMMITTED' || 'dry run' }}**"
+            echo ""
+            echo '```'
+            cat unset.log 2>/dev/null || echo '(the script did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

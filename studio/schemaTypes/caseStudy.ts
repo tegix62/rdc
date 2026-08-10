@@ -1,5 +1,5 @@
 import {defineField, defineType} from 'sanity'
-import {imageBehaviourFields} from './imageFields'
+import {imageSpec} from './imageFields'
 
 const CATEGORIES = ['Brand Identity', 'Merch & Apparel', 'Typography', 'Illustration', 'Photography']
 const ASSET_TYPES = [
@@ -11,19 +11,55 @@ const ASSET_TYPES = [
   'Vinyl / Record',
 ]
 
+/*
+  ONE DOCUMENT TYPE, TWO JOBS
+
+  Measured across the dataset: 13 documents are Case Studies, which get a page
+  at /work/<slug> and can use all 31 fields. 62 are Grid Items - a tile with no
+  page of its own - and a tile can only use 11 of them. The other 19 were shown
+  on all 62 anyway: 1,426 field slots that were always empty and always on
+  screen, which is most of the reason this form felt heavy.
+
+  So anything that can only ever appear on a project page is hidden when there
+  isn't one. Nothing is deleted and no content moves - `hidden` is Studio UI
+  only, the data and every GROQ query are untouched. Deleting the line puts a
+  field back.
+
+  Note which image fields are NOT hidden: `thumbnail`, `mainImage` and
+  `archiveMark` all feed the grid. mainImage especially - the tile falls back to
+  it when there is no thumbnail (`item.thumbnail || item.mainImage`), so hiding
+  it on Grid Items would have taken away the only image some tiles have.
+*/
+const onlyOnCaseStudies = ({document}: any) => document?.pageType !== 'Case Study'
+const onlyOnGridItems = ({document}: any) => document?.pageType === 'Case Study'
+
 export default defineType({
   name: 'caseStudy',
   title: 'Case Study',
   type: 'document',
+  /*
+    Tabs, because 31 fields in one scroll is a scroll, not a form. "Tile" holds
+    what every document needs and opens first; the other three only apply to a
+    project page and go quiet on a Grid Item along with their fields.
+  */
+  groups: [
+    {name: 'tile', title: 'Tile', default: true},
+    {name: 'page', title: 'Project page'},
+    {name: 'credits', title: 'Credits'},
+    {name: 'legacy', title: 'Legacy'},
+  ],
   fields: [
+    // --- Tile: what every one of the 75 documents needs ---------------------
     defineField({
       name: 'title',
       type: 'string',
+      group: 'tile',
       validation: (Rule) => Rule.required(),
     }),
     defineField({
       name: 'slug',
       type: 'slug',
+      group: 'tile',
       options: {source: 'title'},
       validation: (Rule) => Rule.required(),
     }),
@@ -31,58 +67,42 @@ export default defineType({
       name: 'pageType',
       title: 'Page Type',
       type: 'string',
+      group: 'tile',
       description:
-        'Case Study = full project page with SEO copy. Grid Item = thumbnail only, links to parent brand.',
+        'Case Study = a full project page at /work/… Grid Item = a tile only, ' +
+        'which links to its parent brand. This choice decides which tabs above ' +
+        'apply: a Grid Item has no page, so the page-only fields are hidden.',
       options: {list: ['Case Study', 'Grid Item']},
       initialValue: 'Case Study',
     }),
     defineField({
       name: 'category',
+      title: 'Category — drives the Portfolio filters',
       type: 'string',
+      group: 'tile',
       options: {list: CATEGORIES},
     }),
-    /*
-      Tile treatment, which is the idea Chris's Adobe Portfolio gallery is built
-      on: a logomark strong enough to speak for itself gets room and no caption,
-      while a photograph or poster fills its frame. It is a presentation choice,
-      not a subject taxonomy, which is why it has two values rather than six.
-    */
-    defineField({
-      name: 'tileTreatment',
-      title: 'Tile Treatment',
-      type: 'string',
-      options: {
-        list: [
-          {title: 'Logomark - floats, with air around it', value: 'mark'},
-          {title: 'Image - fills the tile edge to edge', value: 'bleed'},
-        ],
-        layout: 'radio',
-      },
+    imageSpec({
+      name: 'thumbnail',
+      title: 'Grid Thumbnail — the tile image',
+      group: 'tile',
+      tile: true,
       description:
-        'How this tile sits in the portfolio grid. A logomark gets padding and ' +
-        'space so the mark reads on its own; an image or poster is cropped to ' +
-        'fill. Left empty, it is inferred from Asset Type below - so the work ' +
-        'already tagged there needs no re-entry.',
+        'The image this piece shows as a tile on the Portfolio and homepage ' +
+        'grids. If you leave it empty the grid falls back to Main Project Image.',
     }),
-    defineField({
-      name: 'assetType',
-      title: 'Asset Type',
-      type: 'string',
+    imageSpec({
+      name: 'archiveMark',
+      title: 'Archive Mark — hand-drawn B&W alternate',
+      group: 'tile',
       description:
-        'What kind of artefact this is. Now used as the fallback for Tile ' +
-        'Treatment above when that is left empty: Identity / Brand Sheet and ' +
-        'Vinyl / Record are treated as logomarks, everything else fills its ' +
-        'tile. Set Tile Treatment directly to override.',
-      options: {list: ASSET_TYPES},
+        'A hand-thresholded black-and-white version of this tile, shown instead ' +
+        'of the colour image whenever a visitor switches the Portfolio grid to ' +
+        'print mode. This beats anything a filter can do - a computed threshold ' +
+        'flattens midtones, yours are drawn. Optional per project: anything ' +
+        'without one falls back to the automatic threshold, so the archive gets ' +
+        'better as you make more.',
     }),
-    defineField({
-      name: 'parentBrand',
-      title: 'Parent Brand',
-      type: 'reference',
-      to: [{type: 'caseStudy'}],
-      description: 'Links a Grid Item to its parent Case Study.',
-    }),
-    defineField({name: 'featured', title: 'Featured Project?', type: 'boolean'}),
     /*
       Chris ticked this on Chateau Seven, saw nothing widen, and reasonably
       concluded it was broken. It was not: at the time the Portfolio grid
@@ -96,134 +116,232 @@ export default defineType({
     */
     defineField({
       name: 'heroTile',
-      title: 'Hero Tile',
+      title: 'Hero Tile — spans two columns',
       type: 'boolean',
+      group: 'tile',
       description:
-        'Spans two columns AND crops to a 3:2 landscape, so it reads as a ' +
-        'spread among the usual vertical tiles. Works on the Portfolio grid and ' +
-        'the homepage grid alike. Clicking it does not grow it further. ' +
-        'IMPORTANT: set the hotspot on the thumbnail, because cropping a ' +
-        'portrait image to 3:2 throws away most of its height and without one ' +
-        'Sanity crops from the centre, which cuts the top off a logo or a face. ' +
-        'Use sparingly; one or two per screenful is what makes them work.',
+        'Spans two columns AND crops to landscape, so it reads as a spread ' +
+        'among the usual vertical tiles. Works on the Portfolio grid and the ' +
+        'homepage grid alike. Clicking it does not grow it further. ' +
+        'IMPORTANT: set the hotspot on the thumbnail, and turn Compression OFF ' +
+        'on it - cropping needs the CDN, so a pass-through image ignores the ' +
+        'crop and keeps its own shape. Without a hotspot Sanity crops from the ' +
+        'centre, which cuts the top off a logo or a face. Use sparingly; one or ' +
+        'two per screenful is what makes them work.',
     }),
-    defineField({name: 'thumbnail', type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}),
     defineField({
-      name: 'archiveMark',
-      title: 'Archive Mark',
-      type: 'image',
-      fields: imageBehaviourFields,
+      name: 'assetType',
+      title: 'Asset Type — what kind of artefact',
+      type: 'string',
+      group: 'tile',
       description:
-        'A hand-thresholded black-and-white version of this tile, shown instead ' +
-        'of the colour image whenever a visitor switches the site to print mode. ' +
-        'This beats anything a filter can do - a computed threshold flattens ' +
-        'midtones, yours are drawn. Optional per project: anything without one ' +
-        'falls back to the automatic threshold, so the archive gets better as ' +
-        'you make more.',
+        'What this piece physically is. Also the fallback for Tile Layout ' +
+        'below when that is left empty: Identity / Brand Sheet and Vinyl / ' +
+        'Record are treated as logomarks, everything else fills its tile.',
+      options: {list: ASSET_TYPES},
     }),
-    defineField({name: 'mainImage', title: 'Main Project Image', type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}),
+    /*
+      Tile treatment, which is the idea Chris's Adobe Portfolio gallery is built
+      on: a logomark strong enough to speak for itself gets room and no caption,
+      while a photograph or poster fills its frame. It is a presentation choice,
+      not a subject taxonomy, which is why it has two values rather than six.
+    */
+    defineField({
+      name: 'tileTreatment',
+      title: 'Tile Layout — override how it sits in the grid',
+      type: 'string',
+      group: 'tile',
+      options: {
+        list: [
+          {title: 'Logomark - floats, with air around it', value: 'mark'},
+          {title: 'Image - fills the tile edge to edge', value: 'bleed'},
+        ],
+        layout: 'radio',
+      },
+      description:
+        'Only needed when Asset Type above gets it wrong. A logomark gets ' +
+        'padding so the mark reads on its own; an image or poster is cropped to ' +
+        'fill. Left empty it is inferred, so work already tagged with an Asset ' +
+        'Type needs no re-entry.',
+    }),
+    defineField({
+      name: 'parentBrand',
+      title: 'Parent Brand — the project this belongs to',
+      type: 'reference',
+      to: [{type: 'caseStudy'}],
+      group: 'tile',
+      // The inverse condition: a Case Study IS the parent, so it has none.
+      hidden: onlyOnGridItems,
+      description:
+        'Which Case Study this tile is a piece of. Clicking the tile takes a ' +
+        'visitor to that project. Grid Items only.',
+    }),
+
+    /*
+      In the Tile tab, and NOT hidden on a Grid Item, despite being the project
+      page's hero. The grid falls back to it when there is no thumbnail
+      (`item.thumbnail || item.mainImage`), so on some Grid Items it is the only
+      image there is - hiding it would have taken their tile away.
+    */
+    imageSpec({
+      name: 'mainImage',
+      title: 'Main Project Image — page hero, and tile fallback',
+      group: 'tile',
+      tile: true,
+      description:
+        'The big image at the top of the project page. Also stands in as the ' +
+        'grid tile when Grid Thumbnail is empty.',
+    }),
+
+    // --- Project page: nothing below here exists on a Grid Item -------------
+    /*
+      The two video fields were the most confusable pair in this schema: both
+      took a YouTube or Vimeo link and were called "Hero Video" and "Film
+      Embed", which says nothing about the difference. They are now named for
+      WHERE they appear, which is the only thing that actually distinguishes
+      them.
+    */
     defineField({
       name: 'heroVideo',
-      title: 'Hero Video (optional)',
+      title: 'Video at the top of the page (replaces Main Image)',
       type: 'url',
+      group: 'page',
+      hidden: onlyOnCaseStudies,
       description:
-        'A YouTube or Vimeo link. When set, this plays as the page hero INSTEAD ' +
-        'of the Main Project Image - the image is not shown above it. Leave ' +
-        'empty for a normal image hero.',
+        'A YouTube or Vimeo link. When this is set it plays as the page hero ' +
+        'INSTEAD of Main Project Image - the image is not shown above it. For a ' +
+        'video further down the page, use the field near the bottom of this tab.',
     }),
-    defineField({name: 'headline', type: 'string'}),
-    defineField({name: 'subtitle', type: 'string'}),
+    defineField({
+      name: 'headline',
+      title: 'Display Headline — overrides Title in the big heading',
+      type: 'string',
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+      description:
+        'Only if the project needs a different heading on its page than the ' +
+        'name it goes by everywhere else. Left empty, Title is used.',
+    }),
+    defineField({
+      name: 'subtitle',
+      title: 'Kicker — small line ABOVE the heading',
+      type: 'string',
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+    }),
+    defineField({
+      name: 'oneLineSummary',
+      title: 'Short blurb (one line) — also the page meta description',
+      type: 'string',
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+      description:
+        'One sentence. Doubles as the search-result and social-share ' +
+        'description for this page, so write it for a stranger. Overlaps with ' +
+        'Full Summary below - these two are due to be merged into one field.',
+    }),
+    defineField({
+      name: 'summary',
+      title: 'Full Summary (paragraph) — wins over the short blurb on the page',
+      type: 'text',
+      rows: 3,
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+      description:
+        'A longer version shown at the top of the project page. When this is ' +
+        'filled the short blurb above is still used for search and sharing, ' +
+        'but this is what visitors read.',
+    }),
     defineField({
       name: 'resultStat',
-      title: 'Result Stat',
+      title: 'Result Stat — the one number a client scans for',
       type: 'string',
+      group: 'page',
+      hidden: onlyOnCaseStudies,
       description:
         'One headline number for this project, e.g. "3x merch sell-through in ' +
-        'the first week". Shown under the summary at the top of the case study.',
+        'the first week". Shown on its own line under the summary.',
     }),
-    defineField({name: 'client', title: 'Client Name', type: 'string'}),
-    defineField({name: 'clientLogo', type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}),
-    defineField({name: 'oneLineSummary', title: 'One Line Summary', type: 'string'}),
-    defineField({name: 'summary', title: 'Project Summary', type: 'text', rows: 3}),
+    defineField({
+      name: 'client',
+      title: 'Client Name',
+      type: 'string',
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+    }),
+    imageSpec({
+      name: 'clientLogo',
+      title: "Client's Logo — shown beside the project intro",
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+    }),
+    defineField({
+      name: 'sections',
+      title: 'Page Builder — the body of the project page',
+      type: 'array',
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+      description:
+        'The layout blocks that make up this page. Media Row takes two to four ' +
+        'items across and each one is independently an image or a video, so ' +
+        'three animated GIFs, two videos side by side, or a video next to a ' +
+        'mockup are all the same block. Media + Text is the same idea with copy ' +
+        'beside it. This replaces the Legacy tab - use this for anything new.',
+      of: [
+        {type: 'fullImageSection'},
+        {type: 'twoUpSection'},
+        {type: 'threeUpSection'},
+        {type: 'imageTextSection'},
+        {type: 'videoSection'},
+        {type: 'statCalloutSection'},
+        {type: 'textSection'},
+        {type: 'achievementsSection'},
+        {type: 'videoHeroSection'},
+        {type: 'mediaRowSection'},
+        {type: 'mediaTextSection'},
+      ],
+    }),
+
+    // --- Credits -----------------------------------------------------------
     defineField({
       name: 'principalType',
-      title: 'Principal Type',
+      title: 'Principal Type — the typeface this is built on',
       type: 'string',
+      group: 'credits',
+      hidden: onlyOnCaseStudies,
       description:
-        'The typeface this project is built on, credited the way a typography ' +
-        'book lists the principal type used - e.g. "Söhne, Klim Type Foundry" ' +
-        'or "Cooper Black, Oswald Cooper". Shown as a credit in the project ' +
-        'header. Credit the people you borrowed from whether or not they know ' +
-        'you: it is the kind of detail that tells a client how you think.',
+        'Credited the way a typography book lists the principal type used - ' +
+        'e.g. "Söhne, Klim Type Foundry" or "Cooper Black, Oswald Cooper". ' +
+        'Credit the people you borrowed from whether or not they know you: it ' +
+        'is the kind of detail that tells a client how you think.',
     }),
     defineField({
       name: 'principalTypeUrl',
-      title: 'Principal Type - link',
+      title: 'Principal Type — link to the foundry',
       type: 'url',
+      group: 'credits',
+      hidden: onlyOnCaseStudies,
       description:
-        'Optional. The foundry or designer, so the credit is a real link rather ' +
-        'than a name. Left empty it just reads as text.',
-    }),
-    defineField({
-      name: 'body',
-      title: 'Project Details',
-      type: 'array',
-      of: [{type: 'block'}, {type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}],
-    }),
-    defineField({
-      name: 'servicesRendered',
-      title: 'Services Rendered',
-      type: 'array',
-      of: [{type: 'block'}],
-    }),
-    defineField({
-      name: 'merchGrid',
-      title: 'Merch Grid',
-      type: 'array',
-      of: [{type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}],
-    }),
-    defineField({
-      name: 'flyerGrid',
-      title: 'Flyer Grid',
-      type: 'array',
-      of: [{type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}],
-    }),
-    defineField({
-      name: 'processGrid',
-      title: 'Process Grid',
-      type: 'array',
-      of: [{type: 'image', fields: imageBehaviourFields, options: {hotspot: true}}],
-    }),
-    defineField({
-      name: 'filmEmbed',
-      title: 'Film Embed',
-      type: 'url',
-      description:
-        'A YouTube or Vimeo link, embedded below the project intro. For a ' +
-        'video at the very top of the page instead, use Hero Video above.',
-    }),
-    defineField({
-      name: 'accentColor',
-      title: 'Accent Color',
-      type: 'string',
-      description:
-        'Background color for this project\'s section band (hex, e.g. #2f5233). Leave blank for white.',
+        'Optional. Makes the typeface credit above a real link. Left empty it ' +
+        'just reads as text.',
     }),
     defineField({
       name: 'credits',
-      title: 'Credits',
+      title: 'Collaborators',
       type: 'array',
+      group: 'credits',
+      hidden: onlyOnCaseStudies,
       description:
-        'Everyone who worked on this, e.g. "Photography — Jane Doe". Add a link ' +
-        'and the name becomes a real link to their work: good manners, and the ' +
-        'credit also goes into the page\'s structured data so search engines ' +
-        'read them as contributors rather than as decoration.',
+        'Everyone else who worked on this. Add a link and the name becomes a ' +
+        'real link to their work: good manners, and the credit also goes into ' +
+        "the page's structured data so search engines read them as " +
+        'contributors rather than as decoration.',
       of: [
         {
           type: 'object',
           fields: [
-            {name: 'role', type: 'string'},
             {name: 'name', type: 'string'},
+            {name: 'role', title: 'Role on this project', type: 'string'},
             /*
               Named `url` rather than `link` so lib/sanity.ts excludes it from
               stega without another entry in NON_TEXT_FIELDS - a URL with
@@ -243,32 +361,89 @@ export default defineType({
         },
       ],
     }),
+
+    // --- Legacy ------------------------------------------------------------
+    /*
+      The pre-Page-Builder way of building a case study, inherited from Webflow.
+      The template still honours it - `sections` if present, otherwise these -
+      and five case studies still render from here, so it cannot be deleted yet.
+
+      Grouped and labelled as legacy so it stops competing with the Page Builder
+      for attention. Retiring it means moving those five projects across, which
+      is content work rather than a schema edit.
+    */
     defineField({
-      name: 'sections',
-      title: 'Case Study Sections',
+      name: 'body',
+      title: 'Project Details (legacy — prefer Page Builder)',
       type: 'array',
+      group: 'legacy',
+      hidden: onlyOnCaseStudies,
+      of: [{type: 'block'}, imageSpec()],
+    }),
+    defineField({
+      name: 'servicesRendered',
+      title: 'Services Rendered (legacy)',
+      type: 'array',
+      group: 'legacy',
+      hidden: onlyOnCaseStudies,
+      of: [{type: 'block'}],
+    }),
+    defineField({
+      name: 'merchGrid',
+      title: 'Merch Grid (legacy)',
+      type: 'array',
+      group: 'legacy',
+      hidden: onlyOnCaseStudies,
+      of: [imageSpec()],
+    }),
+    defineField({
+      name: 'flyerGrid',
+      title: 'Flyer Grid (legacy)',
+      type: 'array',
+      group: 'legacy',
+      hidden: onlyOnCaseStudies,
+      of: [imageSpec()],
+    }),
+    defineField({
+      name: 'processGrid',
+      title: 'Process Grid (legacy)',
+      type: 'array',
+      group: 'legacy',
+      hidden: onlyOnCaseStudies,
+      of: [imageSpec()],
+    }),
+    defineField({
+      name: 'filmEmbed',
+      title: 'Video further down the page (below the intro)',
+      type: 'url',
+      group: 'legacy',
+      hidden: onlyOnCaseStudies,
       description:
-        'Freeform layout blocks for the case study page. Media Row takes two to ' +
-        'four items across and each one is independently an image or a video, so ' +
-        'three animated GIFs, two videos side by side, or a video next to a ' +
-        'mockup are all the same block. Media + Text is the same idea with copy ' +
-        'beside it.',
-      of: [
-        {type: 'fullImageSection'},
-        {type: 'twoUpSection'},
-        {type: 'threeUpSection'},
-        {type: 'imageTextSection'},
-        {type: 'videoSection'},
-        {type: 'statCalloutSection'},
-        {type: 'textSection'},
-        {type: 'achievementsSection'},
-        {type: 'videoHeroSection'},
-        {type: 'mediaRowSection'},
-        {type: 'mediaTextSection'},
-      ],
+        'A YouTube or Vimeo link, embedded below the project intro. Distinct ' +
+        'from the top-of-page video on the Project page tab, which replaces the ' +
+        'hero image. For anything new, a Video block in the Page Builder gives ' +
+        'you the same thing with control over where it sits.',
+    }),
+    defineField({
+      name: 'accentColor',
+      title: 'Accent Colour — background of the page-builder band',
+      type: 'string',
+      group: 'legacy',
+      hidden: onlyOnCaseStudies,
+      description:
+        "Background colour for this project's section band (hex, e.g. " +
+        '#2f5233). Leave blank for white. Text colour is worked out from it ' +
+        'automatically, so a dark band gets light type without you setting it.',
     }),
   ],
+  /*
+    `featured` used to sit here - a boolean set on 74 of 75 documents that
+    nothing in src/ has ever read. It was migration noise wearing the costume of
+    a setting. Removed; the stored values are cleared by
+    studio/migration/unset-dead-fields.mjs so Studio does not report them as
+    unknown fields on 74 documents.
+  */
   preview: {
-    select: {title: 'title', subtitle: 'client', media: 'thumbnail'},
+    select: {title: 'title', subtitle: 'pageType', media: 'thumbnail'},
   },
 })

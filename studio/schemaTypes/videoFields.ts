@@ -1,4 +1,5 @@
 import {defineField} from 'sanity'
+import {imageSpec} from './imageFields'
 
 /*
   Shared fields for every place on the site that shows a video.
@@ -50,17 +51,23 @@ export const videoBehaviourFields = [
       'clip as MP4, and browsers take whichever they support first - so this is ' +
       'served where possible and the MP4 covers everything else.',
   }),
-  defineField({
+  /*
+    Through imageSpec like every other image, which it was not before: a poster
+    is a real image download - on a YouTube facade it is the ONLY thing fetched
+    until someone presses play - and it had no compression toggle, so a
+    hand-prepared poster was re-encoded with no way to opt out. Img.astro reads
+    that flag, so wiring it here is all it took.
+  */
+  defineField(imageSpec({
     name: 'videoPoster',
-    title: 'Poster image',
-    type: 'image',
+    title: 'Poster image — the still shown before playing',
     description:
       'The still shown before the video plays. For a YouTube link this is what ' +
       'the visitor sees and clicks, so it matters: leave it empty and the site ' +
       "falls back to YouTube's own thumbnail, which is rarely the frame you " +
       'would have chosen. Vimeo has no public thumbnail, so a poster is worth ' +
       'setting there.',
-  }),
+  })),
   defineField({
     name: 'videoPlayback',
     title: 'Playback',

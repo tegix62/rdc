@@ -1,157 +1,82 @@
 import {defineField, defineType} from 'sanity'
-import {imageBehaviourFields} from './imageFields'
+import {imageSpec} from './imageFields'
 
+/*
+  21 fields in one flat scroll, covering three unrelated jobs: the brand marks,
+  the homepage composition, and the footer. Tabs split them, and every label now
+  says which surface it affects - "Homepage Closer - Prefix" meant nothing
+  without already knowing what the closer was.
+*/
 export default defineType({
   name: 'siteSettings',
   title: 'Site Settings',
   type: 'document',
+  groups: [
+    {name: 'brand', title: 'Brand & contact', default: true},
+    {name: 'homepage', title: 'Homepage'},
+    {name: 'footer', title: 'Footer'},
+  ],
   fields: [
-    defineField({name: 'siteTitle', type: 'string'}),
+    // --- Brand & contact ---------------------------------------------------
     defineField({
-      name: 'favicon',
-      title: 'Favicon',
-      type: 'image',
-      description:
-        'The little icon in the browser tab. Square works best, and it is shown ' +
-        'at about 32px, so anything with fine detail will disappear. Until one ' +
-        'is set the site requests /favicon.svg, which does not exist, so every ' +
-        'page load 404s and tabs show a blank icon.',
+      name: 'siteTitle',
+      title: 'Site name — browser tabs, social cards, footer',
+      type: 'string',
+      group: 'brand',
     }),
-    defineField({name: 'tagline', type: 'string'}),
     defineField({
+      name: 'tagline',
+      title: 'Tagline — the line under RUMEAU DESIGN COMPANY',
+      type: 'string',
+      group: 'brand',
+    }),
+    imageSpec({
       name: 'logo',
-      title: 'Nav Logo',
-      type: 'image',
-      fields: imageBehaviourFields,
+      title: 'Wordmark — nav and footer',
+      group: 'brand',
       description: 'The stacked "Rumeau Design" wordmark used in the site nav.',
     }),
+    /*
+      No imageSpec: a favicon is displayed at ~32px by the browser, never by the
+      site's own image pipeline, so neither the compression toggle nor a hotspot
+      means anything here.
+    */
     defineField({
+      name: 'favicon',
+      title: 'Favicon — the browser-tab icon',
+      type: 'image',
+      group: 'brand',
+      description:
+        'Square works best, and it is shown at about 32px, so anything with ' +
+        'fine detail will disappear. Without one the site requests ' +
+        '/favicon.svg, which does not exist, so every page load 404s and tabs ' +
+        'show a blank icon.',
+    }),
+    imageSpec({
       name: 'portrait',
-      title: 'Founder Portrait',
-      type: 'image',
-      fields: imageBehaviourFields,
-      options: {hotspot: true},
-    }),
-    defineField({
-      name: 'heroBackground',
-      title: 'Homepage Hero Background',
-      type: 'image',
-      fields: imageBehaviourFields,
-      description: 'Full-bleed background behind the RUMEAU DESIGN COMPANY statement.',
-      options: {hotspot: true},
-    }),
-    defineField({
-      name: 'proofBandBackground',
-      title: 'Proof Band Background Texture',
-      type: 'image',
-      fields: imageBehaviourFields,
-      description: 'Faint tiled sketch texture behind the metrics/closer/checklist band.',
-    }),
-    defineField({
-      name: 'clientLogos',
-      title: 'Client Logo Strip',
-      type: 'array',
-      description: 'Logos shown in the dark navy strip on the homepage.',
-      of: [
-        {
-          type: 'object',
-          fields: [
-            {name: 'logo', type: 'image', fields: imageBehaviourFields, options: {hotspot: true}},
-            {name: 'alt', type: 'string'},
-            {name: 'href', type: 'string'},
-          ],
-        },
-      ],
-    }),
-    defineField({
-      name: 'navLinks',
-      type: 'array',
-      of: [
-        {
-          type: 'object',
-          fields: [
-            {name: 'label', type: 'string'},
-            {name: 'url', type: 'string'},
-          ],
-        },
-      ],
-    }),
-    defineField({name: 'footerText', type: 'text', rows: 2}),
-    defineField({
-      name: 'socialLinks',
-      type: 'array',
-      of: [
-        {
-          type: 'object',
-          fields: [
-            {name: 'platform', type: 'string'},
-            {name: 'url', type: 'url'},
-          ],
-        },
-      ],
+      title: 'Portrait of you — bottom of the homepage',
+      group: 'brand',
     }),
     defineField({
       name: 'contactUrl',
-      title: 'Contact Form URL',
+      title: 'Contact form link — every button on the site',
       type: 'url',
-      description: 'Used by every "Let\'s Work" / "Get in Touch" button and the nav Contact button site-wide.',
-    }),
-    defineField({
-      name: 'bioText',
-      title: 'Homepage Bio Text',
-      type: 'text',
-      rows: 3,
-    }),
-    defineField({
-      name: 'checklist',
-      title: 'Homepage Checklist',
-      type: 'array',
-      description: 'The 3 checkmark items under the proof/metrics row.',
-      of: [{type: 'string'}],
-    }),
-    defineField({
-      name: 'proofStats',
-      title: 'Homepage Proof Stats',
-      type: 'array',
-      description: 'The 3 metric cards on the homepage (revenue/listeners/etc). Each links to a case study.',
-      of: [
-        {
-          type: 'object',
-          fields: [
-            {name: 'stat', title: 'Stat (bolded lead-in)', type: 'string'},
-            {name: 'rest', title: 'Rest of the sentence', type: 'string'},
-            {name: 'name', type: 'string'},
-            {name: 'org', title: 'Organization', type: 'string'},
-            {name: 'href', title: 'Link (e.g. /work/hug-a-mug)', type: 'string'},
-          ],
-        },
-      ],
-    }),
-    defineField({
-      name: 'closerPrefix',
-      title: 'Homepage Closer - Prefix',
-      type: 'text',
-      rows: 2,
-      description: 'Text before the bolded phrase in the closer/CTA card.',
-    }),
-    defineField({
-      name: 'closerBold',
-      title: 'Homepage Closer - Bolded Phrase',
-      type: 'string',
-    }),
-    defineField({
-      name: 'closerSuffix',
-      title: 'Homepage Closer - Suffix',
-      type: 'text',
-      rows: 2,
-      description: 'Text after the bolded phrase in the closer/CTA card.',
-    }),
-    defineField({
-      name: 'finalCtaHeading',
-      title: 'Final CTA Heading',
-      type: 'string',
+      group: 'brand',
+      description:
+        'Used by every "Let\'s Work" / "Get in Touch" button and the nav ' +
+        'Contact button site-wide. One field, so there is never a stale link.',
     }),
 
+    // --- Homepage ----------------------------------------------------------
+    imageSpec({
+      name: 'heroBackground',
+      title: 'Hero background — behind the big RUMEAU DESIGN COMPANY type',
+      group: 'homepage',
+      description:
+        'Full-bleed, with a navy wash over it. Heaviest file on the site by a ' +
+        'wide margin at the moment - if this is animated, keep an eye on its ' +
+        'size, because a pass-through image ships whole to every phone.',
+    }),
     /*
       The homepage work grid.
 
@@ -169,12 +94,13 @@ export default defineType({
     */
     defineField({
       name: 'featuredWork',
-      title: 'Homepage Work Grid',
-      description:
-        'Tiles to show on the homepage, in this order. Leave empty to fall back ' +
-        'to the most recently added work. Mark a tile "Hero tile" on the tile ' +
-        'itself to make it span two columns.',
+      title: 'Work grid — which tiles, in which order',
       type: 'array',
+      group: 'homepage',
+      description:
+        'Currently EMPTY, so the homepage is falling back to most-recently-' +
+        'added work. Pick tiles here and it shows exactly these, in this order. ' +
+        'Mark a tile "Hero Tile" on the tile itself to make it span two columns.',
       of: [{type: 'reference', to: [{type: 'caseStudy'}]}],
       validation: (Rule) =>
         Rule.max(12).warning(
@@ -184,11 +110,161 @@ export default defineType({
     }),
     defineField({
       name: 'featuredWorkHeading',
-      title: 'Homepage Work Grid - Label',
+      title: 'Work grid — small label above it',
       type: 'string',
-      description: 'Small label above the grid. Defaults to "Selected work".',
+      group: 'homepage',
+      description: 'Defaults to "Selected work".',
+    }),
+    defineField({
+      name: 'bioText',
+      title: 'Bio — the big navy sentence mid-page',
+      type: 'text',
+      rows: 3,
+      group: 'homepage',
+    }),
+    defineField({
+      name: 'clientLogos',
+      title: 'Client logo strip — the navy band',
+      type: 'array',
+      group: 'homepage',
+      description: 'Logos shown in the dark navy strip on the homepage.',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            imageSpec({name: 'logo'}),
+            /*
+              A warning, not a requirement. Three of the five logos currently
+              have no alt, and because the logo is the link's only content that
+              makes them links a screen reader announces as "link" and nothing
+              else. Requiring it would block saving a half-finished entry;
+              warning puts it in front of you at the moment it matters.
+            */
+            {
+              name: 'alt',
+              title: "Client name — this is the link's only label",
+              type: 'string',
+              description:
+                'Required in practice: the logo image is all this link ' +
+                'contains, so without this a screen reader announces it as ' +
+                '"link" with no indication of whose logo it is.',
+              validation: (Rule: any) =>
+                Rule.warning('Without this the logo is a link with no accessible name.'),
+            },
+            {name: 'href', title: 'Link to their site (optional)', type: 'url'},
+          ],
+          preview: {select: {title: 'alt', media: 'logo'}},
+        },
+      ],
+    }),
+    defineField({
+      name: 'proofStats',
+      title: 'Testimonial cards — the three metric cards',
+      type: 'array',
+      group: 'homepage',
+      description:
+        'Each card is one sentence split in two so the opening can be bold, ' +
+        'plus who said it and a link to the project.',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            {name: 'stat', title: 'Bold opening, e.g. "22% Increase"', type: 'string'},
+            {
+              name: 'rest',
+              title: 'Rest of the sentence, e.g. " in yearly revenue"',
+              type: 'string',
+            },
+            {name: 'name', title: 'Who said it', type: 'string'},
+            {name: 'org', title: 'Their company', type: 'string'},
+            {name: 'href', title: 'Link, e.g. /work/hug-a-mug', type: 'string'},
+          ],
+          preview: {select: {title: 'stat', subtitle: 'name'}},
+        },
+      ],
+    }),
+    defineField({
+      name: 'checklist',
+      title: 'Checkmark list — the three ticks under the cards',
+      type: 'array',
+      group: 'homepage',
+      of: [{type: 'string'}],
+    }),
+    imageSpec({
+      name: 'proofBandBackground',
+      title: 'Texture behind the cards',
+      group: 'homepage',
+      options: {hotspot: false},
+      description: 'Faint tiled sketch texture behind the cards and checklist.',
+    }),
+    /*
+      Three fields that are one sentence. Named for their position in it, with
+      the example spelled out, because "Prefix" and "Suffix" on their own give
+      no clue what sentence they belong to.
+    */
+    defineField({
+      name: 'closerPrefix',
+      title: 'Closing line — part 1, before the bold bit',
+      type: 'text',
+      rows: 2,
+      group: 'homepage',
+      description: 'e.g. "Hand-drawn brand identity and merch design, "',
+    }),
+    defineField({
+      name: 'closerBold',
+      title: 'Closing line — part 2, the bold bit',
+      type: 'string',
+      group: 'homepage',
+      description: 'e.g. "rooted in heritage craft"',
+    }),
+    defineField({
+      name: 'closerSuffix',
+      title: 'Closing line — part 3, after the bold bit',
+      type: 'text',
+      rows: 2,
+      group: 'homepage',
+      description: 'e.g. " and built to perform on fabric."',
+    }),
+    defineField({
+      name: 'finalCtaHeading',
+      title: 'Last CTA heading — beside your portrait',
+      type: 'string',
+      group: 'homepage',
+      description: 'e.g. "DTC Brands and Apparel Companies:"',
+    }),
+
+    // --- Footer ------------------------------------------------------------
+    defineField({
+      name: 'footerText',
+      title: 'Footer blurb',
+      type: 'text',
+      rows: 2,
+      group: 'footer',
+    }),
+    defineField({
+      name: 'socialLinks',
+      title: 'Social links',
+      type: 'array',
+      group: 'footer',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            {name: 'platform', title: 'Name shown, e.g. Instagram', type: 'string'},
+            {name: 'url', type: 'url'},
+          ],
+          preview: {select: {title: 'platform', subtitle: 'url'}},
+        },
+      ],
     }),
   ],
+  /*
+    `navLinks` used to sit here: an array of label + url that nothing has ever
+    read. The nav is a hardcoded list in src/layouts/Layout.astro, so editing
+    this changed nothing - a control that looks like it works and does not,
+    which is worse than its absence. Removed. If the nav should become editable
+    that is a real change in Layout.astro, not a field sitting here in hope.
+  */
   preview: {
     prepare() {
       return {title: 'Site Settings'}

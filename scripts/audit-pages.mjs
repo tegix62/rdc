@@ -286,6 +286,79 @@ for (const p of paths) {
           }
         }
 
+        /*
+          --- text the same colour as what it sits on ----------------------
+
+          Twice now a link has shipped INVISIBLE. A case study's credits sit on
+          a navy band, the global rule is `a { color: navy }`, and an <a>
+          matches that rather than the light colour set on its parent - so
+          "Audio Engineer — Henry Heissenbuttel" rendered as a role, a dash, and
+          nothing. It looks exactly like a field nobody filled in. The accent
+          band had the identical bug earlier and got a fix scoped to itself.
+
+          This cannot be caught by reading CSS: the crude version of that check
+          produced sixteen false positives out of seventeen, because most dark
+          things on this site are links or contain none. It can only be caught
+          by asking a real browser what colour something actually came out.
+
+          Contrast is computed against the nearest ancestor that paints an
+          opaque background, which is what the eye sees. Threshold 3:1 - well
+          under WCAG's 4.5:1 for body text, because the point here is "can this
+          be seen at all", not a full accessibility audit. Anything scoring
+          below that is either invisible or nearly so.
+
+          One known imprecision, stated rather than hidden: a foreground alpha
+          is not composited, so `rgba(255,255,255,0.65)` on navy is scored as
+          pure white (5.9:1 in reality, higher here). That direction only ever
+          MISSES a marginal case; it cannot invent one. The failure this exists
+          for - identical opaque colours, 1.00:1 - is caught exactly.
+        */
+        const luminance = (rgb) => {
+          const c = rgb.map((v) => {
+            const x = v / 255
+            return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4
+          })
+          return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+        }
+        const parseRgb = (str) => {
+          const m = (str || '').match(/rgba?\(([^)]+)\)/)
+          if (!m) return null
+          const parts = m[1].split(',').map((n) => parseFloat(n))
+          // A fully transparent background paints nothing, so it is not the
+          // backdrop - keep walking up the tree.
+          if (parts.length > 3 && parts[3] === 0) return null
+          return parts.slice(0, 3)
+        }
+        const backdropOf = (el) => {
+          for (let n = el; n && n !== document.documentElement; n = n.parentElement) {
+            const bg = parseRgb(getComputedStyle(n).backgroundColor)
+            if (bg) return bg
+          }
+          return [255, 255, 255]
+        }
+        const invisibleText = []
+        for (const el of document.querySelectorAll('a')) {
+          const text = (el.textContent ?? '').trim()
+          if (!text) continue
+          const r = el.getBoundingClientRect()
+          if (r.width === 0 || r.height === 0) continue
+          const style = getComputedStyle(el)
+          if (style.visibility === 'hidden' || style.opacity === '0') continue
+          const fg = parseRgb(style.color)
+          if (!fg) continue
+          const bg = backdropOf(el)
+          const [hi, lo] = [luminance(fg), luminance(bg)].sort((a, b) => b - a)
+          const ratio = (hi + 0.05) / (lo + 0.05)
+          if (ratio < 3) {
+            invisibleText.push({
+              text: text.slice(0, 40),
+              ratio: +ratio.toFixed(2),
+              color: style.color,
+              on: `rgb(${bg.join(', ')})`,
+            })
+          }
+        }
+
         // --- images without intrinsic size (the layout-shift source) ---------
         const unsized = [...document.querySelectorAll('img')].filter(
           (i) => !i.getAttribute('width') || !i.getAttribute('height'),
@@ -304,6 +377,7 @@ for (const p of paths) {
           typeIssues,
           smallTargets: small.slice(0, 10),
           smallTargetCount: small.length,
+          invisibleText: invisibleText.slice(0, 10),
           // Which build served this page. Reported per page so no future run
           // can leave "is this even the code I just wrote?" ambiguous - it cost
           // three rounds of debugging the video facade to not have it.
@@ -436,6 +510,31 @@ for (const r of results.filter((x) => (x.scripts ?? []).length)) {
   same 4 MB file fetched twice.
 */
 const dupeRows = results.filter((r) => r.duplicates?.length)
+/*
+  Invisible links, first, because they read as missing CONTENT rather than as a
+  styling fault - which is why the last one was reported as "the name doesn't
+  appear" rather than as a colour bug.
+*/
+const invisible = results.filter((r) => r.invisibleText?.length)
+lines.push(`## Text you cannot see`, ``)
+if (!invisible.length) {
+  lines.push(`None. Every link clears 3:1 against what it sits on.`, ``)
+} else {
+  lines.push(
+    `Links whose colour is within 3:1 of their own background - present in the`,
+    `markup, unreadable on screen. This looks like missing content, not like a`,
+    `broken style, so it gets reported as "that field didn't save".`,
+    ``,
+  )
+  for (const r of invisible) {
+    lines.push(`**\`${r.path}\` (${r.viewport})**`)
+    for (const t of r.invisibleText) {
+      lines.push(`  - ${t.ratio}:1 — "${t.text}" is ${t.color} on ${t.on}`)
+    }
+    lines.push(``)
+  }
+}
+
 lines.push(`## The same file downloaded more than once`, ``)
 if (!dupeRows.length) {
   lines.push(`None. Every image on every page was fetched once.`, ``)

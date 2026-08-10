@@ -1685,6 +1685,31 @@ main {
   color: rgba(255, 255, 255, 0.9);
 }
 
+/*
+  Links in the navy band, which were INVISIBLE.
+
+  The global rule is `a { color: var(--color-navy) }`, this band's background is
+  navy, and an <a> matches that rule rather than the light colour set on the <p>
+  around it. So any credit with a URL rendered as navy on navy: present in the
+  markup, selectable, completely unreadable. On screen it looked like the name
+  had simply not been entered - "Audio Engineer —" followed by nothing - which
+  is how Chris found it.
+
+  Precisely the failure the accent band already guards against (see .work-band a
+  above), and the same one readableOn() exists for. Principal Type had been
+  patched on its own; the credits beside it had not, which is what a per-element
+  fix buys you. So this is scoped to the whole band: any link added in here
+  later is legible by default.
+
+  The underline is load-bearing, not decoration - once a link is the same colour
+  as the text around it, nothing else says it is a link.
+*/
+.work-identity a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 @media (max-width: 40rem) {
   .work-identity__inner {
     padding: 0 var(--space-2);
@@ -2324,11 +2349,9 @@ body {
   margin-top: var(--space-2);
 }
 
-.work-identity__type a {
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
+/* The link treatment that used to live here now covers the whole navy band -
+   see `.work-identity a`. Scoping it to this one element is what left every
+   credit link navy-on-navy and invisible. */
 
 /* No ink-mode override for the corner button: it is painted in --color-white
    and --color-navy, and both are remapped to the stock and its ink above, so

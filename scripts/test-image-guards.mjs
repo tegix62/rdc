@@ -142,11 +142,21 @@ const walk = async (dir) => {
     else if (/\.(astro|ts|tsx|mjs)$/.test(entry.name)) files.push(full)
   }
 }
+/*
+  scripts/ as well as src/, because scanning only src/ is exactly how this test
+  missed the one thing my own change broke: scripts/test-images.mjs imported
+  urlFor, and making it private turned that into a red build. Lower stakes than a
+  page - a script crashing is a script crashing - but the rule is easier to keep
+  when it has no exceptions.
+*/
 await walk(path.join(root, 'src'))
+await walk(path.join(root, 'scripts'))
 
 const offenders = []
 for (const file of files) {
   if (file.endsWith(path.join('lib', 'image.ts'))) continue
+  // This file necessarily mentions the name it is policing.
+  if (file.endsWith('test-image-guards.mjs')) continue
   const text = await readFile(file, 'utf8')
   for (const [i, line] of text.split('\n').entries()) {
     // Skip comments and prose; `urlFor()` with no argument is a doc reference.

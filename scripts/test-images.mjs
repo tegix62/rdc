@@ -35,7 +35,7 @@ await build({
   logLevel: 'error',
 })
 
-const {imageDimensions, buildSrcSet, urlFor, originalUrl, isPassThrough, mayBeAnimated, sourceExtension} = await import(
+const {imageDimensions, buildSrcSet, imageUrl, originalUrl, isPassThrough, mayBeAnimated, sourceExtension} = await import(
   `file://${outfile}`
 )
 await rm(outfile)
@@ -61,8 +61,14 @@ check('reads portrait', imageDimensions(img('image-a-800x1200-png')), {width: 80
 check('null on unparseable ref', imageDimensions(img('nonsense')), null)
 check('null on missing image', imageDimensions(undefined), null)
 
-console.log('\nurlFor')
-const url = urlFor(wide).width(800).url()
+console.log('\nimageUrl')
+/*
+  imageUrl, not urlFor. The raw builder is private to lib/image.ts now - it
+  throws on an image field with no file attached, and letting call sites reach it
+  is what took the site down twice. imageUrl returns the same builder for a real
+  asset, so this assertion is unchanged in substance.
+*/
+const url = imageUrl(wide).width(800).url()
 check('negotiates format', url.includes('auto=format'), true)
 check('sets quality', url.includes('q=80'), true)
 

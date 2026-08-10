@@ -9,6 +9,19 @@ on:
       - 'package.json'
       - 'astro.config.mjs'
       - '.github/workflows/build-check.yml'
+      # scripts/ too, because this workflow RUNS scripts - test-images.mjs,
+      # test-image-guards.mjs, and build-overlay.mjs via `npm run build` - and
+      # none of them were in this list. So a commit that changed only a test
+      # script did not re-run the check that executes it: the fix for a red build
+      # check silently never ran, and the branch sat looking unverified because
+      # it genuinely was.
+      #
+      # Deliberately the whole directory rather than the three names. Listing
+      # them precisely is what produced this bug - a step gets added, its script
+      # is not added here, and the gap stays invisible until something unrelated
+      # triggers the workflow. A few extra runs when a diagnose script changes is
+      # a much cheaper mistake than a check that quietly does not fire.
+      - 'scripts/**'
 
 jobs:
   build:

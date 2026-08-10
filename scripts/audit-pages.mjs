@@ -338,6 +338,31 @@ for (const p of paths) {
       iframeCount: 0,
       imageRequests: images.length,
       passThroughBytes: images.filter((i) => i.passThrough).reduce((a, i) => a + i.bytes, 0),
+      /*
+        The same URL fetched more than once.
+
+        This page has carried "an unexplained desktop LCP outlier on the
+        homepage" as an open item for weeks, and the reason it stayed
+        unexplained is that this audit reported TOTALS. A clean run finally
+        showed the homepage at 8377 KB on desktop against 4512 KB on mobile,
+        and the heaviest-images list printed the same 3,981 KB animated file
+        TWICE - about half the desktop page being a second copy of one asset.
+        The totals could never have said that; two 3,981 KB downloads and one
+        7,962 KB download look identical in a byte count.
+
+        So duplicates are named. Counted by URL, because that is what the
+        browser caches on - the same asset requested at two different widths is
+        two legitimate files, not a duplicate.
+      */
+      duplicates: Object.values(
+        images.reduce((acc, i) => {
+          const e = (acc[i.url] ??= {url: i.url, count: 0, bytes: i.bytes});
+          e.count += 1;
+          return acc;
+        }, {}),
+      )
+        .filter((d) => d.count > 1)
+        .sort((a, b) => b.bytes * b.count - a.bytes * a.count),
       consoleErrors: [...new Set(consoleErrors)].slice(0, 5),
       ...metrics,
     })
@@ -403,6 +428,32 @@ for (const r of results.filter((x) => (x.scripts ?? []).length)) {
     lines.push(`  - ${kb(sc.bytes).padStart(8)} \`${sc.url.replace(/^https?:\/\//, '').slice(0, 90)}\``)
   }
   lines.push(``)
+}
+
+/*
+  Duplicate downloads first, because they are free to fix and nothing else in
+  this report can reveal them - a byte total cannot tell one 8 MB file from the
+  same 4 MB file fetched twice.
+*/
+const dupeRows = results.filter((r) => r.duplicates?.length)
+lines.push(`## The same file downloaded more than once`, ``)
+if (!dupeRows.length) {
+  lines.push(`None. Every image on every page was fetched once.`, ``)
+} else {
+  lines.push(
+    `Wasted bytes: the second and later copies of a URL the browser already`,
+    `asked for. Usually one asset used in two places on a page - a CSS`,
+    `background and an <img>, or the same file as both a hero and a tile.`,
+    ``,
+  )
+  for (const r of dupeRows) {
+    const wasted = r.duplicates.reduce((a, d) => a + d.bytes * (d.count - 1), 0)
+    lines.push(`**\`${r.path}\` (${r.viewport})** — ${kb(wasted)} wasted`)
+    for (const d of r.duplicates) {
+      lines.push(`  - ${String(d.count)}x ${kb(d.bytes)} \`${d.url.split('/').pop().slice(0, 60)}\``)
+    }
+    lines.push(``)
+  }
 }
 
 lines.push(`## Heaviest images`, ``)

@@ -15,6 +15,17 @@ on:
         description: 'Actually write the changes (leave off for a dry run)'
         type: boolean
         default: false
+  # A push runs the DRY RUN and nothing else.
+  #
+  # GitHub only offers workflow_dispatch for workflows that already exist on the
+  # default branch, so while this lives on a feature branch it cannot be
+  # dispatched at all - which made the report impossible to see before merging.
+  # On a push there is no `inputs.commit`, so the step below takes its dry-run
+  # branch automatically. The writing path stays dispatch-only, and deliberate.
+  push:
+    paths:
+      - 'studio/migration/unset-dead-fields.mjs'
+      - '.github/workflows/unset-dead-fields.yml'
 
 jobs:
   unset:

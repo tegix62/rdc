@@ -31,6 +31,7 @@ import {mkdtemp, readFile, writeFile, rm} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import path from 'node:path'
 import {promisify} from 'node:util'
+import {fileURLToPath} from 'node:url'
 
 const run = promisify(execFile)
 
@@ -76,11 +77,17 @@ const kb = (n) => `${(n / 1024).toFixed(0)} KB`
   the header is enough to tell them apart - static and animated WebP are
   otherwise identical from the outside.
 */
-const isAnimatedWebp = (buf) => {
+export const isAnimatedWebp = (buf) => {
   if (buf.length < 32) return false
+  // Buffer.toString(encoding, START, END) - not (encoding, start, LENGTH).
+  // Read as length, `(8, 4)` asks for bytes 8 through 4, which is backwards, so
+  // Node returns "". That compared false against 'WEBP' and this function
+  // answered "not animated" for every WebP ever handed to it - which is the
+  // whole reason six animated WebPs, including the 3,981 KB homepage hero, were
+  // skipped on every run of this script. `(0, 4)` was right by coincidence.
   if (buf.toString('ascii', 0, 4) !== 'RIFF') return false
-  if (buf.toString('ascii', 8, 4) !== 'WEBP') return false
-  if (buf.toString('ascii', 12, 4) !== 'VP8X') return false
+  if (buf.toString('ascii', 8, 12) !== 'WEBP') return false
+  if (buf.toString('ascii', 12, 16) !== 'VP8X') return false
   return (buf[20] & 0x02) !== 0 || buf.toString('ascii', 0, 64).includes('ANIM')
 }
 
@@ -330,7 +337,20 @@ async function main() {
   if (DRY_RUN) console.log('Nothing was written. Drop DRY_RUN to do it for real.')
 }
 
-main().catch((err) => {
-  console.error(err)
-  process.exit(1)
-})
+/*
+  Only when run directly, not when imported.
+
+  This called main() at module scope, so `import { isAnimatedWebp }` from a test
+  started the whole conversion - which is the sort of thing that makes byte-level
+  parsing go untested for months. Guarding it is what let the detector get a unit
+  test at all.
+*/
+const invokedDirectly =
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+
+if (invokedDirectly) {
+  main().catch((err) => {
+    console.error(err)
+    process.exit(1)
+  })
+}

@@ -56,6 +56,12 @@ jobs:
           ffmpeg -hide_banner -encoders | grep -q libx264 || { echo "libx264 missing"; exit 1; }
           ffmpeg -hide_banner -encoders | grep -q libvpx-vp9 || { echo "libvpx-vp9 missing"; exit 1; }
       - run: npm install
+      # The detector is byte-level header parsing and had a wrong-offset bug
+      # that silently skipped every WebP for months. Cheap to assert, so assert
+      # it before spending ffmpeg time or touching the dataset.
+      - name: Animated-WebP detector
+        working-directory: .
+        run: node scripts/test-animated-webp.mjs
       - run: npm run convert:animations
         env:
           SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}

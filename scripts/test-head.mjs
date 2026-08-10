@@ -109,6 +109,7 @@ for (const file of pages) {
     description: meta(html, 'description'),
     ogImage: meta(html, 'og:image'),
     ogTitle: meta(html, 'og:title'),
+    ogSiteName: meta(html, 'og:site_name'),
     robots: meta(html, 'robots'),
     canonical: attr(html, /<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']*)["']/i),
     h1s: html.match(/<h1[\s>]/gi)?.length ?? 0,
@@ -179,10 +180,38 @@ check('every og:image is an absolute https URL', badOgImage.length === 0, report
 const notJpeg = docs.filter((d) => d.ogImage?.includes('cdn.sanity.io') && !/[?&]fm=jpg(&|$)/.test(d.ogImage))
 check('every Sanity og:image is forced to jpeg', notJpeg.length === 0, report(notJpeg))
 
-// og:title sits directly above og:site_name in every card, so it must NOT carry
-// the suffix that <title> does.
-const suffixedShareTitle = docs.filter((d) => d.ogTitle?.includes(' | '))
-check('no og:title carries the <title> suffix', suffixedShareTitle.length === 0, report(suffixedShareTitle))
+/*
+  og:title sits directly above og:site_name in every social card, so restating
+  the studio's name there prints it twice.
+
+  Checked as "does not END with a separator and the site name", not as "contains
+  a pipe". The first version tested for ' | ' and failed /collage, /merchfolio
+  and /video - and a title like "Video | Motion Work" is not a defect at all.
+  Testing for the pipe was testing for a symptom of the thing I had in mind
+  rather than for the thing itself.
+
+  The offending value is printed, not just the route. A check that says only
+  which page is wrong makes the next person guess at why, which is how the
+  animated-WebP diagnosis burned two wrong theories.
+
+  Compared against the page's OWN og:site_name rather than a hardcoded name, so
+  this and the strip in lib/meta.ts cannot disagree. A hardcoded /Rumeau Design/
+  would flag a title ending "| Rumeau Design" while the code - which strips the
+  full site name - could not remove it: a red gate with no fix available. Exact
+  match only, deliberately. A near-miss slipping through is cheap; an
+  unfixable failure is not.
+*/
+const restatesSite = (d) => {
+  if (!d.ogTitle || !d.ogSiteName) return false
+  const escaped = d.ogSiteName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`\\s*[|–—·:-]\\s*${escaped}\\.?\\s*$`, 'i').test(d.ogTitle)
+}
+const suffixedShareTitle = docs.filter(restatesSite)
+check(
+  'no og:title restates the site name',
+  suffixedShareTitle.length === 0,
+  suffixedShareTitle.map((d) => `${d.route}: "${d.ogTitle}"`).join(' | ') || `${docs.length} pages`,
+)
 
 // --- canonicals --------------------------------------------------------------
 const noCanonical = docs.filter((d) => !d.canonical)

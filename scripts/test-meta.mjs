@@ -101,6 +101,30 @@ eq('a missing site name falls back to the default', pageTitle('About', ''), 'Abo
 // og:title sits directly above og:site_name in every social card.
 eq('the share title carries no suffix', bareTitle('About', 'Rumeau Design Co'), 'About')
 
+/*
+  The real finding from test-head.mjs's first run against built output: three page
+  titles in Sanity already END with the site name, migrated from Webflow where
+  the title field was the whole <title>. So /collage, /merchfolio and /video
+  shared as "Collage | Rumeau Design Co" above a site_name of the same thing.
+
+  Nothing in the composition functions could have caught that - they were doing
+  exactly what they were told. It took reading the artefact.
+*/
+eq('a pipe suffix in the content is stripped', bareTitle('Collage | Rumeau Design Co', 'Rumeau Design Co'), 'Collage')
+eq('an em-dash suffix is stripped', bareTitle('Collage — Rumeau Design Co', 'Rumeau Design Co'), 'Collage')
+eq('an en-dash suffix is stripped', bareTitle('Collage – Rumeau Design Co', 'Rumeau Design Co'), 'Collage')
+eq('a hyphen suffix is stripped', bareTitle('Collage - Rumeau Design Co', 'Rumeau Design Co'), 'Collage')
+eq('a trailing full stop is stripped with it', bareTitle('Collage | Rumeau Design Co.', 'Rumeau Design Co'), 'Collage')
+// Not a suffix - a real title that happens to contain a pipe. Testing for the
+// pipe rather than for the site name is what made the first version of the
+// built-HTML check fail on something that was fine.
+eq('a pipe that is not the site name is left alone', bareTitle('Video | Motion Work', 'Rumeau Design Co'), 'Video | Motion Work')
+// The homepage's title IS the site name; stripping would leave nothing.
+eq('a title that is only the site name survives', bareTitle('Rumeau Design Co', 'Rumeau Design Co'), 'Rumeau Design Co')
+eq('a title that is only a separator and the name survives', bareTitle('| Rumeau Design Co', 'Rumeau Design Co'), '| Rumeau Design Co')
+// The suffix <title> adds is stripped too, since it is the same shape.
+eq('the suffix this module adds is stripped back off', bareTitle(pageTitle('About', 'Rumeau Design Co'), 'Rumeau Design Co'), 'About')
+
 // --- case study descriptions -------------------------------------------------
 const {caseStudyDescription, firstSentence} = meta
 

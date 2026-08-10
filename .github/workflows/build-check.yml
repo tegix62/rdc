@@ -72,6 +72,13 @@ jobs:
       # result. Pure logic, no network, so it costs a second.
       - run: node scripts/test-meta.mjs
 
+      # Keeps the built-HTML gate below honest. It found two bugs in that gate
+      # in its first minutes: a decode bug that failed every correct og:image,
+      # and a check that flagged a pipe in og:title when the defect is restating
+      # the site name. A gate that fails on correct output gets switched off, and
+      # then it guards nothing. Needs no dist, so it runs before the build.
+      - run: node scripts/test-head-selfcheck.mjs
+
       - run: npm run build
 
       # test-meta proves the composition functions are right; it cannot prove the

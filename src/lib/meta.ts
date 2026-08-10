@@ -31,9 +31,30 @@ export function pageTitle(title: unknown, siteName: string = DEFAULT_SITE_NAME):
   return bare.includes(name) ? bare : `${bare} | ${name}`;
 }
 
-/** The un-suffixed title, for og:title - which sits directly above og:site_name. */
-export const bareTitle = (title: unknown, siteName: string = DEFAULT_SITE_NAME): string =>
-  stripStega(title) ?? stripStega(siteName) ?? DEFAULT_SITE_NAME;
+/*
+  The un-suffixed title, for og:title - which sits directly above og:site_name in
+  every social card, so restating the studio's name there prints it twice.
+
+  It is not enough to skip the suffix this file adds. Three page titles in Sanity
+  END with the site name already - migrated from Webflow, where the title field
+  was the whole <title> - so /collage, /merchfolio and /video shared as
+  "Collage | Rumeau Design Co" above a site_name of "Rumeau Design Co". Found by
+  scripts/test-head.mjs reading the built HTML; nothing in the composition
+  functions could have caught it, because the composition was doing what it was
+  told.
+
+  So a trailing separator plus the site name is stripped wherever it came from.
+  <title> keeps it: there the name belongs.
+*/
+export function bareTitle(title: unknown, siteName: string = DEFAULT_SITE_NAME): string {
+  const name = stripStega(siteName) ?? DEFAULT_SITE_NAME;
+  const bare = stripStega(title) ?? name;
+  // The homepage's title IS the site name. Stripping it there would leave nothing.
+  if (bare === name) return bare;
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const trimmed = bare.replace(new RegExp(`\\s*[|–—·:-]\\s*${escaped}\\.?\\s*$`, 'i'), '').trim();
+  return trimmed || bare;
+}
 
 /*
   Trims to the first sentence, and to 160 characters - roughly where Google

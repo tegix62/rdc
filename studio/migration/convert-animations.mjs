@@ -131,6 +131,34 @@ async function main() {
   const existing = (await client.fetch(`*[_id == $id][0]`, {id: MAP_ID})) ?? {}
   const done = new Set((existing.entries ?? []).map((e) => e.assetId))
 
+  /*
+    Report what is already in the map before doing anything.
+
+    "skipped: already done" hides the question that actually matters - an entry
+    can exist and still never be served, because lib/animatedVideo.ts requires
+    the mp4 to come in under 90% of the source. A conversion sitting in the map
+    at 105% of its original is storage paid for nothing, and from the outside it
+    looks identical to a conversion that works.
+  */
+  if ((existing.entries ?? []).length) {
+    console.log(`\nalready in the map (${existing.entries.length}):`)
+    for (const e of existing.entries) {
+      const src = e.sourceBytes
+      const out = e.mp4Bytes
+      if (typeof src !== 'number' || typeof out !== 'number') {
+        console.log(`  ? ${e.assetId}  sizes not recorded - animation is served`)
+        continue
+      }
+      const served = out < src * 0.9
+      const pct = ((out / src) * 100).toFixed(0)
+      console.log(
+        `  ${served ? '+' : '-'} ${e.assetId}  ${kb(src)} -> ${kb(out)} (${pct}% of source)  ` +
+          `${served ? 'VIDEO IS SERVED' : 'not served - animation still ships'}`,
+      )
+    }
+    console.log('')
+  }
+
   const entries = FORCE ? [] : [...(existing.entries ?? [])]
   let converted = 0
   let sourceTotal = 0

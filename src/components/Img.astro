@@ -102,6 +102,38 @@ const where =
   (ref ? ` (${ref})` : '');
 
 /*
+  The hotspot, handed to CSS.
+
+  WHAT THIS FIXES
+
+  A case study's hero is `width: 100%; max-height: 80vh; object-fit: cover`.
+  That crop is done by the BROWSER, not by Sanity - the hero passes no height,
+  so no transform crop happens - and object-fit crops from the centre. On
+  Chateau Seven, whose hero is a seated figure, desktop cropped the head off.
+  On a phone the image is narrow enough never to reach 80vh, so nothing was
+  cropped and it looked right, which is exactly the "fine on mobile, wrong on
+  desktop" Chris reported.
+
+  The hotspot set in Studio could not help, because nothing was passing it to
+  CSS. The site's own brief claims hotspots are respected; on this path they
+  were not.
+
+  object-position takes the hotspot's x/y as percentages, so the point Chris
+  marks in Studio is the point that survives the crop. Defaults to 50% 50%,
+  which is what object-fit already did, so nothing changes for an image with no
+  hotspot set.
+
+  Emitted always rather than only when cropping: it is inert unless some
+  stylesheet applies object-fit, and working out here which call sites are
+  cropped by CSS elsewhere is exactly the kind of coupling that goes stale.
+*/
+const hotspot = image?.hotspot;
+const objectPosition =
+  typeof hotspot?.x === 'number' && typeof hotspot?.y === 'number'
+    ? `${(hotspot.x * 100).toFixed(2)}% ${(hotspot.y * 100).toFixed(2)}%`
+    : undefined;
+
+/*
   The main image field can be a shell with no file attached - see hasAsset()
   in lib/image.ts. Every downstream helper here already degrades gracefully
   when that happens (imageDimensions, isAnimatedSource, isPassThrough,
@@ -255,5 +287,6 @@ if (manualPassThrough && (image?.crop || image?.hotspot)) {
   decoding={loading === 'eager' ? 'sync' : 'async'}
   fetchpriority={fetchpriority}
   class={className}
+  style={objectPosition ? `object-position: ${objectPosition}` : undefined}
 />
 )}

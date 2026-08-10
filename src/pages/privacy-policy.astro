@@ -1,12 +1,13 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { pageDescription } from '../lib/meta';
 import { getPage } from '../lib/queries';
 import { renderPortableText } from '../lib/portableText';
 
 const page = await getPage('privacy-policy');
 ---
 
-<Layout title={page?.title ?? 'Privacy Policy'} description={page?.seoDescription}>
+<Layout title={page?.title ?? 'Privacy Policy'} description={pageDescription(page, 'How this site handles your data. It sets no cookies and loads no third-party trackers.')}>
   <h1>{page?.heading ?? page?.title ?? 'Privacy Policy'}</h1>
   {page?.body?.length > 0 ? (
     <div class="prose" set:html={renderPortableText(page.body)} />

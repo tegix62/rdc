@@ -73,3 +73,14 @@ jobs:
       - run: node scripts/test-meta.mjs
 
       - run: npm run build
+
+      # test-meta proves the composition functions are right; it cannot prove the
+      # templates call them. Those are different failures, and the second is the
+      # one that shipped - og:image was correct on the two templates that passed
+      # it and simply absent from the other nine pages. So this reads the built
+      # HTML and checks every page for a title, a distinct description, an
+      # og:image, a canonical, one <h1> and a skip link.
+      #
+      # After the build on purpose: dist/ has to exist, and the build is where
+      # the real Sanity content enters.
+      - run: node scripts/test-head.mjs

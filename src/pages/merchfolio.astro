@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { pageDescription } from '../lib/meta';
 import Img from '../components/Img.astro';
 import Sections from '../components/Sections.astro';
 import { getPage, getMerchItems } from '../lib/queries';
@@ -10,7 +11,7 @@ const page = await getPage('merchfolio');
 const items = await getMerchItems();
 ---
 
-<Layout title={page?.title ?? 'Merch Portfolio'} description={page?.seoDescription}>
+<Layout title={page?.title ?? 'Merch Portfolio'} description={pageDescription(page, 'Apparel and merchandise design — garments, prints and packaging built to perform on fabric.')}>
   <h1>{page?.heading ?? page?.title ?? 'Merch Portfolio'}</h1>
 
   {/*

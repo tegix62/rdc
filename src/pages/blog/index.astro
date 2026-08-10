@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import { pageDescription } from '../../lib/meta';
 import Img from '../../components/Img.astro';
 import { getPage, getBlogPosts } from '../../lib/queries';
 import { dateAttr, formatDate } from '../../lib/date';
@@ -8,7 +9,7 @@ const page = await getPage('blog');
 const posts = await getBlogPosts();
 ---
 
-<Layout title={page?.title ?? 'Blog'} description={page?.seoDescription}>
+<Layout title={page?.title ?? 'Blog'} description={pageDescription(page, 'Notes on brand identity, hand lettering and merch design, and the process behind the work.')}>
   {/*
     `heading` was ignored here, so the visible <h1> was whatever `title` said -
     the field whose job is the browser tab and the search result. They are

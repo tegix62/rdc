@@ -54,34 +54,48 @@ body {
   background: var(--color-white);
 }
 
-h1, h2, h3, h4, h5, h6 {
+/*
+  Type-specimen classes: the same rules as the heading tags, without being one.
+
+  /style-guide demonstrates every heading size, and it did that with real <h1>
+  through <h5> tags - so that page shipped TWO <h1> elements (its own title and
+  the 3.5rem specimen) and a document outline that claimed a type sample was a
+  section of the page. A specimen has to look like a heading, not be one.
+*/
+h1, h2, h3, h4, h5, h6,
+.t-h1, .t-h2, .t-h3, .t-h4, .t-h5 {
   font-family: var(--font-heading);
   font-weight: 700;
   color: var(--color-navy);
   margin: 0;
 }
 
-h1 {
+h1,
+.t-h1 {
   font-size: 3.5rem;
   line-height: 1.15;
 }
 
-h2 {
+h2,
+.t-h2 {
   font-size: 3rem;
   line-height: 1.2;
 }
 
-h3 {
+h3,
+.t-h3 {
   font-size: 2.5rem;
   line-height: 1.2;
 }
 
-h4 {
+h4,
+.t-h4 {
   font-size: 2rem;
   line-height: 1.25;
 }
 
-h5, h6 {
+h5, h6,
+.t-h5 {
   font-size: 1.5rem;
   line-height: 1.3;
 }

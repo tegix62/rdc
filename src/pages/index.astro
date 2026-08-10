@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { pageDescription } from '../lib/meta';
 import Img from '../components/Img.astro';
 import Sections from '../components/Sections.astro';
 import WorkGrid from '../components/WorkGrid.astro';
@@ -88,7 +89,7 @@ const proofBg = await backgroundUrl(settings?.proofBandBackground, 500);
 const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined;
 ---
 
-<Layout title={page?.title ?? 'Rumeau Design Co'} description={page?.seoDescription}>
+<Layout title={page?.title ?? 'Rumeau Design Co'} description={pageDescription(page, 'Hand-drawn brand identity, lettering and merch design for heritage apparel brands and musicians. The studio of Chris Rumeau, New Jersey.')}>
   <section class="statement" style={heroStyle}>
     <div class="statement__line" aria-hidden="true"></div>
     {/*

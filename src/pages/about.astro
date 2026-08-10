@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { pageDescription } from '../lib/meta';
 import { getPage } from '../lib/queries';
 import { renderPortableText } from '../lib/portableText';
 import Img from '../components/Img.astro';
@@ -8,7 +9,7 @@ import Sections from '../components/Sections.astro';
 const page = await getPage('about');
 ---
 
-<Layout title={page?.title ?? 'About'} description={page?.seoDescription}>
+<Layout title={page?.title ?? 'About'} description={pageDescription(page, 'Chris Rumeau is a brand identity and merch designer in New Jersey. Extensive sketching, pre-internet reference, and marks drawn by hand.')}>
   <div class="about-layout">
     {page?.heroImage && (
       <Img

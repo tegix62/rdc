@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { pageDescription } from '../lib/meta';
 import { getPage } from '../lib/queries';
 import { renderPortableText } from '../lib/portableText';
 import Sections from '../components/Sections.astro';
@@ -13,7 +14,7 @@ const hasBody = page?.body?.length > 0;
 const hasSections = page?.sections?.length > 0;
 ---
 
-<Layout title={page?.title ?? 'Collage'} description={page?.seoDescription}>
+<Layout title={page?.title ?? 'Collage'} description={pageDescription(page, 'Collage and cut-paper work, assembled from vintage packaging, type specimens and flea-market ephemera.')}>
   <h1>{page?.heading ?? page?.title ?? 'Collage'}</h1>
   {hasBody && <div class="prose" set:html={renderPortableText(page.body)} />}
   {hasSections && (

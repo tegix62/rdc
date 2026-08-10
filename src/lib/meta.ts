@@ -45,6 +45,42 @@ export function firstSentence(text: string, limit = 160): string {
   return candidate.length > limit ? `${candidate.slice(0, limit - 1).trimEnd()}…` : candidate;
 }
 
+/*
+  A static page's meta description.
+
+  Every one of the nine static pages passed `page.seoDescription` straight
+  through, and that field is empty on most of them - so they all fell back to
+  the layout's default and shipped the string "Rumeau Design Co" as the
+  description of the homepage, Portfolio, About, Video, Collage, Merch, Blog,
+  the privacy policy and the licence page alike. Nine pages, one description.
+
+  So each page now names its own fallback. `?? fallback` on its own would not be
+  enough: an empty string in Studio is not null, and stripStega returns undefined
+  for one, which is what makes this work.
+
+  Anything written into Studio still wins. These are the floor, not the copy.
+*/
+export const pageDescription = (
+  page: {seoDescription?: unknown} | null | undefined,
+  fallback: string,
+): string => stripStega(page?.seoDescription) ?? fallback;
+
+/*
+  A blog post's, same idea. metaDescription, else the excerpt, else the first
+  sentence of the body - and only then something derived, because a post always
+  has a title even when nothing else is filled in.
+*/
+export function blogPostDescription(post: {
+  metaDescription?: unknown;
+  excerpt?: unknown;
+  title?: unknown;
+}): string {
+  const written = stripStega(post?.metaDescription) ?? stripStega(post?.excerpt);
+  if (written) return firstSentence(written);
+  const title = stripStega(post?.title);
+  return title ? `${title} — notes from ${DEFAULT_SITE_NAME}.` : `Notes from ${DEFAULT_SITE_NAME}.`;
+}
+
 interface CaseStudyMeta {
   title?: unknown;
   category?: unknown;

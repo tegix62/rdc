@@ -175,6 +175,28 @@ eq('a short sentence is not touched', firstSentence('Short one.'), 'Short one.')
 // No sentence-ending punctuation at all - must not return empty.
 eq('text with no full stop is still returned', firstSentence('no punctuation here'), 'no punctuation here')
 
+// --- page and post descriptions ----------------------------------------------
+const {pageDescription, blogPostDescription} = meta
+const FALLBACK = 'Apparel and merchandise design.'
+
+eq('a written seoDescription wins', pageDescription({seoDescription: 'Real copy.'}, FALLBACK), 'Real copy.')
+
+/*
+  The reason `?? fallback` on its own is not enough. An empty string in Studio is
+  not null, and nine pages sharing the layout's default description is what
+  actually shipped.
+*/
+eq('an EMPTY seoDescription falls back', pageDescription({seoDescription: ''}, FALLBACK), FALLBACK)
+eq('whitespace-only falls back', pageDescription({seoDescription: '   '}, FALLBACK), FALLBACK)
+eq('a missing field falls back', pageDescription({}, FALLBACK), FALLBACK)
+eq('a null page falls back', pageDescription(null, FALLBACK), FALLBACK)
+eq('stega markers never reach a page description', pageDescription({seoDescription: `Real copy.${MARK}`}, FALLBACK), 'Real copy.')
+
+eq('a post uses its metaDescription', blogPostDescription({metaDescription: 'Written for search.', excerpt: 'x', title: 'T'}), 'Written for search.')
+eq('a post falls back to its excerpt', blogPostDescription({excerpt: 'The opening line. And more.', title: 'T'}), 'The opening line.')
+eq('a post with only a title still gets one', blogPostDescription({title: 'On Hand Lettering'}), 'On Hand Lettering — notes from Rumeau Design Co.')
+eq('an empty post still gets one', blogPostDescription({}), 'Notes from Rumeau Design Co.')
+
 // --- dates -------------------------------------------------------------------
 const {formatDate, dateAttr} = dates
 

@@ -166,11 +166,17 @@ const blockFixtures = [
     Headings: <strong>Inter Tight</strong> (700). Body copy:{' '}
     <strong>Gothic A1</strong>.
   </p>
-  <h1>Heading 1 — 3.5rem</h1>
-  <h2>Heading 2 — 3rem</h2>
-  <h3>Heading 3 — 2.5rem</h3>
-  <h4>Heading 4 — 2rem</h4>
-  <h5>Heading 5 — 1.5rem</h5>
+  {/*
+      Specimens, not headings. These were real <h1>-<h5> tags, which gave this
+      page two <h1> elements and a document outline claiming a type sample was
+      a section of the page. The .t-* classes carry the identical rules - see
+      global.css - so nothing about how this looks has changed.
+  */}
+  <p class="t-h1">Heading 1 — 3.5rem</p>
+  <p class="t-h2">Heading 2 — 3rem</p>
+  <p class="t-h3">Heading 3 — 2.5rem</p>
+  <p class="t-h4">Heading 4 — 2rem</p>
+  <p class="t-h5">Heading 5 — 1.5rem</p>
   <p class="style-guide-note">
     Body copy sets in Gothic A1 at a comfortable reading size, used for
     paragraphs, case study details, and blog posts across the site.

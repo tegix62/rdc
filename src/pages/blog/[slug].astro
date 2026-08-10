@@ -7,6 +7,7 @@ import { socialCardUrl } from '../../lib/image';
 import { renderPortableText } from '../../lib/portableText';
 import { blogPostNode } from '../../lib/structuredData';
 import { dateAttr, formatDate } from '../../lib/date';
+import { blogPostDescription } from '../../lib/meta';
 
 export async function getStaticPaths() {
   const slugs = await sanityClient.fetch(`*[_type == "blogPost"].slug.current`);
@@ -26,7 +27,7 @@ const ogImage =
 
 <Layout
   title={post.title}
-  description={post.metaDescription ?? post.excerpt}
+  description={blogPostDescription(post)}
   ogType="article"
   ogImage={ogImage}
   jsonLd={(ctx) => blogPostNode(ctx, post)}

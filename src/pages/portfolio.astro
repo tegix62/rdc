@@ -62,6 +62,16 @@ if (emptyFilters.length > 0) {
 ---
 
 <Layout title={page?.title ?? 'Portfolio'} description={page?.seoDescription}>
+  {/*
+    The one page on the site that had no <h1>, and it is the main one. A screen
+    reader opened it onto a row of unlabelled controls with nothing naming the
+    page, and `heading` in Studio was being ignored here.
+
+    Visually hidden rather than rendered: the control row sits directly under
+    the nav by design and there is no room for a heading above it. If a visible
+    one is ever wanted, drop the class - the markup is already right.
+  */}
+  <h1 class="visually-hidden">{page?.heading ?? page?.title ?? 'Portfolio'}</h1>
   <section class="pf-section">
     {/*
       Three groups rather than one long run of buttons: what to show, how to

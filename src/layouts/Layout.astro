@@ -25,6 +25,12 @@ interface Props {
   /** 'article' for blog posts and case studies. */
   ogType?: 'website' | 'article';
   /**
+   * Keep this page out of search results. For internal pages: /style-guide is
+   * excluded from sitemap.xml, but production robots.txt says `Allow: /`, so
+   * the only thing keeping it unindexed was that nothing links to it.
+   */
+  noindex?: boolean;
+  /**
    * Extra Schema.org nodes for this page - a CreativeWork for a case study, a
    * BlogPosting for a post. They join the sitewide Organization/WebSite/WebPage
    * nodes in one @graph. See src/lib/structuredData.ts.
@@ -37,7 +43,14 @@ interface Props {
   jsonLd?: (ctx: SiteContext) => Record<string, unknown>[];
 }
 
-const { title, description = 'Rumeau Design Co', ogImage, ogType = 'website', jsonLd } = Astro.props;
+const {
+  title,
+  description = 'Rumeau Design Co',
+  ogImage,
+  ogType = 'website',
+  noindex = false,
+  jsonLd,
+} = Astro.props;
 
 const settings = await getSiteSettings();
 
@@ -161,7 +174,7 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
     <meta name="description" content={description} />
     <title>{fullTitle}</title>
     <link rel="canonical" href={canonical} />
-    {IS_PREVIEW && <meta name="robots" content="noindex, nofollow" />}
+    {(IS_PREVIEW || noindex) && <meta name="robots" content="noindex, nofollow" />}
 
     {/* Webflow emitted these per page; without them a shared link previews
         as a bare URL with no title, description or image. */}

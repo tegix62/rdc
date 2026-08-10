@@ -153,6 +153,32 @@ a {
   outline: none;
 }
 
+/*
+  Present to a screen reader, absent to the eye. The standard clip rectangle
+  rather than display:none or visibility:hidden, both of which remove the
+  element from the accessibility tree along with the layout - which would defeat
+  the entire point.
+
+  Used for the Portfolio page's <h1>. That page is the main surface of the site
+  and had no heading at all: nothing named it, so a screen reader announced a
+  bare list of controls, and search engines had no title for the page beyond
+  <title>. The design has no room for a visible one - the control row sits
+  directly under the nav by intention - so the heading is stated for the
+  machines and the page looks exactly as it did.
+*/
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Site nav - matches the real Webflow navbar: full-bleed white bar,
    5% side padding, thin navy bottom border, collapsing to a hamburger
    below 991px (the real site's Relume navbar breakpoint). */

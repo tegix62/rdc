@@ -35,7 +35,7 @@ one now is presenting well to agencies and brand clients.
 | Content | **Sanity** CMS. Project `8337vjtf`, dataset `production`. | `rumeau-design-co.sanity.studio` |
 | Hosting | **Cloudflare Pages** | preview: `preview.rumeau-design-co.pages.dev` |
 | Domain | `rumeaudesign.co` — **still pointed at Webflow.** Not cut over yet. | |
-| CI | GitHub Actions, 20 workflows | |
+| CI | GitHub Actions, 22 workflows | |
 
 **Everything is static.** Pages are built at deploy time and served as files.
 There is no runtime backend, no database the browser talks to, and no server
@@ -63,7 +63,7 @@ Static routes:
 /privacy-policy
 /style-guide      internal: every layout block rendered from fixtures
 /image-license-info
-/404
+/404              lists every route, since old Webflow URLs land here
 ```
 
 Generated from Sanity:
@@ -114,9 +114,11 @@ Notable fields on it:
 **`page`** — for `/`, `/about`, `/portfolio` etc. Holds title, SEO description,
 and an optional `sections[]` array.
 
-**`siteSettings`** — one document. Logo, favicon, tagline, bio text, client
-logos, social links, contact URL, footer text, proof stats/testimonials,
-checklist, closer copy, and `featuredWork` (the homepage grid picker).
+**`siteSettings`** — one document, split into three tabs (Brand & contact,
+Homepage, Footer). Logo, favicon, tagline, default social-share image, bio text,
+client logos, social links, contact URL, footer text, legal entity name, proof
+stats/testimonials, checklist, closer copy, and `featuredWork` (the homepage
+grid picker).
 
 ### Section blocks
 
@@ -162,7 +164,12 @@ Worth knowing so a proposal doesn't reinvent them.
   **Deliberately off in production.**
 - **SEO** — meta, OG, Twitter, canonicals, sitemap, robots, and JSON-LD
   (`Organization` / `WebSite` / `WebPage`, plus `CreativeWork` on case studies
-  and `BlogPosting` on posts, with breadcrumbs).
+  and `BlogPosting` on posts, with breadcrumbs). Titles carry the site name;
+  every page emits an `og:image`, falling back to the wordmark padded onto
+  white; a project page with no written summary gets a description derived from
+  its category, client and principal type, so no two are identical.
+- **Accessibility** — skip link on every page, Escape closes the mobile menu
+  and returns focus, 44px tap targets, alt text throughout.
 
 ---
 
@@ -210,10 +217,11 @@ Things that will sink a proposal if ignored.
 workflow with a pre-deploy gate, JSON-LD, layout-shift fix on `/portfolio`
 (0.4722 → 0.0006), mobile fixes, alt text everywhere, image pipeline.
 
-**Waiting on Chris:** favicon upload, a decision on the Meta Pixel (the old
-site runs one; it did not come across), per-case-study SEO titles, a few
-missing video links, picking the homepage grid tiles, and filling in the
-privacy policy placeholders.
+**Waiting on Chris:** favicon upload, a default social-share image (the
+wordmark stands in until then), a decision on the Meta Pixel (the old site runs
+one; it did not come across), per-case-study SEO titles, a few missing video
+links, picking the homepage grid tiles, and filling in the privacy policy
+placeholders.
 
 **Known open items:** `/portfolio` page weight; an unexplained desktop LCP
 outlier on the homepage; several large animated images that need re-exporting

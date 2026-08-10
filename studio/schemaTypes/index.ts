@@ -3,7 +3,6 @@ import page from './page'
 import caseStudy from './caseStudy'
 import blogPost from './blogPost'
 import siteSettings from './siteSettings'
-import animatedVideoMap from './animatedVideoMap'
 import {caseStudySectionTypes} from './caseStudySections'
 
 export const schemaTypes = [
@@ -12,6 +11,5 @@ export const schemaTypes = [
   caseStudy,
   blogPost,
   tag,
-  animatedVideoMap,
   ...caseStudySectionTypes,
 ]

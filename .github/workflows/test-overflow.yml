@@ -23,8 +23,10 @@ jobs:
       - run: sleep 150
       # `set -o pipefail` matters: without it the exit status comes from tee,
       # so a failing check reported a green job. That is the second time a
-      # pipeline has masked a failure in this repo - see the ffmpeg check in
-      # convert-animations.yml.
+      # pipeline has masked a failure in this repo - the first was an ffmpeg
+      # availability check written as `ffmpeg -version | head -1`, where head's
+      # success hid ffmpeg being absent entirely. That workflow is gone now, but
+      # the lesson is the reason this line is here.
       - run: |
           set -o pipefail
           node scripts/test-overflow.mjs | tee /tmp/overflow.txt

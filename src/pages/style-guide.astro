@@ -47,18 +47,19 @@ const YOUTUBE = 'https://www.youtube.com/watch?v=plYFXjoViKI';
 /*
   A real uploaded video for the autoplay fixture.
 
-  The autoplay path needs an actual file, and nothing in the dataset is a
-  hand-uploaded clip yet - but animatedVideoMap holds MP4s the GIF conversion
-  produced, which are genuine Sanity file assets with genuine URLs. Borrowing
-  one exercises the self-hosted branch for real rather than with a fabricated
-  URL that would 404 and prove nothing.
+  The self-hosted branch needs an actual file, and a fabricated URL would 404
+  and prove nothing. This used to borrow an MP4 from animatedVideoMap - the
+  GIF-to-video conversion - but that feature has been removed, so it now takes
+  any real MP4 file asset in the dataset. Which means it starts exercising the
+  autoplay path properly the moment a hand-uploaded clip exists, rather than
+  depending on a converter that is gone.
 
-  Resolves to null before any conversion has run, and the fixture is skipped.
+  Resolves to null when the dataset holds no MP4, and the fixture is skipped.
 */
 const uploaded = await sanityClient.fetch<{mp4?: string; webm?: string} | null>(
-  `*[_id == "animatedVideoMap"][0].entries[defined(mp4.asset)][0]{
-    "mp4": mp4.asset->url,
-    "webm": webm.asset->url
+  `*[_type == "sanity.fileAsset" && extension == "mp4"] | order(_createdAt desc)[0]{
+    "mp4": url,
+    "webm": null
   }`,
 );
 

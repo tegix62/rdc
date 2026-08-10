@@ -16,7 +16,6 @@
 */
 import { imageUrl, imageDimensions, buildSrcSet, originalUrl, isPassThrough, cappedWidth, hasAsset } from '../lib/image';
 import { isAnimatedSource } from '../lib/animated';
-import { getAnimatedVideo } from '../lib/animatedVideo';
 
 interface Props {
   image: any;
@@ -72,7 +71,7 @@ const alt = altProp || image?.alt || '';
   The main image field can be a shell with no file attached - see hasAsset()
   in lib/image.ts. Every downstream helper here already degrades gracefully
   when that happens (imageDimensions, isAnimatedSource, isPassThrough,
-  getAnimatedVideo all return null/false on a missing asset), but urlFor()
+  isPassThrough all return null/false on a missing asset), but urlFor()
   itself throws. This is the one guard standing between a half-finished Studio
   edit and every page on the site failing to build - it broke /portfolio
   outright the first time this shipped without it.
@@ -156,12 +155,20 @@ if (cropped && passThrough && intrinsic) {
 }
 
 /*
-  An animation with a converted video version renders as <video> instead: a
-  looping h264 is typically an order of magnitude smaller than the same GIF.
-  Silent, looping and inline, so it behaves exactly like the animated image it
-  replaces. Falls back to the image when no conversion exists yet.
+  The GIF-to-video path used to live here: an animation with a converted h264
+  rendered as <video> instead, on the premise that video is an order of
+  magnitude smaller.
+
+  Measured, that premise is false for this content. Every one of the eleven
+  animated GIFs in the dataset transcoded LARGER - 1.1x to 3.1x - because these
+  are short flat-colour hand-drawn loops, which GIF and WebP compress well and
+  h264 does not. And ffmpeg cannot decode animated WebP at all, so the six
+  WebPs were never candidates in the first place. Removed rather than kept as
+  machinery that had produced two useful conversions out of nineteen files.
+
+  Animations now ship as uploaded, which is what isPassThrough already
+  guarantees. Sizing them is a question for the source file.
 */
-const video = passThrough ? await getAnimatedVideo(image, width) : null;
 
 /*
   Clamped to the file's own width. buildSrcSet already did this; the `src`
@@ -197,23 +204,7 @@ if (manualPassThrough && (image?.crop || image?.hotspot)) {
 }
 ---
 
-{!imageOk ? null : video ? (
-  <video
-    class={className}
-    width={ratio.width}
-    height={ratio.height}
-    poster={video.poster ?? undefined}
-    autoplay
-    loop
-    muted
-    playsinline
-    preload="metadata"
-    aria-label={alt}
-  >
-    {video.webm && <source src={video.webm} type="video/webm" />}
-    {video.mp4 && <source src={video.mp4} type="video/mp4" />}
-  </video>
-) : (
+{!imageOk ? null : (
 <img
   src={src}
   data-archive-src={archiveSrc ? archiveSrc.url() : undefined}

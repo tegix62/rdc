@@ -316,8 +316,17 @@ matter, not by effort. Schema/Studio findings live in `STUDIO-STREAMLINE.md`.
   one, so it hurts on mobile data and nowhere else.
 - [ ] **One animated file is 3,981 KB of the homepage's 4,384 KB.** On
   `/portfolio`, four animated files account for ~4.5 MB (one is a *200px-wide*
-  file weighing 606 KB). `convert-animations` exists and is waiting on a
-  go-ahead. Nothing else on this list comes close for impact.
+  file weighing 606 KB). **This is now a content job, not a code one** - see
+  below. The 800x800 hero is roughly 40 frames at ~100 KB each; re-exporting it
+  smaller beats anything the pipeline can do to it.
+
+  ~~`convert-animations` exists and is waiting on a go-ahead.~~ **Removed after
+  measuring.** The premise - that h264 is an order of magnitude smaller than the
+  same animation - is true for photographic motion and false for short
+  flat-colour hand-drawn loops. All eleven animated GIFs transcoded 1.1x to 3.1x
+  LARGER, and ffmpeg cannot decode animated WebP at all, so the six WebPs were
+  never candidates. Two useful conversions out of nineteen files was not worth
+  the machinery. Chris is optimising the sources himself instead.
 
 ### SEO and social
 

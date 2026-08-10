@@ -46,15 +46,11 @@ const JSON_OUT = jsonAt > -1 ? process.argv[jsonAt + 1] : null
 const PROJECT_ID = '8337vjtf'
 const DATASET = 'production'
 
-// Machine-written bookkeeping, never opened by an editor. The question this
-// audit asks - "if I change this in Studio, does anything happen?" - doesn't
-// apply, so flagging its fields as dead is just noise.
-// animatedVideoMap is machine-written bookkeeping - but note its sourceBytes
-// and mp4Bytes fields were flagged dead by an earlier run of this audit and
-// are now read by src/lib/animatedVideo.ts to decide whether a converted
-// video is actually smaller than the animation it replaces. A dead field is
-// sometimes a missing feature, not a redundant one.
-const INTERNAL_TYPES = new Set(['animatedVideoMap'])
+// Document types that exist for the build rather than for a person, so "does
+// editing this change the site?" does not apply to their fields. Empty since
+// animatedVideoMap was removed; kept because the next generated type should go
+// here rather than be re-derived.
+const INTERNAL_TYPES = new Set([])
 
 // ---------------------------------------------------------------------------
 // 1. The schema

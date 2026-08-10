@@ -9,7 +9,6 @@
     "migrate": "node migration/migrate.mjs",
     "test:migration": "node migration/seedDocument.test.mjs",
     "example-sections": "node migration/exampleSections.mjs",
-    "convert:animations": "node migration/convert-animations.mjs",
     "diagnose:animations": "node migration/diagnose-animations.mjs",
     "diagnose:categories": "node migration/diagnose-categories.mjs"
   },

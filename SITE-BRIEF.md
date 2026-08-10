@@ -157,7 +157,7 @@ Worth knowing so a proposal doesn't reinvent them.
   no third-party code runs unless someone chooses to watch.
 - **Images** — every image carries width/height and a srcset; per-image "serve
   exactly as uploaded" for work Chris compressed himself; animated sources
-  bypass the CDN's re-encode; hotspot/crop from Studio is respected.
+  bypass the CDN's re-encode and ship as-is; hotspot/crop from Studio is respected.
 - **Visual editing** — Sanity Presentation works against the preview build.
   **Deliberately off in production.**
 - **SEO** — meta, OG, Twitter, canonicals, sitemap, robots, and JSON-LD
@@ -216,8 +216,8 @@ missing video links, picking the homepage grid tiles, and filling in the
 privacy policy placeholders.
 
 **Known open items:** `/portfolio` page weight; an unexplained desktop LCP
-outlier on the homepage; whether to convert several large animated images to
-video.
+outlier on the homepage; several large animated images that need re-exporting
+at a sensible size (one is 3,981 KB and is 90% of the homepage's weight).
 
 ---
 

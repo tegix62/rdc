@@ -181,6 +181,30 @@ jobs:
           set -o pipefail
           node scripts/test-presentation-handshake.mjs 2>&1 | tee audit/visual-editing.md
 
+      # Every audit step above is continue-on-error, deliberately: one broken
+      # audit should not cost the other three. What was missing is any sign
+      # that it happened. audit-cms crashed on an esbuild error for weeks - it
+      # wrote its own stack trace into cms.md, `tee` returned 0, the step was
+      # tolerated, and the workflow reported success the whole time. A
+      # diagnostic that fails silently is worse than no diagnostic, because the
+      # empty finding list reads as "nothing wrong".
+      - name: A report that is actually a crash log
+        if: always()
+        run: |
+          broken=""
+          for f in audit/pages.md audit/cms.md audit/animated.md audit/visual-editing.md; do
+            [ -f "$f" ] || { broken="$broken $f(missing)"; continue; }
+            if head -40 "$f" | grep -qE '^(Error|✘ \[ERROR\]|node:internal)|Build failed with'; then
+              broken="$broken $f(crashed)"
+            fi
+          done
+          if [ -n "$broken" ]; then
+            echo "::error::Audit reports that are crash logs, not reports:$broken"
+            { echo ""; echo "### ⚠️ Broken audits"; echo ""; echo "\`$broken\`"; } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "all four reports look like reports"
+
       - name: Publish to the run summary
         if: always()
         run: |

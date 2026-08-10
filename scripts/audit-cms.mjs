@@ -66,16 +66,41 @@ const stubSanity = {
     b.onResolve({filter: /^sanity$/}, () => ({path: 'sanity', namespace: 'stub'}))
     b.onResolve({filter: /^sanity\//}, (a) => ({path: a.path, namespace: 'stub'}))
     b.onResolve({filter: /^@sanity\//}, (a) => ({path: a.path, namespace: 'stub'}))
-    // defineType/defineField exist purely for editor types - at runtime they
-    // hand back exactly what they were given, so identity is faithful.
+    // React too: a schema field can point at a custom input component, and that
+    // component imports hooks. Nothing here renders, so identity is enough.
+    b.onResolve({filter: /^react$/}, () => ({path: 'react', namespace: 'stub'}))
+    b.onResolve({filter: /^react\//}, (a) => ({path: a.path, namespace: 'stub'}))
+    /*
+      CommonJS with a Proxy, not a fixed list of ESM named exports.
+
+      This used to export exactly four names. esbuild verifies ESM named
+      imports at build time, so the day a schema file pulled in a custom input
+      component - InkModePreview, which imports `set` and `useFormValue` - the
+      bundle failed and this whole audit died. It has been writing its own
+      crash log into latest/cms.md ever since, and because the step tolerates a
+      non-zero exit the workflow went on reporting success. The one job this
+      script has is finding CMS fields nothing reads, and it silently stopped
+      doing it.
+
+      A CJS export cannot be statically checked, so esbuild resolves named
+      imports through the Proxy at runtime and ANY name works - including
+      whatever the next Studio component happens to need.
+
+      defineType/defineField exist purely for editor types; at runtime they
+      hand back exactly what they were given, so identity is faithful.
+    */
     b.onLoad({filter: /.*/, namespace: 'stub'}, () => ({
       contents: `
         const identity = (x) => x
-        export const defineType = identity
-        export const defineField = identity
-        export const defineArrayMember = identity
-        export const definePlugin = identity
-        export default new Proxy({}, {get: () => identity})
+        module.exports = new Proxy(
+          {
+            defineType: identity,
+            defineField: identity,
+            defineArrayMember: identity,
+            definePlugin: identity,
+          },
+          {get: (target, key) => (key in target ? target[key] : identity)},
+        )
       `,
       loader: 'js',
     }))

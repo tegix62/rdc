@@ -227,13 +227,20 @@ placeholders.
 outlier on the homepage; several large animated images that need re-exporting
 at a sensible size (one is 3,981 KB and is 90% of the homepage's weight).
 
-One specific, diagnosed: **Chateau Seven's `thumbnail` has "serve exactly as
-uploaded" on.** Pass-through refuses to crop, so every tile and More Work card
-that asks for a portrait crop gets the file's own 1.46:1 landscape shape
-instead — which is why that tile looks wrong on desktop and fine on mobile. It
-is also 2000px wide shipping whole to phones. Turning that one toggle off fixes
-both. It took days to find because the build warning named the document and not
-the field; it names the field now.
+One specific, fully diagnosed: **Chateau Seven's `thumbnail` has "serve exactly
+as uploaded" on.** Pass-through sends no transform parameters, so it cannot
+crop — every surface that asks for one gets the file's own 1.46:1 landscape
+shape instead. That is the homepage grid (asks 1:1), the Portfolio grid, and the
+More Work card on all twelve other project pages. It is why the tile reads wrong
+on desktop and fine on mobile, where the grid is one column.
+
+The asset is `2000x1372 webp`, and the animated-source audit confirms
+`animBit=false ANIMchunk=false` — it is **not** animated, so the toggle is the
+only thing forcing pass-through and turning it off is sufficient. Doing so also
+takes it from 89 KB to about 20 KB at the size it actually renders.
+
+It took days to find because the build warning named the document, and a case
+study has six image fields. The warnings name the field now.
 
 ---
 

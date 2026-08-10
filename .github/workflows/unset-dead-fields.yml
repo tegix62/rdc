@@ -17,11 +17,16 @@ on:
         default: false
   # A push runs the DRY RUN and nothing else.
   #
-  # GitHub only offers workflow_dispatch for workflows that already exist on the
-  # default branch, so while this lives on a feature branch it cannot be
-  # dispatched at all - which made the report impossible to see before merging.
-  # On a push there is no `inputs.commit`, so the step below takes its dry-run
-  # branch automatically. The writing path stays dispatch-only, and deliberate.
+  # Added because dispatching this workflow 404'd while it was new. I assumed at
+  # the time that workflow_dispatch requires the workflow to be on the default
+  # branch; that was wrong, and worth correcting rather than leaving as folklore.
+  # GitHub simply had not registered the file yet - once this push trigger caused
+  # one run, dispatching from the feature branch worked fine.
+  #
+  # It stays anyway, because it is a good default on a workflow that can write to
+  # the production dataset: a push can only ever produce the report. On a push
+  # event there is no `inputs.commit`, so the step below takes its dry-run branch
+  # with no extra logic, and the writing path remains dispatch-only.
   push:
     paths:
       - 'studio/migration/unset-dead-fields.mjs'

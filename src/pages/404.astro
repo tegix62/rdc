@@ -1,8 +1,96 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { getSiteSettings } from '../lib/queries';
+
+const settings = await getSiteSettings();
+const TALLY_URL = settings?.contactUrl || 'https://tally.so/r/mZ8LXz';
+
+/*
+  A 404 is where every old Webflow URL that public/_redirects does not cover
+  lands, and this page was two sentences and no way forward. The old site used
+  /case-studies/<slug> and /post/<slug>; anything shared or bookmarked before
+  the move that is not in the redirect map arrives here, so this is the page
+  that has to recover the visit rather than end it.
+
+  The nav is only four links and does not include Blog, Collage or Merchfolio,
+  so those are listed here explicitly - this is the one page where a visitor is
+  definitely looking for something and definitely has not found it.
+*/
+const routes = [
+  { href: '/portfolio', label: 'Portfolio', note: 'Every project and piece, filterable' },
+  { href: '/', label: 'Home', note: 'Start from the top' },
+  { href: '/about', label: 'About', note: 'How the work gets made' },
+  { href: '/video', label: 'Video', note: 'Motion and film work' },
+  { href: '/merchfolio', label: 'Merch', note: 'Apparel and merchandise' },
+  { href: '/collage', label: 'Collage', note: 'Collage and cut-paper work' },
+  { href: '/blog', label: 'Blog', note: 'Notes and process' },
+];
 ---
 
-<Layout title="Page Not Found">
+<Layout
+  title="Page Not Found"
+  description="That page doesn't exist. Here's the way back to the work."
+>
   <h1>Page not found</h1>
-  <p>Sorry, we couldn't find that page.</p>
+  <p class="not-found__lede">
+    That link is broken or the page has moved. If you followed it from
+    somewhere, the URL structure changed when this site was rebuilt — the work
+    is all still here.
+  </p>
+
+  <ul class="not-found__routes">
+    {routes.map((route) => (
+      <li>
+        <a href={route.href}>{route.label}</a>
+        <span>{route.note}</span>
+      </li>
+    ))}
+  </ul>
+
+  <p>
+    Still can't find it? <a href={TALLY_URL}>Get in touch</a> and tell me what
+    you were looking for.
+  </p>
 </Layout>
+
+<style>
+  .not-found__lede {
+    max-width: 36em;
+  }
+
+  /* A definition-style list rather than a bare row of links: a visitor who has
+     just hit a dead end does not know what "Merchfolio" is, and the point of
+     this page is to be the fastest possible route back to the work. */
+  .not-found__routes {
+    list-style: none;
+    margin: var(--space-4) 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-2);
+    grid-template-columns: repeat(auto-fill, minmax(min(18rem, 100%), 1fr));
+  }
+
+  .not-found__routes li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .not-found__routes a {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1.125rem;
+    text-decoration: none;
+  }
+
+  .not-found__routes a:hover {
+    text-decoration: underline;
+  }
+
+  .not-found__routes span {
+    font-size: 0.875rem;
+    color: var(--color-gray);
+  }
+</style>

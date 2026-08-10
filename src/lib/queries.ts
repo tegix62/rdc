@@ -60,10 +60,19 @@ export function getGridItems(caseStudyId: string) {
   );
 }
 
+/*
+  `parentType` is projected alongside `parentSlug` because tileHref refuses to
+  link to a parent that is not itself a Case Study - a Grid Item has no page at
+  /work/<slug>, so linking to one produces a 404. Without this field every merch
+  tile linked to /portfolio instead, including the ones that do have a project
+  page to go to.
+*/
 export function getMerchItems() {
   return sanityClient.fetch(
     `*[_type == "caseStudy" && category == "Merch & Apparel"]{
-      ..., "parentSlug": parentBrand->slug.current
+      ...,
+      "parentSlug": parentBrand->slug.current,
+      "parentType": parentBrand->pageType
     } | order(title asc)`,
   );
 }

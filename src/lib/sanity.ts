@@ -50,6 +50,13 @@ const NON_TEXT_FIELDS = new Set([
   */
   'alt',
   'iconAlt',
+  /*
+    A datetime looks like prose to the filter below - it is not a URL, a path or
+    a hex colour - so it was being marked, and `new Date()` on a marked string
+    returns an Invalid Date. The preview build was printing the literal words
+    "Invalid Date" where a blog post's date should be.
+  */
+  'publishedAt',
 ])
 
 // Hex colours, and anything that is plainly a URL or path rather than prose.

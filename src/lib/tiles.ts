@@ -11,13 +11,13 @@
 /*
   Strips zero-width characters before a value is used as a lookup key.
 
-  Belt and braces on top of the stega exclusion list in lib/sanity.ts. Visual
-  editing embeds invisible markers in strings, and a contaminated key fails a
-  lookup with no visible symptom anywhere - which is exactly how the Portfolio
-  filters silently matched nothing and cost several rounds of debugging.
+  Re-exported under the name this file's call sites already use. The
+  implementation moved to lib/stega.ts, which explains why the key variant is
+  more aggressive than the prose one - there were three copies of this with
+  three different character classes.
 */
-export const cleanKey = (value: unknown): string =>
-  typeof value === 'string' ? value.replace(/[​-‏﻿⁠]/g, '').trim() : '';
+export { stripStegaKey as cleanKey } from './stega';
+import { stripStegaKey as cleanKey } from './stega';
 
 /*
   Asset types that are a standalone mark rather than a photograph.

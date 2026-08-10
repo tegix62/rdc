@@ -35,7 +35,7 @@ await build({
   logLevel: 'error',
 })
 
-const {imageDimensions, buildSrcSet, imageUrl, originalUrl, isPassThrough, mayBeAnimated, sourceExtension} = await import(
+const {imageDimensions, buildSrcSet, imageUrl, originalUrl, isPassThrough, mayBeAnimated, sourceExtension, socialCardUrl} = await import(
   `file://${outfile}`
 )
 await rm(outfile)
@@ -151,6 +151,51 @@ check('static webp untouched', isPassThrough(img('image-y-800x800-webp'), false)
 
 check('gif url carries no transform', originalUrl(gif).includes('?'), false)
 check('gif url keeps its extension', originalUrl(gif).endsWith('.gif'), true)
+
+
+console.log('\nsocial cards')
+/*
+  Every page now emits an og:image, falling back to the wordmark for the pages
+  that have no image of their own. Nothing about this is visible on the site: a
+  wrong crop only shows up when someone pastes a link into Slack.
+
+  The wordmark is wide and short - 2000x600 here, and the real one is similar -
+  which is what makes the padded variant necessary and what makes it easy to get
+  wrong.
+*/
+const wordmark = img('image-mark1-2000x600-png')
+const photo = img('image-photo1-1600x1200-jpg')
+
+const card = socialCardUrl(photo)
+check('a card is 1200 wide', /[?&]w=1200(&|$)/.test(card), true)
+check('a card is 630 tall', /[?&]h=630(&|$)/.test(card), true)
+// An animated source left to auto-format comes back as an animated WebP, which
+// every scraper rejects outright.
+check('a card is forced to jpeg', /[?&]fm=jpg(&|$)/.test(card), true)
+check('a card is absolute', card.startsWith('https://cdn.sanity.io/'), true)
+check('a photo card is cropped to fill', /[?&]fit=crop(&|$)/.test(card), true)
+
+/*
+  THE ONE THAT ACTUALLY CAUGHT SOMETHING.
+
+  fit('fill') alone did NOT pad. Given both a width and a height,
+  @sanity/image-url computes a `rect=x,y,w,h` crop of the source before the CDN
+  ever sees fit=fill - so the wordmark was still being sliced down the middle
+  and the white background was never used. ignoreImageParams() drops the rect.
+
+  Asserted on the absence of `rect`, because that is the thing that was wrong
+  and the thing a future edit to this chain would silently reintroduce.
+*/
+const padded = socialCardUrl(wordmark, {pad: true})
+check('the padded card does not crop the source', /[?&]rect=/.test(padded), false)
+check('the padded card pads instead', /[?&]fit=fill(&|$)/.test(padded), true)
+check('the padded card pads onto white', /[?&]bg=ffffff(&|$)/.test(padded), true)
+check('the padded card is still 1200x630', /w=1200/.test(padded) && /h=630/.test(padded), true)
+
+// The empty-field crash class: a saved-but-fileless image field is an object,
+// so a truthiness check waves it through and the raw builder throws on it.
+check('no file attached yields null', socialCardUrl({_type: 'image', noRecompress: true}), null)
+check('undefined yields null', socialCardUrl(undefined), null)
 
 console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll checks passed.')
 process.exit(failures ? 1 : 0)

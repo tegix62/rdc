@@ -3,9 +3,10 @@ import Layout from '../../layouts/Layout.astro';
 import Img from '../../components/Img.astro';
 import { sanityClient } from '../../lib/sanity';
 import { getBlogPost } from '../../lib/queries';
-import { imageUrl } from '../../lib/image';
+import { socialCardUrl } from '../../lib/image';
 import { renderPortableText } from '../../lib/portableText';
 import { blogPostNode } from '../../lib/structuredData';
+import { dateAttr, formatDate } from '../../lib/date';
 
 export async function getStaticPaths() {
   const slugs = await sanityClient.fetch(`*[_type == "blogPost"].slug.current`);
@@ -18,14 +19,9 @@ if (!post) {
   throw new Error(`Blog post not found for slug: ${slug}`);
 }
 
-const ogSource = post.mainImage ?? post.thumbnailImage;
-const ogImage = ogSource
-  // format('jpg') on purpose: an og:image has to be a still. Left to
-  // auto-format, an animated source comes back as an animated WebP, which
-  // every scraper rejects and which can run to megabytes - the same
-  // re-encode-every-frame blow-up that made the homepage 10 MB.
-  ? imageUrl(ogSource)?.width(1200).height(630).fit('crop').format('jpg').url()
-  : undefined;
+// socialCardUrl holds the 1200x630 shape and the forced JPEG - see lib/image.ts.
+const ogImage =
+  socialCardUrl(post.mainImage) ?? socialCardUrl(post.thumbnailImage) ?? undefined;
 ---
 
 <Layout
@@ -37,9 +33,17 @@ const ogImage = ogSource
 >
   <article>
     <h1>{post.title}</h1>
+    {/*
+      formatDate/dateAttr rather than toLocaleDateString: the build machine's
+      locale was deciding the format, and a post published late in the UTC day
+      printed the day before. See lib/date.ts.
+    */}
     <p class="card__meta">
       {post.author}
-      {post.publishedAt && ` · ${new Date(post.publishedAt).toLocaleDateString()}`}
+      {post.author && formatDate(post.publishedAt) && ' · '}
+      {formatDate(post.publishedAt) && (
+        <time datetime={dateAttr(post.publishedAt)}>{formatDate(post.publishedAt)}</time>
+      )}
     </p>
     {post.mainImage && (
       <Img image={post.mainImage} alt={post.title} width={1600} sizes="100vw" loading="eager" fetchpriority="high" />

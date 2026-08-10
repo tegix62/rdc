@@ -2,14 +2,26 @@
 import Layout from '../../layouts/Layout.astro';
 import Img from '../../components/Img.astro';
 import { getPage, getBlogPosts } from '../../lib/queries';
+import { dateAttr, formatDate } from '../../lib/date';
 
 const page = await getPage('blog');
 const posts = await getBlogPosts();
 ---
 
 <Layout title={page?.title ?? 'Blog'} description={page?.seoDescription}>
-  <h1>{page?.title ?? 'Blog'}</h1>
-  <div class="grid">
+  {/*
+    `heading` was ignored here, so the visible <h1> was whatever `title` said -
+    the field whose job is the browser tab and the search result. They are
+    separate fields precisely so a page can be "Notes" on the page and
+    "Notes on brand identity work" in a search result, and every other page in
+    the project already reads it.
+  */}
+  <h1>{page?.heading ?? page?.title ?? 'Blog'}</h1>
+  {/*
+    grid--prose, not the bare .grid: these cards carry an excerpt, and at the
+    shared 15rem column the excerpts measured 31-37 characters. See global.css.
+  */}
+  <div class="grid grid--prose">
     {posts.map((post: any) => (
       <a class="card" href={`/blog/${post.slug.current}`}>
         {(post.thumbnailImage || post.mainImage) && (
@@ -18,12 +30,18 @@ const posts = await getBlogPosts();
             alt={post.title}
             width={600}
             height={400}
-            sizes="(max-width: 40rem) 100vw, 33vw"
+            sizes="(max-width: 40rem) 100vw, (max-width: 60rem) 50vw, 33vw"
           />
         )}
         <p class="card__title">{post.title}</p>
+        {formatDate(post.publishedAt) && (
+          <p class="card__meta">
+            <time datetime={dateAttr(post.publishedAt)}>{formatDate(post.publishedAt)}</time>
+          </p>
+        )}
         {post.excerpt && <p class="card__meta">{post.excerpt}</p>}
       </a>
     ))}
   </div>
+  {posts.length === 0 && <p>No posts yet.</p>}
 </Layout>

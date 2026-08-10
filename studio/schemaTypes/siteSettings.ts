@@ -57,6 +57,28 @@ export default defineType({
       title: 'Portrait of you — bottom of the homepage',
       group: 'brand',
     }),
+    /*
+      The default social card.
+
+      A page with no image of its own previews as a bare text card in Slack,
+      iMessage and LinkedIn - which looks broken rather than plain. Only the
+      case studies and blog posts had one, so the other nine pages, homepage
+      included, shared as text.
+
+      Until this is filled the site falls back to the wordmark, padded onto
+      white. That works and is dull; a real card is one image.
+    */
+    imageSpec({
+      name: 'socialImage',
+      title: 'Default share image — Slack, iMessage, LinkedIn, X',
+      group: 'brand',
+      description:
+        'Used when a page has no image of its own — the homepage, About, ' +
+        'Portfolio, and so on. Project pages and blog posts use their own ' +
+        'main image instead. Shown at 1200x630 and CROPPED to that shape, so ' +
+        'keep anything important away from the top and bottom edges. Leave it ' +
+        'empty and the wordmark is used.',
+    }),
     defineField({
       name: 'contactUrl',
       title: 'Contact form link — every button on the site',
@@ -240,6 +262,23 @@ export default defineType({
       type: 'text',
       rows: 2,
       group: 'footer',
+    }),
+    /*
+      The copyright line used to read the site name and then swap in "Rumeau
+      Design LLC" if it happened to equal the string 'Rumeau Design Co' - a
+      hardcoded comparison standing in for a field. Renaming the site in Studio
+      would have quietly stopped the footer naming the company that holds the
+      copyright, which is the one line on the page where the legal entity, not
+      the brand, is the point.
+    */
+    defineField({
+      name: 'legalName',
+      title: 'Legal entity — the name on the copyright line',
+      type: 'string',
+      group: 'footer',
+      description:
+        'The registered company, which is not always the brand name. Defaults ' +
+        'to "Rumeau Design LLC". Only appears in the © line at the very bottom.',
     }),
     defineField({
       name: 'socialLinks',

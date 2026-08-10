@@ -4,11 +4,12 @@ import Img from '../../components/Img.astro';
 import Sections from '../../components/Sections.astro';
 import { sanityClient } from '../../lib/sanity';
 import { getCaseStudy, getGridItems, getOtherCaseStudies } from '../../lib/queries';
-import { imageUrl } from '../../lib/image';
+import { socialCardUrl } from '../../lib/image';
 import { embedUrl } from '../../lib/video';
 import { renderPortableText } from '../../lib/portableText';
 import Video from '../../components/Video.astro';
 import { caseStudyNode } from '../../lib/structuredData';
+import { caseStudyDescription } from '../../lib/meta';
 import { readableOn } from '../../lib/color';
 
 export async function getStaticPaths() {
@@ -59,20 +60,24 @@ const bandStyle = caseStudy.accentColor
 */
 const filmEmbed = embedUrl(caseStudy.filmEmbed);
 
-// Social previews need an absolute URL and a predictable crop.
-const ogSource = caseStudy.mainImage ?? caseStudy.thumbnail;
-const ogImage = ogSource
-  // format('jpg') on purpose: an og:image has to be a still. Left to
-  // auto-format, an animated source comes back as an animated WebP, which
-  // every scraper rejects and which can run to megabytes - the same
-  // re-encode-every-frame blow-up that made the homepage 10 MB.
-  ? imageUrl(ogSource)?.width(1200).height(630).fit('crop').format('jpg').url()
-  : undefined;
+/*
+  `oneLineSummary` was the whole meta description, and it is empty on most of
+  the 13 projects - so those pages fell through to Layout's default and shipped
+  "Rumeau Design Co" as the description of every one of them. The fallback chain
+  is in lib/meta.ts with a test in front of it.
+*/
+const description = caseStudyDescription(caseStudy);
+
+// Social previews need an absolute URL and a predictable crop. socialCardUrl
+// holds the shape and the forced JPEG - see lib/image.ts. It was three
+// duplicated chains, one of which would eventually have drifted.
+const ogImage =
+  socialCardUrl(caseStudy.mainImage) ?? socialCardUrl(caseStudy.thumbnail) ?? undefined;
 ---
 
 <Layout
   title={caseStudy.title}
-  description={caseStudy.oneLineSummary}
+  description={description}
   ogType="article"
   ogImage={ogImage}
   jsonLd={(ctx) => caseStudyNode(ctx, caseStudy)}

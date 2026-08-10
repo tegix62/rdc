@@ -200,6 +200,44 @@ export async function backgroundUrl(source: any, width: number): Promise<string 
   return imageUrl(source)?.width(cappedWidth(source, width)).url() ?? null;
 }
 
+/*
+  A social-card image: 1200x630, JPEG, absolute, or null if there is no file.
+
+  THE SHAPE IS NOT NEGOTIABLE. Slack, iMessage, LinkedIn and X all crop an
+  og:image to roughly 1.91:1 themselves, so handing them anything else means
+  they decide what to cut. 1200x630 is the size every one of them documents.
+
+  format('jpg') is forced for the same reason it is forced on case studies: an
+  animated source left to auto-format comes back as an animated WebP, which
+  every scraper rejects outright and which can run to megabytes.
+
+  `pad` is the whole reason this is a function rather than a chain at the call
+  site:
+
+    pad: false   crop to fill the frame, honouring the hotspot set in Studio.
+                 Right for a photograph or a purpose-made card.
+
+    pad: true    letterbox the whole image onto white. Right for the WORDMARK,
+                 which is wide and short - cropping it to 1.91:1 slices the
+                 middle out and prints two letters.
+
+  ignoreImageParams() is what makes padding actually happen, and it is not
+  obvious. Given both a width and a height, @sanity/image-url computes a
+  `rect=x,y,w,h` crop of the source BEFORE the CDN ever sees fit=fill - so
+  `fit('fill')` alone still cropped the wordmark and the bg colour was never
+  used. Dropping the image params drops the rect, and fit=fill then pads as
+  intended. Verified against the generated URL, not assumed:
+  scripts/test-images.mjs asserts the rect is absent.
+*/
+export function socialCardUrl(source: unknown, {pad = false} = {}): string | null {
+  const b = imageUrl(source);
+  if (!b) return null;
+  const sized = b.width(1200).height(630).format('jpg');
+  return pad
+    ? sized.fit('fill').bg('ffffff').ignoreImageParams().url()
+    : sized.fit('crop').url();
+}
+
 // The widths offered to the browser. Chosen to bracket the sizes this site
 // actually renders at rather than a generic ladder. Sanity generates each on
 // first request and caches it.

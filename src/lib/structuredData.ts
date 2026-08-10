@@ -18,24 +18,22 @@
 */
 
 /*
-  Stega hides zero-width characters inside strings so Studio can map text on
-  the page back to the field that produced it. JSON-LD is parsed by a machine,
-  and those characters land inside JSON string values - which is exactly the
-  class of bug that broke the Portfolio filters, except here the reader is
-  Google rather than a click handler.
+  Every string in here is stripped of stega markers first.
+
+  JSON-LD is parsed by a machine, and those zero-width characters land inside
+  JSON string values - exactly the class of bug that broke the Portfolio
+  filters, except here the reader is Google rather than a click handler.
 
   On a production build stega is off and this is a no-op, so it costs nothing;
   it exists so the preview build's JSON-LD is also valid and can be pasted
-  into a validator. Character set is @vercel/stega's: U+200B-200D, U+2060-2063,
-  U+FEFF, U+1D173-1D17A, four or more in a row.
-*/
-const STEGA = /[​-‍⁠-⁣﻿\u{1D173}-\u{1D17A}]{4,}/gu;
+  into a validator.
 
-export function clean(value: unknown): string | undefined {
-  if (typeof value !== 'string') return undefined;
-  const stripped = value.replace(STEGA, '').trim();
-  return stripped || undefined;
-}
+  Re-exported under the name this module has always used it by, so the ~20 call
+  sites below read as they did. The implementation moved to lib/stega.ts when a
+  third copy of it turned up.
+*/
+export { stripStega as clean } from './stega';
+import { stripStega as clean } from './stega';
 
 /** Drops keys whose value is undefined, so empty Sanity fields leave no trace. */
 function compact<T extends Record<string, unknown>>(obj: T): Record<string, unknown> {

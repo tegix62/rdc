@@ -5,16 +5,23 @@ import { renderPortableText } from '../lib/portableText';
 import Sections from '../components/Sections.astro';
 
 const page = await getPage('collage');
+
+// Same shape as /video, deliberately. This page tested `sections` alone, so
+// copy written into `body` with no sections rendered AND was followed by
+// "Content coming soon". See the note in video.astro.
+const hasBody = page?.body?.length > 0;
+const hasSections = page?.sections?.length > 0;
 ---
 
 <Layout title={page?.title ?? 'Collage'} description={page?.seoDescription}>
   <h1>{page?.heading ?? page?.title ?? 'Collage'}</h1>
-  {page?.body?.length > 0 && <div class="prose" set:html={renderPortableText(page.body)} />}
-  {page?.sections?.length > 0 ? (
+  {hasBody && <div class="prose" set:html={renderPortableText(page.body)} />}
+  {hasSections && (
     <div class="page-sections">
       <Sections sections={page.sections} />
     </div>
-  ) : (
+  )}
+  {!hasBody && !hasSections && (
     <p>Content coming soon — add this page's copy and images in Studio.</p>
   )}
 </Layout>

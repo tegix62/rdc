@@ -6,9 +6,16 @@ import '@fontsource/gothic-a1/700.css';
 import '../styles/global.css';
 import { getSiteSettings } from '../lib/queries';
 import Img from '../components/Img.astro';
-import { imageUrl } from '../lib/image';
+import { imageUrl, socialCardUrl } from '../lib/image';
 import VisualEditing from '../components/VisualEditing.astro';
 import { buildGraph, serialise, type SiteContext } from '../lib/structuredData';
+import { stripStega as clean } from '../lib/stega';
+import {
+  bareTitle,
+  DEFAULT_LEGAL_NAME,
+  DEFAULT_SITE_NAME,
+  pageTitle,
+} from '../lib/meta';
 
 interface Props {
   title: string;
@@ -45,6 +52,53 @@ const settings = await getSiteSettings();
 const path = Astro.url.pathname.replace(/(.)\/$/, '$1');
 const canonical = Astro.site ? new URL(path, Astro.site).href : Astro.url.href;
 
+// Both of these were in the Studio and read by nothing, so editing them did
+// nothing to the site - the audit in scripts/audit-cms.mjs found them.
+const SITE_NAME = clean(settings?.siteTitle) ?? DEFAULT_SITE_NAME;
+const FOOTER_TEXT = settings?.footerText;
+
+/*
+  The name on the copyright line.
+
+  It was `SITE_NAME === 'Rumeau Design Co' ? 'Rumeau Design LLC' : SITE_NAME` -
+  a string comparison standing in for a field. Rename the site in Studio and
+  the footer quietly stops naming the company that holds the copyright, which
+  is the one line on the page where that matters. Now a field, with the same
+  value as its default so nothing changes until it is set.
+*/
+const LEGAL_NAME = clean(settings?.legalName) ?? DEFAULT_LEGAL_NAME;
+
+/*
+  Only <title> gets the site-name suffix. og:title sits directly above
+  og:site_name in every social card, so suffixing it there prints the studio's
+  name twice. Composition lives in lib/meta.ts, which has a test in front of it
+  because nothing on the page ever shows whether it came out right.
+*/
+const fullTitle = pageTitle(title, SITE_NAME);
+const shareTitle = bareTitle(title, SITE_NAME);
+
+/*
+  Every page gets a social image, even the ones with no image of their own.
+
+  Only /work/<slug> and /blog/<slug> passed an ogImage, so the other nine
+  static pages - including the homepage - shared to Slack, iMessage and
+  LinkedIn as a bare text card. A missing og:image is not a neutral omission
+  there; it is a visibly broken-looking link.
+
+  Two levels of fallback, and they are framed differently on purpose:
+
+    socialImage   a real card, CROPPED to fill 1200x630. Nothing uploaded yet.
+    logo          the wordmark, PADDED onto white. It is wide and short, so
+                  cropping it to 1.91:1 slices the middle out and prints two
+                  letters.
+
+  See socialCardUrl in lib/image.ts for why padding needs more than fit('fill').
+*/
+const socialImage =
+  ogImage ??
+  socialCardUrl(settings?.socialImage) ??
+  socialCardUrl(settings?.logo, {pad: true});
+
 // The preview deployment is a public URL. Without this it is perfectly
 // crawlable and would compete with rumeaudesign.co in search results for
 // duplicated copy. Webflow's staging is noindexed for the same reason.
@@ -59,11 +113,6 @@ const navLinks = [
 ];
 const TALLY_URL = settings?.contactUrl || 'https://tally.so/r/mZ8LXz';
 
-// Both of these were in the Studio and read by nothing, so editing them did
-// nothing to the site - the audit in scripts/audit-cms.mjs found them.
-const SITE_NAME = settings?.siteTitle || 'Rumeau Design Co';
-const FOOTER_TEXT = settings?.footerText;
-
 /*
   Structured data. The live Webflow site emits a JSON-LD block and this one
   did not, which is the gap the SEO parity check missed - it compared meta, OG,
@@ -77,6 +126,8 @@ const structuredDataContext: SiteContext = {
   canonical,
   title,
   description,
+  // Deliberately ogImage, not the wordmark fallback: primaryImageOfPage should
+  // be an image OF this page. The Organization node already carries the logo.
   image: ogImage,
   logoUrl: imageUrl(settings?.logo)?.width(512).url(),
   settings,
@@ -108,7 +159,7 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
     */}
     <meta name="build-commit" content={import.meta.env.PUBLIC_BUILD_SHA ?? 'dev'} />
     <meta name="description" content={description} />
-    <title>{title}</title>
+    <title>{fullTitle}</title>
     <link rel="canonical" href={canonical} />
     {IS_PREVIEW && <meta name="robots" content="noindex, nofollow" />}
 
@@ -116,20 +167,30 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
         as a bare URL with no title, description or image. */}
     <meta property="og:type" content={ogType} />
     <meta property="og:site_name" content={SITE_NAME} />
-    <meta property="og:title" content={title} />
+    <meta property="og:title" content={shareTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
-    {ogImage && <meta property="og:image" content={ogImage} />}
-    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
-    <meta name="twitter:title" content={title} />
+    {socialImage && <meta property="og:image" content={socialImage} />}
+    <meta name="twitter:card" content={socialImage ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:title" content={shareTitle} />
     <meta name="twitter:description" content={description} />
-    {ogImage && <meta name="twitter:image" content={ogImage} />}
+    {socialImage && <meta name="twitter:image" content={socialImage} />}
 
     {/* Explicit closing tag: a self-closed <script/> is not valid HTML and
         browsers swallow the rest of the head. */}
     <script type="application/ld+json" is:inline set:html={serialise(graph)}></script>
   </head>
   <body>
+    {/*
+      WCAG 2.4.1. Every page opens with the nav, so a keyboard or screen-reader
+      visitor tabs through the wordmark, the menu toggle and four links before
+      reaching any content - on all 21 pages, every time. Visually hidden until
+      focused, which is the whole convention: sighted mouse users never see it.
+
+      First element in the body on purpose. A skip link that is not the first
+      thing focused is a skip link you have to tab to.
+    */}
+    <a class="skip-link" href="#main-content">Skip to content</a>
     <header class="site-nav">
       <nav class="site-nav__inner">
         <a class="site-nav__brand" href="/">
@@ -155,7 +216,12 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
         </div>
       </nav>
     </header>
-    <main class="wrap">
+    {/*
+      tabindex="-1" so the skip link actually moves focus here. Without it the
+      browser scrolls to the target and leaves focus on the <body>, so the next
+      Tab goes back to the nav - the link appears to work and does nothing.
+    */}
+    <main class="wrap" id="main-content" tabindex="-1">
       <slot />
     </main>
     <footer class="site-footer">
@@ -191,7 +257,7 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
       </div>
 
       <div class="wrap site-footer__bottom">
-        <p>&copy; {new Date().getFullYear()} {SITE_NAME === 'Rumeau Design Co' ? 'Rumeau Design LLC' : SITE_NAME}. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} {LEGAL_NAME}. All rights reserved.</p>
         <a href="/privacy-policy">Privacy Policy</a>
       </div>
     </footer>
@@ -209,9 +275,32 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
     <script>
       const navToggle = document.querySelector<HTMLButtonElement>('#site-nav-toggle');
       const navLinks = document.querySelector<HTMLElement>('#site-nav-links');
+
+      const setNavOpen = (open: boolean) => {
+        navLinks?.classList.toggle('is-open', open);
+        navToggle?.setAttribute('aria-expanded', String(open));
+      };
+
       navToggle?.addEventListener('click', () => {
-        const isOpen = navLinks?.classList.toggle('is-open');
-        navToggle.setAttribute('aria-expanded', String(!!isOpen));
+        setNavOpen(!navLinks?.classList.contains('is-open'));
+      });
+
+      /*
+        Escape closes the menu, and focus goes back to the button that opened
+        it. Opening it was the only thing this menu could do: there was no key
+        to dismiss it, and the only way back out was to find the toggle again
+        by tabbing through every link - which on mobile means the menu is a
+        one-way door.
+
+        Focus is NOT moved into the menu on open. The links are the toggle's
+        next siblings in the DOM, so Tab already lands on them; forcing focus
+        would only take away the choice of tabbing straight past.
+      */
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        if (!navLinks?.classList.contains('is-open')) return;
+        setNavOpen(false);
+        navToggle?.focus();
       });
     </script>
     <script>

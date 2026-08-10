@@ -7,7 +7,9 @@ const page = await getPage('image-license-info');
 ---
 
 <Layout title={page?.title ?? 'Image License Info'} description={page?.seoDescription}>
-  <h1>{page?.title ?? 'Image License Info'}</h1>
+  {/* `heading` was ignored, so the on-page <h1> was whatever the browser-tab
+      title said. Every other page reads it; this one did not. */}
+  <h1>{page?.heading ?? page?.title ?? 'Image License Info'}</h1>
   {page?.body?.length > 0 ? (
     <div class="prose" set:html={renderPortableText(page.body)} />
   ) : (

@@ -65,4 +65,11 @@ jobs:
       # before the build, because it is the build this protects.
       - run: node scripts/test-image-guards.mjs
 
+      # The <head> strings and the post dates. Nothing on the page shows whether
+      # these came out right - a <title> reading "Rumeau Design Co | Rumeau
+      # Design Co", or 13 project pages sharing one meta description, looks
+      # completely normal in review and turns up months later in a search
+      # result. Pure logic, no network, so it costs a second.
+      - run: node scripts/test-meta.mjs
+
       - run: npm run build

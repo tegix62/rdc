@@ -46,25 +46,24 @@ const FORCE = process.env.FORCE === '1'
 const DRY_RUN = process.env.DRY_RUN === '1'
 
 /*
-  The Accept header a browser sends, and the reason this script has never
-  converted a single WebP.
+  The Accept header a browser sends.
 
-  Sanity content-negotiates the BARE asset URL, not just transform URLs. Asked
-  for an animated .webp with the wildcard Accept header Node sends by default,
-  the CDN hands back a static JPEG. isAnimatedWebp() then looks for a
-  RIFF/WEBP/VP8X header, finds JPEG, correctly answers "not animated" about the
-  bytes it was given, and the asset is skipped with no message at all.
+  Worth sending regardless: Sanity content-negotiates the bare asset URL, and
+  src/lib/animated.ts had exactly this bug - reading a 1,348 KB animated WebP as
+  a 15 KB JPEG because Node's default wildcard Accept got it a static fallback.
+  Matching what the site does removes one way for the two to disagree about the
+  same file.
 
-  So every animated WebP in the dataset - six of them, including the 3,981 KB
-  homepage hero, which is the single heaviest file on the site - has been
-  silently passed over on every run. The eleven files this script did attempt
-  were all GIFs, and GIF is byte-identical under any Accept header because there
-  is nothing to negotiate.
+  It is NOT, however, why this script has never converted a WebP. I asserted
+  that here, added a diagnostic that only reported the case I had already
+  guessed, and the run came back byte-identical with the diagnostic silent -
+  which means the WebPs were arriving as valid RIFF all along and something
+  else rejects them. Left standing as a correct-but-unrelated fix, and the
+  rejection now prints the actual container bytes instead of a theory.
 
-  This exact bug was found and fixed once already, in src/lib/animated.ts, where
-  it had the probe reading a 1,348 KB animated WebP as a 15 KB JPEG. The fix did
-  not make it over here, because nothing connected the two - which is worth
-  remembering the next time something reads image bytes.
+  The facts as they stand: 19 files are genuinely animated, the script has only
+  ever attempted 11, and all 11 are GIFs. Six animated WebPs - including the
+  3,981 KB homepage hero - are skipped every run. Why is still open.
 */
 const BROWSER_ACCEPT =
   'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
@@ -216,13 +215,23 @@ async function main() {
       went missing from every run of this script without leaving a trace.
     */
     if (asset.extension === 'webp' && !isAnimatedWebp(buf)) {
-      const magic = buf.toString('ascii', 0, 4)
-      if (magic !== 'RIFF') {
-        console.log(
-          `  ! ${assetId} downloaded as ${magic.replace(/[^\x20-\x7e]/g, '?')} not WEBP ` +
-            `- content negotiation returned the wrong format, so animation cannot be detected`,
-        )
-      }
+      /*
+        Report the bytes, not a theory about them.
+
+        The previous version of this only spoke up when the file was not RIFF,
+        because that was the cause I had guessed. It stayed silent on every real
+        rejection and told me nothing - a diagnostic written to confirm a
+        hypothesis rather than to describe what happened. So this prints the
+        actual container fields isAnimatedWebp() looks at, and lets them say
+        what is wrong.
+      */
+      const printable = (a, b) => buf.toString('ascii', a, b).replace(/[^\x20-\x7e]/g, '?')
+      console.log(
+        `  . ${assetId} not treated as animated:` +
+          ` riff=${printable(0, 4)} kind=${printable(8, 12)} chunk=${printable(12, 16)}` +
+          ` flags=0x${(buf[20] ?? 0).toString(16).padStart(2, '0')}` +
+          ` bytes=${kb(buf.length)} (asset says ${kb(asset.size ?? 0)})`,
+      )
       continue
     }
 

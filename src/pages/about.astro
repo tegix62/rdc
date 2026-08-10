@@ -15,6 +15,7 @@ const page = await getPage('about');
       <Img
         class="about-layout__portrait"
         image={page.heroImage}
+        field="heroImage"
         alt={page.heroAlt ?? 'Chris Rumeau'}
         width={500}
         sizes="(max-width: 40rem) 100vw, 500px"

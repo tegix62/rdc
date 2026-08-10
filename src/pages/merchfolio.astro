@@ -41,6 +41,7 @@ const items = await getMerchItems();
             {image && (
               <Img
                 image={image}
+                field={item.thumbnail ? 'thumbnail (Tile Image)' : 'mainImage (Main Project Image)'}
                 alt={item.title}
                 width={600}
                 height={600}

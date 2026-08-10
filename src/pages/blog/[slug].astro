@@ -47,7 +47,7 @@ const ogImage =
       )}
     </p>
     {post.mainImage && (
-      <Img image={post.mainImage} alt={post.title} width={1600} sizes="100vw" loading="eager" fetchpriority="high" />
+      <Img image={post.mainImage} alt={post.title} field="mainImage" width={1600} sizes="100vw" loading="eager" fetchpriority="high" />
     )}
     {post.body?.length > 0 && (
       <div class="prose" set:html={renderPortableText(post.body)} />

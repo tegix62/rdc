@@ -172,6 +172,50 @@ check(
   offenders.join(', ') || `${files.length} files scanned`,
 )
 
+/*
+  Every <Img> says which Studio field it came from.
+
+  THE HISTORY THIS GUARDS
+
+  Chateau Seven's tile rendered as a wide landscape image where a portrait crop
+  was expected, and the build warned about it on every run - but the warning
+  said only `"Chateau Seven"`, which is the DOCUMENT title. A caseStudy has six
+  image fields. So the warning was correct, unactionable, and actively
+  misleading: I guessed "Main Project Image", Chris checked that field, found the
+  setting already off, and said so three times. He was right. The flag was on the
+  THUMBNAIL - the field every tile and More Work card actually uses.
+
+  Days, on a warning that had been printing the answer's postcode and not its
+  street. So the field name is not optional, and this is what keeps it that way
+  for the call site written six months from now.
+*/
+const unlabelled = []
+for (const file of files) {
+  if (!file.endsWith('.astro')) continue
+  if (file.endsWith(path.join('components', 'Img.astro'))) continue
+  const text = await readFile(file, 'utf8')
+  for (const match of text.matchAll(/<Img\b/g)) {
+    // Walk to this element's closing '>', ignoring any inside a JSX expression.
+    let i = match.index + match[0].length
+    let depth = 0
+    while (i < text.length) {
+      const ch = text[i]
+      if (ch === '{') depth += 1
+      else if (ch === '}') depth -= 1
+      else if (ch === '>' && depth === 0) break
+      i += 1
+    }
+    if (!text.slice(match.index, i).includes('field=')) {
+      unlabelled.push(`${path.relative(root, file)}:${text.slice(0, match.index).split('\n').length}`)
+    }
+  }
+}
+check(
+  'every <Img> names the Studio field it came from',
+  unlabelled.length === 0,
+  unlabelled.join(', ') || 'so a build warning says which field to go and fix',
+)
+
 // A truthiness guard on an image field is the specific mistake that shipped
 // twice, so flag the pattern wherever it survives.
 const truthy = []

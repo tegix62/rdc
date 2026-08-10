@@ -208,7 +208,7 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
       <nav class="site-nav__inner">
         <a class="site-nav__brand" href="/">
           {settings?.logo ? (
-            <Img image={settings.logo} alt={SITE_NAME} width={260} sizes="130px" loading="eager" />
+            <Img image={settings.logo} alt={SITE_NAME} field="logo (Wordmark)" width={260} sizes="130px" loading="eager" />
           ) : (
             SITE_NAME
           )}
@@ -241,7 +241,7 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
       <div class="wrap site-footer__top">
         <a class="site-footer__brand" href="/">
           {settings?.logo ? (
-            <Img image={settings.logo} alt={SITE_NAME} width={200} sizes="100px" />
+            <Img image={settings.logo} alt={SITE_NAME} field="logo (Wordmark)" width={200} sizes="100px" />
           ) : (
             SITE_NAME
           )}

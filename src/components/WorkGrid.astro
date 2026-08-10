@@ -60,6 +60,7 @@ const { items = [], heading = 'Selected work', moreHref = '/portfolio' } = Astro
           <Img
             class="pf-item__img"
             image={img}
+            field={item.thumbnail ? 'thumbnail (Tile Image)' : 'mainImage (Main Project Image)'}
             archive={item.archiveMark}
             alt={item.title}
             width={hero ? 1200 : 600}

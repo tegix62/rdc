@@ -47,6 +47,25 @@ interface Props {
     as more marks get drawn and never breaks while they haven't been.
   */
   archive?: any;
+  /*
+    Which Studio field this image came from, for build warnings only. Never
+    rendered.
+
+    This exists because of a diagnosis that took days. Chateau Seven's tile was
+    rendering as a wide landscape image where a portrait crop was expected, and
+    the build warned about it on every run - but the warning said only
+    `"Chateau Seven"`, which is the DOCUMENT title. A caseStudy has six image
+    fields. So the warning correctly identified the document and gave no clue
+    which field, I guessed "Main Project Image", Chris checked that field, found
+    the setting already off, and said so three times. He was right. The flag was
+    on the THUMBNAIL, which is the field every tile and More Work card actually
+    uses.
+
+    A warning that names a document with six image fields is a warning that
+    sends someone to the wrong one. Naming the field is the difference between
+    "there is a problem somewhere in this project" and "turn this off here".
+  */
+  field?: string;
   /** Above-the-fold images should pass "eager". */
   loading?: 'lazy' | 'eager';
   fetchpriority?: 'high' | 'low' | 'auto';
@@ -60,12 +79,27 @@ const {
   width,
   height,
   sizes = '100vw',
+  field,
   loading = 'lazy',
   fetchpriority,
   class: className,
 } = Astro.props;
 
 const alt = altProp || image?.alt || '';
+
+/*
+  How an image is named in a build warning. The document title alone is not
+  enough to act on when a document has six image fields - see the `field` prop.
+
+  The asset reference is included as a last resort: it is what Studio shows in
+  the asset's own details pane, so a warning is traceable even where no field
+  name was passed.
+*/
+const ref: string | undefined = image?.asset?._ref ?? image?._ref;
+const where =
+  `"${alt || 'untitled'}"` +
+  (field ? ` → ${field}` : '') +
+  (ref ? ` (${ref})` : '');
 
 /*
   The main image field can be a shell with no file attached - see hasAsset()
@@ -79,8 +113,8 @@ const alt = altProp || image?.alt || '';
 const imageOk = hasAsset(image);
 if (!imageOk) {
   console.error(
-    `[Img] "${alt || 'untitled'}" has an image field with no file attached - ` +
-      `skipping it rather than breaking the build. Check this document in ` +
+    `[Img] ${where} has an image field with no file attached - ` +
+      `skipping it rather than breaking the build. Check that field in ` +
       `Studio: an image field can save its crop/hotspot/"serve as uploaded" ` +
       `settings even when nothing was actually uploaded.`,
   );
@@ -93,9 +127,11 @@ if (!imageOk) {
 const archiveHasAsset = archive && hasAsset(archive);
 if (archive && !archiveHasAsset) {
   console.warn(
-    `[Img] "${alt || 'untitled'}" has an archive-mark field with no file ` +
-      `attached - falling back to the CSS threshold instead of the authored ` +
-      `mark. Upload a file or clear the field in Studio.`,
+    // Names archiveMark, not `where`: `where` describes the main image, and this
+    // warning is about a different field on the same document.
+    `[Img] "${alt || 'untitled'}" → archiveMark ("Archive Mark" in Studio) has ` +
+      `no file attached - falling back to the CSS threshold instead of the ` +
+      `authored mark. Upload a file or clear the field.`,
   );
 }
 const archiveSrc = imageUrl(archive)?.width(cappedWidth(archive, width)) ?? null;
@@ -146,10 +182,10 @@ if (cropped && passThrough && intrinsic) {
   const real = (intrinsic.width / intrinsic.height).toFixed(2);
   if (asked !== real) {
     console.warn(
-      `[Img] "${alt || 'untitled'}" asks for a ${asked}:1 crop but is served ` +
+      `[Img] ${where} asks for a ${asked}:1 crop but is served ` +
         `exactly as uploaded, so it renders at ${real}:1. Cropping needs a ` +
-        `transform; turn off "serve exactly as uploaded" on this image, or ` +
-        `accept its own shape.`,
+        `transform; turn off "serve exactly as uploaded" on THAT field, or ` +
+        `accept the image's own shape.`,
     );
   }
 }
@@ -191,15 +227,16 @@ const srcset = imageOk && !passThrough ? buildSrcSet(image, width, aspect) : und
 const manualPassThrough = image?.noRecompress === true;
 if (manualPassThrough && intrinsic && intrinsic.width > width * 2) {
   console.warn(
-    `[Img] "serve exactly as uploaded" image is ${intrinsic.width}px wide but ` +
-      `renders at most ${width}px. Every visitor downloads the full file. ` +
-      `Consider uploading it closer to ${width * 2}px.`,
+    `[Img] ${where} is set to "serve exactly as uploaded" and is ` +
+      `${intrinsic.width}px wide, but renders at most ${width}px. Every ` +
+      `visitor downloads the full file. Consider uploading it closer to ` +
+      `${width * 2}px.`,
   );
 }
 if (manualPassThrough && (image?.crop || image?.hotspot)) {
   console.warn(
-    '[Img] "serve exactly as uploaded" ignores the crop/hotspot set in Studio, ' +
-      'because cropping requires re-encoding.',
+    `[Img] ${where} is set to "serve exactly as uploaded", which ignores the ` +
+      `crop/hotspot set in Studio - cropping requires re-encoding.`,
   );
 }
 ---

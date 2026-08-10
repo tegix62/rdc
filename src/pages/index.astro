@@ -128,7 +128,7 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
         {clientLogos.map((item: any) =>
           item.logo ? (
             <a href={item.href || '#'} class="logo-strip__item">
-              <Img image={item.logo} alt={item.alt || ''} width={220} sizes="150px" />
+              <Img image={item.logo} alt={item.alt || ''} field="clientLogos[].logo" width={220} sizes="150px" />
             </a>
           ) : null,
         )}
@@ -188,6 +188,7 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
       <Img
         class="final-cta__portrait"
         image={settings.portrait}
+        field="portrait (Portrait of you)"
         alt="Chris Rumeau, founder of Rumeau Design Co"
         width={700}
         sizes="(max-width: 40rem) 100vw, 40vw"

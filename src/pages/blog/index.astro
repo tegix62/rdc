@@ -28,6 +28,7 @@ const posts = await getBlogPosts();
         {(post.thumbnailImage || post.mainImage) && (
           <Img
             image={post.thumbnailImage || post.mainImage}
+            field={post.thumbnailImage ? 'thumbnailImage' : 'mainImage'}
             alt={post.title}
             width={600}
             height={400}

@@ -95,6 +95,7 @@ const ogImage =
         file={caseStudy.heroVideoFile}
         webm={caseStudy.heroVideoWebm}
         poster={caseStudy.mainImage ?? caseStudy.thumbnail}
+        posterField={caseStudy.mainImage ? 'mainImage (Main Project Image)' : 'thumbnail (Tile Image)'}
         playback={caseStudy.heroVideoPlayback ?? 'autoplay'}
         title={caseStudy.title}
         width={2400}
@@ -105,6 +106,7 @@ const ogImage =
       <div class="work-hero full-bleed">
         <Img
           image={caseStudy.mainImage}
+          field="mainImage (Main Project Image)"
           alt={caseStudy.title}
           width={2400}
           sizes="100vw"
@@ -135,7 +137,7 @@ const ogImage =
         <div class="work-identity__aside">
           {caseStudy.clientLogo && (
             <div class="work-identity__mark">
-              <Img image={caseStudy.clientLogo} alt={caseStudy.client ?? ''} width={340} sizes="170px" />
+              <Img image={caseStudy.clientLogo} alt={caseStudy.client ?? ''} field="clientLogo (Client's Logo)" width={340} sizes="170px" />
             </div>
           )}
           {caseStudy.credits?.length > 0 && (
@@ -216,7 +218,7 @@ const ogImage =
         caseStudy[field]?.length > 0 ? (
           <div class="grid">
             {caseStudy[field].map((img: any) => (
-              <Img image={img} width={800} sizes="(max-width: 40rem) 100vw, 33vw" />
+              <Img image={img} field={field} width={800} sizes="(max-width: 40rem) 100vw, 33vw" />
             ))}
           </div>
         ) : null,
@@ -226,7 +228,7 @@ const ogImage =
           {gridItems.map(
             (item: any) =>
               item.thumbnail && (
-                <Img image={item.thumbnail} alt={item.title} width={800} sizes="(max-width: 40rem) 100vw, 33vw" />
+                <Img image={item.thumbnail} alt={item.title} field="thumbnail (Tile Image)" width={800} sizes="(max-width: 40rem) 100vw, 33vw" />
               ),
           )}
         </div>
@@ -246,6 +248,7 @@ const ogImage =
                 <Img
                   image={img}
                   alt={item.title}
+                  field={item.thumbnail ? 'thumbnail (Tile Image)' : 'mainImage (Main Project Image)'}
                   width={600}
                   height={750}
                   sizes="(max-width: 40rem) 33vw, 25vw"

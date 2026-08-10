@@ -180,6 +180,7 @@ if (emptyFilters.length > 0) {
               <Img
                 class="pf-item__img"
                 image={img}
+                field={item.thumbnail ? 'thumbnail (Tile Image)' : 'mainImage (Main Project Image)'}
                 archive={item.archiveMark}
                 alt={item.title}
                 width={item.heroTile ? 1600 : 800}

@@ -25,17 +25,17 @@ const { sections } = Astro.props;
           {/* No alt prop: it comes from the image's own field in Sanity now.
               This used to read section.alt, which was never in the schema, so
               every full-width image shipped with an empty alt. */}
-          <Img image={section.image} width={2000} sizes="100vw" />
+          <Img image={section.image} field={`${section._type} → image`} width={2000} sizes="100vw" />
         </div>
       ) : null;
     case 'twoUpSection':
       return (
         <div class="work-section work-section--two-up">
           {section.imageLeft && (
-            <Img image={section.imageLeft} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
+            <Img image={section.imageLeft} field={`${section._type} → imageLeft`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
           )}
           {section.imageRight && (
-            <Img image={section.imageRight} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
+            <Img image={section.imageRight} field={`${section._type} → imageRight`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
           )}
         </div>
       );
@@ -44,7 +44,7 @@ const { sections } = Astro.props;
         <div class="work-section work-section--three-up">
           {[section.imageOne, section.imageTwo, section.imageThree].map(
             (img: any) =>
-              img && <Img image={img} width={800} sizes="(max-width: 40rem) 100vw, 33vw" />,
+              img && <Img image={img} field={`${section._type} → imageOne/Two/Three`} width={800} sizes="(max-width: 40rem) 100vw, 33vw" />,
           )}
         </div>
       );
@@ -58,7 +58,7 @@ const { sections } = Astro.props;
           ]}
         >
           {section.image && (
-            <Img image={section.image} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
+            <Img image={section.image} field={`${section._type} → image`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
           )}
           <div class="work-section__text">
             {section.heading && <h3>{section.heading}</h3>}
@@ -75,6 +75,7 @@ const { sections } = Astro.props;
               file={section.videoFile}
               webm={section.videoWebm}
               poster={section.videoPoster}
+                posterField={`${section._type} → videoPoster`}
               playback={section.videoPlayback}
               title={section.caption ?? 'Video'}
               width={1600}
@@ -111,10 +112,10 @@ const { sections } = Astro.props;
         <div class="work-section work-section--achievements">
           <div class="work-section--achievements__images">
             {section.imageLeft && (
-              <Img image={section.imageLeft} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
+              <Img image={section.imageLeft} field={`${section._type} → imageLeft`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
             )}
             {section.imageRight && (
-              <Img image={section.imageRight} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
+              <Img image={section.imageRight} field={`${section._type} → imageRight`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
             )}
           </div>
           {section.items?.length > 0 && <div set:html={renderPortableText(section.items)} />}
@@ -130,6 +131,7 @@ const { sections } = Astro.props;
                 file={section.videoFile}
                 webm={section.videoWebm}
                 poster={section.videoPoster}
+                posterField={`${section._type} → videoPoster`}
                 playback={section.videoPlayback}
                 title={section.heading ?? 'Video'}
                 width={2000}
@@ -164,7 +166,7 @@ const { sections } = Astro.props;
         <div class="work-section media-row" style={`--media-count: ${items.length}`}>
           {section.heading && <h3 class="media-row__heading">{section.heading}</h3>}
           <div class="media-row__items">
-            {items.map((item: any) => (
+            {items.map((item: any, i: number) => (
               <figure class="media-row__item">
                 {item._type === 'mediaVideo' ? (
                   <div class="work-video-frame">
@@ -173,6 +175,7 @@ const { sections } = Astro.props;
                       file={item.videoFile}
                       webm={item.videoWebm}
                       poster={item.videoPoster}
+                      posterField={`mediaRowSection → items[${i}].videoPoster`}
                       playback={item.videoPlayback}
                       title={item.caption ?? 'Video'}
                       width={slotWidth}
@@ -182,6 +185,7 @@ const { sections } = Astro.props;
                 ) : (
                   <Img
                     image={item.image}
+                    field={`mediaRowSection → items[${i}].image`}
                     width={slotWidth}
                     sizes={`(max-width: 40rem) 100vw, ${Math.round(100 / items.length)}vw`}
                   />
@@ -214,6 +218,7 @@ const { sections } = Astro.props;
                 file={section.videoFile}
                 webm={section.videoWebm}
                 poster={section.videoPoster}
+                posterField={`${section._type} → videoPoster`}
                 playback={section.videoPlayback}
                 title={section.heading ?? 'Video'}
                 width={1200}
@@ -222,7 +227,7 @@ const { sections } = Astro.props;
             </div>
           ) : (
             section.image && (
-              <Img image={section.image} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
+              <Img image={section.image} field={`${section._type} → image`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
             )
           )}
           <div class="work-section__text">
@@ -247,6 +252,7 @@ const { sections } = Astro.props;
                       <Img
                         image={item.icon}
                         alt={item.iconAlt ?? ''}
+                        field="aestheticRangeSection → items[].icon"
                         width={320}
                         sizes="(max-width: 40rem) 40vw, 160px"
                       />

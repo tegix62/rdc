@@ -34,6 +34,10 @@ interface Props {
   /** Uploaded WebM. Offered before the MP4, being usually smaller. */
   webm?: {asset?: {url?: string}} | null;
   poster?: any;
+  /* Which Studio field the poster came from, for build warnings only - see the
+     `field` prop on Img.astro. A warning naming only the document sends someone
+     to the wrong one of its six image fields. */
+  posterField?: string;
   playback?: 'click' | 'autoplay' | null;
   /** Used for the accessible name, and as the iframe title. */
   title?: string;
@@ -48,6 +52,7 @@ const {
   file,
   webm,
   poster,
+  posterField,
   playback = 'click',
   title = 'Video',
   width = 1600,
@@ -150,7 +155,7 @@ const posterUrl = imageUrl(poster)?.width(width).url() ?? null;
   <div class:list={['video', 'video--embed', className]} data-video-embed={embed} data-video-title={title}>
     <button type="button" class="video__facade" aria-label={`Play ${title}`}>
       {poster ? (
-        <Img image={poster} alt="" width={width} sizes={sizes} />
+        <Img image={poster} alt="" field={posterField ?? 'video poster'} width={width} sizes={sizes} />
       ) : fallbackPoster ? (
         /* Not through Img: this is a third-party URL, not a Sanity asset, so
            there is no reference to derive dimensions or a srcset from. */

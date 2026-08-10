@@ -279,3 +279,96 @@ Kept short; the detail is in `WORKLOG-overnight.md`.
   trustworthy: every audit states which build it describes and fails hard if
   it cannot confirm it's measuring its own commit. That check caught a broken
   deploy that three earlier runs had papered over.
+
+---
+
+## 4. Site review — 2026-08-10
+
+A page-by-page pass, source plus measured audit. Ordered by how much they
+matter, not by effort. Schema/Studio findings live in `STUDIO-STREAMLINE.md`.
+
+### Errors — things that are wrong right now
+
+- [ ] **Six unguarded `urlFor()` calls can take the whole build down.** An image
+  field saved with settings but no file attached — what happened to Golden
+  Coast's archive mark — throws and kills all 21 pages. `Img.astro` is fixed;
+  these are not: `Layout.astro:81` (logo) and `:98` (favicon) — either takes
+  down *every* page — plus `image.ts backgroundUrl()`, `work/[slug].astro:54`,
+  `blog/[slug].astro:27`, `Video.astro:103`, `portableText.ts:10`.
+  Fix: use `hasAsset()` from `lib/image.ts`, same as `Img.astro` now does.
+- [ ] **`/work/two-point-oh` renders an empty video box.** Its `filmEmbed` holds
+  an object, not a URL (migration leftover). `Video` correctly renders nothing,
+  but the `work-video-frame` wrapper around it still renders. Gate the wrapper
+  on `embedUrl()` returning non-null, and fix the field in Studio.
+- [ ] **Every image in a case study body has `alt=""`.** Eleven `<Img>` call
+  sites pass no `alt` and fall back to the image's Sanity field, which is empty
+  on all 75 case studies and all 5 posts. Note this was "fixed" once — the alt
+  source moved from a non-existent field to a real one that nobody filled, so
+  the output never changed.
+- [ ] **Three client logos are links with no accessible name.** Their `alt` is
+  blank, so a screen reader announces "link" and nothing else. Any logo with no
+  `href` also renders `<a href="#">` — a dead link that still takes a tab stop.
+
+### Weight
+
+- [ ] **`/portfolio` is 11.5 MB; `/` is 4.4 MB.** LCP and CLS are excellent
+  everywhere (max 444 ms, max 0.025) — this is a bytes problem, not a lab-metric
+  one, so it hurts on mobile data and nowhere else.
+- [ ] **One animated file is 3,981 KB of the homepage's 4,384 KB.** On
+  `/portfolio`, four animated files account for ~4.5 MB (one is a *200px-wide*
+  file weighing 606 KB). `convert-animations` exists and is waiting on a
+  go-ahead. Nothing else on this list comes close for impact.
+
+### SEO and social
+
+- [ ] **No page appends the site name to `<title>`.** Every title is bare.
+- [ ] **No `og:image` on 7 of 9 static pages** — including the homepage, the
+  most-shared URL on the site. One default in `siteSettings` fixes all of them.
+- [ ] **Case studies with no `oneLineSummary` share the site-wide meta
+  description.** Duplicate descriptions across pages.
+- [ ] **Blog, Collage and Merchfolio are unreachable from the nav.** Built,
+  populated, in the sitemap, and nothing links to them.
+
+### Accessibility
+
+- [ ] **No skip link** — keyboard users tab the whole nav on every page.
+- [ ] **Mobile menu** doesn't close on Escape or move focus when opened.
+
+### Page-level
+
+- [ ] **Homepage: the video placeholder is still a grey box** —
+  `<div role="img" aria-label="Process video coming soon">`. The most visible
+  unfinished thing on the site; Webflow has the animated sketch collage there.
+- [ ] **`/404` is a dead end** — no link back to anything.
+- [ ] **`/merchfolio` ignores `page.sections`** (Collage and Video render them),
+  has no empty state, and compares `pageType` without `cleanKey()` — the exact
+  pattern that silently broke the Portfolio filters.
+- [ ] **`/video` and `/collage` have opposite placeholder logic.** Video shows
+  "Content coming soon" when *body* is empty even if videos exist; Collage keys
+  off *sections*. One of them is wrong.
+- [ ] **`/blog` card text measures 31–37 characters** against the 45–75 held
+  everywhere else. Three columns is too many at that width.
+- [ ] **Blog dates** are formatted at build time with the CI runner's locale,
+  and there's no `<time>` element.
+- [ ] Unused `urlFor` imports in `merchfolio`, `blog/index`, `portfolio`.
+- [ ] **Footer legal name** is a hardcoded string swap — rename the site in
+  Studio and "Rumeau Design LLC" silently disappears.
+
+### Questions rather than defects
+
+- [ ] **Credits render Role — Name.** Chris described name and role with *the
+  name* hyperlinked. Flip the order?
+- [ ] **Right-click / drag blocking**, ported from Webflow. It protects nothing
+  (view-source, devtools, screenshots all work) and breaks "open image in new
+  tab". Deliberate carry-over — worth a second look, not a defect.
+
+### Fixed during this review
+
+- [x] **The CMS field audit had been crashing instead of running** for weeks,
+  writing its own stack trace into `latest/cms.md`. Every audit step is
+  `continue-on-error` and pipes through `tee`, so the workflow reported success
+  throughout — and a silently dead field-audit reads as "no dead fields", which
+  is exactly backwards. Stub now tolerates any import; a report that is a crash
+  log now fails the run. (`30341d0`)
+- [x] **Favicon is uploaded and live** — Site Settings shows it filled, and the
+  unguarded `urlFor` on it would crash the build if it weren't.

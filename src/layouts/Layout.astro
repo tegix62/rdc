@@ -6,7 +6,7 @@ import '@fontsource/gothic-a1/700.css';
 import '../styles/global.css';
 import { getSiteSettings } from '../lib/queries';
 import Img from '../components/Img.astro';
-import { urlFor } from '../lib/image';
+import { imageUrl } from '../lib/image';
 import VisualEditing from '../components/VisualEditing.astro';
 import { buildGraph, serialise, type SiteContext } from '../lib/structuredData';
 
@@ -78,7 +78,7 @@ const structuredDataContext: SiteContext = {
   title,
   description,
   image: ogImage,
-  logoUrl: settings?.logo ? urlFor(settings.logo).width(512).url() : undefined,
+  logoUrl: imageUrl(settings?.logo)?.width(512).url(),
   settings,
 };
 const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) ?? []);
@@ -94,8 +94,8 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
       to /favicon.svg, which has never existed - so until one is uploaded every
       page load 404s on it and tabs show a blank icon.
     */}
-    {settings?.favicon ? (
-      <link rel="icon" href={urlFor(settings.favicon).width(64).height(64).fit('crop').url()} />
+    {imageUrl(settings?.favicon) ? (
+      <link rel="icon" href={imageUrl(settings.favicon)!.width(64).height(64).fit('crop').url()} />
     ) : (
       <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     )}

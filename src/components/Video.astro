@@ -23,7 +23,7 @@
   by keyboard and announced as a control for free.
 */
 import {embedUrl} from '../lib/video';
-import {urlFor} from '../lib/image';
+import {imageUrl} from '../lib/image';
 import Img from './Img.astro';
 
 interface Props {
@@ -70,11 +70,20 @@ const autoplay = selfHosted && playback === 'autoplay';
 */
 const embed = !selfHosted ? embedUrl(url) : null;
 
-// Content problems should be visible to whoever can fix them, not swallowed.
+/*
+  Content problems should be visible to whoever can fix them, not swallowed.
+
+  Named by `title`, because the value alone is useless as a diagnostic: when the
+  field holds an object the message read `[Video] "[object Object]"`, which says
+  there is a problem somewhere in 21 pages and nothing about where. The title is
+  already passed in for the accessible name, so it costs nothing to say which
+  document to open.
+*/
 if (!selfHosted && url && !embed) {
+  const shown = typeof url === 'string' ? `"${url.slice(0, 80)}"` : `a ${typeof url}, not a link`;
   console.warn(
-    `[Video] "${String(url).slice(0, 80)}" is not a YouTube or Vimeo link, so ` +
-      `nothing will render here. Only those two are embeddable.`,
+    `[Video] ${title}: ${shown} is not a YouTube or Vimeo link, so nothing ` +
+      `will render here. Only those two are embeddable.`,
   );
 }
 
@@ -100,7 +109,7 @@ const youTubeId = embed?.includes('youtube.com/embed/')
   where the poster should be.
 */
 const fallbackPoster = youTubeId ? `https://i.ytimg.com/vi/${youTubeId}/sddefault.jpg` : null;
-const posterUrl = poster ? urlFor(poster).width(width).url() : null;
+const posterUrl = imageUrl(poster)?.width(width).url() ?? null;
 ---
 
 {selfHosted ? (

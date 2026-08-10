@@ -14,7 +14,7 @@
   Pass `width`/`height` together to crop to a fixed ratio; pass `width`
   alone to keep the source's own aspect.
 */
-import { urlFor, imageDimensions, buildSrcSet, originalUrl, isPassThrough, cappedWidth, hasAsset } from '../lib/image';
+import { imageUrl, imageDimensions, buildSrcSet, originalUrl, isPassThrough, cappedWidth, hasAsset } from '../lib/image';
 import { isAnimatedSource } from '../lib/animated';
 import { getAnimatedVideo } from '../lib/animatedVideo';
 
@@ -99,7 +99,7 @@ if (archive && !archiveHasAsset) {
       `mark. Upload a file or clear the field in Studio.`,
   );
 }
-const archiveSrc = archiveHasAsset ? urlFor(archive).width(cappedWidth(archive, width)) : null;
+const archiveSrc = imageUrl(archive)?.width(cappedWidth(archive, width)) ?? null;
 
 const cropped = typeof height === 'number';
 const aspect = cropped ? {width, height: height!} : undefined;
@@ -172,7 +172,7 @@ const video = passThrough ? await getAnimatedVideo(image, width) : null;
   the browser had.
 */
 const askWidth = cappedWidth(image, width);
-let builtSrc = imageOk ? urlFor(image).width(askWidth) : null;
+let builtSrc = imageUrl(image)?.width(askWidth) ?? null;
 if (builtSrc && cropped) builtSrc = builtSrc.height(Math.round((askWidth * height!) / width)).fit('crop');
 
 const src = original ?? builtSrc?.url() ?? '';

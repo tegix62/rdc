@@ -3,7 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import Img from '../../components/Img.astro';
 import { sanityClient } from '../../lib/sanity';
 import { getBlogPost } from '../../lib/queries';
-import { urlFor } from '../../lib/image';
+import { imageUrl } from '../../lib/image';
 import { renderPortableText } from '../../lib/portableText';
 import { blogPostNode } from '../../lib/structuredData';
 
@@ -24,7 +24,7 @@ const ogImage = ogSource
   // auto-format, an animated source comes back as an animated WebP, which
   // every scraper rejects and which can run to megabytes - the same
   // re-encode-every-frame blow-up that made the homepage 10 MB.
-  ? urlFor(ogSource).width(1200).height(630).fit('crop').format('jpg').url()
+  ? imageUrl(ogSource)?.width(1200).height(630).fit('crop').format('jpg').url()
   : undefined;
 ---
 

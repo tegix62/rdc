@@ -3,11 +3,47 @@ import { sanityClient } from './sanity';
 
 const builder = imageUrlBuilder(sanityClient);
 
-export function urlFor(source: unknown) {
+/*
+  The raw builder. Throws on an image field with no file attached, which is why
+  nothing outside this file is allowed to call it - use `imageUrl()` below.
+
+  scripts/test-image-guards.mjs enforces that rule by grep, because the failure
+  it prevents is not subtle: a single half-finished image field took down all 21
+  pages for hours, and it did it twice.
+*/
+function urlFor(source: unknown) {
   // `auto('format')` lets Sanity's CDN negotiate WebP/AVIF per browser
   // instead of always shipping the original JPEG/PNG. Quality 80 is
   // visually indistinguishable here and materially smaller.
   return builder.image(source as never).auto('format').quality(80);
+}
+
+/*
+  urlFor, but null instead of an exception when there is no file attached.
+
+  THE BUG THIS EXISTS TO END
+
+  A Sanity image field can be saved as an object shell - crop, hotspot,
+  inkMode, noRecompress - with no asset. Studio produces one just by opening
+  the field's options before dropping a file in, which is what happened to
+  Golden Coast's archive mark. `urlFor()` throws on it: "Unable to resolve
+  image URL from source".
+
+  Because the whole site is one static build, one document in that state does
+  not break one tile - it breaks every page. GROQ cannot filter it out either,
+  since `defined(field)` is true for the shell: the field exists, it just has
+  nothing in it.
+
+  Every call site guarded itself with a truthiness check, and a shell is truthy,
+  so every call site was wrong in the same way. This is the single place that
+  gets it right, and the only place allowed to call the builder.
+
+  Returns the builder so callers keep chaining as before:
+
+    imageUrl(settings.logo)?.width(512).url()
+*/
+export function imageUrl(source: unknown) {
+  return hasAsset(source) ? urlFor(source) : null;
 }
 
 /*
@@ -151,14 +187,17 @@ export function cappedWidth(source: unknown, requested: number): number {
   the asset reference's extension is not trustworthy on this dataset.
 */
 export async function backgroundUrl(source: any, width: number): Promise<string | null> {
-  if (!source) return null;
+  // hasAsset, not truthiness: a saved-but-empty image field is an object, so
+  // `!source` waved it through and the builder threw on it. This is the
+  // homepage hero and the proof band, so the whole page went with it.
+  if (!hasAsset(source)) return null;
   const {isAnimatedSource} = await import('./animated');
   const animated = await isAnimatedSource(source);
   if (isPassThrough(source, animated)) {
     const original = originalUrl(source);
     if (original) return original;
   }
-  return urlFor(source).width(cappedWidth(source, width)).url();
+  return imageUrl(source)?.width(cappedWidth(source, width)).url() ?? null;
 }
 
 // The widths offered to the browser. Chosen to bracket the sizes this site

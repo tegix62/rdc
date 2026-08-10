@@ -2,7 +2,6 @@
 import Layout from '../layouts/Layout.astro';
 import Img from '../components/Img.astro';
 import { getPage, getMerchItems } from '../lib/queries';
-import { urlFor } from '../lib/image';
 
 const page = await getPage('merchfolio');
 const items = await getMerchItems();

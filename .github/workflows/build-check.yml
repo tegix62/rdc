@@ -44,4 +44,12 @@ jobs:
       # back to src and quietly stops being responsive - so this can't be
       # caught by looking at the site.
       - run: npm run test:images
+
+      # An image field saved with no file attached used to throw inside urlFor
+      # and take all 21 pages down with it - twice. Every call site now goes
+      # through the guarded imageUrl(), and this asserts both that the guard
+      # works and that nothing has gone back to calling the raw builder. Runs
+      # before the build, because it is the build this protects.
+      - run: node scripts/test-image-guards.mjs
+
       - run: npm run build

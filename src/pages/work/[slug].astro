@@ -4,7 +4,8 @@ import Img from '../../components/Img.astro';
 import Sections from '../../components/Sections.astro';
 import { sanityClient } from '../../lib/sanity';
 import { getCaseStudy, getGridItems, getOtherCaseStudies } from '../../lib/queries';
-import { urlFor } from '../../lib/image';
+import { imageUrl } from '../../lib/image';
+import { embedUrl } from '../../lib/video';
 import { renderPortableText } from '../../lib/portableText';
 import Video from '../../components/Video.astro';
 import { caseStudyNode } from '../../lib/structuredData';
@@ -44,6 +45,20 @@ const bandStyle = caseStudy.accentColor
       .join('; ')
   : undefined;
 
+/*
+  The film embed, resolved in advance.
+
+  `filmEmbed` is declared as a url but one migrated document holds an OBJECT,
+  which is truthy - so the block below rendered its frame, `Video` correctly
+  declined to render anything inside a frame it could not fill, and
+  /work/two-point-oh shipped an empty bordered gap. The build has been logging
+  `[Video] "[object Object]"` about it on every run.
+
+  Gating on the resolved URL instead of on the raw field means an unusable value
+  produces no block at all, which is the right amount of page for no video.
+*/
+const filmEmbed = embedUrl(caseStudy.filmEmbed);
+
 // Social previews need an absolute URL and a predictable crop.
 const ogSource = caseStudy.mainImage ?? caseStudy.thumbnail;
 const ogImage = ogSource
@@ -51,7 +66,7 @@ const ogImage = ogSource
   // auto-format, an animated source comes back as an animated WebP, which
   // every scraper rejects and which can run to megabytes - the same
   // re-encode-every-frame blow-up that made the homepage 10 MB.
-  ? urlFor(ogSource).width(1200).height(630).fit('crop').format('jpg').url()
+  ? imageUrl(ogSource)?.width(1200).height(630).fit('crop').format('jpg').url()
   : undefined;
 ---
 
@@ -167,12 +182,12 @@ const ogImage = ogSource
     study can lead with its story and then show the film, rather than
     competing with the hero for the top of the page.
   */}
-  {caseStudy.filmEmbed && (
+  {filmEmbed && (
     <div class="work-section work-section--video">
       <div class="work-video-frame">
         {/* Through Video for the same reason as everything else: the 640 KB of
             player script waits for someone to actually want it. */}
-        <Video url={caseStudy.filmEmbed} title={`${caseStudy.title} film`} width={1600} />
+        <Video url={filmEmbed} title={`${caseStudy.title} film`} width={1600} />
       </div>
     </div>
   )}

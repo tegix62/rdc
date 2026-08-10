@@ -11,7 +11,7 @@
   That's how the site behaves before the conversion has ever been run.
 */
 import {sanityClient} from './sanity';
-import {urlFor, cappedWidth} from './image';
+import {imageUrl, cappedWidth} from './image';
 
 export interface AnimatedVideo {
   mp4: string | null;
@@ -126,7 +126,8 @@ export async function getAnimatedVideo(
   */
   let poster: string | null = null;
   try {
-    poster = urlFor(source).width(cappedWidth(source, posterWidth)).format('jpg').url();
+    poster =
+      imageUrl(source)?.width(cappedWidth(source, posterWidth)).format('jpg').url() ?? null;
   } catch {
     poster = null;
   }

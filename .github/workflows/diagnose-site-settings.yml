@@ -1,0 +1,41 @@
+name: Diagnose site settings
+
+# Chris pasted the Meta Pixel ID into Studio, Publish is greyed out (so it is
+# saved and published), and the build still logs "[MetaPixel] off - no ID in
+# Site Settings". The preview build reads with useCdn:false, so caching cannot
+# be the answer. This prints every siteSettings document and says which one
+# `*[_type == "siteSettings"][0]` actually resolves to.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/diagnose-site-settings.mjs'
+      - '.github/workflows/diagnose-site-settings.yml'
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Look
+        # The token is what makes drafts visible, and "it is sitting in an
+        # unpublished draft" is one of the two things being tested.
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+        run: |
+          set -o pipefail
+          node scripts/diagnose-site-settings.mjs 2>&1 | tee site-settings.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "## Site Settings"
+            echo ""
+            echo '```'
+            cat site-settings.txt 2>/dev/null || echo '(the script did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

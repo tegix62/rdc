@@ -9,6 +9,38 @@ Studio triggers the rebuild itself, usually live within a couple of minutes.
 Two things need setting up, both outside this repo, and only Chris can do
 either - they need his GitHub account and his Sanity project.
 
+---
+
+## ⚠️ DO NOT SET THIS UP UNTIL THE WORK BRANCH IS MERGED TO `main`
+
+`repository_dispatch` always runs the workflow on the repository's **default
+branch**. There is no way to point it at another one: the event carries no ref,
+and GitHub picks `main` regardless of where the workflow file also exists.
+
+At the time of writing, `main` is **203 commits behind**
+`claude/webflow-astro-sanity-port-ig55e2`, which is where every change lives. So
+turning this on today would mean: publish in Studio → GitHub rebuilds `main` →
+the preview is replaced by a months-old build. Every publish would appear to
+destroy the site.
+
+Check before enabling it:
+
+```
+git fetch origin main
+git rev-list --count origin/main..origin/<work-branch>
+```
+
+`0` means `main` has everything and this is safe to turn on. Anything else means
+wait.
+
+**Until then, rebuild by hand** - which is all Claude has been doing:
+https://github.com/tegix62/rdc/actions/workflows/deploy-pages.yml → "Run
+workflow" → **choose the work branch, not `main`** → Run. About two minutes.
+Same gotcha as above: the branch selector defaults to `main`, and running it on
+`main` deploys the stale build.
+
+---
+
 ## 1. A GitHub token Sanity can use to trigger the workflow
 
 1. GitHub → Settings → Developer settings → **Personal access tokens →

@@ -54,8 +54,21 @@ const all = await groq(`*[_type == "siteSettings"]{
   "featuredCount": count(featuredWork)
 } | order(_id asc)`)
 
-// Exactly what the site does.
-const picked = await groq(`*[_type == "siteSettings"][0]{_id, metaPixelId}`)
+/*
+  What the SITE sees, which is not what this script sees.
+
+  The site reads without a token, and an unauthenticated read cannot see drafts
+  at all. This script reads WITH one, so plain `*[_type == "siteSettings"][0]`
+  here can resolve to a draft the site will never load - and the first version
+  of this file did exactly that, then printed "the pixel SHOULD be emitting"
+  about a draft. It answered its own question wrong while looking straight at
+  the evidence.
+
+  The drafts filter is what an unauthenticated read gets, spelled out.
+*/
+const picked = await groq(
+  `*[_type == "siteSettings" && !(_id in path("drafts.**"))][0]{_id, metaPixelId}`,
+)
 
 console.log(`# Site Settings documents\n`)
 console.log(
@@ -86,14 +99,23 @@ for (const d of all) {
   console.log()
 }
 
-console.log(`## The one the site actually uses\n`)
+console.log(`## The one the site actually uses (published only, as the site reads it)\n`)
 console.log(`  ${picked?._id ?? '(none)'}`)
 console.log(`  metaPixelId: ${JSON.stringify(picked?.metaPixelId ?? null)}`)
 console.log()
+
+const draftPixel = all.find((d) => d._id.startsWith('drafts.'))?.metaPixelId ?? null
+
 if (picked?.metaPixelId) {
   console.log(`  So the pixel SHOULD be emitting. If a build still says "off", the`)
   console.log(`  build ran before this value was saved - rebuild and check again.`)
+} else if (draftPixel) {
+  console.log(`  Empty HERE, but set to ${JSON.stringify(draftPixel)} on the draft.`)
+  console.log(`  That is the whole answer: the ID is typed and saved, and saving in`)
+  console.log(`  Sanity writes a DRAFT. The site only ever reads published content,`)
+  console.log(`  so an unpublished field looks exactly like a field nobody filled in.`)
+  console.log(`  Publish Site Settings and the next build picks it up.`)
 } else {
-  console.log(`  Empty, which is why the build says the pixel is off. If Studio shows`)
-  console.log(`  a value, Studio is showing a DIFFERENT document from this one.`)
+  console.log(`  Empty, and no draft has it either, which is why the build says the`)
+  console.log(`  pixel is off.`)
 }

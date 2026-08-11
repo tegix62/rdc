@@ -50,6 +50,32 @@ const settings = await fetchGroq(`*[_type == "siteSettings"][0]{
   "featured": featuredWork[]->{ title, "thumb": thumbnail.asset._ref, "main": mainImage.asset._ref }
 }`)
 
+/*
+  The homepage `page` document, which renders `<Sections sections={page.sections} />`.
+
+  The first version of this script did not look here, reported "no duplicates"
+  and nearly had me tell Chris the theory was dead. That would have been the
+  animated-WebP mistake again: a diagnostic shaped like the answer I expected,
+  silent about everywhere I had not thought to look. A section block can hold an
+  image in a dozen different field names, so this walks the whole document and
+  collects every asset reference it finds, rather than naming fields I remember.
+*/
+const homepage = await fetchGroq(`*[_type == "page" && slug.current == "home"][0]`)
+const homepageAlt = homepage ?? (await fetchGroq(`*[_type == "page" && slug.current == "/"][0]`))
+
+const refsIn = (node, trail = 'page', out = []) => {
+  if (!node || typeof node !== 'object') return out
+  if (typeof node._ref === 'string' && node._ref.startsWith('image-')) {
+    out.push({where: trail, ref: node._ref})
+    return out
+  }
+  for (const [k, v] of Object.entries(node)) {
+    if (k === '_key' || k === '_id') continue
+    refsIn(v, Array.isArray(node) ? `${trail}[${k}]` : `${trail}.${k}`, out)
+  }
+  return out
+}
+
 // What the grid falls back to while the picker is empty - the same query
 // getFeaturedWork uses.
 const studies = await fetchGroq(`*[_type == "caseStudy" && pageType == "Case Study"
@@ -70,6 +96,15 @@ add('favicon', settings?.favicon)
 add('default social card', settings?.social)
 for (const [i, l] of (settings?.clientLogos ?? []).entries()) {
   add(`client logo ${i + 1} (${l?.alt ?? 'no alt'})`, l?.ref)
+}
+
+const pageDoc = homepage ?? homepageAlt
+if (!pageDoc) {
+  console.log('(!) No homepage page document found by slug "home" or "/" - its')
+  console.log('    sections are therefore NOT covered below. Do not read the')
+  console.log('    duplicate verdict as complete.\n')
+} else {
+  for (const {where, ref} of refsIn(pageDoc)) add(where, ref)
 }
 
 const grid = settings?.featured?.length ? settings.featured : studies
@@ -93,7 +128,9 @@ const dupes = [...byId.entries()].filter(([, wheres]) => wheres.length > 1)
 
 console.log(`\n## The same asset used more than once\n`)
 if (!dupes.length) {
-  console.log(`None. Every image on the homepage is a distinct asset.`)
+  console.log(`None among the ${used.length} images checked above.`)
+  console.log(`Coverage: siteSettings fields, client logos, the work grid, and every`)
+  console.log(`asset reference anywhere in the homepage page document${pageDoc ? '' : ' (NOT FOUND)'}.`)
   console.log(`\nSo the doubled 3,981 KB request is NOT one file in two places, and`)
   console.log(`the next place to look is the request waterfall itself - a preload`)
   console.log(`racing the CSS background, or a cache-busting difference between the`)

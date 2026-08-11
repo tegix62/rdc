@@ -96,3 +96,12 @@ jobs:
       # After the build on purpose: dist/ has to exist, and the build is where
       # the real Sanity content enters.
       - run: node scripts/test-head.mjs
+
+      # public/_redirects is the only thing keeping the old Webflow URLs alive
+      # after cutover, and nothing tied it to the content. Case studies have gone
+      # from 13 to 5 over this project; any deletion can orphan a redirect
+      # silently, and a 301 to a 404 is worse than no redirect - it tells a
+      # crawler the page moved permanently to a dead end, throwing away the
+      # ranking the redirect exists to pass on. The symptom would only appear
+      # after DNS moves, on exactly the URLs that used to rank.
+      - run: node scripts/test-redirects.mjs

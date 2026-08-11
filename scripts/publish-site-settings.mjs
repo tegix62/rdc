@@ -63,7 +63,7 @@ if (!draft) {
 }
 
 // System fields differ on every save and say nothing about the content.
-const SYSTEM = new Set(['_id', '_rev', '_type', '_createdAt', '_updatedAt'])
+const SYSTEM = new Set(['_id', '_rev', '_type', '_createdAt', '_updatedAt', '_system'])
 const keys = [...new Set([...Object.keys(draft), ...Object.keys(published ?? {})])]
   .filter((k) => !SYSTEM.has(k))
   .sort()
@@ -77,6 +77,31 @@ const changed = keys.filter((k) => JSON.stringify(draft[k] ?? null) !== JSON.str
 
 console.log(`Draft last saved   ${draft._updatedAt}`)
 console.log(`Published last set ${published?._updatedAt ?? '(no published document)'}\n`)
+
+/*
+  Why the Publish button might be grey.
+
+  A draft records which published revision it was branched from, in
+  `_system.base.rev`. When that no longer matches the published document's
+  current `_rev`, the draft is built on a version that has since moved, and
+  Studio can refuse to publish rather than silently discard whichever edit
+  came in behind it.
+
+  Printed as a fact to check rather than asserted, because I cannot see Chris's
+  screen and a confident guess about someone else's UI is how I sent him to the
+  wrong image field for twenty minutes on Chateau Seven.
+*/
+const baseRev = draft._system?.base?.rev ?? null
+const liveRev = published?._rev ?? null
+console.log(`Draft was branched from published rev  ${baseRev ?? '(not recorded)'}`)
+console.log(`Published document is currently at rev ${liveRev ?? '(none)'}`)
+console.log(
+  baseRev && liveRev && baseRev !== liveRev
+    ? `  MISMATCH - the draft is based on a revision that is no longer current.\n` +
+        `  That is a plausible reason for Studio disabling Publish. Publishing\n` +
+        `  through the API below resolves it by taking the draft as authoritative.\n`
+    : `  These agree, so a stale-base conflict is NOT why Publish is disabled.\n`,
+)
 
 if (!changed.length) {
   console.log('The draft and the published document are identical. Nothing would change.')

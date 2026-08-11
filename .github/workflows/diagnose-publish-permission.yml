@@ -1,0 +1,38 @@
+name: Diagnose publish permission
+
+# Publish is greyed out in Studio and the document itself is clean: the draft
+# has real changes, no validation errors, no stale base revision, no release
+# version. Permission is the remaining candidate - Sanity grants editing and
+# publishing separately, so saving a draft proves nothing about publishing one.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/diagnose-publish-permission.mjs'
+      - '.github/workflows/diagnose-publish-permission.yml'
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Look
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+        run: |
+          set -o pipefail
+          node scripts/diagnose-publish-permission.mjs 2>&1 | tee publish-permission.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "## Publish permission"
+            echo ""
+            echo '```'
+            cat publish-permission.txt 2>/dev/null || echo '(the script did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

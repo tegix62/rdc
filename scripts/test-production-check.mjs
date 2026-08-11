@@ -191,6 +191,21 @@ await scenario('catches stega markers in the copy', 'stega', {
 
 await scenario('catches noindex on a real page', 'noindex', {'/portfolio': {noindex: true}})
 
+/*
+  ...and does NOT flag the one page allowed to carry it.
+
+  /style-guide is internal, left out of sitemap.xml, and opts out per-page. That
+  opt-out shipped one afternoon and tripped the gate the very next time the
+  production build ran - two of my own checks contradicting each other, since
+  test-head.mjs REQUIRES this page to be noindexed. A cutover would have
+  deadlocked between them.
+
+  Pinned in both directions: the case above proves a real page still fails, and
+  this proves the exception works. Without the pair, someone widening the
+  allowlist to silence a failure would face nothing that objects.
+*/
+await scenario('allows the internal style guide to opt out', null, {'/style-guide': {noindex: true}})
+
 await scenario('catches a canonical pointing at the preview host', 'canonical', {
   '/about': {canonical: 'https://preview.rumeau-design-co.pages.dev/about'},
 })

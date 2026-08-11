@@ -165,9 +165,29 @@ for (const file of htmlFiles) {
     fail('stega', `${route} contains ${hit?.length ?? '?'} stega marker(s)`)
   }
 
-  // noindex on the real site is the quietest possible catastrophe: nothing
-  // breaks, the site simply stops existing to search over a few weeks.
-  if (/<meta[^>]+name=["']robots["'][^>]*noindex/i.test(html)) {
+  /*
+    noindex on the real site is the quietest possible catastrophe: nothing
+    breaks, the site simply stops existing to search over a few weeks. That is
+    what this catches - a production build made with the preview flags left on,
+    where EVERY page carries it.
+
+    /style-guide is the one deliberate exception. It is an internal reference
+    page, left out of sitemap.xml, and it opts out per-page via Layout's
+    `noindex` prop. Production robots.txt says `Allow: /`, so without that opt-
+    out the only thing keeping it unindexed is that nothing links to it.
+
+    Found by rehearsing this gate rather than by launching: the per-page noindex
+    shipped this afternoon and tripped this check the first time the production
+    build ran afterwards. Two of my own gates had ended up contradicting each
+    other - test-head.mjs REQUIRES /style-guide to be noindexed and this
+    FORBADE it - so a cutover would have deadlocked between them.
+
+    Narrow on purpose. Any other route carrying noindex is still a failure, and
+    the count check below still catches the flags-left-on case, because that
+    would noindex all 21 pages rather than this one.
+  */
+  const NOINDEX_ALLOWED = new Set(['/style-guide'])
+  if (/<meta[^>]+name=["']robots["'][^>]*noindex/i.test(html) && !NOINDEX_ALLOWED.has(route)) {
     fail('noindex', `${route} tells crawlers not to index it`)
   }
 

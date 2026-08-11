@@ -56,6 +56,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      # package-lock.json is committed now, so this resolves to the exact
+      # versions that built the site during development rather than re-resolving
+      # the ^ ranges in package.json on the day. Two deploys broke that way
+      # earlier in this project, and launch day is the worst possible time for a
+      # transitive dependency to float.
+      #
+      # Still `npm install` rather than `npm ci`, deliberately. The lockfile
+      # carries isotope-layout and imagesloaded at its root, left over from
+      # installing them once to extract the two files now committed under
+      # public/vendor - nothing depends on those packages at build time. npm ci
+      # refuses to run when the lockfile and package.json disagree like that, so
+      # switching today would break every workflow. The fix is to regenerate the
+      # lockfile from a clean install, which needs network this sandbox does not
+      # have; `npm ci` becomes correct the moment someone does that.
       - run: npm install
 
       # The gate is only worth what it can catch, so prove it in the same run

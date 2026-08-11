@@ -20,9 +20,17 @@
 
     sha1        byte-identical uploads. Sanity dedupes these on upload, so a
                 match here means two asset documents genuinely exist.
-    lqip        the tiny base64 preview Sanity generates from the pixels. Two
-                exports of one picture produce near-identical LQIPs even when
-                the bytes differ, so a shared prefix is strong evidence.
+    palette     the colours Sanity extracts FROM THE PIXELS. Two exports of one
+                picture yield the same swatches even when the bytes differ.
+
+                My first attempt used the LQIP preview and compared its first 48
+                characters. An LQIP is a data URI, so those 48 characters are
+                "data:image/jpeg;base64," plus a JPEG header that is IDENTICAL
+                for every image on the site. It grouped 29 unrelated pictures as
+                duplicates - Chateau Seven with Golden Coast with Hug a Mug -
+                and looked authoritative doing it. A confident wrong answer is
+                worse than none, so it compares six extracted swatches now, and
+                requires the dimensions to match as well.
     dimensions  the weakest, listed only so a human can eyeball the rest.
 
   Every group prints a CDN url per member, because the last word on "are these
@@ -56,7 +64,12 @@ const tiles = await groq(`*[_type == "caseStudy"
     _id, url, sha1hash, size,
     "w": metadata.dimensions.width,
     "h": metadata.dimensions.height,
-    "lqip": metadata.lqip
+    "lqip": metadata.lqip,
+    "palette": metadata.palette{
+      "a": dominant.background, "b": dominant.foreground,
+      "c": vibrant.background, "d": muted.background,
+      "e": darkVibrant.background, "f": lightVibrant.background
+    }
   }
 } | order(title asc)`)
 
@@ -103,19 +116,36 @@ const seen = report(
 )
 
 /*
-  The LQIP is generated from the pixels, so two exports of one picture land in
-  the same neighbourhood even when the bytes differ. Compared on a prefix rather
-  than in full: a re-export changes the tail long before it changes the opening
-  bytes of a 20-pixel-wide preview.
+  Sanity extracts a colour palette from the pixels, so two exports of one
+  picture produce the same swatches even when the bytes differ. Six swatches
+  plus the exact dimensions is a fingerprint that unrelated work does not hit by
+  accident - where the LQIP prefix I tried first matched everything, because
+  those bytes are a JPEG header rather than the picture.
+
+  Exact LQIP equality is folded in as a second key: it is rarer than a palette
+  match and cannot false-positive, so anything it catches is worth catching.
 */
 const alreadyGrouped = new Set(bySha.flatMap(([, l]) => l.map((t) => t.shown._id)))
 const remaining = withAsset.filter((t) => !alreadyGrouped.has(t.shown._id))
-const byLqip = groupBy(remaining, (t) => (t.shown.lqip ? t.shown.lqip.slice(0, 48) : null))
+const paletteKey = (t) => {
+  const p = t.shown.palette
+  const swatches = p ? [p.a, p.b, p.c, p.d, p.e, p.f].filter(Boolean) : []
+  // Fewer than four swatches is not a fingerprint, it is a coincidence waiting
+  // to happen - a flat two-colour logomark would match every other flat mark.
+  if (swatches.length < 4) return null
+  return `${t.shown.w}x${t.shown.h}|${swatches.join(',')}`
+}
+const byLqip = [
+  ...groupBy(remaining, paletteKey),
+  ...groupBy(remaining, (t) => (t.shown.lqip ? `lqip:${t.shown.lqip}` : null)),
+]
 report(
   'Visually identical, uploaded more than once',
   'Different files, same picture - separate uploads or re-exports. Sanity gives\n' +
     'each its own asset id, so a reference comparison cannot see these. This is\n' +
-    'what makes three of one photograph possible where I reported two.',
+    'what makes three of one photograph possible where I reported two.\n' +
+    'Matched on identical dimensions AND six colour swatches extracted from the\n' +
+    'pixels. Open the url before deleting anything - this is evidence, not proof.',
   byLqip,
   (_k, list) => `${list[0].shown.w}x${list[0].shown.h}  ${Math.round(list[0].shown.size / 1024)} KB`,
 )

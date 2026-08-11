@@ -79,6 +79,11 @@ jobs:
       # then it guards nothing. Needs no dist, so it runs before the build.
       - run: node scripts/test-head-selfcheck.mjs
 
+      # The homepage grid's row arithmetic. Its only symptom when wrong is a
+      # homepage that looks slightly ragged, which nobody files a bug for - they
+      # just come away thinking the site is a bit amateur.
+      - run: node scripts/test-peek-grid.mjs
+
       - run: npm run build
 
       # test-meta proves the composition functions are right; it cannot prove the

@@ -1,0 +1,40 @@
+name: Diagnose case study hero resolution
+
+# Chris: "the Main Project Images on ANY of these case studies is really
+# artifacted, low resolution on desktop. Is this my own doing?"
+#
+# The hero renders full-bleed at 100vw and every srcset candidate is capped at
+# the file's own width, so a source narrower than viewport x DPR gets stretched.
+# This prints the upscale factor per project so the answer is a number rather
+# than a theory - and so "which projects actually need a re-export" is a list.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/diagnose-hero-resolution.mjs'
+      - '.github/workflows/diagnose-hero-resolution.yml'
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Measure
+        run: |
+          set -o pipefail
+          node scripts/diagnose-hero-resolution.mjs 2>&1 | tee hero-resolution.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "## Case study hero resolution"
+            echo ""
+            echo '```'
+            cat hero-resolution.txt 2>/dev/null || echo '(the script did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

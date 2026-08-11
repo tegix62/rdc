@@ -29,6 +29,8 @@
     SANITY_API_TOKEN=... node scripts/publish-site-settings.mjs            # diff only
     SANITY_API_TOKEN=... PUBLISH=yes node scripts/publish-site-settings.mjs # do it
 */
+import {findUrlProblems} from './lib/url-fields.mjs'
+
 const PROJECT_ID = '8337vjtf'
 const DATASET = 'production'
 const API = `https://${PROJECT_ID}.api.sanity.io/v2024-01-01`
@@ -121,35 +123,22 @@ for (const k of changed) {
 
   Studio disables the button while any field fails an error-level rule, and it
   does not care that the field is unrelated to the edit you are trying to make.
-  Site Settings has two url-typed fields, and Sanity's built-in url validation
-  is error-level by default - an empty string, a mailto:, or a bare domain with
-  no scheme all fail it. Nobody has published this document since 6 August, so
-  a bad value written during the Webflow migration would have sat there
-  invisible until the first time someone tried.
+  Sanity's built-in url validation is error-level by default - an empty string,
+  a mailto:, or a bare domain with no scheme all fail it. Nobody had published
+  Site Settings since 6 August, so values written during the Webflow migration
+  sat there invisible until the first time someone tried.
+
+  Which is exactly what happened: clientLogos[].href held internal paths like
+  "/work/dumpstat", and that blocked publishing the Meta Pixel ID. This check
+  ran BEFORE that was found and reported the document clean, because it looked
+  at a list of field names I had written by hand and clientLogos was not on it.
+  It now walks the whole document - see scripts/lib/url-fields.mjs.
 
   The warning-level rules in the schema (client logo alt text, more than 12
-  featured tiles) are deliberately NOT checked here: warnings never block
+  featured tiles) are deliberately NOT checked: warnings never block
   publishing, and listing them would bury the one thing that does.
 */
-const badUrl = (v) => {
-  if (v === undefined || v === null) return null // absent is fine
-  if (typeof v !== 'string') return 'not a string'
-  if (v.trim() === '') return 'empty string - Sanity treats this as invalid, not as absent'
-  try {
-    const scheme = new URL(v).protocol
-    return scheme === 'http:' || scheme === 'https:' ? null : `scheme "${scheme}" - url fields allow http and https only`
-  } catch {
-    return 'not a parseable URL - a bare domain with no https:// fails this'
-  }
-}
-
-const urlProblems = []
-const contactProblem = badUrl(draft.contactUrl)
-if (contactProblem) urlProblems.push([`contactUrl`, draft.contactUrl, contactProblem])
-for (const [i, link] of (draft.socialLinks ?? []).entries()) {
-  const p = badUrl(link?.url)
-  if (p) urlProblems.push([`socialLinks[${i}] (${link?.platform ?? 'unnamed'}).url`, link?.url, p])
-}
+const urlProblems = findUrlProblems(draft)
 
 console.log(`## Fields that would block Publish in Studio\n`)
 if (urlProblems.length) {
@@ -162,8 +151,11 @@ if (urlProblems.length) {
     console.log()
   }
 } else {
-  console.log(`  None. Every url field is either empty-absent or a valid http(s) URL,`)
-  console.log(`  so a validation error is NOT why Publish is disabled.\n`)
+  console.log(`  None found. Every field named url or href, at any depth, is either`)
+  console.log(`  absent or a valid http(s) address or /path.`)
+  console.log(`  Caveat worth keeping: this matches on field NAME, since a GROQ read`)
+  console.log(`  carries no schema types. A url-typed field called something else`)
+  console.log(`  would not be checked here.\n`)
 }
 
 if (!LIVE) {

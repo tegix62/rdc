@@ -125,11 +125,27 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
   {clientLogos.length > 0 && (
     <section class="logo-strip">
       <div class="logo-strip__inner">
+        {/*
+          A logo with no link is not a link.
+
+          This used to fall back to href="#", which renders an anchor that
+          announces itself as a link, takes keyboard focus, and jumps to the top
+          of the page when activated. Chris emptied these hrefs tonight to get
+          past a validation error, and every logo in the strip silently became
+          one of those - interactive-looking and inert, which is worse than
+          plain.
+        */}
         {clientLogos.map((item: any) =>
           item.logo ? (
-            <a href={item.href || '#'} class="logo-strip__item">
-              <Img image={item.logo} alt={item.alt || ''} field="clientLogos[].logo" width={220} sizes="150px" />
-            </a>
+            item.href ? (
+              <a href={item.href} class="logo-strip__item">
+                <Img image={item.logo} alt={item.alt || ''} field="clientLogos[].logo" width={220} sizes="150px" />
+              </a>
+            ) : (
+              <div class="logo-strip__item">
+                <Img image={item.logo} alt={item.alt || ''} field="clientLogos[].logo" width={220} sizes="150px" />
+              </div>
+            )
           ) : null,
         )}
       </div>

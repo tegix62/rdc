@@ -275,6 +275,34 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
       </div>
     </footer>
     <style is:global>
+      /*
+        Ported from Webflow: makes casually lifting an image awkward.
+
+        WHAT THIS IS AND IS NOT
+
+        It is a deterrent. It is not protection, and nothing on a static site
+        can be. Every image URL is in the page source, the animated ones ship
+        as their ORIGINAL file straight from cdn.sanity.io with no query string
+        at all, and a screenshot works on every device ever made. Anyone who
+        wants a file will get it. What this stops is the accidental
+        right-click-save, which is most of it in practice.
+
+        Chris found long-press → Copy still worked on iOS, on the animated
+        flyer on Two Point Oh's page. `-webkit-touch-callout: none` is meant to
+        suppress that menu and evidently did not on its own, so the selection
+        properties go with it: iOS decides what the long-press menu offers
+        partly from whether the target is selectable, and an image that cannot
+        be selected or dragged gives it less to offer.
+
+        Stated plainly because I cannot test it: there is no iPhone in this
+        sandbox, and recent iOS has repeatedly changed how much of this it
+        honours. If it still copies, the next step is a transparent overlay
+        element taking the long-press instead of the image - reliable, and
+        more markup on every tile. Worth doing only if this is not enough.
+
+        The real protection is the licence, which is why /image-license-info
+        exists.
+      */
       img {
         -webkit-user-drag: none;
         -khtml-user-drag: none;
@@ -282,6 +310,9 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
         -o-user-drag: none;
         user-drag: none;
         -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
       }
     </style>
     <VisualEditing />

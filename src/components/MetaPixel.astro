@@ -1,0 +1,107 @@
+---
+/*
+  Meta's tracking pixel, off unless Chris switches it on.
+
+  HOW IT IS CONTROLLED
+
+  One field in Studio: Site Settings → Brand & contact → Meta Pixel ID. Empty is
+  the default and means NO SCRIPT AT ALL - not a disabled one, not a stub,
+  nothing in the page. Paste the ID from Events Manager and it starts loading on
+  the next deploy. Clear it and it stops. No code change either way, which
+  matters because "is the tracker on?" should be answerable by looking at Studio
+  rather than by reading a template.
+
+  NEVER ON THE PREVIEW BUILD
+
+  The preview is a public URL that Chris, I, and every CI audit hit dozens of
+  times a day. Firing the pixel there would fill his Events Manager with traffic
+  that is not customers, and the audiences built from it would be junk. Guarded
+  on IS_PREVIEW rather than on trust.
+
+  WHAT THIS COSTS, STATED WHERE IT IS INCURRED
+
+  Before this, the site set zero cookies and loaded zero third-party scripts.
+  With an ID set, Meta receives every visitor's IP, page and timestamp whether or
+  not they use Facebook, and fbevents.js is roughly 70 KB on every page.
+
+  That is a real change and the privacy policy has to keep up with it. The policy
+  reads the SAME field, so it describes tracking exactly when tracking exists -
+  the two cannot drift into the policy claiming something the site stopped doing,
+  or worse, not mentioning something it started.
+
+  NOT A CONSENT BANNER
+
+  This fires on load. For visitors in the EU or UK, doing that without prior
+  consent is not compliant, and a banner is a bigger piece of work than a script
+  tag - it needs to block the pixel until a choice is made, remember the choice,
+  and offer a way to change it. If the site starts drawing meaningful EU traffic
+  that becomes a real gap, and it is written down here rather than discovered.
+
+  `is:inline` on both tags: Astro must not bundle or rewrite Meta's snippet, and
+  the noscript pixel has to reach the browser exactly as written.
+*/
+import { stripStegaKey } from '../lib/stega';
+
+interface Props {
+  /** From siteSettings.metaPixelId. Anything non-numeric is ignored. */
+  id?: unknown;
+}
+
+/*
+  Stripped and validated, not trusted. A stega-contaminated ID would produce a
+  pixel URL Meta silently drops - the tag would be present, the data would go
+  nowhere, and nothing would say so. The digits check also means a pasted URL or
+  a stray quote turns the pixel OFF rather than emitting a broken script tag.
+*/
+const raw = stripStegaKey(Astro.props.id);
+const pixelId = /^\d{8,20}$/.test(raw) ? raw : '';
+
+if (raw && !pixelId) {
+  console.warn(
+    `[MetaPixel] siteSettings.metaPixelId is "${raw}", which is not a plain ` +
+      `numeric ID, so no pixel was emitted. Events Manager shows it as a ` +
+      `15-16 digit number under the dataset name.`,
+  );
+}
+
+const IS_PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+const enabled = Boolean(pixelId) && !IS_PREVIEW;
+
+if (pixelId && IS_PREVIEW) {
+  console.log('[MetaPixel] ID set, but this is the preview build - not loading it.');
+}
+---
+
+{enabled && (
+  <>
+    <script is:inline define:vars={{ pixelId }}>
+      !(function (f, b, e, v, n, t, s) {
+        if (f.fbq) return;
+        n = f.fbq = function () {
+          n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+        };
+        if (!f._fbq) f._fbq = n;
+        n.push = n;
+        n.loaded = !0;
+        n.version = '2.0';
+        n.queue = [];
+        t = b.createElement(e);
+        t.async = !0;
+        t.src = v;
+        s = b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t, s);
+      })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', pixelId);
+      fbq('track', 'PageView');
+    </script>
+    <noscript>
+      <img
+        height="1"
+        width="1"
+        style="display:none"
+        alt=""
+        src={`https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1`}
+      />
+    </noscript>
+  </>
+)}

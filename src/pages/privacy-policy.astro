@@ -1,13 +1,37 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { pageDescription } from '../lib/meta';
-import { getPage } from '../lib/queries';
+import { getPage, getSiteSettings } from '../lib/queries';
 import { renderPortableText } from '../lib/portableText';
+import { stripStegaKey } from '../lib/stega';
 
 const page = await getPage('privacy-policy');
+const settings = await getSiteSettings();
+
+/*
+  This page's own description cannot contradict what the site actually does.
+
+  Its fallback said "It sets no cookies and loads no third-party trackers",
+  which was true when I wrote it this afternoon and becomes FALSE the moment
+  Chris pastes a Meta Pixel ID into Site Settings. A privacy policy whose search
+  snippet denies the tracking the page itself loads is worse than no snippet -
+  it is a claim about data handling that the same page disproves.
+
+  So it reads the same field the pixel does. One switch, two consistent
+  statements, and no way for them to drift apart.
+
+  The same reasoning applies to the policy TEXT, which is still unwritten and
+  lives in Studio. It has to describe the tracking state that matches this
+  field, and it is the reason the policy could not be finished until the pixel
+  question was answered.
+*/
+const tracking = /^\d{8,20}$/.test(stripStegaKey(settings?.metaPixelId));
+const description = tracking
+  ? 'How this site handles your data, including the Meta Pixel it uses to measure advertising.'
+  : 'How this site handles your data. It sets no cookies and loads no third-party trackers.';
 ---
 
-<Layout title={page?.title ?? 'Privacy Policy'} description={pageDescription(page, 'How this site handles your data. It sets no cookies and loads no third-party trackers.')}>
+<Layout title={page?.title ?? 'Privacy Policy'} description={pageDescription(page, description)}>
   <h1>{page?.heading ?? page?.title ?? 'Privacy Policy'}</h1>
   {page?.body?.length > 0 ? (
     <div class="prose" set:html={renderPortableText(page.body)} />

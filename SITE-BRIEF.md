@@ -195,13 +195,24 @@ Things that will sink a proposal if ignored.
 1. **Static only.** No server, no sessions, no per-visitor logic, no form
    handling. Contact goes to an external Tally form. Adding server behaviour
    means adding Cloudflare Functions.
-2. **No analytics and no cookies.** The site currently sets zero cookies and
-   loads zero trackers. That is a deliberate state and the privacy policy is
-   being written around it. Anything that adds tracking changes that.
+2. **Analytics are one switch, currently off.** The site sets zero cookies and
+   loads zero trackers today. Site Settings → **Meta Pixel ID** turns that
+   around: empty means no script is emitted at all, and pasting the ID from
+   Events Manager loads Meta's pixel on production only, never on the preview.
+   The privacy policy reads the same field, so its description follows the
+   actual state rather than drifting from it. Chris intends to run Meta ads, so
+   expect this to be on at some point.
+
+   Not yet handled: **consent**. The pixel fires on load, which is not
+   compliant for EU/UK visitors without prior consent. A banner is a real piece
+   of work - it must block the pixel until a choice is made, remember it, and
+   allow changing it - and is a gap if the site starts drawing meaningful EU
+   traffic.
 3. **Content changes need a deploy.** Nothing is live-editable at runtime.
 4. **Third parties are kept to a minimum.** Current outbound hosts: Sanity's
    CDN (images), Cloudflare (hosting), `i.ytimg.com` (video posters), Tally
-   (contact). The Portfolio grid's two layout scripts used to be pulled from
+   (contact) — plus `connect.facebook.net` and `facebook.com` once the Meta
+   Pixel ID is set, which also adds ~70KB of script to every page. The Portfolio grid's two layout scripts used to be pulled from
    `cdnjs` and `unpkg` at request time; they're self-hosted now, so that's two
    fewer companies seeing every visitor's IP.
 5. **Performance is measured, not assumed.** Every page's bytes, LCP and CLS
@@ -218,10 +229,11 @@ workflow with a pre-deploy gate, JSON-LD, layout-shift fix on `/portfolio`
 (0.4722 → 0.0006), mobile fixes, alt text everywhere, image pipeline.
 
 **Waiting on Chris:** favicon upload, a default social-share image (the
-wordmark stands in until then), a decision on the Meta Pixel (the old site runs
-one; it did not come across), per-case-study SEO titles, a few missing video
-links, picking the homepage grid tiles, and filling in the privacy policy
-placeholders.
+wordmark stands in until then), the **Meta Pixel ID** from Events Manager (the
+machinery is built and off until that field is filled), per-case-study SEO
+titles, a few missing video links, picking the homepage grid tiles, and writing
+the privacy policy — which must describe the tracking state the pixel field
+actually produces.
 
 **Known open items:** `/portfolio` page weight; an unexplained desktop LCP
 outlier on the homepage; several large animated images that need re-exporting

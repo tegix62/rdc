@@ -8,6 +8,7 @@ import { getSiteSettings } from '../lib/queries';
 import Img from '../components/Img.astro';
 import { imageUrl, socialCardUrl } from '../lib/image';
 import VisualEditing from '../components/VisualEditing.astro';
+import MetaPixel from '../components/MetaPixel.astro';
 import { buildGraph, serialise, type SiteContext } from '../lib/structuredData';
 import { stripStega as clean } from '../lib/stega';
 import {
@@ -192,6 +193,13 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
     {/* Explicit closing tag: a self-closed <script/> is not valid HTML and
         browsers swallow the rest of the head. */}
     <script type="application/ld+json" is:inline set:html={serialise(graph)}></script>
+
+    {/*
+      Emits nothing at all unless Site Settings → Meta Pixel ID is filled in,
+      and never on the preview build. See MetaPixel.astro - including what it
+      costs and the consent question it does not answer.
+    */}
+    <MetaPixel id={settings?.metaPixelId} />
   </head>
   <body>
     {/*

@@ -79,6 +79,36 @@ export default defineType({
         'keep anything important away from the top and bottom edges. Leave it ' +
         'empty and the wordmark is used.',
     }),
+    /*
+      The tracker switch.
+
+      Empty means NO SCRIPT AT ALL on the site - not disabled, not a stub,
+      nothing in the page. That is the default and it is what makes this safe to
+      ship: the site stays tracker-free until Chris decides otherwise, and the
+      decision is one field rather than a code change.
+
+      It never loads on the preview build, so testing and CI audits cannot fill
+      Events Manager with traffic that is not customers.
+    */
+    defineField({
+      name: 'metaPixelId',
+      title: 'Meta Pixel ID — leave empty for no tracking at all',
+      type: 'string',
+      group: 'brand',
+      description:
+        'From Meta Events Manager → Data sources → your dataset (Meta renamed ' +
+        'Pixels to "datasets"). A 15-16 digit number, nothing else. While this ' +
+        'is empty the site loads no trackers and sets no cookies, and the ' +
+        'privacy policy says so. Filling it in adds about 70KB of Meta script ' +
+        'to every page and lets Meta see every visitor, so the policy changes ' +
+        'to match. Only worth it if you are actually running ads.',
+      validation: (Rule: any) =>
+        Rule.custom((value: string | undefined) =>
+          !value || /^\d{8,20}$/.test(value.trim())
+            ? true
+            : 'Just the digits - no URL, no quotes. Events Manager shows it under the dataset name.',
+        ),
+    }),
     defineField({
       name: 'contactUrl',
       title: 'Contact form link — every button on the site',

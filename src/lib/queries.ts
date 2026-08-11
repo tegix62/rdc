@@ -175,14 +175,65 @@ export const cellsUsedBy = (items: any[]) =>
   trimming to the last complete row when there is not enough filler, because a
   shorter tidy grid still beats a ragged full one.
 */
+/*
+  The image a tile actually SHOWS. The grid renders `thumbnail || mainImage`, so
+  that is what has to be unique - two documents can be perfectly distinct and
+  still put the same picture on screen twice.
+*/
+export const displayedRef = (item: any): string | null =>
+  item?.thumbnail?.asset?._ref ?? item?.mainImage?.asset?._ref ?? null;
+
 export function fitToRows(items: any[], filler: any[] = [], columns = PEEK_COLUMNS) {
   const cells = cellsUsedBy(items);
   const shortfall = (columns - (cells % columns)) % columns;
   if (shortfall === 0) return items;
 
-  // Hero tiles are never used as filler: two cells would overshoot the row they
-  // are meant to complete.
-  const usable = filler.filter((f) => f && !f.heroTile).slice(0, shortfall);
+  /*
+    WHAT FILLER IS ALLOWED TO BE
+
+    This shipped without these rules and Chris caught it on his phone within the
+    hour: the homepage showed eight tiles, of which the last was the same
+    photograph as the first and the two before it were the same monogram sheet
+    as each other - three tiles captioned "ADELANTE BARBELL CLUB" in a row.
+
+    Two causes, and I wrote both.
+
+    A Grid Item may reuse its parent's image; the dataset has eight such pairs.
+    I topped up the row from a project's children without checking what those
+    children would actually DRAW. Filling a grid with copies of what is already
+    in it is worse than the ragged row I set out to fix.
+
+    And the caption is `parentTitle ?? title`, so a child of Adelante is
+    captioned "Adelante Barbell Club" whatever picture it carries. My stated
+    reason for preferring children - "thematically the same work" - was
+    therefore guaranteed to produce repeated captions even with distinct images.
+    The rationale was wrong, not just the implementation, so the filler pool is
+    now other work rather than children.
+
+    Filler must be:
+
+      not a hero       two cells would overshoot the row it completes
+      a new image      compared on displayedRef, because distinct documents can
+                       show one picture
+      a new caption    what the tile actually says, so the grid never repeats a
+                       name - which also stops one brand's children taking the
+                       whole last row
+  */
+  const captionOf = (i: any) => i?.parentTitle ?? i?.title ?? null;
+  const seenImages = new Set(items.map(displayedRef).filter(Boolean));
+  const seenParents = new Set(items.map(captionOf).filter(Boolean));
+  const usable: any[] = [];
+  for (const f of filler) {
+    if (!f || f.heroTile) continue;
+    const ref = displayedRef(f);
+    if (!ref || seenImages.has(ref)) continue;
+    const parent = captionOf(f);
+    if (parent && seenParents.has(parent)) continue;
+    seenImages.add(ref);
+    if (parent) seenParents.add(parent);
+    usable.push(f);
+    if (usable.length === shortfall) break;
+  }
   if (usable.length === shortfall) return [...items, ...usable];
 
   const keep = cells - (cells % columns);
@@ -220,27 +271,40 @@ export async function getFeaturedWork(limit = 8) {
     sitting alone against three empty cells, which reads as a broken grid rather
     than as a short one.
 
-    Topped up with GRID ITEMS BELONGING TO THE PROJECTS ALREADY SHOWN, not with
-    whatever is newest. That matters: the last time this fell back to recency it
-    led the homepage with a DoomWoken GIF standing in for DumpStat. Children of
-    the projects on screen are thematically the same work - the project, then
-    details from it - so the row fills with something that belongs there.
+    My first version topped up from the children of the projects already shown,
+    on the reasoning that they are thematically the same work. That was wrong,
+    and Chris caught it on his phone within the hour: the homepage rendered the
+    same photograph twice and the same monogram sheet twice, under three
+    consecutive captions reading "ADELANTE BARBELL CLUB".
 
-    If there is nothing to top up with, the list is TRIMMED to a whole number of
-    rows instead. A shorter tidy grid beats a full ragged one, and the Portfolio
-    link sits right beside the heading for anyone wanting the rest.
+    Two reasons children are the wrong pool, and the second kills the idea
+    outright:
+
+      - a Grid Item may reuse its parent's image, and eight such pairs exist in
+        this dataset, so the filler was often a copy of a tile already on screen
+      - the caption is `parentTitle ?? title`, so a child of Adelante is
+        CAPTIONED "Adelante Barbell Club" whatever picture it carries
+
+    So the pool is other work, and fitToRows enforces a distinct image and a
+    distinct caption on top of that. A pool rather than an exact count, because
+    those two rules reject candidates and the query cannot know in advance how
+    many will survive.
+
+    If not enough survives, the list is TRIMMED to a whole number of rows
+    instead. A shorter tidy grid beats a full ragged one, and the Portfolio link
+    sits right beside the heading.
   */
   const shortfall =
     (PEEK_COLUMNS - (cellsUsedBy(studies) % PEEK_COLUMNS)) % PEEK_COLUMNS;
   if (shortfall === 0) return studies;
 
-  const children: any[] = await sanityClient.fetch(
+  const pool: any[] = await sanityClient.fetch(
     `*[_type == "caseStudy" && pageType == "Grid Item"
        && (defined(thumbnail) || defined(mainImage))
-       && parentBrand._ref in $parents]
-      | order(title asc)[0...$take]{${TILE}}`,
-    { parents: studies.map((s) => s._id).filter(Boolean), take: shortfall },
+       && !(parentBrand._ref in $shown)]
+      | order(title asc)[0...24]{${TILE}}`,
+    { shown: studies.map((s) => s._id).filter(Boolean) },
   );
 
-  return fitToRows(studies, children ?? []);
+  return fitToRows(studies, pool ?? []);
 }

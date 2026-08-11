@@ -53,10 +53,17 @@ await build({
   },
   logLevel: 'error',
 })
-const {fitToRows, cellsUsedBy, PEEK_COLUMNS} = await import(outfile)
+const {fitToRows, cellsUsedBy, PEEK_COLUMNS, displayedRef} = await import(outfile)
 
-const tile = (id) => ({_id: id, title: id})
-const hero = (id) => ({_id: id, title: id, heroTile: true})
+/*
+  Tiles carry a real image reference, because the duplicate rules compare on the
+  image a tile SHOWS - `thumbnail || mainImage`. A test using bare objects with
+  no images would pass every dedupe check vacuously, which is how the bug below
+  reached Chris's phone in the first place.
+*/
+const img = (ref) => ({asset: {_ref: `image-${ref}-800x800-webp`}})
+const tile = (id, ref = id) => ({_id: id, title: id, thumbnail: img(ref)})
+const hero = (id, ref = id) => ({_id: id, title: id, thumbnail: img(ref), heroTile: true})
 const list = (n, make = tile) => Array.from({length: n}, (_, i) => make(`t${i}`))
 const ids = (arr) => arr.map((t) => t._id).join(',')
 
@@ -138,6 +145,69 @@ check('with only a hero offered it trims instead', cellsUsedBy(onlyHero) === 4, 
 const withHero = fitToRows([hero('h1'), ...list(4)], [tile('c1'), tile('c2'), tile('c3')])
 check('a hero in the list is counted as two cells', cellsUsedBy(withHero) === 8, `${cellsUsedBy(withHero)} cells`)
 check('so only two fillers are added', withHero.length === 7, ids(withHero))
+
+// --- filler must not repeat what is already on the grid ----------------------
+/*
+  THE BUG CHRIS CAUGHT ON HIS PHONE.
+
+  The homepage showed eight tiles: the last was the same photograph as the
+  first, and the two before it were the same monogram sheet as each other -
+  three consecutive captions reading "ADELANTE BARBELL CLUB". I had topped up
+  the row from a project's children without checking what they would draw, and a
+  Grid Item may reuse its parent's image. Eight such pairs exist in the dataset.
+*/
+const shown = [tile('a', 'photo'), tile('b'), tile('c'), tile('d'), tile('e')]
+const dupImage = {_id: 'child', title: 'child', thumbnail: img('photo')} // same picture as 'a'
+const filledSafely = fitToRows(shown, [dupImage, tile('x'), tile('y'), tile('z')])
+check(
+  'filler never repeats an image already on the grid',
+  !filledSafely.includes(dupImage),
+  ids(filledSafely),
+)
+check('and the row is still filled from what is left', cellsUsedBy(filledSafely) === 8, `${cellsUsedBy(filledSafely)} cells`)
+
+// Two candidates carrying one picture: at most one may be used.
+const twinA = {_id: 'twin1', title: 'twin1', thumbnail: img('monogram')}
+const twinB = {_id: 'twin2', title: 'twin2', thumbnail: img('monogram')}
+const noTwins = fitToRows(shown, [twinA, twinB, tile('x'), tile('y')])
+check(
+  'two filler candidates sharing one image are not both used',
+  !(noTwins.includes(twinA) && noTwins.includes(twinB)),
+  ids(noTwins),
+)
+
+/*
+  The caption is `parentTitle ?? title`, so a child of a project on the grid
+  reads as that project's name whatever image it carries. Three tiles saying
+  "ADELANTE BARBELL CLUB" was half of what Chris saw, and distinct images would
+  not have fixed it.
+*/
+const child = {_id: 'kid', title: 'A tee', parentTitle: 'a', thumbnail: img('unique')}
+const noRepeatCaption = fitToRows(shown, [child, tile('x'), tile('y'), tile('z')])
+check(
+  'filler never repeats a caption already on the grid',
+  !noRepeatCaption.includes(child),
+  ids(noRepeatCaption),
+)
+
+// Two children of one absent project would caption identically to each other.
+const sib1 = {_id: 's1', title: 's1', parentTitle: 'Brand Z', thumbnail: img('s1')}
+const sib2 = {_id: 's2', title: 's2', parentTitle: 'Brand Z', thumbnail: img('s2')}
+const oneSibling = fitToRows(shown, [sib1, sib2, tile('x'), tile('y')])
+check(
+  'two filler candidates sharing one caption are not both used',
+  !(oneSibling.includes(sib1) && oneSibling.includes(sib2)),
+  ids(oneSibling),
+)
+
+// A candidate with no image at all cannot fill anything.
+const imageless = {_id: 'none', title: 'none'}
+const skipsImageless = fitToRows(shown, [imageless, tile('x'), tile('y'), tile('z')])
+check('filler with no image is skipped', !skipsImageless.includes(imageless), ids(skipsImageless))
+
+check('displayedRef prefers the thumbnail', displayedRef({thumbnail: img('t'), mainImage: img('m')}).includes('-t-'))
+check('displayedRef falls back to the main image', displayedRef({mainImage: img('m')}).includes('-m-'))
+check('displayedRef is null with neither', displayedRef({title: 'x'}) === null)
 
 // --- the mobile breakpoint ---------------------------------------------------
 // .peek__grid drops to 2 columns on a phone. 4 is a multiple of 2, so anything

@@ -151,6 +151,16 @@ for (const p of paths) {
         images.push({
           url: u,
           bytes: Number.isFinite(len) ? len : 0,
+          /*
+            Status, because a URL appearing twice has two very different
+            explanations and the byte totals cannot tell them apart: two real
+            200s (the page genuinely fetches it twice) or a 3xx followed by its
+            target (one fetch, reported as two). The homepage's 3,981 KB
+            animated WebP shows up twice on desktop and once on mobile, and
+            every content-side explanation has now been ruled out - no asset on
+            that page is used more than once.
+          */
+          status: res.status(),
           // An image served straight from cdn.sanity.io with no query string
           // is a pass-through original: Chris's own compression, deliberately
           // never resized. Useful to separate, because "the images are heavy"
@@ -430,8 +440,9 @@ for (const p of paths) {
       */
       duplicates: Object.values(
         images.reduce((acc, i) => {
-          const e = (acc[i.url] ??= {url: i.url, count: 0, bytes: i.bytes});
+          const e = (acc[i.url] ??= {url: i.url, count: 0, bytes: i.bytes, statuses: []});
           e.count += 1;
+          e.statuses.push(i.status);
           return acc;
         }, {}),
       )
@@ -549,7 +560,8 @@ if (!dupeRows.length) {
     const wasted = r.duplicates.reduce((a, d) => a + d.bytes * (d.count - 1), 0)
     lines.push(`**\`${r.path}\` (${r.viewport})** — ${kb(wasted)} wasted`)
     for (const d of r.duplicates) {
-      lines.push(`  - ${String(d.count)}x ${kb(d.bytes)} \`${d.url.split('/').pop().slice(0, 60)}\``)
+      const codes = d.statuses?.length ? ` [HTTP ${d.statuses.join(' then ')}]` : ''
+      lines.push(`  - ${String(d.count)}x ${kb(d.bytes)}${codes} \`${d.url.split('/').pop().slice(0, 60)}\``)
     }
     lines.push(``)
   }

@@ -1,0 +1,67 @@
+name: Clear removed CMS fields
+
+# Deleting a field from the schema does not delete its data, and Studio then
+# reports it as an unknown field on every document that still carries one. This
+# clears those leftovers so removing a dead field is actually a cleanup rather
+# than a swap of one banner for another.
+#
+# Dispatch-only, and dry-run unless `commit` is ticked. It writes to the
+# production dataset, so it should never be something a push can trigger.
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: 'Actually write the changes (leave off for a dry run)'
+        type: boolean
+        default: false
+  # A push runs the DRY RUN and nothing else.
+  #
+  # Added because dispatching this workflow 404'd while it was new. I assumed at
+  # the time that workflow_dispatch requires the workflow to be on the default
+  # branch; that was wrong, and worth correcting rather than leaving as folklore.
+  # GitHub simply had not registered the file yet - once this push trigger caused
+  # one run, dispatching from the feature branch worked fine.
+  #
+  # It stays anyway, because it is a good default on a workflow that can write to
+  # the production dataset: a push can only ever produce the report. On a push
+  # event there is no `inputs.commit`, so the step below takes its dry-run branch
+  # with no extra logic, and the writing path remains dispatch-only.
+  push:
+    paths:
+      - 'studio/migration/unset-dead-fields.mjs'
+      - '.github/workflows/unset-dead-fields.yml'
+
+jobs:
+  unset:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+
+      - name: Clear the fields
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+        run: |
+          set -o pipefail
+          if [ "${{ inputs.commit }}" = "true" ]; then
+            node studio/migration/unset-dead-fields.mjs --commit 2>&1 | tee unset.log
+          else
+            node studio/migration/unset-dead-fields.mjs 2>&1 | tee unset.log
+          fi
+
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "## Clear removed CMS fields"
+            echo ""
+            echo "Mode: **${{ inputs.commit == true && 'COMMITTED' || 'dry run' }}**"
+            echo ""
+            echo '```'
+            cat unset.log 2>/dev/null || echo '(the script did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

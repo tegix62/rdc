@@ -1,0 +1,39 @@
+name: Migrate Webflow content to Sanity
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: >-
+          Overwrite content that already exists in Sanity, including anything
+          edited in Studio. Leave off unless you mean it.
+        type: boolean
+        default: false
+  push:
+    branches: [main, 'claude/**']
+    paths:
+      - 'studio/migration/**'
+      - '.github/workflows/migrate-content.yml'
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: studio
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      # Guards the fill-in-the-blanks rules that keep a migration re-run from
+      # wiping content edited in Studio. Cheap, no network, and a regression
+      # here silently destroys work - so it blocks the migration.
+      - run: npm run test:migration
+      - run: npm run migrate
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          # Only ever set by a deliberate manual run with the force box ticked.
+          # Automatic runs on push never overwrite existing content.
+          MIGRATE_FORCE: ${{ inputs.force && '1' || '0' }}

@@ -1,0 +1,36 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { pageDescription } from '../lib/meta';
+import { getPage } from '../lib/queries';
+import { renderPortableText } from '../lib/portableText';
+import Sections from '../components/Sections.astro';
+
+const page = await getPage('video');
+
+/*
+  "Content coming soon" is only true when there is NO content.
+
+  This page tested `body` alone, so a page built entirely out of sections -
+  which is how the section builder is meant to be used - showed the placeholder
+  above its own content. /collage tested `sections` alone and had the mirror
+  image of the same bug: real copy in `body` with no sections printed the
+  placeholder underneath it.
+
+  Both are now the same expression, and both parts render independently.
+*/
+const hasBody = page?.body?.length > 0;
+const hasSections = page?.sections?.length > 0;
+---
+
+<Layout title={page?.title ?? 'Process'} description={pageDescription(page, 'Motion and film work made alongside the identity and merch projects.')}>
+  <h1>{page?.heading ?? page?.title ?? 'Process'}</h1>
+  {hasBody && <div class="prose" set:html={renderPortableText(page.body)} />}
+  {hasSections && (
+    <div class="page-sections">
+      <Sections sections={page.sections} />
+    </div>
+  )}
+  {!hasBody && !hasSections && (
+    <p>Content coming soon — add this page's copy and videos in Studio.</p>
+  )}
+</Layout>

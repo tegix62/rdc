@@ -1,0 +1,394 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { pageDescription } from '../lib/meta';
+import Img from '../components/Img.astro';
+import Sections from '../components/Sections.astro';
+import InkMode from '../components/InkMode.astro';
+import { getPage, getAllGridItems } from '../lib/queries';
+// Shared with the homepage's miniature grid, so the two cannot disagree about
+// what counts as a logomark or how wide a hero tile is. See lib/tiles.ts.
+import { cleanKey, treatmentOf, tileHref, heroHeight, HERO_RATIO_PORTFOLIO } from '../lib/tiles';
+
+const page = await getPage('portfolio');
+const items = await getAllGridItems();
+
+/*
+  Maps a grid item's category to a filter class. Typography and Illustration
+  deliberately share one "Type/Lettering" button, matching the live site.
+*/
+const CATEGORY_FILTER: Record<string, string> = {
+  'Brand Identity': 'brand-identity',
+  'Merch & Apparel': 'merch-apparel',
+  Typography: 'type-lettering',
+  Illustration: 'type-lettering',
+  Photography: 'photography',
+};
+
+const ALL_FILTERS = [
+  { value: '.brand-identity', label: 'Brand Identity' },
+  { value: '.merch-apparel', label: 'Merch & Apparel' },
+  { value: '.type-lettering', label: 'Type/Lettering' },
+  { value: '.photography', label: 'Photography' },
+];
+
+// How many tiles each filter would actually show.
+const counts = new Map<string, number>();
+for (const item of items) {
+  const c = CATEGORY_FILTER[cleanKey(item.category)];
+  if (c) counts.set(c, (counts.get(c) ?? 0) + 1);
+}
+
+/*
+  A filter with nothing behind it is worse than a missing one: clicking it
+  empties the grid, which reads as a broken site rather than an empty category.
+  Photography currently has zero tagged items, so its button would do exactly
+  that. Buttons are hidden when empty and the gap is logged instead, so it stays
+  visible as a content task rather than disappearing silently.
+*/
+const filters = [
+  { value: '*', label: 'All' },
+  ...ALL_FILTERS.filter((f) => (counts.get(f.value.replace('.', '')) ?? 0) > 0),
+];
+
+const emptyFilters = ALL_FILTERS.filter(
+  (f) => (counts.get(f.value.replace('.', '')) ?? 0) === 0,
+);
+if (emptyFilters.length > 0) {
+  console.warn(
+    `[portfolio] filter button(s) hidden with no tagged items: ` +
+      `${emptyFilters.map((f) => f.label).join(', ')}. Tag work with that ` +
+      `category in Studio to bring the button back.`,
+  );
+}
+---
+
+<Layout title={page?.title ?? 'Portfolio'} description={pageDescription(page, 'Brand identity, merch, typography, illustration and photography work — the full archive of projects and pieces, filterable by category.')}>
+  {/*
+    The one page on the site that had no <h1>, and it is the main one. A screen
+    reader opened it onto a row of unlabelled controls with nothing naming the
+    page, and `heading` in Studio was being ignored here.
+
+    Visually hidden rather than rendered: the control row sits directly under
+    the nav by design and there is no room for a heading above it. If a visible
+    one is ever wanted, drop the class - the markup is already right.
+  */}
+  <h1 class="visually-hidden">{page?.heading ?? page?.title ?? 'Portfolio'}</h1>
+  <section class="pf-section">
+    {/*
+      Three groups rather than one long run of buttons: what to show, how to
+      show it, and how to arrange it.
+
+      The grouping is not decoration. Flat, the row wrapped wherever it ran out
+      of width, which on a phone put the `+` on a line by itself under eight
+      other buttons - an orphan, and a control that no longer reads as the
+      partner of the `-` next to it. Groups wrap as units, and the zoom pair
+      never splits at all.
+
+      The dividers are gone with them. They were doing the grouping's job badly,
+      and on a narrow screen they ended up starting and ending lines.
+    */}
+    <div class="pf-controls" id="pf-controls">
+      <div class="pf-group pf-group--filters" role="group" aria-label="Filter by category">
+        {filters.map((f, i) => (
+          <button type="button" class:list={['pf-btn', i === 0 && 'is-active']} data-filter={f.value}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      <div class="pf-group" role="group" aria-label="Arrange">
+        <button type="button" class="pf-btn" id="pf-shuffle">Shuffle</button>
+        {/* nowrap: these two are one control in two halves. */}
+        <span class="pf-zoom">
+          <button type="button" class="pf-btn" id="pf-minus" aria-label="Smaller tiles">&minus;</button>
+          <button type="button" class="pf-btn" id="pf-plus" aria-label="Larger tiles">+</button>
+        </span>
+      </div>
+
+      {/*
+        Last, and on a wide screen pushed to the far right - away from the
+        filters, because it is not one. See InkMode.astro.
+      */}
+      <div class="pf-group pf-group--view" role="group" aria-label="View">
+        <InkMode />
+      </div>
+    </div>
+
+    {/*
+      `is-laying-out` hides the tiles until Isotope has positioned them.
+
+      The grid's markup is a column of floated divs; Isotope then absolutely
+      positions every one of them. Both layouts are valid and they look nothing
+      alike, so the browser paints the first and then, a moment later, moves 68
+      tiles at once. That is the 0.4722 layout shift the audit measures on this
+      page - the worst number on the site, and precisely the jank you can feel.
+
+      Hiding them means the wrong layout is never painted, so there is nothing
+      to shift from. Two things make that safe rather than a way to lose the
+      whole grid:
+
+        - the class is added by an inline script below rather than being in the
+          markup, so with JavaScript off the grid is simply visible;
+        - a timeout removes it regardless, so if Isotope fails to load the
+          tiles come back in float order instead of staying invisible.
+    */}
+    <div class="pf-grid" id="pf-grid">
+      {items.map((item: any, i: number) => {
+        const img = item.thumbnail || item.mainImage;
+        const cat = CATEGORY_FILTER[cleanKey(item.category)] ?? '';
+        const parentHref = tileHref(item);
+        // The category has to be a real CLASS, not just a data attribute:
+        // Isotope filters with CSS selectors (".brand-identity"), so with the
+        // value only in data-category every filter matched zero tiles and the
+        // buttons appeared to do nothing. data-category is kept for styling
+        // and debugging.
+        return img ? (
+          <div
+            class:list={[
+              'pf-item',
+              cat,
+              treatmentOf(item) === 'mark' && 'pf-item--mark',
+              item.heroTile && 'pf-item--hero',
+            ]}
+            data-category={cat}
+          >
+            {/*
+              The frame wraps the image and the jump button so a selected tile
+              can carry ONE border around both. Bordering each separately would
+              read as two stacked outlines with a gap between them.
+            */}
+            {/*
+              Plate number. Only visible in archive mode, where it turns a
+              gallery into a catalogue - the convention every plate book and
+              type specimen uses. Not a title: Chris's whole point about
+              logomarks is that they carry themselves without one, and an index
+              number indexes rather than describes.
+
+              Source order, not display order, so a given piece keeps its number
+              when the grid is shuffled or filtered.
+            */}
+            <span class="pf-item__plate" aria-hidden="true">
+              {String(i + 1).padStart(2, '0')}
+            </span>
+            <div class="pf-item__frame">
+              {/*
+                Passing height alongside width is what makes Img crop rather
+                than keep the source aspect - and the crop follows the hotspot
+                set in Studio, so a mark or a face stays in frame instead of
+                being cut out of the middle.
+              */}
+              <Img
+                class="pf-item__img"
+                image={img}
+                field={item.thumbnail ? 'thumbnail (Tile Image)' : 'mainImage (Main Project Image)'}
+                archive={item.archiveMark}
+                alt={item.title}
+                width={item.heroTile ? 1600 : 800}
+                height={item.heroTile ? heroHeight(1600, HERO_RATIO_PORTFOLIO) : undefined}
+                sizes={item.heroTile ? '(max-width: 48rem) 66vw, 34vw' : '(max-width: 48rem) 33vw, 17vw'}
+              />
+              {parentHref && (
+                <a class="pf-item__jump" href={parentHref}>
+                  <span class="pf-item__jump-label">{item.parentTitle ?? item.title ?? 'View project'}</span>
+                  <span class="pf-item__jump-arrow" aria-hidden="true">&rarr;</span>
+                </a>
+              )}
+            </div>
+          </div>
+        ) : null;
+      })}
+    </div>
+    {/*
+      Inline and immediately after the grid on purpose. It has to run during
+      parsing, before the browser has had a chance to paint the float layout -
+      a module script is deferred and would run after that first paint, which
+      is the whole problem. `is:inline` keeps Astro from bundling and deferring
+      it.
+    */}
+    <script is:inline>
+      (function () {
+        var grid = document.getElementById('pf-grid');
+        if (!grid) return;
+        grid.classList.add('is-laying-out');
+        // If Isotope never loads - a blocked CDN, an offline runner - show the
+        // tiles anyway. An unstyled grid beats a blank page.
+        setTimeout(function () {
+          grid.classList.remove('is-laying-out');
+        }, 3000);
+      })();
+    </script>
+
+    {items.length === 0 && <p>No items found.</p>}
+  </section>
+
+  {page?.sections?.length > 0 && (
+    <div class="page-sections">
+      <Sections sections={page.sections} />
+    </div>
+  )}
+</Layout>
+
+{/*
+  Self-hosted rather than pulled from cdnjs/unpkg at request time.
+
+  These were the only two avoidable third parties on the site - every visitor
+  to this page had their IP seen by two more companies just to load a layout
+  library. The files are the exact same builds (isotope-layout 3.0.6,
+  imagesloaded 5.0.0, both pulled from npm and diffed against the CDN's own
+  version string), copied into public/vendor rather than imported, because
+  they set globals (`Isotope`, `imagesLoaded`) that the script below already
+  expects - bundling them through Vite would mean rewriting that contract for
+  no behavioural gain.
+
+  is:inline on both: without it Astro tries to process the src as a module to
+  bundle, which fails outright for a plain public/ path - "references an
+  asset in the public/ directory... add is:inline". A CDN URL never hit this
+  path because it's not a local file for Astro to try to load. Missed it
+  testing the two files in a plain HTML harness instead of through the real
+  Astro build, which is exactly the gap a local build check exists to close.
+*/}
+<script src="/vendor/isotope-3.0.6.min.js" is:inline></script>
+<script src="/vendor/imagesloaded-5.0.0.min.js" is:inline></script>
+<script>
+  declare const Isotope: any;
+  declare const imagesLoaded: any;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const grid = document.querySelector<HTMLElement>('#pf-grid');
+    if (!grid) return;
+
+    const sizer = document.createElement('div');
+    sizer.className = 'pf-sizer';
+    grid.insertBefore(sizer, grid.firstChild);
+
+    let cols = window.innerWidth < 768 ? 3 : 6;
+
+    function setColWidth() {
+      grid!.style.setProperty('--pf-col-w', 100 / cols + '%');
+    }
+    setColWidth();
+
+    const iso = new Isotope(grid, {
+      itemSelector: '.pf-item',
+      layoutMode: 'masonry',
+      masonry: { columnWidth: '.pf-sizer', gutter: 0 },
+      percentPosition: true,
+      transitionDuration: 0,
+    });
+
+    // Isotope has positioned everything, so the tiles can be shown. Anything
+    // after this point is a deliberate rearrangement the visitor asked for.
+    grid.classList.remove('is-laying-out');
+
+    /*
+      One relayout when every image has finished, not one per image.
+
+      This used to be `.on('progress', ...)`, which relaid the whole grid 68
+      times on a cold load - each one moving every tile. It was there to cope
+      with images whose height was unknown until they arrived, and that stopped
+      being true when Img started emitting width and height on every image: the
+      browser now reserves each tile's box from the markup, so Isotope's first
+      layout is already measuring the final heights.
+
+      The `always` pass stays as a safety net for anything whose intrinsic size
+      the CDN did not report.
+    */
+    imagesLoaded(grid).on('always', () => iso.layout());
+
+    document.querySelectorAll<HTMLElement>('.pf-btn[data-filter]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const filterVal = btn.dataset.filter!;
+        const allBtn = document.querySelector<HTMLElement>('.pf-btn[data-filter="*"]');
+
+        // An expanded tile that gets filtered away would keep its expanded
+        // state (and its double width) for when it returns, which reads as a
+        // glitch. Collapse on any filter change.
+        grid.querySelectorAll('.pf-item.is-expanded').forEach((el) => el.classList.remove('is-expanded'));
+        if (filterVal === '*') {
+          document.querySelectorAll('.pf-btn[data-filter]').forEach((b) => b.classList.remove('is-active'));
+          btn.classList.add('is-active');
+          iso.arrange({ filter: '*' });
+          return;
+        }
+        btn.classList.toggle('is-active');
+        const activeFilters = Array.from(document.querySelectorAll('.pf-btn[data-filter].is-active'))
+          .map((b) => (b as HTMLElement).dataset.filter)
+          .filter((f) => f !== '*');
+        if (activeFilters.length === 0) {
+          allBtn?.classList.add('is-active');
+          iso.arrange({ filter: '*' });
+        } else {
+          allBtn?.classList.remove('is-active');
+          iso.arrange({ filter: activeFilters.join(', ') });
+        }
+      });
+    });
+
+    document.querySelector('#pf-shuffle')?.addEventListener('click', () => iso.shuffle());
+
+    function updateCols() {
+      setColWidth();
+      iso.layout();
+    }
+    document.querySelector('#pf-plus')?.addEventListener('click', () => {
+      if (cols > 1) {
+        cols--;
+        updateCols();
+      }
+    });
+    document.querySelector('#pf-minus')?.addEventListener('click', () => {
+      if (cols < 12) {
+        cols++;
+        updateCols();
+      }
+    });
+
+    grid.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+
+      // The jump button lives inside the tile, so without this its click would
+      // bubble up here and collapse the tile instead of navigating.
+      if (target.closest('a')) return;
+
+      const item = target.closest<HTMLElement>('.pf-item');
+      if (!item) return;
+      const wasExpanded = item.classList.contains('is-expanded');
+      grid.querySelectorAll('.pf-item.is-expanded').forEach((el) => el.classList.remove('is-expanded'));
+      if (!wasExpanded) item.classList.add('is-expanded');
+
+      // The button becoming visible changes the tile's height, so Isotope has
+      // to re-measure. Two frames: one for the class to apply and the browser
+      // to reflow, then layout against real heights. A single synchronous
+      // call here measures the pre-reveal height and leaves tiles overlapping.
+      requestAnimationFrame(() => requestAnimationFrame(() => iso.layout()));
+    });
+
+    /*
+      Archive mode changes tile heights - gutters open up and logomarks get
+      inset - so the grid has to be re-measured the same way. InkMode fires this
+      rather than reaching into the grid itself, so neither component needs to
+      know about the other's internals.
+
+      Two frames again, for the same reason: the CSS has to apply and the
+      browser reflow before Isotope reads real heights.
+    */
+    document.addEventListener('inkmodechange', (e: any) => {
+      /*
+        The categorical change: masonry becomes fitRows.
+
+        Masonry is a feed - ragged columns, items packing into whatever gap is
+        nearest, no shared horizontal line. An archive is the opposite: ruled
+        rows, every plate on a common baseline, the way a specimen sheet or a
+        catalogue is set. Combined with the square cells the CSS gives archive
+        tiles, that turns the same content into a plate book rather than a
+        recoloured feed.
+
+        Isotope has fitRows built in, so this is a mode switch rather than a
+        second layout engine.
+      */
+      const on = Boolean(e?.detail?.on);
+      iso.arrange({layoutMode: on ? 'fitRows' : 'masonry'});
+      requestAnimationFrame(() => requestAnimationFrame(() => iso.layout()));
+    });
+  });
+</script>

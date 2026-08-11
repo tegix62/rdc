@@ -1,0 +1,209 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Sections from '../components/Sections.astro';
+import { sanityClient } from '../lib/sanity';
+
+const colors = [
+  { name: 'Brand Navy', value: '#002885', var: '--color-navy' },
+  { name: 'Navy (hover/dark)', value: '#001c5e', var: '--color-navy-dark' },
+  { name: 'White', value: '#ffffff', var: '--color-white' },
+  { name: 'Light Gray', value: '#f4f4f4', var: '--color-gray-light' },
+  { name: 'Gray (meta text)', value: '#666666', var: '--color-gray' },
+  { name: 'Ink (body text)', value: '#1a1a1a', var: '--color-ink' },
+  { name: 'Black', value: '#000000', var: '--color-black' },
+];
+/*
+  Fixtures for every layout block, rendered through the real Sections component.
+
+  Why this page and not a real case study: a new block that nothing uses is a
+  block nobody has seen. Media Row and Media + Text were shipped correct as far
+  as type-checking goes, and that says nothing about whether they render, whether
+  a video sits properly beside text, or whether three items across overflow on a
+  phone. Seeding Chris's live case studies to find out would mean editing his
+  content to test my code.
+
+  Sections takes a plain array, so fixtures need no Sanity query at all. The
+  asset references below are real files from the dataset, chosen on purpose:
+
+  - the two GIFs are confirmed animated by scripts/audit-animated.mjs, so a row
+    of them exercises the pass-through path rather than a static stand-in. The
+    400x400 one is the file the transform pipeline turns from 867 KB into
+    4,374 KB, which makes it the best possible canary.
+  - the videos are the Vimeo and YouTube embeds already used elsewhere on the
+    site, so both providers get covered.
+
+  The page audit loads /style-guide at both widths, so these get checked for
+  sideways scroll and weight on every run.
+*/
+const ref = (id: string) => ({_type: 'image', asset: {_type: 'reference', _ref: id}});
+
+const ANIMATED_GIF_A = 'image-84932c87f8d266a2d3c30330f2797e46e86308c2-1080x1080-gif';
+const ANIMATED_GIF_B = 'image-7699f292fa859c7d126fd3aafe76eaf7eb0ac579-400x400-gif';
+const STATIC_IMAGE = 'image-b3834b3ffbcf2783a337743475cd2041ff0aceb9-1080x1080-webp';
+
+const VIMEO = 'https://player.vimeo.com/video/1044782545';
+const YOUTUBE = 'https://www.youtube.com/watch?v=plYFXjoViKI';
+
+/*
+  A real uploaded video for the autoplay fixture.
+
+  The self-hosted branch needs an actual file, and a fabricated URL would 404
+  and prove nothing. This used to borrow an MP4 from animatedVideoMap - the
+  GIF-to-video conversion - but that feature has been removed, so it now takes
+  any real MP4 file asset in the dataset. Which means it starts exercising the
+  autoplay path properly the moment a hand-uploaded clip exists, rather than
+  depending on a converter that is gone.
+
+  Resolves to null when the dataset holds no MP4, and the fixture is skipped.
+*/
+const uploaded = await sanityClient.fetch<{mp4?: string; webm?: string} | null>(
+  `*[_type == "sanity.fileAsset" && extension == "mp4"] | order(_createdAt desc)[0]{
+    "mp4": url,
+    "webm": null
+  }`,
+);
+
+const blockFixtures = [
+  {
+    _type: 'mediaRowSection',
+    _key: 'row-three-animated',
+    heading: 'Three across, two of them animated',
+    items: [
+      {_type: 'mediaImage', _key: 'a', image: {...ref(ANIMATED_GIF_A), alt: 'Animated logo loop'}, caption: 'Animated GIF'},
+      {_type: 'mediaImage', _key: 'b', image: {...ref(ANIMATED_GIF_B), alt: 'Animated print mockup'}, caption: 'Animated GIF'},
+      {_type: 'mediaImage', _key: 'c', image: {...ref(STATIC_IMAGE), alt: 'Static brand sheet'}, caption: 'Static image'},
+    ],
+  },
+  {
+    _type: 'mediaRowSection',
+    _key: 'row-two-videos',
+    heading: 'Two videos side by side',
+    items: [
+      {_type: 'mediaVideo', _key: 'a', url: VIMEO, caption: 'Vimeo'},
+      {_type: 'mediaVideo', _key: 'b', url: YOUTUBE, caption: 'YouTube'},
+    ],
+  },
+  {
+    _type: 'mediaRowSection',
+    _key: 'row-mixed',
+    heading: 'A video beside a mockup',
+    items: [
+      {_type: 'mediaVideo', _key: 'a', url: YOUTUBE, caption: 'Walkthrough'},
+      {_type: 'mediaImage', _key: 'b', image: {...ref(STATIC_IMAGE), alt: 'Mobile mockup'}, caption: 'Mockup'},
+    ],
+  },
+  {
+    _type: 'mediaTextSection',
+    _key: 'mt-video',
+    videoUrl: VIMEO,
+    mediaPosition: 'Left',
+    heading: 'Media + Text, with a video',
+    text: 'The video replaces the image when a URL is set, the same rule a case study hero uses.',
+  },
+  ...(uploaded?.mp4
+    ? [
+        {
+          _type: 'mediaRowSection',
+          _key: 'row-autoplay',
+          heading: 'Uploaded file, autoplaying silently on a loop',
+          items: [
+            {
+              _type: 'mediaVideo',
+              _key: 'a',
+              videoFile: {asset: {url: uploaded.mp4}},
+              videoWebm: uploaded.webm ? {asset: {url: uploaded.webm}} : undefined,
+              videoPlayback: 'autoplay',
+              caption: 'Autoplay, muted, looping - no player script',
+            },
+            {
+              _type: 'mediaVideo',
+              _key: 'b',
+              videoFile: {asset: {url: uploaded.mp4}},
+              videoPlayback: 'click',
+              caption: 'Same file, click to play with controls',
+            },
+          ],
+        },
+      ]
+    : []),
+  {
+    _type: 'mediaTextSection',
+    _key: 'mt-image',
+    image: {...ref(STATIC_IMAGE), alt: 'Brand sheet detail'},
+    mediaPosition: 'Right',
+    heading: 'Media + Text, image on the right',
+    text: 'Same block with no video URL, and the media half flipped to the right.',
+  },
+];
+---
+
+{/* noindex: this is an internal reference page, not part of the site. It is
+    already left out of sitemap.xml, but production robots.txt allows the whole
+    site, so nothing but obscurity was keeping it out of search results. */}
+<Layout title="Style Guide" description="Rumeau Design Co design tokens" noindex>
+  <h1>Style Guide</h1>
+  <p class="style-guide-note">
+    Pulled from what's actually applied on rumeaudesign.co's real headings,
+    buttons, nav, and links — not the unused component-library colors also
+    sitting in the Webflow project.
+  </p>
+
+  <h2>Colors</h2>
+  <div>
+    {colors.map((c) => (
+      <div class="swatch">
+        <div class="swatch__color" style={`background:${c.value}`}></div>
+        <div>
+          <strong>{c.name}</strong> — <code>{c.value}</code>
+          <div class="card__meta"><code>var({c.var})</code></div>
+        </div>
+      </div>
+    ))}
+  </div>
+
+  <h2>Type</h2>
+  <p>
+    Headings: <strong>Inter Tight</strong> (700). Body copy:{' '}
+    <strong>Gothic A1</strong>.
+  </p>
+  {/*
+      Specimens, not headings. These were real <h1>-<h5> tags, which gave this
+      page two <h1> elements and a document outline claiming a type sample was
+      a section of the page. The .t-* classes carry the identical rules - see
+      global.css - so nothing about how this looks has changed.
+  */}
+  <p class="t-h1">Heading 1 — 3.5rem</p>
+  <p class="t-h2">Heading 2 — 3rem</p>
+  <p class="t-h3">Heading 3 — 2.5rem</p>
+  <p class="t-h4">Heading 4 — 2rem</p>
+  <p class="t-h5">Heading 5 — 1.5rem</p>
+  <p class="style-guide-note">
+    Body copy sets in Gothic A1 at a comfortable reading size, used for
+    paragraphs, case study details, and blog posts across the site.
+  </p>
+
+  <h2>Buttons &amp; Links</h2>
+  <p>
+    <a href="#">A standard text link</a>
+  </p>
+  <p>
+    <a class="button" href="#">A button</a>
+  </p>
+
+  <h2>Cards</h2>
+  <div class="grid">
+    <div class="card">
+      <div class="swatch__color" style="background:#f4f4f4; width:100%; aspect-ratio:4/5;"></div>
+      <p class="card__title">Card Title</p>
+      <p class="card__meta">Card meta text</p>
+    </div>
+  </div>
+
+  <h2>Layout blocks</h2>
+  <p class="style-guide-note">
+    Every block available in Studio, rendered with fixture content. Two of the
+    GIFs below are genuinely animated files from the dataset, so this also
+    checks that animated sources bypass the resize pipeline.
+  </p>
+  <Sections sections={blockFixtures} />
+</Layout>

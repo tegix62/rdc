@@ -1,0 +1,40 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { pageDescription } from '../lib/meta';
+import { getPage } from '../lib/queries';
+import { renderPortableText } from '../lib/portableText';
+import Img from '../components/Img.astro';
+import Sections from '../components/Sections.astro';
+
+const page = await getPage('about');
+---
+
+<Layout title={page?.title ?? 'About'} description={pageDescription(page, 'Chris Rumeau is a brand identity and merch designer in New Jersey. Extensive sketching, pre-internet reference, and marks drawn by hand.')}>
+  <div class="about-layout">
+    {page?.heroImage && (
+      <Img
+        class="about-layout__portrait"
+        image={page.heroImage}
+        field="heroImage"
+        alt={page.heroAlt ?? 'Chris Rumeau'}
+        width={500}
+        sizes="(max-width: 40rem) 100vw, 500px"
+        loading="eager"
+      />
+    )}
+    <div>
+      <h1>{page?.heading ?? page?.title ?? 'About'}</h1>
+      {page?.body?.length > 0 ? (
+        <div class="prose" set:html={renderPortableText(page.body)} />
+      ) : (
+        <p>Content coming soon.</p>
+      )}
+    </div>
+  </div>
+
+  {page?.sections?.length > 0 && (
+    <div class="page-sections">
+      <Sections sections={page.sections} />
+    </div>
+  )}
+</Layout>

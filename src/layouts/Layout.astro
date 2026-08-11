@@ -1,0 +1,377 @@
+---
+import '@fontsource-variable/inter-tight';
+import '@fontsource/gothic-a1/400.css';
+import '@fontsource/gothic-a1/500.css';
+import '@fontsource/gothic-a1/700.css';
+import '../styles/global.css';
+import { getSiteSettings } from '../lib/queries';
+import Img from '../components/Img.astro';
+import { imageUrl, socialCardUrl } from '../lib/image';
+import VisualEditing from '../components/VisualEditing.astro';
+import MetaPixel from '../components/MetaPixel.astro';
+import { buildGraph, serialise, type SiteContext } from '../lib/structuredData';
+import { stripStega as clean } from '../lib/stega';
+import {
+  bareTitle,
+  DEFAULT_LEGAL_NAME,
+  DEFAULT_SITE_NAME,
+  pageTitle,
+} from '../lib/meta';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Absolute URL for social previews. Falls back to no og:image. */
+  ogImage?: string;
+  /** 'article' for blog posts and case studies. */
+  ogType?: 'website' | 'article';
+  /**
+   * Keep this page out of search results. For internal pages: /style-guide is
+   * excluded from sitemap.xml, but production robots.txt says `Allow: /`, so
+   * the only thing keeping it unindexed was that nothing links to it.
+   */
+  noindex?: boolean;
+  /**
+   * Extra Schema.org nodes for this page - a CreativeWork for a case study, a
+   * BlogPosting for a post. They join the sitewide Organization/WebSite/WebPage
+   * nodes in one @graph. See src/lib/structuredData.ts.
+   *
+   * A function rather than an array because the nodes need this page's
+   * canonical URL, which is worked out below - passing an array would mean
+   * every template re-deriving the same URL and eventually one of them getting
+   * it wrong.
+   */
+  jsonLd?: (ctx: SiteContext) => Record<string, unknown>[];
+}
+
+const {
+  title,
+  description = 'Rumeau Design Co',
+  ogImage,
+  ogType = 'website',
+  noindex = false,
+  jsonLd,
+} = Astro.props;
+
+const settings = await getSiteSettings();
+
+// Canonical always points at the real domain, never at whichever preview
+// host served the page, so a preview can't compete with the live site for
+// its own URLs.
+//
+// The trailing slash is stripped so these match sitemap.xml exactly. Astro's
+// directory build format serves /about and /about/ alike, and left alone the
+// canonical said one while the sitemap said the other - which a crawler
+// reads as two URLs for one page.
+const path = Astro.url.pathname.replace(/(.)\/$/, '$1');
+const canonical = Astro.site ? new URL(path, Astro.site).href : Astro.url.href;
+
+// Both of these were in the Studio and read by nothing, so editing them did
+// nothing to the site - the audit in scripts/audit-cms.mjs found them.
+const SITE_NAME = clean(settings?.siteTitle) ?? DEFAULT_SITE_NAME;
+const FOOTER_TEXT = settings?.footerText;
+
+/*
+  The name on the copyright line.
+
+  It was `SITE_NAME === 'Rumeau Design Co' ? 'Rumeau Design LLC' : SITE_NAME` -
+  a string comparison standing in for a field. Rename the site in Studio and
+  the footer quietly stops naming the company that holds the copyright, which
+  is the one line on the page where that matters. Now a field, with the same
+  value as its default so nothing changes until it is set.
+*/
+const LEGAL_NAME = clean(settings?.legalName) ?? DEFAULT_LEGAL_NAME;
+
+/*
+  Only <title> gets the site-name suffix. og:title sits directly above
+  og:site_name in every social card, so suffixing it there prints the studio's
+  name twice. Composition lives in lib/meta.ts, which has a test in front of it
+  because nothing on the page ever shows whether it came out right.
+*/
+const fullTitle = pageTitle(title, SITE_NAME);
+const shareTitle = bareTitle(title, SITE_NAME);
+
+/*
+  Every page gets a social image, even the ones with no image of their own.
+
+  Only /work/<slug> and /blog/<slug> passed an ogImage, so the other nine
+  static pages - including the homepage - shared to Slack, iMessage and
+  LinkedIn as a bare text card. A missing og:image is not a neutral omission
+  there; it is a visibly broken-looking link.
+
+  Two levels of fallback, and they are framed differently on purpose:
+
+    socialImage   a real card, CROPPED to fill 1200x630. Nothing uploaded yet.
+    logo          the wordmark, PADDED onto white. It is wide and short, so
+                  cropping it to 1.91:1 slices the middle out and prints two
+                  letters.
+
+  See socialCardUrl in lib/image.ts for why padding needs more than fit('fill').
+*/
+const socialImage =
+  ogImage ??
+  socialCardUrl(settings?.socialImage) ??
+  socialCardUrl(settings?.logo, {pad: true});
+
+// The preview deployment is a public URL. Without this it is perfectly
+// crawlable and would compete with rumeaudesign.co in search results for
+// duplicated copy. Webflow's staging is noindexed for the same reason.
+const IS_PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+
+// The real site's nav: only 4 links are shown, not every page in the
+// project (Merch/Collage/Blog still exist, just aren't nav-linked).
+const navLinks = [
+  { label: 'Portfolio', href: '/portfolio' },
+  { label: 'About', href: '/about' },
+  { label: 'Video', href: '/video' },
+];
+const TALLY_URL = settings?.contactUrl || 'https://tally.so/r/mZ8LXz';
+
+/*
+  Structured data. The live Webflow site emits a JSON-LD block and this one
+  did not, which is the gap the SEO parity check missed - it compared meta, OG,
+  canonical, sitemap and robots and never looked for this.
+
+  Built here for every page so the Organization and WebSite nodes are stated
+  once and referenced by @id, rather than each template restating the business.
+*/
+const structuredDataContext: SiteContext = {
+  origin: (Astro.site?.origin ?? 'https://rumeaudesign.co').replace(/\/$/, ''),
+  canonical,
+  title,
+  description,
+  // Deliberately ogImage, not the wordmark fallback: primaryImageOfPage should
+  // be an image OF this page. The Organization node already carries the logo.
+  image: ogImage,
+  logoUrl: imageUrl(settings?.logo)?.width(512).url(),
+  settings,
+};
+const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) ?? []);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {/*
+      Served from Sanity so it can be changed without a code edit. Falls back
+      to /favicon.svg, which has never existed - so until one is uploaded every
+      page load 404s on it and tabs show a blank icon.
+    */}
+    {imageUrl(settings?.favicon) ? (
+      <link rel="icon" href={imageUrl(settings.favicon)!.width(64).height(64).fit('crop').url()} />
+    ) : (
+      <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    )}
+    {/*
+      Which commit built this page. The audit polls for it before measuring,
+      because it previously waited a fixed 90 seconds for the deploy and had no
+      way to tell whether it had landed - so a run could measure the PREVIOUS
+      build and report a change as having had no effect. Which is exactly what
+      happened to the lazy-embed change.
+    */}
+    <meta name="build-commit" content={import.meta.env.PUBLIC_BUILD_SHA ?? 'dev'} />
+    <meta name="description" content={description} />
+    <title>{fullTitle}</title>
+    <link rel="canonical" href={canonical} />
+    {(IS_PREVIEW || noindex) && <meta name="robots" content="noindex, nofollow" />}
+
+    {/* Webflow emitted these per page; without them a shared link previews
+        as a bare URL with no title, description or image. */}
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:title" content={shareTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    {socialImage && <meta property="og:image" content={socialImage} />}
+    <meta name="twitter:card" content={socialImage ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:title" content={shareTitle} />
+    <meta name="twitter:description" content={description} />
+    {socialImage && <meta name="twitter:image" content={socialImage} />}
+
+    {/* Explicit closing tag: a self-closed <script/> is not valid HTML and
+        browsers swallow the rest of the head. */}
+    <script type="application/ld+json" is:inline set:html={serialise(graph)}></script>
+
+    {/*
+      Emits nothing at all unless Site Settings → Meta Pixel ID is filled in,
+      and never on the preview build. See MetaPixel.astro - including what it
+      costs and the consent question it does not answer.
+    */}
+    <MetaPixel id={settings?.metaPixelId} />
+  </head>
+  <body>
+    {/*
+      WCAG 2.4.1. Every page opens with the nav, so a keyboard or screen-reader
+      visitor tabs through the wordmark, the menu toggle and four links before
+      reaching any content - on all 21 pages, every time. Visually hidden until
+      focused, which is the whole convention: sighted mouse users never see it.
+
+      First element in the body on purpose. A skip link that is not the first
+      thing focused is a skip link you have to tab to.
+    */}
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <header class="site-nav">
+      <nav class="site-nav__inner">
+        <a class="site-nav__brand" href="/">
+          {settings?.logo ? (
+            <Img image={settings.logo} alt={SITE_NAME} field="logo (Wordmark)" width={260} sizes="130px" loading="eager" />
+          ) : (
+            SITE_NAME
+          )}
+        </a>
+        <button
+          type="button"
+          class="site-nav__toggle"
+          id="site-nav-toggle"
+          aria-expanded="false"
+          aria-controls="site-nav-links"
+          aria-label="Toggle menu"
+        >
+          <span></span><span></span><span></span>
+        </button>
+        <div class="site-nav__links" id="site-nav-links">
+          {navLinks.map((link) => <a href={link.href}>{link.label}</a>)}
+          <a class="site-nav__contact" href={TALLY_URL}>Contact</a>
+        </div>
+      </nav>
+    </header>
+    {/*
+      tabindex="-1" so the skip link actually moves focus here. Without it the
+      browser scrolls to the target and leaves focus on the <body>, so the next
+      Tab goes back to the nav - the link appears to work and does nothing.
+    */}
+    <main class="wrap" id="main-content" tabindex="-1">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="wrap site-footer__top">
+        <a class="site-footer__brand" href="/">
+          {settings?.logo ? (
+            <Img image={settings.logo} alt={SITE_NAME} field="logo (Wordmark)" width={200} sizes="100px" />
+          ) : (
+            SITE_NAME
+          )}
+        </a>
+        {FOOTER_TEXT && <p class="site-footer__blurb">{FOOTER_TEXT}</p>}
+
+        <div class="site-footer__col">
+          <p class="site-footer__heading">Follow</p>
+          {settings?.socialLinks?.length > 0 ? (
+            settings.socialLinks.map((s: any) =>
+              s.url ? (
+                <a class="site-footer__social-link" href={s.url} target="_blank" rel="noopener noreferrer">
+                  {s.platform}
+                </a>
+              ) : null,
+            )
+          ) : (
+            <p class="site-footer__muted">No social links yet</p>
+          )}
+        </div>
+
+        <div class="site-footer__col">
+          <p class="site-footer__heading">Contact</p>
+          <a class="button" href={TALLY_URL}>Get in Touch</a>
+        </div>
+      </div>
+
+      <div class="wrap site-footer__bottom">
+        <p>&copy; {new Date().getFullYear()} {LEGAL_NAME}. All rights reserved.</p>
+        <a href="/privacy-policy">Privacy Policy</a>
+      </div>
+    </footer>
+    <style is:global>
+      /*
+        Ported from Webflow: makes casually lifting an image awkward.
+
+        WHAT THIS IS AND IS NOT
+
+        It is a deterrent. It is not protection, and nothing on a static site
+        can be. Every image URL is in the page source, the animated ones ship
+        as their ORIGINAL file straight from cdn.sanity.io with no query string
+        at all, and a screenshot works on every device ever made. Anyone who
+        wants a file will get it. What this stops is the accidental
+        right-click-save, which is most of it in practice.
+
+        Chris found long-press → Copy still worked on iOS, on the animated
+        flyer on Two Point Oh's page. `-webkit-touch-callout: none` is meant to
+        suppress that menu and evidently did not on its own, so the selection
+        properties go with it: iOS decides what the long-press menu offers
+        partly from whether the target is selectable, and an image that cannot
+        be selected or dragged gives it less to offer.
+
+        Stated plainly because I cannot test it: there is no iPhone in this
+        sandbox, and recent iOS has repeatedly changed how much of this it
+        honours. If it still copies, the next step is a transparent overlay
+        element taking the long-press instead of the image - reliable, and
+        more markup on every tile. Worth doing only if this is not enough.
+
+        The real protection is the licence, which is why /image-license-info
+        exists.
+      */
+      img {
+        -webkit-user-drag: none;
+        -khtml-user-drag: none;
+        -moz-user-drag: none;
+        -o-user-drag: none;
+        user-drag: none;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+      }
+    </style>
+    <VisualEditing />
+    <script>
+      const navToggle = document.querySelector<HTMLButtonElement>('#site-nav-toggle');
+      const navLinks = document.querySelector<HTMLElement>('#site-nav-links');
+
+      const setNavOpen = (open: boolean) => {
+        navLinks?.classList.toggle('is-open', open);
+        navToggle?.setAttribute('aria-expanded', String(open));
+      };
+
+      navToggle?.addEventListener('click', () => {
+        setNavOpen(!navLinks?.classList.contains('is-open'));
+      });
+
+      /*
+        Escape closes the menu, and focus goes back to the button that opened
+        it. Opening it was the only thing this menu could do: there was no key
+        to dismiss it, and the only way back out was to find the toggle again
+        by tabbing through every link - which on mobile means the menu is a
+        one-way door.
+
+        Focus is NOT moved into the menu on open. The links are the toggle's
+        next siblings in the DOM, so Tab already lands on them; forcing focus
+        would only take away the choice of tabbing straight past.
+      */
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        if (!navLinks?.classList.contains('is-open')) return;
+        setNavOpen(false);
+        navToggle?.focus();
+      });
+    </script>
+    <script>
+      // Ported from the Webflow site: blocks right-click save and
+      // drag-to-desktop on images, site-wide.
+      document.addEventListener(
+        'contextmenu',
+        (e) => {
+          if (e.target instanceof HTMLImageElement) e.preventDefault();
+        },
+        false,
+      );
+      document.addEventListener(
+        'dragstart',
+        (e) => {
+          if (e.target instanceof HTMLImageElement) e.preventDefault();
+        },
+        false,
+      );
+    </script>
+  </body>
+</html>

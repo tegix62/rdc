@@ -1,0 +1,247 @@
+name: Deploy to production
+
+# The build that serves the real domain.
+#
+# This is deliberately NOT triggered by pushing. Every other workflow in this
+# repo is safe to fire by accident; this one is the difference between a
+# staging site and rumeaudesign.co, and the site is not launched yet. It runs
+# when someone asks it to run.
+#
+# It also does not publish by default. Dispatching it builds the production
+# bundle and puts it through scripts/check-production-build.mjs, which is the
+# part worth exercising often - you can prove a production build is correct
+# any number of times without anything going live. Tick "publish" only when
+# you mean it.
+#
+# How this build differs from the preview one (deploy-pages.yml), which is the
+# whole reason the gate exists:
+#
+#   PUBLIC_SANITY_VISUAL_EDITING   preview: true    here: unset
+#   PUBLIC_IS_PREVIEW              preview: true    here: unset
+#
+# Two variables. Unset means false. Neither has any visible effect on a page,
+# which is exactly why they are checked by measurement rather than by reading
+# this file and believing it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish to the production domain (off = build and verify only)'
+        type: boolean
+        default: false
+      verify_url:
+        description: 'URL to verify after publishing'
+        default: 'https://rumeau-design-co.pages.dev'
+  # GitHub only offers "Run workflow" for files that exist on the default
+  # branch, so until this is merged there is no way to dispatch it - and an
+  # untested launch gate is not a launch gate. This trigger covers only the
+  # three files that make up the gate itself, and cannot publish: `publish` is
+  # an input, and inputs are empty on a push. So a change here builds the real
+  # production bundle and checks it, and stops there.
+  push:
+    paths:
+      - '.github/workflows/deploy-production.yml'
+      - 'scripts/check-production-build.mjs'
+      - 'scripts/test-production-check.mjs'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # package-lock.json is committed now, so this resolves to the exact
+      # versions that built the site during development rather than re-resolving
+      # the ^ ranges in package.json on the day. Two deploys broke that way
+      # earlier in this project, and launch day is the worst possible time for a
+      # transitive dependency to float.
+      #
+      # Still `npm install` rather than `npm ci`, deliberately. The lockfile
+      # carries isotope-layout and imagesloaded at its root, left over from
+      # installing them once to extract the two files now committed under
+      # public/vendor - nothing depends on those packages at build time. npm ci
+      # refuses to run when the lockfile and package.json disagree like that, so
+      # switching today would break every workflow. The fix is to regenerate the
+      # lockfile from a clean install, which needs network this sandbox does not
+      # have; `npm ci` becomes correct the moment someone does that.
+      - run: npm install
+
+      # The gate is only worth what it can catch, so prove it in the same run
+      # that relies on it. Builds a deliberately broken dist for every check
+      # and asserts each one fails with the right name. Needs no network.
+      - name: Verify the gate itself still catches things
+        run: node scripts/test-production-check.mjs
+
+      - name: Build
+        run: npm run build
+        env:
+          # Both preview flags are absent on purpose. Do not "helpfully" add
+          # them back - see the header of this file, and the gate below, which
+          # will refuse the deploy if they reappear.
+          PUBLIC_BUILD_SHA: ${{ github.sha }}
+
+      # Nothing is deployed until this passes. It reads the built files rather
+      # than trusting the env block above: robots.txt rules, canonical hosts,
+      # the sitemap's contents, invisible stega markers in the copy, the
+      # editing overlay, and whether every page is stamped with this commit.
+      - name: Gate - is this actually a production build?
+        run: |
+          set -o pipefail
+          node scripts/check-production-build.mjs \
+            --dist dist \
+            --origin https://rumeaudesign.co \
+            --sha "$GITHUB_SHA" \
+            --json production-check.json 2>&1 | tee production-check.txt
+
+      - name: Report the gate
+        if: always()
+        run: |
+          {
+            echo '## Production build gate'
+            echo ''
+            echo '```'
+            cat production-check.txt 2>/dev/null || echo '(the build did not get this far)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the check output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-check
+          path: |
+            production-check.txt
+            production-check.json
+          if-no-files-found: ignore
+
+      # Everything below only runs when publishing was asked for.
+      - name: Ensure the Pages project exists
+        if: inputs.publish
+        run: npx wrangler@3 pages project create rumeau-design-co --production-branch main || true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - uses: cloudflare/pages-action@v1
+        if: inputs.publish
+        id: pages
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: rumeau-design-co
+          directory: dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          # `main` is the project's production branch, so this is the
+          # deployment a custom domain serves. The preview workflow publishes
+          # to `preview`, and the two never touch.
+          branch: main
+
+      # The gate checked files on disk. This checks what the CDN actually
+      # serves, which is not the same claim: a stale deployment, a cached
+      # robots.txt, or a domain pointed at the wrong branch would all sail
+      # past a file check.
+      - name: Verify what is live
+        if: inputs.publish
+        run: |
+          set -uo pipefail
+          BASE="${{ inputs.verify_url }}"
+          BASE="${BASE%/}"
+          problems=0
+
+          note() { echo "  $1"; }
+          bad() { echo "  ✗ $1"; problems=$((problems + 1)); }
+
+          # A brand new deployment takes a moment to become the one being
+          # served, so poll for this commit rather than measuring whatever is
+          # there and reporting it as this build. Three earlier audits in this
+          # project measured the previous build for want of exactly this.
+          stamp=""
+          for attempt in 1 2 3 4 5 6 7 8; do
+            stamp=$(curl -sL --max-time 20 "$BASE/" \
+              | grep -o 'name="build-commit" content="[^"]*"' \
+              | head -1 | sed 's/.*content="//; s/"//')
+            [ "$stamp" = "$GITHUB_SHA" ] && break
+            echo "attempt $attempt: live build is '${stamp:-none}', waiting for $GITHUB_SHA"
+            sleep 10
+          done
+
+          if [ "$stamp" = "$GITHUB_SHA" ]; then
+            note "✓ serving this commit"
+          else
+            bad "still serving '${stamp:-nothing}' after 80s, so everything below describes some other build"
+          fi
+
+          robots=$(curl -sL --max-time 20 "$BASE/robots.txt")
+          if printf '%s' "$robots" | grep -qiE '^[[:space:]]*Disallow:[[:space:]]*/[[:space:]]*$'; then
+            bad "robots.txt disallows the whole site"
+          else
+            note "✓ robots.txt allows crawling"
+          fi
+          if printf '%s' "$robots" | grep -qi 'Sitemap:'; then
+            note "✓ robots.txt names a sitemap"
+          else
+            bad "robots.txt names no sitemap"
+          fi
+
+          home=$(curl -sL --max-time 20 "$BASE/")
+          if printf '%s' "$home" | grep -qi 'name="robots"[^>]*noindex'; then
+            bad "the homepage is noindexed"
+          else
+            note "✓ no noindex"
+          fi
+          if printf '%s' "$home" | grep -q 'rel="canonical" href="https://rumeaudesign.co/"'; then
+            note "✓ canonical points at rumeaudesign.co"
+          else
+            bad "homepage canonical is not https://rumeaudesign.co/"
+          fi
+
+          code=$(curl -sL -o /dev/null -w "%{http_code}" --max-time 20 "$BASE/sanity-visual-editing.js")
+          if [ "$code" = "404" ]; then
+            note "✓ the editing overlay is not served (404)"
+          else
+            bad "/sanity-visual-editing.js returns HTTP $code - it should not exist"
+          fi
+
+          # Same placeholder smoke test the preview deploy runs: every template
+          # falls back to "Content coming soon" when its document is missing,
+          # which is a healthy-looking 200 with no content behind it.
+          for p in / /portfolio /about /video /collage /merchfolio /blog /privacy-policy; do
+            body=$(curl -sL --max-time 20 "$BASE$p")
+            code=$(curl -sL -o /dev/null -w "%{http_code}" --max-time 20 "$BASE$p")
+            if [ "$code" != "200" ]; then
+              bad "$p -> HTTP $code"
+            elif printf '%s' "$body" | grep -q "Content coming soon"; then
+              bad "$p -> 200 but showing the placeholder"
+            fi
+          done
+
+          {
+            echo ''
+            echo "### Live at $BASE"
+            echo ''
+            if [ "$problems" -eq 0 ]; then
+              echo 'Everything checked out.'
+            else
+              echo "**$problems problem(s)** - see the step log."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          [ "$problems" -eq 0 ]
+
+      - name: Where it went
+        if: inputs.publish && always()
+        run: |
+          {
+            echo ''
+            echo '| | |'
+            echo '|---|---|'
+            echo '| This deploy | ${{ steps.pages.outputs.url }} |'
+            echo '| Production alias | ${{ inputs.verify_url }} |'
+          } >> "$GITHUB_STEP_SUMMARY"

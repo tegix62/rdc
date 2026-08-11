@@ -1,0 +1,73 @@
+[
+  {
+    "title": "Rumeau Design Co - Brand Identity & Merch Design for Apparel and Music",
+    "slug": "home",
+    "seoDescription": "Rumeau Design Co is a brand identity and merch design studio founded by Chris Rumeau. Heritage-style branding, custom typography, and illustration for apparel brands, startups, and musicians. Based in New Jersey, working remotely."
+  },
+  {
+    "title": "About Chris Rumeau - Rumeau Design Co - Brand Designer & Illustrator",
+    "slug": "about",
+    "heading": "Chris Rumeau",
+    "seoDescription": "Chris Rumeau is a brand designer, illustrator, and typographer building visual identities for apparel brands and musicians. Heritage craft and hand-drawn precision. Based in New Jersey.",
+    "heroImage": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/69c6cc0865ebef157fbcfc47_chrisrumeau-municipalselfie-blue.webp",
+    "heroAlt": "Chris Rumeau, founder of Rumeau Design Co",
+    "bodyHtml": "<p>My name's Chris. Rumeau Design Co (RDC) is my studio. I'm a brand designer, illustrator, and typographer based in New Jersey (NJ). I primarily design visual identities and merch for apparel brands and musicians.</p><p>I sketch extensively before anything goes digital. Most reference comes from pre-internet sources: Type specimens, vintage packaging, hand-painted signage, ephemera from flea markets and library archives.</p><p>I studied design academically (Pratt Institute 2016, Montclair State University 2019) and practice figure drawing and painting regularly as core disciplines to inform how I see shape, composition, and form.</p><p>I work best with clients who already have strong taste or strong ambition and need a designer who can match it. Mainly apparel startups building something that could sit next to Brixton or Seager on a shelf. Bands who want merch that people actually want to wear.</p>"
+  },
+  {
+    "title": "Portfolio - Rumeau Design Co - Brand Identity, Merch & Illustration",
+    "slug": "portfolio",
+    "seoDescription": "Brand identity, merch design, and illustration work by Chris Rumeau. Heritage-style branding, custom typography, and apparel graphics for startups, musicians, and apparel brands."
+  },
+  {
+    "title": "Merch Portfolio | Rumeau Design Co",
+    "slug": "merchfolio",
+    "heading": "Merch Portfolio",
+    "seoDescription": "Merch and apparel design work by Chris Rumeau. Band merch, apparel graphics, and branded product lines. Heritage-style illustration and custom typography."
+  },
+  {
+    "title": "Collage | Rumeau Design Co",
+    "slug": "collage",
+    "heading": "Chris Rumeau",
+    "seoDescription": "Visual collage and design exploration by Chris Rumeau. Brand identity, illustration, and hand-drawn design for apparel brands and musicians.",
+    "sections": [
+      {
+        "type": "threeUp",
+        "imageOne": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6933a82eeb640c186eb10b53_Collage%202024%20-Cryptomeria%202024-33.jpg",
+        "imageTwo": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6933a8325340ea3acc5f5721_Collage%202025-01-01-The_Channel-33.jpg",
+        "imageThree": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6933a83523a85b83ba26f153_Collage%202025-01-11_03-Newform-33.jpg"
+      },
+      {
+        "type": "threeUp",
+        "imageOne": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6933a838a2a5272c7b012aa4_Collage%202025-01-20_04-First_Moments-33.jpg",
+        "imageTwo": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6933a83b10d2dad8c00e2e3b_Collage%202025-02-02-REBELSPIRIT-33.jpg",
+        "imageThree": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6933a83dc364fb076cdb4eb8_Collage%202025-04-12-Magnesium_Mildness-33.jpg"
+      }
+    ]
+  },
+  {
+    "title": "Process | Rumeau Design Co",
+    "slug": "video",
+    "heading": "I shot, edited, & produced a video for Pinegrove in 2023.",
+    "seoDescription": "Time-lapses and behind-the-scenes process videos showing the hand-drawn design method at Rumeau Design Co. Pencil to product.",
+    "bodyHtml": "<p>Pinegrove has played <a href=\"https://www.youtube.com/watch?v=weL8HTY1NJU\">NPR Tiny Desk</a>, <a href=\"https://www.youtube.com/watch?v=0JvG551iDTE\">Audiotree</a>, <a href=\"https://www.youtube.com/watch?v=kcpeI1mGIFg\">Wellmont Theater</a>, and is the soundtrack to the <a href=\"https://www.tiktok.com/@garrettlee39/video/7242408993245695275?lang=en\">viral Pinegrove Shuffle</a>. This took 70+ hours, schematics to prepare lighting and camera positions, directing my teammates, and consulting with the marketing team for this final product. I loved working on it and hope you enjoy the final product!</p><p>Cool. Just wanted to say that. I'm adding <a href=\"https://www.youtube.com/@rumeaudesign\">more video projects</a> to this site for you to see!</p>",
+    "sections": [
+      {
+        "type": "video",
+        "url": "https://www.youtube.com/watch?v=nwpBlv14Ybw"
+      }
+    ]
+  },
+  {
+    "title": "Blog - Rumeau Design Co - Brand Design, Merch & Typography",
+    "slug": "blog",
+    "heading": "Blog",
+    "seoDescription": "Writing on brand identity, merch design, heritage branding, and the hand-drawn design process. By Chris Rumeau, founder of Rumeau Design Co."
+  },
+  {
+    "title": "Privacy Policy",
+    "slug": "privacy-policy",
+    "heading": "Privacy Policy",
+    "seoDescription": "Rumeau Design Co.'s Privacy Policy to learn how we protect your personal information.",
+    "bodyHtml": "<h2>1. Introduction</h2><p>Rumeau Design Co. (\"we\", \"us\", \"our\") is committed to protecting your privacy. This Privacy Policy outlines how we collect, use, disclose, and safeguard your information when you visit our website <a href=\"https://www.rumeaudesign.co\">www.rumeaudesign.co</a>. Please read this Privacy Policy carefully. If you do not agree with the terms of this Privacy Policy, please do not access the site.</p><h2>2. Information We Collect</h2><p><strong>Identity Data:</strong> Name, surname, username or similar identifier.</p><p><strong>Contact Data:</strong> Billing address, delivery address, email address, and telephone numbers.</p><p><strong>Financial Data:</strong> Bank account and payment card details.</p><p><strong>Transaction Data:</strong> Details about payments to and from you and other details of products and services you have purchased from us.</p><p><strong>Technical Data:</strong> IP address, browser type and version, time zone setting and location, browser plug-in types and versions, operating system and platform, and other technology on the devices you use to access this website.</p><p><strong>Profile Data:</strong> Username and password, purchases or orders made by you, your interests, preferences, feedback, and survey responses.</p><p><strong>Usage Data:</strong> Information about how you use our website, products, and services.</p><p><strong>Marketing and Communications Data:</strong> Your preferences in receiving marketing from us and your communication preferences.</p><h2>3. How We Use Your Information</h2><p>We will only use your personal data when the law allows us to. Most commonly, we will use your personal data in the following circumstances:</p><p><strong>Performance of Contract:</strong> Where we need to perform the contract we are about to enter into or have entered into with you.</p><p><strong>Legitimate Interest:</strong> Where it is necessary for our legitimate interests (or those of a third party) and your interests and fundamental rights do not override those interests.</p><p><strong>Legal Compliance:</strong> Where we need to comply with a legal or regulatory obligation.</p><p><strong>Purposes for using your personal data:</strong></p><ul><li>To register you as a new customer.</li><li>To process and deliver your order including managing payments, fees, and charges.</li><li>To manage our relationship with you, including notifying you about changes to our terms or privacy policy.</li><li>To administer and protect our business and this website (including troubleshooting, data analysis, testing, system maintenance, support, reporting, and hosting of data).</li><li>To deliver relevant website content and advertisements to you and measure or understand the effectiveness of the advertising we serve to you.</li><li>To use data analytics to improve our website, products/services, marketing, customer relationships, and experiences.</li><li>To make suggestions and recommendations to you about goods or services that may be of interest to you.</li></ul><h2>4. How We Share Your Information</h2><p>We may share your information with third parties for the purposes set out in this Privacy Policy. These include:</p><p><strong>Service Providers:</strong> Companies that provide services to help us deliver our business activities.</p><p><strong>Professional Advisers:</strong> Lawyers, bankers, auditors, and insurers who provide consultancy, banking, legal, insurance, and accounting services.</p><p><strong>Regulatory Authorities:</strong> Regulators and other authorities who require reporting of processing activities in certain circumstances.</p>"
+  }
+]

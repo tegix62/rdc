@@ -1,0 +1,2683 @@
+/*
+  Design tokens pulled from the live rumeaudesign.co Webflow site — the
+  colors and fonts actually applied on headings, buttons, nav, and links,
+  not the unused Relume/Spark/Waves library swatches also sitting in the
+  Webflow project.
+*/
+:root {
+  --color-navy: #002885;
+  --color-navy-dark: #001c5e;
+  --color-white: #ffffff;
+  --color-gray-light: #f4f4f4;
+  --color-gray: #666666;
+  --color-border: #e5e5e5;
+  --color-ink: #1a1a1a;
+  --color-black: #000000;
+
+  --font-heading: 'Inter Tight Variable', 'Inter Tight', sans-serif;
+  --font-body: 'Gothic A1', sans-serif;
+
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 1.5rem;
+  --space-4: 2rem;
+  --space-5: 3rem;
+  --space-6: 4rem;
+
+  --content-width: 72rem;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/*
+  The `hidden` attribute only hides things via the browser's default stylesheet,
+  and ANY author `display` rule beats it - author styles win over UA styles
+  regardless of specificity. A `display: flex` on an element being hidden with
+  `el.hidden = true` quietly made the assignment do nothing, and the control
+  driving it looked dead while firing correctly every time.
+
+  A one-line reset, because the next component to use `hidden` alongside a
+  display rule would hit exactly the same thing and it is invisible in the
+  markup - the attribute is right there, it just isn't winning.
+*/
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  line-height: 1.5;
+  color: var(--color-ink);
+  background: var(--color-white);
+}
+
+/*
+  Type-specimen classes: the same rules as the heading tags, without being one.
+
+  /style-guide demonstrates every heading size, and it did that with real <h1>
+  through <h5> tags - so that page shipped TWO <h1> elements (its own title and
+  the 3.5rem specimen) and a document outline that claimed a type sample was a
+  section of the page. A specimen has to look like a heading, not be one.
+*/
+h1, h2, h3, h4, h5, h6,
+.t-h1, .t-h2, .t-h3, .t-h4, .t-h5 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--color-navy);
+  margin: 0;
+}
+
+h1,
+.t-h1 {
+  font-size: 3.5rem;
+  line-height: 1.15;
+}
+
+h2,
+.t-h2 {
+  font-size: 3rem;
+  line-height: 1.2;
+}
+
+h3,
+.t-h3 {
+  font-size: 2.5rem;
+  line-height: 1.2;
+}
+
+h4,
+.t-h4 {
+  font-size: 2rem;
+  line-height: 1.25;
+}
+
+h5, h6,
+.t-h5 {
+  font-size: 1.5rem;
+  line-height: 1.3;
+}
+
+
+/*
+  video is here with img on purpose.
+
+  Img.astro renders an animated source as a looping <video>, carrying the
+  asset's intrinsic width and height so it reserves the right box. Without a
+  max-width those attributes win: a 1080x1080 animation rendered at 1080px
+  wide, and the page audit measured /work/adelante-barbell-club at 1614px in a
+  1440px viewport and 768px in a 390px one - which then dragged the unrelated
+  card grid below it out to the same width.
+
+  It was latent for as long as animated GIFs were being served as <img> and
+  quietly inherited this rule. Fixing the animation probe this morning started
+  rendering them as <video>, and the gap became a horizontal scrollbar.
+*/
+img,
+video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+a {
+  color: var(--color-navy);
+}
+
+.wrap {
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 0 var(--space-3);
+}
+
+/*
+  Skip link. Off-canvas rather than display:none or visibility:hidden - both of
+  those take it out of the focus order entirely, which is the one thing it has
+  to stay in. It flies down into the top-left corner when focused.
+
+  Not clip-path/1px-square: this one has to be VISIBLE once focused, so it moves
+  rather than being clipped.
+*/
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  padding: 0.625rem 1.25rem;
+  background: var(--color-navy);
+  color: var(--color-white);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  text-decoration: none;
+  /* Translated out of view instead of moved with `top`, so nothing in the page
+     reflows and no scrollbar appears from an element sitting above the fold. */
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* The skip target. Focusing a <main> to move the reading position is correct,
+   but browsers draw a ring around the entire page for it, which reads as a
+   rendering fault. The link's own focus ring is what confirms the interaction. */
+#main-content:focus {
+  outline: none;
+}
+
+/*
+  Present to a screen reader, absent to the eye. The standard clip rectangle
+  rather than display:none or visibility:hidden, both of which remove the
+  element from the accessibility tree along with the layout - which would defeat
+  the entire point.
+
+  Used for the Portfolio page's <h1>. That page is the main surface of the site
+  and had no heading at all: nothing named it, so a screen reader announced a
+  bare list of controls, and search engines had no title for the page beyond
+  <title>. The design has no room for a visible one - the control row sits
+  directly under the nav by intention - so the heading is stated for the
+  machines and the page looks exactly as it did.
+*/
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Site nav - matches the real Webflow navbar: full-bleed white bar,
+   5% side padding, thin navy bottom border, collapsing to a hamburger
+   below 991px (the real site's Relume navbar breakpoint). */
+.site-nav {
+  position: relative;
+  background: var(--color-white);
+  border-bottom: 2px solid var(--color-navy);
+}
+
+.site-nav__inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: 4.5rem;
+  padding: 0 5%;
+}
+
+.site-nav__links a {
+  text-decoration: none;
+  color: var(--color-navy);
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.site-nav__brand {
+  display: flex;
+  align-items: center;
+  margin-right: auto;
+}
+
+.site-nav__brand img {
+  height: 3rem;
+  width: auto;
+}
+
+.site-nav__contact {
+  padding: 0.5rem 1.25rem;
+  border: 2px solid var(--color-navy);
+  border-bottom-width: 6px;
+  text-align: center;
+}
+
+.site-nav__toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  /* 44x44 is the tap floor; the bars stay 2rem wide, the extra is padding.
+     The audit measured this at 32x32 - the smallest control on the site, and
+     the one every mobile visitor has to hit first. */
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0 0.375rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  /* Safari won't reliably stretch flex children to fill a <button>'s
+     cross axis, and keeps some native chrome unless appearance is reset -
+     without this the three bars render at zero width: present in the DOM,
+     clickable, just invisible. */
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.site-nav__toggle span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  flex-shrink: 0;
+  background: var(--color-navy);
+}
+
+.site-nav__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+@media (max-width: 62rem) {
+  .site-nav__inner {
+    min-height: 4rem;
+    padding: 0.75rem 5%;
+  }
+
+  .site-nav__toggle {
+    display: flex;
+  }
+
+  .site-nav__links {
+    display: none;
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+    padding: var(--space-2) 0 var(--space-3);
+  }
+
+  .site-nav__links.is-open {
+    display: flex;
+  }
+
+  .site-nav__contact {
+    align-self: flex-start;
+  }
+}
+
+.site-footer {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+  font-size: 0.875rem;
+  color: var(--color-gray);
+}
+
+.site-footer__top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-5);
+}
+
+.site-footer__brand img {
+  height: 48px;
+  width: auto;
+}
+
+/* Optional line of copy from siteSettings.footerText. Capped near 45
+   characters so it stays a short statement beside the columns rather than
+   growing into a paragraph that unbalances the row. */
+.site-footer__blurb {
+  flex: 1 1 16rem;
+  max-width: 28ch;
+  margin: 0;
+  color: var(--color-gray);
+}
+
+.site-footer__col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.site-footer__heading {
+  margin: 0 0 var(--space-1);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-navy);
+}
+
+.site-footer__social-link {
+  color: var(--color-gray);
+  text-decoration: none;
+}
+
+.site-footer__social-link:hover {
+  color: var(--color-navy);
+}
+
+.site-footer__muted {
+  margin: 0;
+  color: var(--color-gray);
+}
+
+.site-footer__bottom {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.site-footer__bottom p {
+  margin: 0;
+}
+
+.site-footer__bottom a {
+  color: var(--color-gray);
+}
+
+.site-footer__bottom a:hover {
+  color: var(--color-navy);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--space-3);
+}
+
+/*
+  A grid whose cards carry a paragraph, not just a title.
+
+  The shared .grid packs a 15rem minimum, which on a desktop gave the blog index
+  three or four columns and measured the excerpts at 31-37 characters - about
+  half the 45-75 a line of prose needs to be readable. The images survive that
+  width; the writing does not.
+
+  22rem is the number that puts a 0.875rem excerpt at roughly 50-55 characters,
+  which caps the index at two columns on a normal laptop and three on a very
+  wide screen. min() so the column can still shrink below 22rem on a phone
+  rather than forcing a horizontal scrollbar.
+*/
+.grid--prose {
+  grid-template-columns: repeat(auto-fill, minmax(min(22rem, 100%), 1fr));
+}
+
+.card {
+  text-decoration: none;
+  color: inherit;
+}
+
+.card img {
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  background: var(--color-gray-light);
+}
+
+.card__title {
+  margin-top: var(--space-1);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.card__meta {
+  font-size: 0.875rem;
+  color: var(--color-gray);
+}
+
+main {
+  padding: var(--space-5) 0;
+}
+
+.prose :is(h2, h3, h4) {
+  margin-top: var(--space-4);
+}
+
+.prose p {
+  margin: var(--space-2) 0;
+}
+
+/*
+  Cap the reading measure.
+
+  .prose had no max-width, so text ran the full 72rem content column: the
+  audit measured 141 characters a line on /video and 94 on /about, against a
+  target of 45-75. Past roughly 75 the eye loses its place on the return
+  sweep, which is most of why a page of otherwise fine copy reads as heavy.
+
+  The cap goes on the text elements rather than the container, so images,
+  galleries and embeds inside .prose keep the full width they were laid out
+  for.
+
+  62ch and not 68ch, because ch is the width of the "0" glyph and in Gothic A1
+  that is wider than the average lowercase letter: a first pass at 68ch
+  measured 78 characters a line, still over target. 62ch measures about 71.
+*/
+.prose :is(p, li, blockquote, h2, h3, h4) {
+  max-width: 62ch;
+}
+
+.prose ul {
+  padding-left: 1.25rem;
+}
+
+/* About page: portrait alongside the bio copy. */
+.about-layout {
+  display: grid;
+  grid-template-columns: 20rem 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.about-layout__portrait {
+  width: 100%;
+  border-radius: 0.25rem;
+}
+
+@media (max-width: 40rem) {
+  .about-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .about-layout__portrait {
+    max-width: 20rem;
+  }
+}
+
+/* Shared spacing for the Sections block system when used on plain pages
+   (Video, Collage) rather than the Work page's accent-color band. */
+.page-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin-top: var(--space-4);
+}
+
+@media (max-width: 40rem) {
+  .page-sections {
+    gap: var(--space-4);
+  }
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0.75rem 1.5rem;
+  background: var(--color-navy);
+  color: var(--color-white);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1rem;
+  text-decoration: none;
+  border: none;
+  border-radius: 0.25rem;
+}
+
+.button:hover {
+  background: var(--color-navy-dark);
+}
+
+.button--outline {
+  background: transparent;
+  color: var(--color-navy);
+  border: 1px solid var(--color-navy);
+}
+
+.button--outline:hover {
+  background: var(--color-navy);
+  color: var(--color-white);
+}
+
+/*
+  There is no black button variant.
+
+  There used to be - `.button--dark` on the footer's "Get in Touch" and on the
+  homepage proof card's "Let's Work" - and it put pure black next to the navy
+  outlined "Contact" in the nav, two treatments for the same action in a
+  palette that otherwise has no black in it. Removed rather than recoloured, so
+  it cannot come back by someone reaching for a class that still exists.
+
+  `--white` stays, because it is not a second brand colour: it is the navy
+  button inverted for the navy card it sits on, where a navy button would be
+  invisible.
+*/
+.button--white {
+  background: var(--color-white);
+  color: var(--color-navy);
+}
+
+.button--white:hover {
+  background: var(--color-gray-light);
+}
+
+/* Homepage: statement / hero - full-bleed dark navy section with the
+   real site's background image (an animated WebP of Hug a Mug's Pisces
+   shirt design being printed) behind a navy gradient overlay. True
+   edge-to-edge of the viewport, not just .wrap's side padding. */
+.statement {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding: 2.5rem var(--space-3);
+  text-align: center;
+  background-color: var(--color-navy);
+  background-image: linear-gradient(
+      to bottom,
+      rgba(0, 40, 133, 0.76),
+      rgba(0, 40, 133, 0.76)
+    ),
+    var(--hero-bg-image, none);
+  background-size: cover;
+  background-position: center;
+}
+
+@media (max-width: 40rem) {
+  .statement {
+    /* The real mobile hero isn't edge-to-edge - the heading/lines/subtitle
+       sit in a centered column with roughly a 10% inset on each side. */
+    padding: 1.25rem 10%;
+    text-align: left;
+  }
+}
+
+.statement__line {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.35);
+  margin: 0 0 0.9375rem;
+}
+
+.statement__heading {
+  margin: 0;
+  font-size: 21vh;
+  line-height: 16vh;
+  font-weight: 800;
+  letter-spacing: -8px;
+  color: var(--color-white);
+}
+
+@media (max-width: 62rem) {
+  .statement__heading {
+    font-size: 16vh;
+    line-height: 12vh;
+  }
+}
+
+@media (max-width: 48rem) {
+  .statement__heading {
+    margin: 15px 0;
+    font-size: 13vh;
+    line-height: 10vh;
+    letter-spacing: -4px;
+  }
+}
+
+@media (max-width: 30rem) {
+  .statement__heading {
+    font-size: 7vh;
+    line-height: 5.8vh;
+    letter-spacing: -2px;
+  }
+}
+
+.statement__word {
+  display: block;
+}
+
+.statement__sub {
+  margin: 0.9375rem 0 0;
+  font-size: 23px;
+  letter-spacing: 5px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+@media (max-width: 48rem) {
+  .statement__sub {
+    font-size: 12px;
+    letter-spacing: 4px;
+  }
+}
+
+@media (max-width: 30rem) {
+  .statement__sub {
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+}
+
+/* 11px was carried over from Webflow and measured as the smallest text on
+   the site. At 0 letter-spacing it also loses the tracking that made the
+   tagline read as a tagline rather than a cramped sentence. */
+@media (max-width: 30rem) {
+  .statement__sub {
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+}
+
+/* Homepage: top CTA row */
+.top-cta {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding: var(--space-4) 0 var(--space-6);
+}
+
+/* Homepage: bio + video */
+.bio-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  align-items: center;
+  padding: var(--space-5) 0;
+}
+
+@media (max-width: 40rem) {
+  .bio-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bio-row__text {
+  font-size: 1.75rem;
+}
+
+.video-placeholder {
+  aspect-ratio: 16 / 10;
+  background: linear-gradient(135deg, var(--color-gray-light), var(--color-border));
+  border-radius: 0.25rem;
+}
+
+/* Homepage: client logo strip - dark navy band, full-bleed to the
+   viewport edge with the logo row itself kept to a readable max-width.
+   Logos are grayscaled and brightened, then screen-blended onto the
+   navy so they read as bright marks without needing an opacity fade
+   (matches the real site). */
+.logo-strip {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  background: var(--color-navy);
+}
+
+.logo-strip__inner {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-around;
+  overflow-x: auto;
+  gap: var(--space-3);
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 2.5rem var(--space-3);
+}
+
+.logo-strip__item img {
+  height: 75px;
+  width: auto;
+  object-fit: contain;
+  filter: brightness(200%) grayscale(100%);
+  mix-blend-mode: screen;
+}
+
+@media (max-width: 30rem) {
+  .logo-strip__item img {
+    height: 45px;
+  }
+}
+
+/* Homepage: proof + closer + checklist - one light band on the real
+   site, with a faint tiled sketch texture behind a white wash, fading
+   to solid white at the top edge. Full-bleed background, with the
+   cards/checklist kept to a readable max-width inside it. */
+.proof-band {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  background-color: var(--color-white);
+  background-image: linear-gradient(to top, var(--color-white), transparent 60%),
+    linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)), var(--proof-bg-image, none);
+  background-size: auto, auto, 420px;
+  background-repeat: no-repeat, no-repeat, repeat;
+}
+
+.proof-band__inner {
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-3);
+}
+
+/* The 4-card row: 3 metric cards plus the closer/CTA card, all sharing
+   the site's thin-top thick-bottom navy border card treatment. */
+.proof-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.proof-card {
+  flex: 1 1 14rem;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4);
+  background: var(--color-white);
+  border: 2px solid var(--color-navy);
+  border-bottom-width: 8px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.proof-card__stat {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.proof-card__rating {
+  display: flex;
+  gap: 0.25rem;
+  padding: var(--space-2) 0;
+  color: var(--color-navy);
+  font-size: 1.1rem;
+}
+
+.proof-card__name {
+  margin: 0;
+  font-weight: 700;
+}
+
+.proof-card__org {
+  margin: 0;
+  color: var(--color-gray);
+  font-size: 0.875rem;
+}
+
+.proof-card--closer {
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.closer__heading {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.checklist {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.checklist__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.checklist__item p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.checklist__check {
+  color: var(--color-navy);
+  font-weight: 700;
+}
+
+/* Homepage: final CTA - a tall portrait bleeding out of frame next to a
+   navy card, matching the real site's layered "breaking the box" look. */
+.final-cta {
+  display: flex;
+  align-items: flex-end;
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.final-cta__portrait {
+  position: relative;
+  left: 3rem;
+  height: 420px;
+  width: auto;
+  object-fit: cover;
+  object-position: 50% 20%;
+}
+
+.final-cta__card {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 18rem;
+  padding: 1.5rem 3rem 3rem;
+  border: 2px solid var(--color-navy);
+  border-bottom-width: 8px;
+  background: var(--color-navy);
+  color: var(--color-white);
+}
+
+.final-cta__card h3 {
+  color: var(--color-white);
+  font-size: 1.5rem;
+  margin-bottom: var(--space-2);
+}
+
+/* Portfolio page: shuffle/resize CMS grid (Isotope), ported from the
+   Webflow site's custom code. --pf-col-w is set by client-side JS; the
+   fallback below only applies before that script runs. */
+.pf-section {
+  /* True viewport-edge-to-edge, not just out to .wrap's own padding - .wrap
+     caps at --content-width and centers, so cancelling only its padding
+     left the grid boxed into a 72rem column with visible side margins on
+     anything wider than that (same fix as the homepage hero full-bleed). */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding: var(--space-4) var(--space-1) var(--space-6);
+}
+
+@media (max-width: 40rem) {
+  .pf-section {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
+}
+
+/*
+  Groups, not buttons, are what this row lays out. The gap between them is
+  wider than the gap inside them, which is what makes the grouping readable
+  without the hairline dividers that used to do the job - badly, since on a
+  narrow screen they ended up starting and ending lines.
+*/
+.pf-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  margin: 0 var(--space-2) var(--space-3);
+}
+
+@media (max-width: 40rem) {
+  .pf-controls {
+    margin-left: var(--space-1);
+    margin-right: var(--space-1);
+  }
+}
+
+/*
+  Navy, like everything else.
+
+  These were drawn in near-black while the nav, the headings, the links and
+  every button on the site are navy - so the one row of controls on the busiest
+  page was the only element not in the palette. Matching `.button--outline`
+  keeps the outlined-navy-fills-on-active behaviour consistent wherever it
+  appears.
+
+  Navy also converts correctly in archive view: `--color-navy` is remapped to
+  the stock's ink, so the controls follow the treatment instead of staying blue
+  on paper.
+*/
+.pf-btn {
+  padding: 0.375rem 0.875rem;
+  border: 1px solid var(--color-navy);
+  background: transparent;
+  color: var(--color-navy);
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.pf-btn:hover {
+  background: color-mix(in srgb, var(--color-navy) 10%, transparent);
+}
+
+.pf-btn.is-active {
+  background: var(--color-navy);
+  color: var(--color-white);
+}
+
+.pf-btn.is-active:hover {
+  background: var(--color-navy-dark);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-btn { transition: none; }
+}
+
+/*
+  A group wraps as a unit, so the row breaks between ideas rather than in the
+  middle of one.
+*/
+.pf-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/*
+  The archive switch.
+
+  Deliberately not a .pf-btn. It was, and being identical in size, outline and
+  colour to the filters made a control that repaints the entire page read as a
+  fifth way to narrow the list. Form should say what a thing does, so this one
+  is a track and a thumb - the widget everybody already reads as a mode.
+
+  Colours come from the same tokens as everything else, so it converts with the
+  page when archive view is actually on.
+*/
+.ink-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem 0.375rem 0.375rem;
+  border: 0;
+  background: transparent;
+  color: var(--color-navy);
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.ink-switch__track {
+  position: relative;
+  flex: none;
+  width: 2.125rem;
+  height: 1.125rem;
+  border: 1px solid var(--color-navy);
+  background: transparent;
+  transition: background-color 140ms ease;
+}
+
+.ink-switch__thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: calc(1.125rem - 4px);
+  height: calc(1.125rem - 4px);
+  background: var(--color-navy);
+  transition: transform 140ms ease, background-color 140ms ease;
+}
+
+.ink-switch[aria-checked='true'] .ink-switch__track {
+  background: var(--color-navy);
+}
+
+.ink-switch[aria-checked='true'] .ink-switch__thumb {
+  background: var(--color-white);
+  transform: translateX(1rem);
+}
+
+.ink-switch:hover .ink-switch__track,
+.ink-switch:focus-visible .ink-switch__track {
+  border-color: var(--color-navy-dark);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ink-switch__track,
+  .ink-switch__thumb {
+    transition: none;
+  }
+}
+
+/* Pushed to the far right on a wide screen, so position says "not a filter"
+   as well. On a narrow one it simply wraps last, which says the same thing. */
+@media (min-width: 60rem) {
+  .pf-group--view {
+    margin-left: auto;
+  }
+}
+
+/* The two halves of one control. nowrap so `+` can never orphan onto its own
+   line, which is exactly what it did on a phone. */
+.pf-zoom {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: var(--space-1);
+}
+
+/*
+  On a phone the filters are a two-column block, not a row.
+
+  Three attempts got here. Wrapping them freely put TYPE/LETTERING alone on its
+  own line - four unequal buttons cannot fill two ragged lines evenly at any
+  width. Scrolling them sideways fixed that and introduced a worse one: at rest
+  the last button is cut mid-word, and Chris read that as "the categories clip",
+  which is the correct reading. A cut-off word is a bug that happens to also be
+  an affordance, and nobody gives it the benefit of the doubt.
+
+  A grid answers both. Two equal columns means every label is fully visible on
+  one line at 390px, no gesture is required to find the fourth filter, and the
+  buttons get half the row each instead of hugging their text - a much better
+  target than the 44px floor they were scraping.
+
+  It costs a third line of controls above the grid, which the scroller was
+  bought to avoid. That was the wrong thing to optimise: ~50px of scroll is
+  cheap, and a control you cannot read is not.
+
+  35rem rather than the 40rem the rest of the mobile block uses, because that is
+  where the row actually stops fitting. Measured: the four buttons need 531px at
+  the full type size and the container offers 544px at 35rem, so anything wider
+  is a comfortable single row and columns that wide would just look like a
+  stretched chip.
+*/
+@media (max-width: 35rem) {
+  .pf-group--filters {
+    /* Its own line, so the arrange and view groups stay together below it
+       rather than being pulled up into a gap beside the last filter. */
+    flex: 1 1 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /*
+    Photography has no tagged items today so there are four filters, which fill
+    the grid exactly. Tag one and there are five, and the fifth would sit alone
+    in the left column looking dropped. Spanning it is the difference between a
+    stray button and a deliberate last row - and it costs one rule now rather
+    than a bug report later.
+  */
+  .pf-group--filters .pf-btn:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 30rem) {
+  .pf-btn {
+    padding: 0.3125rem 0.625rem;
+    font-size: 0.625rem;
+    letter-spacing: 0.06em;
+  }
+}
+
+.pf-grid {
+  position: relative;
+  overflow: hidden;
+}
+
+/*
+  While Isotope is working out where the tiles go. See the comment on the grid
+  in portfolio.astro: the floated markup layout and the masonry layout look
+  nothing alike, and painting the first before replacing it with the second is
+  what produced this page's 0.4722 layout shift.
+
+  visibility rather than display: the tiles keep their boxes, so the grid still
+  has roughly the right height and the page below it does not jump either. It
+  also lets the images load during this window instead of waiting for it.
+*/
+.pf-grid.is-laying-out .pf-item {
+  visibility: hidden;
+}
+
+.pf-sizer,
+.pf-item {
+  box-sizing: border-box;
+  width: var(--pf-col-w, 16.666%);
+  padding: 0.25rem;
+  float: left;
+}
+
+@media (max-width: 30rem) {
+  .pf-sizer,
+  .pf-item {
+    padding: 0.15rem;
+  }
+}
+
+.pf-item {
+  cursor: pointer;
+}
+
+.pf-item.is-expanded {
+  width: calc(var(--pf-col-w, 16.666%) * 2);
+}
+
+/*
+  Hero tile: two columns wide, permanently.
+
+  Selecting one deliberately does NOT grow it. It is already at the expanded
+  width, so this rule mostly just pins that - but stating it explicitly means a
+  future change to the expanded width cannot start making hero tiles jump. The
+  tile already has the presence; growing on click would be movement for its own
+  sake, which is what made the old grid feel unruly.
+
+  The landscape crop lives in portfolio.astro, not here: it is done at the image
+  level so the CDN delivers an actually-landscape file rather than a portrait
+  one squashed by CSS.
+*/
+.pf-item--hero,
+.pf-item--hero.is-expanded {
+  width: calc(var(--pf-col-w, 16.666%) * 2);
+}
+
+/*
+  The landscape shape, held in CSS rather than left to the CDN.
+
+  The crop is normally baked into the file at build time - but an image marked
+  "serve exactly as uploaded" cannot be cropped at all, because cropping needs a
+  transform and pass-through sends none. Those images arrived at their own
+  aspect and a hero tile silently stopped being landscape. With "serve exactly
+  as uploaded" now the default for new images, that would have become the usual
+  case rather than the exception.
+
+  So the tile enforces its own shape. `cover` centre-crops in the browser, which
+  ignores the hotspot - the trade for a grid that holds together whatever the
+  compression setting says. Turn pass-through off on an image whose framing
+  matters and the CDN does it properly, hotspot and all.
+*/
+.pf-item--hero .pf-item__img {
+  aspect-ratio: 12 / 5;
+  object-fit: cover;
+}
+
+.pf-item__img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/*
+  "Jump to project" button, revealed under a tile only while it is expanded.
+
+  It sits inside .pf-item, which is what makes it exactly as wide as the image
+  above it: the image is width:100% of the same padding box, so both share one
+  edge without hardcoding a width anywhere.
+
+  Hidden with display:none rather than opacity/height so it contributes no
+  height when collapsed - Isotope measures real offsetHeight to place tiles,
+  and a zero-opacity button would still push every tile below it down.
+*/
+/*
+  Selected tiles get a single hairline around the image and its jump button.
+  The frame exists so that is one border rather than two - the button is a
+  sibling of the image, so bordering each would stack two outlines with the
+  gap between them showing through.
+
+  The border is drawn with an inset box-shadow rather than `border`, because a
+  real border adds a pixel to the box on every side and Isotope positions tiles
+  from measured height - a 2px growth on select would nudge every tile below it.
+  A shadow paints inside the existing box and changes no geometry at all.
+*/
+/*
+  The archive grid.
+
+  The default grid is dense on purpose - tiles edge to edge, nothing between
+  them. The archive is the opposite argument: fewer things competing, each one
+  given room, negative space doing the work. That difference has to be
+  structural or the two modes are just the same page in different colours.
+
+  Gutters come from padding INSIDE each tile rather than from Isotope's own
+  gutter option. Isotope positions tiles by percentage and a real gutter would
+  mean recalculating column widths against it; with box-sizing: border-box the
+  padding shrinks the image while the tile's outer box stays exactly where
+  Isotope put it. No layout maths changes, and the +/- column control keeps
+  working untouched.
+
+  Tile heights DO change, which is why InkMode fires `inkmodechange` and
+  portfolio.astro re-runs the layout.
+
+  --pf-archive-gutter is a percentage so the spacing stays proportional as the
+  column count changes: at six columns it reads as a hairline of air, at two it
+  opens right up.
+*/
+:root[data-ink] .pf-item {
+  padding: var(--pf-archive-gutter, 0.9%);
+}
+
+/*
+  And the grid itself pulls in from the edges. A dense grid wants the full
+  width; an archive wants a margin around the whole plate, so the page reads as
+  a sheet with something printed on it rather than as a wall.
+*/
+:root[data-ink] .pf-grid {
+  max-width: var(--pf-archive-width, 94%);
+  margin-inline: auto;
+}
+
+/*
+  Square plates.
+
+  This is what makes the archive stop being the same grid decolourised. Every
+  tile becomes an equal square cell and the artwork is CONTAINED inside it
+  rather than filling it - so a wide poster and a tall photograph both sit
+  centred in the same frame with air around them, exactly as plates do on a
+  specimen sheet.
+
+  Masonry exists to avoid this: it packs varied heights so nothing is wasted.
+  The archive wants the waste. The empty space around an odd-shaped piece is
+  the point, and it is what a page of plates looks like.
+
+  Paired with fitRows in portfolio.astro, so rows share a baseline instead of
+  ragging.
+*/
+:root[data-ink] .pf-item__img {
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+
+/*
+  Plate numbers. Hidden by default - the standard grid has no captions and
+  should not gain one - and revealed in archive mode, where numbering is what
+  makes it read as a catalogue rather than a gallery.
+*/
+.pf-item__plate {
+  display: none;
+}
+
+:root[data-ink] .pf-item__plate {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-family: var(--font-heading);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: color-mix(in srgb, var(--ink-ink) 45%, var(--ink-paper));
+}
+
+/*
+  Logomark tiles - archive mode only.
+
+  In the normal grid these stay exactly as they were: full-bleed, edge to edge,
+  the dense look that grid is for. The inset applies only under [data-ink],
+  because the point is two separate experiences rather than one compromise
+  between them. Giving marks air in the default grid bought the archive's
+  negative space at the cost of the original feel, which is not a trade worth
+  making - the archive should be somewhere you go, not a dilution of where you
+  started.
+
+  A percentage rather than a fixed value, so the inset stays proportional as the
+  grid's column count changes with the +/- control.
+*/
+:root[data-ink] .pf-item--mark .pf-item__img {
+  padding: var(--pf-mark-inset, 14%);
+  background: var(--color-white);
+}
+
+/*
+  No padding by default. The grid's spacing is exactly what it always was -
+  tight, dense, images nearly touching, which is the look it is for.
+
+  The inset that keeps a selected tile's hairline off the image lives on
+  .is-expanded below instead. That was originally applied to every tile to
+  avoid a reflow on selection, but it widened the gap between every image on
+  the page to buy breathing room around one - and the reflow it was avoiding
+  is already handled: the click handler in portfolio.astro re-runs Isotope's
+  layout across two frames precisely because revealing the jump button changes
+  the tile's height. One more source of height change costs nothing.
+*/
+.pf-item.is-expanded .pf-item__frame {
+  padding: var(--pf-frame-inset, 4px);
+  box-shadow: inset 0 0 0 1px var(--color-navy);
+}
+
+.pf-item__jump {
+  display: none;
+}
+
+/*
+  Squared up with the image above it.
+
+  Full-bleed to the tile's edges it looked like a caption bar bolted to the
+  bottom of the image - the navy ran edge to edge and touched the hairline, so
+  there was nothing to distinguish "control" from "label". Insetting it fixed
+  that and then overshot: a 6px margin inside a frame already padded by 4px put
+  the button 10px from the hairline against the image's 4px, so its edges sat
+  visibly short of the artwork's on both sides.
+
+  So it takes no side or bottom margin of its own and lets the frame's padding
+  do the insetting, exactly as the image does. Both are children of the same
+  padded box and now line up on all three edges. Only the top keeps a gap,
+  because that one is separation from the image rather than inset from the
+  frame - without it the navy touches the artwork.
+*/
+.pf-item.is-expanded .pf-item__jump {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  margin: var(--pf-jump-gap, 0.625rem) 0 0;
+  padding: 0.5rem 0.625rem;
+  box-sizing: border-box;
+  background: var(--color-navy);
+  color: var(--color-white);
+  text-decoration: none;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pf-item.is-expanded .pf-item__jump:hover,
+.pf-item.is-expanded .pf-item__jump:focus-visible {
+  background: var(--color-navy-dark);
+}
+
+/*
+  Wraps to two lines before it truncates.
+
+  It used to be a single nowrap line, which on a phone ran out of characters
+  almost immediately - "Adelante Barbell Club" became "Adelan..." in a tile only
+  one column wide. The reason for nowrap was that a taller button changes the
+  tile's height and Isotope would measure the old one, but the expand handler
+  already re-lays out across two animation frames precisely so it measures after
+  the reveal. So the constraint that justified truncating is gone.
+
+  Two lines, then ellipsis - a cap rather than no limit, so a long name still
+  cannot push a tile to twice its neighbours' height.
+*/
+.pf-item__jump-label {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.pf-item__jump-arrow {
+  flex: none;
+}
+
+/*
+  Homepage work grid - a miniature of the Portfolio grid.
+
+  CSS grid, not Isotope. Masonry here would mean two CDN scripts and a layout
+  pass after paint on the page whose whole job is to be immediate; the Portfolio
+  page needed a dedicated fix to get its layout shift from 0.4722 down to
+  0.0006, and none of that machinery earns its place above the fold.
+
+  Uniform boxes are what let a plain grid read as deliberate rather than ragged:
+  every tile is square, hero tiles are 3:2 across two columns. `dense` so a hero
+  tile that cannot fit at the end of a row doesn't leave a hole behind it.
+*/
+.peek {
+  margin: var(--space-5) 0;
+}
+
+.peek__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.peek__label {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-gray);
+}
+
+.peek__more {
+  font-family: var(--font-heading);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.peek__more:hover { text-decoration: underline; }
+
+.peek__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-flow: dense;
+  gap: 0.5rem;
+}
+
+/*
+  Overrides the Portfolio grid's float/percentage sizing, which these tiles
+  inherit along with everything else useful about `.pf-item`. Grid places them;
+  the float rules would fight it.
+
+  These have the same specificity as the `.pf-item` rules they override, so
+  SOURCE ORDER is what decides them - which is why this whole block sits after
+  the Portfolio grid rather than up with the other homepage styles. It was up
+  there first, and every tile rendered at 16.666% of its grid cell: about 40px,
+  laid out correctly and almost invisible.
+*/
+.peek__item {
+  width: auto;
+  float: none;
+  padding: 0;
+  cursor: default;
+}
+
+/*
+  Uniform squares are what make this read as deliberate rather than ragged, and
+  they cannot depend on the CDN cropping - see the Portfolio hero above. Held
+  here so the grid survives any image being served exactly as uploaded.
+*/
+.peek__item .pf-item__img {
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.peek__item.pf-item--hero { grid-column: span 2; }
+
+.peek__item.pf-item--hero .pf-item__img {
+  aspect-ratio: 3 / 2;
+}
+
+.peek__link {
+  display: block;
+  position: relative;
+  text-decoration: none;
+  color: inherit;
+}
+
+/*
+  The project name, revealed on hover and always present for a screen reader.
+  Chris's point about logomarks is that they carry themselves, so the caption
+  stays out of the way until someone is actually pointing at a tile - but a grid
+  of unlabelled images with no accessible name is not navigable without it.
+*/
+/*
+  Flush to the bottom of its tile, and one line only.
+
+  The Portfolio jump button wants to float - it is a control, and an inset is
+  what makes a rectangle read as pressable. This is not that. It is a label on
+  an image, and Chris's read is that the same treatment applied here went too
+  far: a floating caption in a small tile competes with the artwork instead of
+  naming it.
+
+  One line for the same reason. Two lines of navy across a tile this size covers
+  too much of the work, so a long name truncates rather than growing the band -
+  and unlike the Portfolio button there is no layout to re-measure, because it
+  is positioned over the image rather than in flow.
+*/
+.peek__caption {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 0.5rem 0.625rem;
+  background: var(--color-navy);
+  color: var(--color-white);
+  font-family: var(--font-heading);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.peek__link:hover .peek__caption,
+.peek__link:focus-visible .peek__caption {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .peek__caption { transition: none; }
+}
+
+/* Touch has no hover, so the caption would never appear. Always on below the
+   breakpoint rather than a state nobody can reach. */
+@media (hover: none) {
+  .peek__caption { opacity: 1; }
+}
+
+@media (max-width: 40rem) {
+  .peek__grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+
+.swatch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.swatch__color {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+/* Utility: break an element out of .wrap entirely, true edge-to-edge of
+   the viewport regardless of screen width (not just .wrap's own padding). */
+.full-bleed {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+
+.section-label {
+  margin: 0 0 var(--space-2);
+  opacity: 0.5;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Work / case study page */
+.work-hero {
+  margin-top: var(--space-3);
+}
+
+.work-hero img {
+  width: 100%;
+  max-height: 80vh;
+  object-fit: cover;
+}
+
+/* Navy identity band: project title, one-line description, and credits.
+   Sits full-bleed directly under the hero image with no white gap. */
+.work-identity {
+  background: var(--color-navy);
+  padding: var(--space-5) 0;
+}
+
+/* Two adjacent columns rather than two `space-between` rows. The rows put
+   the heading, mark, summary and credits in four separate corners of a
+   72rem container, so short content left a large void down the middle and
+   the summary sat a long way under its own heading. Pairing the text into
+   one column and the mark/credits into another keeps each block readable
+   at its own measure and closes the gap between them. */
+.work-identity__inner {
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 0 var(--space-3);
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.work-identity__kicker {
+  margin: 0 0 var(--space-2);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.work-identity__main h1 {
+  color: var(--color-white);
+  margin: 0;
+  /* Display sizes need the tracking pulled in; the default spacing reads
+     loose once the type is this large. */
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+.work-identity__aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-4);
+  text-align: right;
+}
+
+.work-identity__mark {
+  flex-shrink: 0;
+}
+
+.work-identity__mark img {
+  max-height: 7rem;
+  width: auto;
+  filter: brightness(200%) grayscale(100%);
+  mix-blend-mode: screen;
+}
+
+@media (max-width: 40rem) {
+  .work-identity__mark img {
+    max-height: 4.5rem;
+  }
+}
+
+.work-identity__summary {
+  /* Sized by reading measure - roughly 70 characters - rather than by what
+     is left over in the column. */
+  max-width: 34rem;
+  margin: var(--space-3) 0 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+/* The one number a prospective client scans for, so it reads at heading
+   weight rather than as another line of the summary. Sits on the same
+   left edge as everything else in the column. */
+.work-identity__stat {
+  margin: var(--space-3) 0 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+
+.work-identity__credits {
+  flex-shrink: 0;
+}
+
+.work-identity__credits p {
+  margin: 0.15rem 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.work-identity__credits strong {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/*
+  Links in the navy band, which were INVISIBLE.
+
+  The global rule is `a { color: var(--color-navy) }`, this band's background is
+  navy, and an <a> matches that rule rather than the light colour set on the <p>
+  around it. So any credit with a URL rendered as navy on navy: present in the
+  markup, selectable, completely unreadable. On screen it looked like the name
+  had simply not been entered - "Audio Engineer —" followed by nothing - which
+  is how Chris found it.
+
+  Precisely the failure the accent band already guards against (see .work-band a
+  above), and the same one readableOn() exists for. Principal Type had been
+  patched on its own; the credits beside it had not, which is what a per-element
+  fix buys you. So this is scoped to the whole band: any link added in here
+  later is legible by default.
+
+  The underline is load-bearing, not decoration - once a link is the same colour
+  as the text around it, nothing else says it is a link.
+*/
+.work-identity a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media (max-width: 40rem) {
+  .work-identity__inner {
+    padding: 0 var(--space-2);
+  }
+
+  /* One column on phones: the mark and credits sit under the text rather
+     than beside it, and everything shares the same left edge. */
+  .work-identity__inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+
+  .work-identity__aside {
+    align-items: flex-start;
+    text-align: left;
+    gap: var(--space-3);
+  }
+
+  .work-identity__summary {
+    max-width: none;
+  }
+
+  .site-footer {
+    padding-top: var(--space-4);
+  }
+
+  .site-footer__top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding-bottom: var(--space-4);
+  }
+
+  .site-footer__bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+  }
+}
+
+/* The accent-color band wrapping a case study's flexible content blocks. */
+.work-band {
+  background: var(--work-accent, transparent);
+  padding: var(--space-5) 0;
+  /*
+    Set alongside --work-accent in work/[slug].astro, chosen by luminance from
+    the accent itself. Falls back to the inherited ink when a project has no
+    accent, which is also when the band has no background to contrast with.
+  */
+  color: var(--work-accent-fg, inherit);
+}
+
+/*
+  Everything inside follows the band rather than the site default. Headings and
+  prose set their own colour, so without this the band's text colour applied to
+  loose text and nothing else - which on a dark accent is the worst outcome:
+  some of the copy legible and some of it not.
+*/
+.work-band :is(h1, h2, h3, h4, h5, h6, p, li, blockquote, figcaption, .prose, .prose *) {
+  color: inherit;
+}
+
+/* Links keep their underline to stay distinguishable once they are the same
+   colour as the surrounding text. */
+.work-band a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.work-band__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 0 var(--space-3);
+}
+
+@media (max-width: 40rem) {
+  .work-band__inner {
+    padding: 0 var(--space-2);
+    gap: var(--space-4);
+  }
+}
+
+.work-section img {
+  width: 100%;
+  display: block;
+}
+
+.work-section--two-up {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.work-section--three-up {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+@media (max-width: 40rem) {
+  .work-section--two-up,
+  .work-section--three-up {
+    grid-template-columns: 1fr;
+  }
+}
+
+.work-section--image-text {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+/* Media + Text puts a video iframe in the media half. An iframe's intrinsic
+   width can push a 1fr track wider than its share, which is how this site
+   scrolled sideways on phones once already. */
+.work-section--image-text > * {
+  min-width: 0;
+}
+
+.work-section--image-text.is-reversed {
+  direction: rtl;
+}
+
+.work-section--image-text.is-reversed > * {
+  direction: ltr;
+}
+
+@media (max-width: 40rem) {
+  .work-section--image-text {
+    grid-template-columns: 1fr;
+  }
+
+  .work-section--image-text.is-reversed {
+    direction: ltr;
+  }
+}
+
+.work-section__text h3 {
+  margin-bottom: var(--space-2);
+}
+
+.work-video-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--color-black);
+}
+
+.work-video-frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.work-video-caption {
+  margin: var(--space-1) 0 0;
+  font-size: 0.875rem;
+  color: var(--color-gray);
+}
+
+.work-section--stat-callout {
+  text-align: center;
+  max-width: 32rem;
+  margin: 0 auto;
+}
+
+.work-stat-checklist {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-2) 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.work-stat-checklist li::before {
+  content: '✓ ';
+  color: var(--color-navy);
+  font-weight: 700;
+}
+
+.work-stat {
+  margin-top: var(--space-2);
+  font-size: 1.25rem;
+}
+
+.work-stat strong {
+  color: var(--color-navy);
+}
+
+.work-section--text {
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+.work-section--text h3 {
+  margin-bottom: var(--space-2);
+}
+
+.work-section--achievements__images {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.work-section--achievements ul {
+  margin-top: var(--space-3);
+  padding-left: 1.25rem;
+}
+
+/* Achievements renders its items as rich text outside .prose, so it missed the
+   measure cap and the audit measured its list at 138 characters a line - the
+   longest remaining anywhere, and on a real case study rather than a demo. */
+.work-section--achievements :is(li, p) {
+  max-width: 62ch;
+}
+
+@media (max-width: 40rem) {
+  .work-section--achievements__images {
+    grid-template-columns: 1fr;
+  }
+}
+
+.work-section--video-hero {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--color-black);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.work-video-hero__bg {
+  position: absolute;
+  inset: 0;
+}
+
+.work-video-hero__bg iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Sits along the bottom rather than centred, and ignores the pointer, so the
+   embedded player's controls stay reachable underneath it. */
+.work-video-hero__overlay {
+  position: absolute;
+  z-index: 1;
+  inset: auto 0 0 0;
+  pointer-events: none;
+  padding: var(--space-4) var(--space-3) var(--space-3);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.65), transparent);
+}
+
+.work-video-hero__overlay h2 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.25rem, 3vw, 2rem);
+}
+
+.work-related {
+  padding: var(--space-6) 0;
+}
+
+@media (max-width: 40rem) {
+  /* The shared .grid utility's 15rem column minimum only leaves room for a
+     single column at phone widths, so "More Work" rendered as one huge
+     card per row instead of a grid. Force three smaller columns here. */
+  .work-related .grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-1);
+  }
+
+  .work-related .card__title {
+    margin-top: 0.375rem;
+    font-size: 0.875rem;
+    line-height: 1.25;
+  }
+
+  .work-related .card__meta {
+    font-size: 0.75rem;
+  }
+}
+
+/*
+  Aesthetic Range - the icon tray recovered from the abandoned "Home 2" draft
+  (Section-Trends: a heading beside Vintage / Minimalist / Collage).
+
+  The hover does three things at once, deliberately, so it reads as one gesture
+  rather than three effects: the icon lifts and grows slightly, its label
+  tightens toward it, and a rule draws itself under the tile from left to right.
+  Everything is transform and opacity only - no width, height, or margin
+  animation - so it runs on the compositor and cannot reflow the row.
+*/
+.aesthetic-range {
+  margin-top: var(--space-5);
+}
+
+.aesthetic-range__heading {
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  text-wrap: balance;
+  margin-bottom: var(--space-2);
+}
+
+.aesthetic-range__intro {
+  max-width: 44ch;
+  color: var(--color-gray);
+  margin-bottom: var(--space-4);
+}
+
+.aesthetic-range__tray {
+  display: grid;
+  /* Follows the real item count rather than assuming three, so 2 or 5 tiles
+     stay evenly distributed instead of leaving a gap where a third would be. */
+  grid-template-columns: repeat(var(--tray-count, 3), minmax(0, 1fr));
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+@media (max-width: 40rem) {
+  .aesthetic-range__tray {
+    /* Wraps to whatever fits instead of squeezing five tiles onto a phone. */
+    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  }
+}
+
+.aesthetic-range__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-2) var(--space-2);
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+  isolation: isolate;
+}
+
+/* The rule that draws in on hover. A scaled pseudo-element rather than a
+   border-width change, which would shift the tile's height. */
+.aesthetic-range__tile::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--color-navy);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.aesthetic-range__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  transition:
+    transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1),
+    opacity 0.35s ease;
+}
+
+.aesthetic-range__icon :global(img),
+.aesthetic-range__icon :global(video) {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.aesthetic-range__label {
+  font-family: var(--font-heading);
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* Standing in for artwork that doesn't exist yet - a square of the border
+   colour, so an unfilled tile still occupies its place in the rhythm. */
+.aesthetic-range__placeholder {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--color-gray-light);
+  border: 1px dashed var(--color-border);
+}
+
+.aesthetic-range__item:hover .aesthetic-range__icon,
+.aesthetic-range__tile:focus-visible .aesthetic-range__icon {
+  transform: translateY(-0.375rem) scale(1.06);
+}
+
+.aesthetic-range__item:hover .aesthetic-range__label,
+.aesthetic-range__tile:focus-visible .aesthetic-range__label {
+  transform: translateY(-0.125rem);
+}
+
+.aesthetic-range__item:hover .aesthetic-range__tile::after,
+.aesthetic-range__tile:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.aesthetic-range__tile:focus-visible {
+  outline: 2px solid var(--color-navy);
+  outline-offset: 2px;
+}
+
+/* Movement is decoration here, and some people get motion sickness from it.
+   The rule still draws so hover feedback survives - it just doesn't travel. */
+@media (prefers-reduced-motion: reduce) {
+  .aesthetic-range__icon,
+  .aesthetic-range__label,
+  .aesthetic-range__tile::after {
+    transition-duration: 0.01ms;
+  }
+
+  .aesthetic-range__item:hover .aesthetic-range__icon,
+  .aesthetic-range__item:hover .aesthetic-range__label {
+    transform: none;
+  }
+}
+
+/* ============================================================
+   INK MODE - one ink on coloured stock, after 80s zine printing
+   ============================================================ */
+
+/*
+  The archive toggle is a `pf-btn` now, styled with the rest of the Portfolio
+  controls, so it needs no rules of its own. What used to live here - a fixed
+  corner bar, a collapse handle, a row of stock swatches - went with it when the
+  control moved onto the Portfolio page. The ink treatment itself is untouched;
+  only its chrome is gone.
+*/
+
+/*
+  Tokens are remapped rather than every rule being rewritten, so the whole site
+  follows without a parallel stylesheet to keep in sync. The brand navy becomes
+  ink; every white surface becomes the paper stock.
+*/
+:root[data-ink] {
+  --color-white: var(--ink-paper);
+  --color-navy: var(--ink-ink);
+  --color-navy-dark: var(--ink-ink);
+  --color-ink: var(--ink-ink);
+  --color-black: var(--ink-ink);
+  /* Greys become translucent ink so they sit on the stock rather than looking
+     like a separate colour that survived the conversion. */
+  --color-gray: color-mix(in srgb, var(--ink-ink) 62%, var(--ink-paper));
+  --color-gray-light: color-mix(in srgb, var(--ink-ink) 8%, var(--ink-paper));
+  --color-border: color-mix(in srgb, var(--ink-ink) 24%, var(--ink-paper));
+
+  /* Defaults, overridable per image. `hard` is a near-1-bit cut; bias shifts
+     where that cut lands. */
+  --ink-contrast: 260%;
+  --ink-bright: 108%;
+
+  background: var(--ink-paper);
+  color: var(--ink-ink);
+}
+
+:root[data-ink] body {
+  background: var(--ink-paper);
+  color: var(--ink-ink);
+}
+
+/*
+  Images: desaturate, push contrast, then multiply onto the stock. Multiply is
+  what makes this ink-on-paper rather than a tint - white goes to paper colour,
+  dark stays dark.
+
+  isolation on the wrapper keeps the blend from reaching through to whatever is
+  behind it, which otherwise makes overlapping sections muddy.
+*/
+:root[data-ink] img,
+:root[data-ink] video {
+  filter: grayscale(1) brightness(var(--ink-bright)) contrast(var(--ink-contrast));
+  mix-blend-mode: multiply;
+}
+
+/* Photographic and low-contrast work loses everything to a hard cut, so these
+   opt down. Set per image in Studio. */
+:root[data-ink] [data-ink-mode='soft'] img,
+:root[data-ink] img[data-ink-mode='soft'] {
+  --ink-contrast: 125%;
+  --ink-bright: 102%;
+}
+
+:root[data-ink] [data-ink-mode='hard'] img,
+:root[data-ink] img[data-ink-mode='hard'] {
+  --ink-contrast: 900%;
+  --ink-bright: 112%;
+}
+
+/* Left in full colour - for anything the conversion simply ruins. */
+:root[data-ink] [data-ink-mode='skip'] img,
+:root[data-ink] img[data-ink-mode='skip'],
+:root[data-ink] [data-ink-mode='skip'] video {
+  filter: none;
+  mix-blend-mode: normal;
+}
+
+/* Video is usually the low-contrast case, so it defaults softer than stills. */
+:root[data-ink] video {
+  --ink-contrast: 140%;
+  --ink-bright: 104%;
+}
+
+/*
+  Grain. A single fixed overlay of tiled SVG turbulence rather than a filter on
+  each image: one cheap layer instead of per-element work, and it reads like
+  press texture sitting on top of the whole sheet.
+
+  Sizing took four passes: 0.9 (a pixel a feature - sensor noise), 0.055 (18px -
+  gigantic), 0.3 (still too large), now 0.6, which puts features near 1.5-2px.
+
+  The posterisation was doing as much damage as the frequency. A discrete
+  feFuncA snaps the noise to hard-edged patches, and hard edges read bigger than
+  the same feature soft - so the grain looked coarser than its numbers. It is
+  gone; plain fractal noise at this scale is closer to paper tooth anyway.
+
+  AND IT SCROLLS WITH THE PAGE. This was the real problem. `position: fixed`
+  pinned the texture to the viewport, so content slid underneath it and the
+  whole thing read as a filter laid over a screen rather than a surface the page
+  is printed on. Paper does not stay still while the ink moves. Absolute
+  positioning against the body means the grain travels with the content, which
+  is most of what makes it read as stock at all.
+
+  Two knobs, both here rather than buried in the data URI:
+    --ink-grain-scale    stretches the tile. Above 1 makes grain larger still.
+    --ink-grain-opacity  how heavy the texture sits.
+*/
+body {
+  /* Containing block for the grain layer below. */
+  position: relative;
+}
+
+:root[data-ink][data-ink-grain] body::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  /* The whole document, not the viewport, so it scrolls with the content. */
+  height: 100%;
+  min-height: 100vh;
+  z-index: 50;
+  pointer-events: none;
+  opacity: var(--ink-grain-opacity, 0.38);
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  /* 220px is the tile's own size, so scale 1 is 1:1 and anything above it
+     enlarges the grain without regenerating the SVG. */
+  background-size: calc(220px * var(--ink-grain-scale, 1));
+}
+
+/*
+  The Archive button must not be converted along with the artwork. It is a
+  `pf-btn`, and the whole control row sits outside the treatment - filtering the
+  buttons that turn the treatment on and off makes them read as part of the
+  artwork.
+*/
+:root[data-ink] .pf-controls img {
+  filter: none;
+  mix-blend-mode: normal;
+}
+
+/*
+  Archive chrome.
+
+  Print mode is not only a colour treatment - Chris's reference for it is a
+  black-and-white grid with "no borders, very minimal invisible buttons", where
+  the white space does the work. So the selected-tile hairline goes, and the
+  jump button stops being a filled navy slab and becomes a quiet underline.
+
+  The frame keeps its padding, so nothing moves when the treatment changes.
+*/
+/*
+  Every plate the same size.
+
+  An archive is a catalogue, and a catalogue does not give one entry a double
+  spread - the whole point of the numbered plates and the ruled rows is that the
+  eye compares like with like. Two rules still made tiles unequal here: the hero
+  flag, and the width a tile takes when clicked.
+
+  Both are right on the normal grid, where the job is to give a piece presence
+  among its neighbours. Neither is right on a page whose subject is the set.
+
+  The hero's landscape crop still applies - it is baked into the file at build
+  time - so a hero tile shows as a wide band inside its square plate rather than
+  filling it. Drawing an Archive Mark for that tile is the fix if it bothers;
+  the plate itself is uniform either way.
+*/
+:root[data-ink] .pf-item--hero,
+:root[data-ink] .pf-item--hero.is-expanded,
+:root[data-ink] .pf-item.is-expanded {
+  width: var(--pf-col-w, 16.666%);
+}
+
+:root[data-ink] .pf-item.is-expanded .pf-item__frame {
+  box-shadow: none;
+}
+
+:root[data-ink] .pf-item.is-expanded .pf-item__jump {
+  background: transparent;
+  color: var(--ink-ink);
+  border-bottom: 1px solid var(--ink-ink);
+}
+
+:root[data-ink] .pf-item.is-expanded .pf-item__jump:hover,
+:root[data-ink] .pf-item.is-expanded .pf-item__jump:focus-visible {
+  background: transparent;
+  opacity: 0.65;
+}
+
+/* An authored mark is already thresholded, so running the CSS threshold over it
+   as well crushes what was drawn. */
+:root[data-ink] img[data-archive-src] {
+  filter: none;
+}
+
+/* The credit line, which is a quieter thing than the role credits above it. */
+.work-identity__type {
+  margin-top: var(--space-2);
+}
+
+/* The link treatment that used to live here now covers the whole navy band -
+   see `.work-identity a`. Scoping it to this one element is what left every
+   credit link navy-on-navy and invisible. */
+
+/* No ink-mode override for the corner button: it is painted in --color-white
+   and --color-navy, and both are remapped to the stock and its ink above, so
+   it converts with everything else. The handle needed its own rule only
+   because it used --color-ink directly. */
+
+/*
+  Mobile overrides, deliberately last.
+
+  This block used to sit near the top of the file, above the components it
+  targets. At equal specificity the later rule wins, so every override in
+  here for .top-cta, .bio-row, .logo-strip__inner, .proof-band__inner,
+  .proof-row, .final-cta, .final-cta__portrait, .wrap and main was dead -
+  the desktop rules at lines 570-760 simply won on phones too.
+
+  The visible symptom was the homepage scrolling sideways on a phone:
+  .final-cta__portrait kept its desktop `left: 3rem`, pushing it 24px past
+  the viewport at 390px. The rest of the homepage was silently unstyled for
+  mobile in the same way.
+
+  Anything added here must stay at the end of the file.
+*/
+@media (max-width: 40rem) {
+  h1 { font-size: 2.5rem; }
+  h2 { font-size: 2rem; }
+  h3 { font-size: 1.75rem; }
+
+  .wrap {
+    padding: 0 var(--space-2);
+  }
+
+  main {
+    padding: var(--space-4) 0;
+  }
+
+  .top-cta {
+    padding: var(--space-3) 0 var(--space-2);
+  }
+
+  .bio-row {
+    padding: var(--space-2) 0 var(--space-4);
+  }
+
+  .bio-row__text {
+    font-size: 1.375rem;
+  }
+
+  .logo-strip__inner {
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-2);
+  }
+
+  .proof-band__inner {
+    padding: var(--space-4) var(--space-2);
+  }
+
+  .proof-row {
+    margin-bottom: var(--space-3);
+  }
+
+  .final-cta {
+    flex-direction: column;
+  }
+
+  .final-cta__portrait {
+    width: 100%;
+    height: 240px;
+    left: 0;
+  }
+}
+
+/* Case study hero when it's a video rather than an image. Same full-bleed
+   footprint as the image hero, with a fixed ratio so the page doesn't reflow
+   while the embed loads. */
+.work-hero--video {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  max-height: 80vh;
+  background: var(--color-ink);
+}
+
+.work-hero--video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+
+/* /style-guide writes its own copy rather than using .prose, so it was the one
+   page still running 141 characters a line. */
+.style-guide-note {
+  max-width: 62ch;
+}
+
+/*
+  Video: the shared component's two shapes.
+
+  --video: fills whatever frame it is dropped into, because the surrounding
+  block (work-video-frame, work-video-hero__bg, a Media Row slot) already owns
+  the aspect ratio and sizing. This layer only handles what is inside.
+*/
+.video {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.video__el,
+.video iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  object-fit: cover;
+}
+
+/*
+  The embed facade. A button, so it is keyboard reachable and announced as a
+  control - the iframe it replaces is created on click, which is what keeps
+  roughly 640 KB of player JavaScript off a page nobody watched a video on.
+*/
+.video__facade {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: var(--color-ink);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.video__facade :is(img, video) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Dimmed a little so the play button reads against a bright frame. */
+  opacity: 0.85;
+  transition: opacity 140ms ease;
+}
+
+.video__facade:hover :is(img, video),
+.video__facade:focus-visible :is(img, video) {
+  opacity: 1;
+}
+
+.video__facade-blank {
+  display: block;
+  width: 100%;
+  /* No poster and no thumbnail to fall back on - Vimeo has no public one - so
+     the facade keeps a 16:9 block rather than collapsing to nothing. */
+  aspect-ratio: 16 / 9;
+  background: var(--color-ink);
+}
+
+/* Play triangle, drawn rather than an asset: one less request, and it inherits
+   the palette in print mode for free. */
+.video__play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  border: 2px solid var(--color-white);
+  pointer-events: none;
+}
+
+.video__play::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 54%;
+  transform: translate(-50%, -50%);
+  border-style: solid;
+  border-width: 0.6rem 0 0.6rem 1rem;
+  border-color: transparent transparent transparent var(--color-white);
+}
+
+.video__facade:hover .video__play {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+/*
+  The single control an autoplaying loop gets.
+
+  A moving image nobody can stop is a real accessibility failure, so this is a
+  proper labelled button rather than decoration - but it stays out of the way:
+  low opacity until the video is hovered or the button itself is focused.
+*/
+.video__pause {
+  position: absolute;
+  right: var(--space-1);
+  bottom: var(--space-1);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 32px;
+  padding: 0.375rem 0.625rem;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 140ms ease;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.video--self:hover .video__pause,
+.video__pause:focus-visible {
+  opacity: 1;
+}
+
+/* Touch has no hover, so leave it visible but quiet rather than unreachable. */
+@media (pointer: coarse) {
+  .video__pause {
+    opacity: 0.75;
+  }
+}
+
+.video__pause-icon {
+  display: block;
+  width: 8px;
+  height: 10px;
+  border-left: 3px solid currentColor;
+  border-right: 3px solid currentColor;
+}
+
+/* Paused: the icon becomes a play triangle so the button says what it will do
+   rather than what it did. */
+.video__pause[aria-pressed='true'] .video__pause-icon {
+  width: 0;
+  height: 0;
+  border-left: 8px solid currentColor;
+  border-right: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+
+/*
+  Media Row.
+
+  --media-count comes from the block, so two items get halves and three get
+  thirds without a class per count. Items are aligned to the top rather than
+  stretched: a row can mix a 16:9 video with a tall mockup, and forcing those
+  to equal heights would crop or letterbox one of them.
+*/
+.media-row__heading {
+  margin: 0 0 var(--space-3);
+}
+
+.media-row__items {
+  display: grid;
+  grid-template-columns: repeat(var(--media-count, 3), minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.media-row__item {
+  margin: 0;
+  /* min-width: 0 on a grid child stops a wide iframe forcing the track wider
+     than its share - the same class of overflow that made the site scroll
+     sideways on phones earlier in this port. */
+  min-width: 0;
+}
+
+.media-row__item figcaption {
+  margin-top: var(--space-1);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--color-gray);
+}
+
+/* Three things side by side on a 390px screen is unreadable, whatever the
+   block says. */
+@media (max-width: 40rem) {
+  .media-row__items {
+    grid-template-columns: 1fr;
+  }
+}
+
+/*
+  Tap targets.
+
+  The page audit measured every interactive control at 390px. These were all
+  under the 44x44 floor: the portfolio filter row at 24px tall and the footer
+  links at 21px. On a phone that is the difference between a control and a coin
+  toss. The Archive button inherits the .pf-btn rule below along with every
+  other control in that row.
+
+  Last block in the file so it lands after every component rule it adjusts,
+  including the mobile block above it - source order is what decides these,
+  and putting them earlier is how the homepage mobile styles ended up as dead
+  code the first time.
+*/
+@media (pointer: coarse), (max-width: 40rem) {
+  .ink-switch {
+    min-height: 44px;
+  }
+
+  .pf-btn {
+    min-height: 44px;
+    /* Height alone wasn't enough: the shuffle row's - and + buttons measured
+       29px wide, so they cleared the floor in one dimension only. */
+    min-width: 44px;
+    padding-block: 0.625rem;
+  }
+
+  /* Footer links measured 21px tall. Padding rather than a min-height keeps
+     them inline without forcing the columns apart. */
+  .site-footer__social-link,
+  .site-footer__bottom a {
+    display: inline-block;
+    /* 0.6875rem measured 43px - one pixel short. */
+    padding-block: 0.75rem;
+  }
+}

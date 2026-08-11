@@ -1,0 +1,73 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { pageDescription } from '../lib/meta';
+import Img from '../components/Img.astro';
+import Sections from '../components/Sections.astro';
+import { getPage, getMerchItems } from '../lib/queries';
+import { renderPortableText } from '../lib/portableText';
+import { tileHref } from '../lib/tiles';
+
+const page = await getPage('merchfolio');
+const items = await getMerchItems();
+---
+
+<Layout title={page?.title ?? 'Merch Portfolio'} description={pageDescription(page, 'Apparel and merchandise design — garments, prints and packaging built to perform on fabric.')}>
+  <h1>{page?.heading ?? page?.title ?? 'Merch Portfolio'}</h1>
+
+  {/*
+    The page's own copy and sections were fetched and then ignored - this
+    template rendered the merch grid and nothing else, so anything written into
+    this page in Studio went nowhere. /collage and /video both read theirs.
+  */}
+  {page?.body?.length > 0 && <div class="prose" set:html={renderPortableText(page.body)} />}
+
+  {items.length > 0 ? (
+    <div class="grid">
+      {items.map((item: any) => {
+        const image = item.thumbnail || item.mainImage;
+        /*
+          tileHref, not a local copy of the rule.
+
+          This page had its own linkFor(), and it compared item.pageType
+          against 'Case Study' with no stega stripping - the exact bug that
+          silently broke the Portfolio filters, waiting to happen again on the
+          preview build. It also linked to a parent without checking that the
+          parent is a Case Study, so a Grid Item whose parent is another Grid
+          Item pointed at a URL that does not exist.
+        */
+        const href = tileHref(item);
+        const tile = (
+          <>
+            {image && (
+              <Img
+                image={image}
+                field={item.thumbnail ? 'thumbnail (Tile Image)' : 'mainImage (Main Project Image)'}
+                alt={item.title}
+                width={600}
+                height={600}
+                sizes="(max-width: 40rem) 50vw, 25vw"
+              />
+            )}
+            <p class="card__title">{item.title}</p>
+          </>
+        );
+        // A tile with nowhere to go is not a link. It used to fall back to
+        // /portfolio, which sends someone who clicked a specific hoodie to a
+        // grid of sixty things and looks like the click did nothing.
+        return href ? (
+          <a class="card" href={href}>{tile}</a>
+        ) : (
+          <div class="card">{tile}</div>
+        );
+      })}
+    </div>
+  ) : (
+    <p>No merch work here yet — tag a project "Merch &amp; Apparel" in Studio to list it.</p>
+  )}
+
+  {page?.sections?.length > 0 && (
+    <div class="page-sections">
+      <Sections sections={page.sections} />
+    </div>
+  )}
+</Layout>

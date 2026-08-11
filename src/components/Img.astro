@@ -1,0 +1,327 @@
+---
+/*
+  One <img> for the whole site, so responsive sizing and layout stability
+  can't be forgotten per call site - which is how all 21 images ended up
+  without dimensions or a srcset in the first place.
+
+  Emits:
+  - width/height, so the browser reserves the right box before the file
+    arrives and the page doesn't reflow as you scroll
+  - srcset/sizes, so a phone fetches a phone-sized file instead of the one
+    size that happened to suit a desktop hero
+  - a format-negotiated src via urlFor()
+
+  Pass `width`/`height` together to crop to a fixed ratio; pass `width`
+  alone to keep the source's own aspect.
+*/
+import { imageUrl, imageDimensions, buildSrcSet, originalUrl, isPassThrough, cappedWidth, hasAsset } from '../lib/image';
+import { isAnimatedSource } from '../lib/animated';
+
+interface Props {
+  image: any;
+  /*
+    Falls back to the image's own `alt` field in Sanity when this is empty.
+    That is how every existing call site gained alt text at once: most of them
+    pass alt="" because there was no field to pass, and rewriting all of them
+    would have meant missing some. An explicit prop still wins, for the cases
+    where the surrounding page knows better than the asset does.
+  */
+  alt?: string;
+  /** Largest width this image is ever rendered at, in CSS pixels. */
+  width: number;
+  /** Only when cropping to a fixed ratio. */
+  height?: number;
+  /** Defaults to full-viewport-width, which is right for most blocks here. */
+  sizes?: string;
+  /*
+    An authored black-and-white alternate, shown instead of this image when the
+    site is in print mode.
+
+    Emitted as data attributes rather than a second <img>, because a hidden
+    image still gets fetched in most browsers - which would mean every visitor
+    downloading two versions of a portfolio they may never switch. InkMode swaps
+    the src when print mode turns on, so the alternate costs nothing until asked
+    for.
+
+    When absent, print mode's CSS threshold applies as before. So this improves
+    as more marks get drawn and never breaks while they haven't been.
+  */
+  archive?: any;
+  /*
+    Which Studio field this image came from, for build warnings only. Never
+    rendered.
+
+    This exists because of a diagnosis that took days. Chateau Seven's tile was
+    rendering as a wide landscape image where a portrait crop was expected, and
+    the build warned about it on every run - but the warning said only
+    `"Chateau Seven"`, which is the DOCUMENT title. A caseStudy has six image
+    fields. So the warning correctly identified the document and gave no clue
+    which field, I guessed "Main Project Image", Chris checked that field, found
+    the setting already off, and said so three times. He was right. The flag was
+    on the THUMBNAIL, which is the field every tile and More Work card actually
+    uses.
+
+    A warning that names a document with six image fields is a warning that
+    sends someone to the wrong one. Naming the field is the difference between
+    "there is a problem somewhere in this project" and "turn this off here".
+  */
+  field?: string;
+  /** Above-the-fold images should pass "eager". */
+  loading?: 'lazy' | 'eager';
+  fetchpriority?: 'high' | 'low' | 'auto';
+  class?: string;
+}
+
+const {
+  image,
+  alt: altProp,
+  archive,
+  width,
+  height,
+  sizes = '100vw',
+  field,
+  loading = 'lazy',
+  fetchpriority,
+  class: className,
+} = Astro.props;
+
+const alt = altProp || image?.alt || '';
+
+/*
+  How an image is named in a build warning. The document title alone is not
+  enough to act on when a document has six image fields - see the `field` prop.
+
+  The asset reference is included as a last resort: it is what Studio shows in
+  the asset's own details pane, so a warning is traceable even where no field
+  name was passed.
+*/
+const ref: string | undefined = image?.asset?._ref ?? image?._ref;
+const where =
+  `"${alt || 'untitled'}"` +
+  (field ? ` → ${field}` : '') +
+  (ref ? ` (${ref})` : '');
+
+/*
+  The hotspot, handed to CSS.
+
+  WHAT THIS FIXES
+
+  A case study's hero is `width: 100%; max-height: 80vh; object-fit: cover`.
+  That crop is done by the BROWSER, not by Sanity - the hero passes no height,
+  so no transform crop happens - and object-fit crops from the centre. On
+  Chateau Seven, whose hero is a seated figure, desktop cropped the head off.
+  On a phone the image is narrow enough never to reach 80vh, so nothing was
+  cropped and it looked right, which is exactly the "fine on mobile, wrong on
+  desktop" Chris reported.
+
+  The hotspot set in Studio could not help, because nothing was passing it to
+  CSS. The site's own brief claims hotspots are respected; on this path they
+  were not.
+
+  object-position takes the hotspot's x/y as percentages, so the point Chris
+  marks in Studio is the point that survives the crop. Defaults to 50% 50%,
+  which is what object-fit already did, so nothing changes for an image with no
+  hotspot set.
+
+  Emitted always rather than only when cropping: it is inert unless some
+  stylesheet applies object-fit, and working out here which call sites are
+  cropped by CSS elsewhere is exactly the kind of coupling that goes stale.
+*/
+const hotspot = image?.hotspot;
+const objectPosition =
+  typeof hotspot?.x === 'number' && typeof hotspot?.y === 'number'
+    ? `${(hotspot.x * 100).toFixed(2)}% ${(hotspot.y * 100).toFixed(2)}%`
+    : undefined;
+
+/*
+  The main image field can be a shell with no file attached - see hasAsset()
+  in lib/image.ts. Every downstream helper here already degrades gracefully
+  when that happens (imageDimensions, isAnimatedSource, isPassThrough,
+  isPassThrough all return null/false on a missing asset), but urlFor()
+  itself throws. This is the one guard standing between a half-finished Studio
+  edit and every page on the site failing to build - it broke /portfolio
+  outright the first time this shipped without it.
+*/
+const imageOk = hasAsset(image);
+if (!imageOk) {
+  console.error(
+    `[Img] ${where} has an image field with no file attached - ` +
+      `skipping it rather than breaking the build. Check that field in ` +
+      `Studio: an image field can save its crop/hotspot/"serve as uploaded" ` +
+      `settings even when nothing was actually uploaded.`,
+  );
+}
+
+// Built with the same width and crop as the main image so swapping one for the
+// other cannot shift the layout. Same shell risk as the main image, and the
+// documented fallback when `archive` is absent - CSS threshold applies as
+// before - is exactly right for a shell too, so it's treated the same way.
+const archiveHasAsset = archive && hasAsset(archive);
+if (archive && !archiveHasAsset) {
+  console.warn(
+    // Names archiveMark, not `where`: `where` describes the main image, and this
+    // warning is about a different field on the same document.
+    `[Img] "${alt || 'untitled'}" → archiveMark ("Archive Mark" in Studio) has ` +
+      `no file attached - falling back to the CSS threshold instead of the ` +
+      `authored mark. Upload a file or clear the field.`,
+  );
+}
+const archiveSrc = imageUrl(archive)?.width(cappedWidth(archive, width)) ?? null;
+
+const cropped = typeof height === 'number';
+const aspect = cropped ? {width, height: height!} : undefined;
+
+// Fall back to the requested box if the reference carries no dimensions, so
+// a malformed asset degrades to "no srcset" rather than breaking the build.
+const intrinsic = imageDimensions(image);
+
+/*
+  "Serve exactly as uploaded" wins over everything below: no transform
+  parameters, and no srcset, because every srcset candidate is by definition
+  a re-encode. Dimensions are still emitted, so pass-through images reserve
+  their space and don't reintroduce the layout shift.
+*/
+// Decided by reading the file header, cached per asset per build. The asset
+// reference's extension is not trusted: this dataset has `-gif` references
+// holding static PNG and `-webp` references holding JPEG, and believing them
+// disabled responsive sizing on dozens of ordinary images.
+const animated = await isAnimatedSource(image);
+const passThrough = isPassThrough(image, animated);
+const original = passThrough ? originalUrl(image) : null;
+
+/*
+  A pass-through image is NOT cropped, so it must not claim to be.
+
+  Cropping means transform parameters, and pass-through exists precisely to
+  send none - so when both are asked for, the file arrives at its original
+  shape. The width/height attributes were still being set to the requested
+  crop, which made them a lie: `height: auto` in the CSS means the browser
+  renders at the file's real aspect and ignores the attribute, so the reserved
+  box was the wrong shape and corrected itself once the image loaded. Those
+  attributes exist to prevent exactly that.
+
+  Visible on the Portfolio grid: Chateau Seven is a hero tile asked to crop to
+  12:5 and rendering at roughly 1.45:1, because its thumbnail ships untouched.
+
+  So a pass-through image reports the size it will actually be.
+*/
+const ratio = cropped && !passThrough
+  ? {width, height: height!}
+  : intrinsic ?? {width, height: Math.round(width * 0.75)};
+
+if (cropped && passThrough && intrinsic) {
+  const asked = (width / height!).toFixed(2);
+  const real = (intrinsic.width / intrinsic.height).toFixed(2);
+  if (asked !== real) {
+    console.warn(
+      `[Img] ${where} asks for a ${asked}:1 crop but is served ` +
+        `exactly as uploaded, so it renders at ${real}:1. Cropping needs a ` +
+        `transform; turn off "serve exactly as uploaded" on THAT field, or ` +
+        `accept the image's own shape.`,
+    );
+  }
+}
+
+/*
+  The GIF-to-video path used to live here: an animation with a converted h264
+  rendered as <video> instead, on the premise that video is an order of
+  magnitude smaller.
+
+  Measured, that premise is false for this content. Every one of the eleven
+  animated GIFs in the dataset transcoded LARGER - 1.1x to 3.1x - because these
+  are short flat-colour hand-drawn loops, which GIF and WebP compress well and
+  h264 does not. And ffmpeg cannot decode animated WebP at all, so the six
+  WebPs were never candidates in the first place. Removed rather than kept as
+  machinery that had produced two useful conversions out of nineteen files.
+
+  Animations now ship as uploaded, which is what isPassThrough already
+  guarantees. Sizing them is a question for the source file.
+*/
+
+/*
+  Clamped to the file's own width. buildSrcSet already did this; the `src`
+  attribute did not, and that is where the measured damage came from: a
+  200x200 animated WebP rendered with width={800} was requested at w=800 and
+  came back at 2,539 KB. Worse, a source narrower than the smallest srcset
+  entry yields no srcset at all, so that upscaled src was the only candidate
+  the browser had.
+*/
+/*
+  When the layout wants more pixels than the file has, encode what there is
+  better.
+
+  MEASURED, NOT ASSUMED
+
+  A case study hero is `width={2400} sizes="100vw"`, and every srcset candidate
+  is capped at the file's own width - correctly, since asking the CDN to upscale
+  only wastes bytes. So the browser's best option IS the source, and on a 2x
+  display it gets stretched. All six case study heroes are short:
+
+    Adelante Barbell Club  2572x1920   1.18x at 1512@2x
+    DumpStat               1920x1440   1.57x
+    Hug a Mug              1920x1080   1.57x
+    More Kilos, Less Egos  1300x860    2.33x
+    Chateau Seven          1179x1461   2.56x
+    Two Point Oh            820x360    3.69x
+
+  Nothing here creates detail that was never captured. What it does is stop
+  compression artifacts from compounding the softness: an image about to be
+  enlarged 2.5x is the worst possible candidate for q80, because every ringing
+  artifact gets enlarged with it. So a file the layout will stretch is delivered
+  at q92 and lightly sharpened, which is what the extra bytes are worth spending
+  on. A file with pixels to spare is untouched at the default q80.
+
+  `sharp=15` is deliberately modest. Sharpening is the one knob here that can
+  make things WORSE - too much prints halos along every edge, which on
+  hand-drawn linework would be very visible. I cannot see the rendered result
+  from this sandbox, so it is set low on purpose and is one number to change.
+
+  Two Point Oh is beyond this: 820x360 asked to span a 1512px screen at 2x is a
+  3.69x enlargement, and no encoder rescues that. It needs a new export.
+*/
+const askWidth = cappedWidth(image, width);
+const willStretch = !!intrinsic && intrinsic.width < width;
+let builtSrc = imageUrl(image)?.width(askWidth) ?? null;
+if (builtSrc && willStretch) builtSrc = builtSrc.quality(92).sharpen(15);
+if (builtSrc && cropped) builtSrc = builtSrc.height(Math.round((askWidth * height!) / width)).fit('crop');
+
+const src = original ?? builtSrc?.url() ?? '';
+const srcset = imageOk && !passThrough ? buildSrcSet(image, width, aspect) : undefined;
+
+// A pass-through file is delivered at its full size to every device, so an
+// oversized one is a cost the CDN can no longer absorb. Flag it at build
+// time rather than letting it quietly land on phones.
+const manualPassThrough = image?.noRecompress === true;
+if (manualPassThrough && intrinsic && intrinsic.width > width * 2) {
+  console.warn(
+    `[Img] ${where} is set to "serve exactly as uploaded" and is ` +
+      `${intrinsic.width}px wide, but renders at most ${width}px. Every ` +
+      `visitor downloads the full file. Consider uploading it closer to ` +
+      `${width * 2}px.`,
+  );
+}
+if (manualPassThrough && (image?.crop || image?.hotspot)) {
+  console.warn(
+    `[Img] ${where} is set to "serve exactly as uploaded", which ignores the ` +
+      `crop/hotspot set in Studio - cropping requires re-encoding.`,
+  );
+}
+---
+
+{!imageOk ? null : (
+<img
+  src={src}
+  data-archive-src={archiveSrc ? archiveSrc.url() : undefined}
+  data-ink-mode={image?.inkMode && image.inkMode !== 'auto' ? image.inkMode : undefined}
+  srcset={srcset}
+  sizes={srcset ? sizes : undefined}
+  width={ratio.width}
+  height={ratio.height}
+  alt={alt}
+  loading={loading}
+  decoding={loading === 'eager' ? 'sync' : 'async'}
+  fetchpriority={fetchpriority}
+  class={className}
+  style={objectPosition ? `object-position: ${objectPosition}` : undefined}
+/>
+)}

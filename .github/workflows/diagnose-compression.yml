@@ -1,0 +1,43 @@
+name: Is Sanity's compression worth having
+
+# Chris compresses his own exports and has made "serve exactly as uploaded" the
+# default. This measures whether that costs anything, at the widths the site
+# actually requests rather than at w=800.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/diagnose-compression.mjs'
+      - '.github/workflows/diagnose-compression.yml'
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Measure
+        run: |
+          set -o pipefail
+          mkdir -p compression
+          node scripts/diagnose-compression.mjs --out compression 2>&1 | tee compression/report.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo '## Compression'
+            echo ''
+            echo '```'
+            tail -60 compression/report.txt 2>/dev/null || echo '(did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compression
+          path: compression
+          if-no-files-found: ignore

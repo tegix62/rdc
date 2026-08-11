@@ -1,0 +1,19 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { pageDescription } from '../lib/meta';
+import { getPage } from '../lib/queries';
+import { renderPortableText } from '../lib/portableText';
+
+const page = await getPage('image-license-info');
+---
+
+<Layout title={page?.title ?? 'Image License Info'} description={pageDescription(page, 'Licensing and usage terms for the images and artwork shown on this site.')}>
+  {/* `heading` was ignored, so the on-page <h1> was whatever the browser-tab
+      title said. Every other page reads it; this one did not. */}
+  <h1>{page?.heading ?? page?.title ?? 'Image License Info'}</h1>
+  {page?.body?.length > 0 ? (
+    <div class="prose" set:html={renderPortableText(page.body)} />
+  ) : (
+    <p>Content coming soon — add this page's copy in Studio.</p>
+  )}
+</Layout>

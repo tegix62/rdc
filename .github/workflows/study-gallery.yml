@@ -1,0 +1,82 @@
+name: Study the reference gallery layout
+
+# Measures Chris's own Adobe Portfolio gallery, which he named as the reference
+# for how the archive/print view of the grid should feel. Runs in CI because the
+# sandbox has no outbound network and Adobe Portfolio 403s plain fetchers.
+#
+# Results go to a `study-reports` branch rather than `ci-reports`: the audit
+# force-pushes that branch as an orphan every run, so sharing it would have one
+# workflow silently deleting the other's output.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/study-gallery.mjs'
+      - '.github/workflows/study-gallery.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  study:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+
+      - name: Measure
+        run: |
+          set -o pipefail
+          mkdir -p study
+          node scripts/study-gallery.mjs --out study 2>&1 | tee study/measurements.txt || true
+
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Gallery layout'
+            echo ''
+            echo '```json'
+            cat study/gallery.json 2>/dev/null || cat study/measurements.txt 2>/dev/null || echo '(nothing produced)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit to the study-reports branch
+        if: always()
+        run: |
+          set -euo pipefail
+          [ -d study ] || exit 0
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          mkdir -p /tmp/study && cp -r study/* /tmp/study/ 2>/dev/null || true
+
+          git checkout --orphan study-reports
+          git rm -rf --cached . >/dev/null 2>&1 || true
+          find . -maxdepth 1 -mindepth 1 ! -name .git -exec rm -rf {} +
+
+          mkdir -p latest && cp -r /tmp/study/* latest/ 2>/dev/null || true
+          {
+            echo "# Reference gallery study"
+            echo ""
+            echo "Generated $(date -u +%Y-%m-%dT%H-%M-%SZ) from \`$(git rev-parse --short HEAD)\`."
+            echo ""
+            echo '```'
+            echo "git fetch origin study-reports"
+            echo "git show origin/study-reports:latest/gallery.json"
+            echo "git show origin/study-reports:latest/gallery-fold.png > /tmp/fold.png"
+            echo '```'
+          } > README.md
+
+          git add -A
+          git commit -q -m "Gallery study $(date -u +%Y-%m-%dT%H-%M-%SZ)"
+          for attempt in 1 2 3 4; do
+            git push -f origin study-reports && break
+            echo "push failed, retry $attempt"
+            sleep $((2 ** attempt))
+          done

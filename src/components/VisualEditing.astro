@@ -1,0 +1,41 @@
+---
+/*
+  Loads Sanity's visual-editing overlay, which turns the invisible stega
+  markers the client embeds into clickable "edit this field" targets when the
+  page is viewed inside Studio's Presentation tool.
+
+  The file it points at is produced by scripts/build-overlay.mjs during
+  `npm run build`, and only exists in builds that opted into visual editing -
+  see that script for why it isn't imported here directly.
+
+  `is:inline` matters: it stops Astro from bundling this tag, which is what
+  keeps the overlay out of production builds entirely.
+*/
+import { VISUAL_EDITING } from '../lib/sanity';
+---
+
+{
+  VISUAL_EDITING && (
+    /*
+      Only start the overlay when the page is inside an iframe - which in
+      practice means Studio's Presentation tab.
+
+      Loading it unconditionally meant anyone opening the preview URL directly
+      got editing chrome over a site they were only trying to look at: blue
+      outlines and "Open in Studio" tags on every element fed from Sanity. It
+      also installs document-level click handling to make elements clickable
+      for editing, which is a plausible cause of interactive controls not
+      responding on the preview.
+
+      `window.parent !== window` is the check Sanity's own docs use for this.
+    */
+    <script is:inline>
+      if (window.parent !== window) {
+        const s = document.createElement('script');
+        s.type = 'module';
+        s.src = '/sanity-visual-editing.js';
+        document.head.appendChild(s);
+      }
+    </script>
+  )
+}

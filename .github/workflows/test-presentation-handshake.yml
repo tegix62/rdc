@@ -1,0 +1,48 @@
+name: Reproduce Presentation's Edit toggle
+
+# Chris can't open a desktop browser console, and the Edit toggle failure only
+# happens at runtime, so this reproduces the Studio side headlessly instead:
+# a fake Presentation host built from studio/node_modules, embedding the
+# deployed preview site cross-origin and posting the same message the toggle
+# posts. See scripts/test-presentation-handshake.mjs for how to read it.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/test-presentation-handshake.mjs'
+      - '.github/workflows/test-presentation-handshake.yml'
+
+jobs:
+  handshake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Both trees: the harness bundles the Studio's comlink (studio/) and runs
+      # it with the root esbuild.
+      - run: npm install
+      - run: npm install --prefix studio
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - name: Handshake
+        run: |
+          set -o pipefail
+          node scripts/test-presentation-handshake.mjs | tee /tmp/ph.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Presentation handshake'
+            echo ''
+            echo '```'
+            cat /tmp/ph.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: handshake-screenshot
+          path: presentation-handshake.png
+          if-no-files-found: ignore

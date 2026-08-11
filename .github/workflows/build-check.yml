@@ -1,0 +1,107 @@
+name: Build check
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main, 'claude/**']
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'astro.config.mjs'
+      - '.github/workflows/build-check.yml'
+      # scripts/ too, because this workflow RUNS scripts - test-images.mjs,
+      # test-image-guards.mjs, and build-overlay.mjs via `npm run build` - and
+      # none of them were in this list. So a commit that changed only a test
+      # script did not re-run the check that executes it: the fix for a red build
+      # check silently never ran, and the branch sat looking unverified because
+      # it genuinely was.
+      #
+      # Deliberately the whole directory rather than the three names. Listing
+      # them precisely is what produced this bug - a step gets added, its script
+      # is not added here, and the gap stays invisible until something unrelated
+      # triggers the workflow. A few extra runs when a diagnose script changes is
+      # a much cheaper mistake than a check that quietly does not fire.
+      - 'scripts/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+
+      # An unbalanced /* in a stylesheet is still VALID CSS - it just runs on
+      # until the next */ and silently eats every rule in between. A parser
+      # reports no error, the build succeeds, and the only symptom is styling
+      # that quietly stopped applying. It happened while moving the ink-mode
+      # chrome out: a leftover comment fragment swallowed the footer's
+      # tap-target rules, and esbuild parsed the result without complaint.
+      - name: No stylesheet comment eats the rules after it
+        run: |
+          set -euo pipefail
+          fail=0
+          for f in $(find src -name '*.css'); do
+            open=$(grep -o '/\*' "$f" | wc -l)
+            close=$(grep -o '\*/' "$f" | wc -l)
+            if [ "$open" -ne "$close" ]; then
+              echo "::error file=$f::$open '/*' vs $close '*/' - a comment is swallowing rules"
+              fail=1
+            fi
+          done
+          [ "$fail" -eq 0 ] && echo "comments balanced in every stylesheet"
+
+      # A malformed srcset still renders the image - the browser just falls
+      # back to src and quietly stops being responsive - so this can't be
+      # caught by looking at the site.
+      - run: npm run test:images
+
+      # An image field saved with no file attached used to throw inside urlFor
+      # and take all 21 pages down with it - twice. Every call site now goes
+      # through the guarded imageUrl(), and this asserts both that the guard
+      # works and that nothing has gone back to calling the raw builder. Runs
+      # before the build, because it is the build this protects.
+      - run: node scripts/test-image-guards.mjs
+
+      # The <head> strings and the post dates. Nothing on the page shows whether
+      # these came out right - a <title> reading "Rumeau Design Co | Rumeau
+      # Design Co", or 13 project pages sharing one meta description, looks
+      # completely normal in review and turns up months later in a search
+      # result. Pure logic, no network, so it costs a second.
+      - run: node scripts/test-meta.mjs
+
+      # Keeps the built-HTML gate below honest. It found two bugs in that gate
+      # in its first minutes: a decode bug that failed every correct og:image,
+      # and a check that flagged a pipe in og:title when the defect is restating
+      # the site name. A gate that fails on correct output gets switched off, and
+      # then it guards nothing. Needs no dist, so it runs before the build.
+      - run: node scripts/test-head-selfcheck.mjs
+
+      # The homepage grid's row arithmetic. Its only symptom when wrong is a
+      # homepage that looks slightly ragged, which nobody files a bug for - they
+      # just come away thinking the site is a bit amateur.
+      - run: node scripts/test-peek-grid.mjs
+
+      - run: npm run build
+
+      # test-meta proves the composition functions are right; it cannot prove the
+      # templates call them. Those are different failures, and the second is the
+      # one that shipped - og:image was correct on the two templates that passed
+      # it and simply absent from the other nine pages. So this reads the built
+      # HTML and checks every page for a title, a distinct description, an
+      # og:image, a canonical, one <h1> and a skip link.
+      #
+      # After the build on purpose: dist/ has to exist, and the build is where
+      # the real Sanity content enters.
+      - run: node scripts/test-head.mjs
+
+      # public/_redirects is the only thing keeping the old Webflow URLs alive
+      # after cutover, and nothing tied it to the content. Case studies have gone
+      # from 13 to 5 over this project; any deletion can orphan a redirect
+      # silently, and a 301 to a 404 is worse than no redirect - it tells a
+      # crawler the page moved permanently to a dead end, throwing away the
+      # ranking the redirect exists to pass on. The symptom would only appear
+      # after DNS moves, on exactly the URLs that used to rank.
+      - run: node scripts/test-redirects.mjs

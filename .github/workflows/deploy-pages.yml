@@ -1,0 +1,142 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  workflow_dispatch: {}
+  # Publishing in Sanity Studio changes nothing here: this is a static build,
+  # so the new content only reaches the preview once this workflow re-runs.
+  # A Sanity webhook can fire this event type on every publish - see
+  # docs/sanity-publish-webhook.md for the two things that need setting up
+  # outside this repo (a token, and the webhook itself) before it's live.
+  repository_dispatch:
+    types: [sanity-publish]
+  push:
+    branches: [main, 'claude/**']
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'astro.config.mjs'
+      # Emits public/sanity-visual-editing.js during the build, so a change
+      # here changes what gets deployed - it was missing from this list, which
+      # meant overlay changes silently never shipped.
+      - 'scripts/build-overlay.mjs'
+      - '.github/workflows/deploy-pages.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run build
+        env:
+          # This deployment is a preview/staging site - the real
+          # rumeaudesign.co is still served by Webflow - so it's the right
+          # place to turn click-to-edit on. Set this to false (or drop it)
+          # before pointing a real domain at this build: it embeds invisible
+          # markers in page text that visitors have no use for.
+          PUBLIC_SANITY_VISUAL_EDITING: 'true'
+          # Marks the build as the preview deployment: pages emit noindex and
+          # robots.txt disallows everything, so this public URL can't be
+          # crawled and compete with rumeaudesign.co for the same copy.
+          # Must be false/removed for a build that serves the real domain.
+          PUBLIC_IS_PREVIEW: 'true'
+          # Stamped into every page as <meta name="build-commit">, so the audit
+          # can tell whether what it is measuring is the build it meant to.
+          PUBLIC_BUILD_SHA: ${{ github.sha }}
+      - name: Ensure Cloudflare Pages project exists
+        run: npx wrangler@3 pages project create rumeau-design-co --production-branch main || true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - uses: cloudflare/pages-action@v1
+        id: pages
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: rumeau-design-co
+          directory: dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          # Deploy under a fixed label rather than the git branch name.
+          # Cloudflare builds its stable alias from this, and it wouldn't make
+          # one for a branch containing a "/" - so every deploy was reachable
+          # only at its own throwaway hash URL, which is no use as Studio's
+          # preview target. This pins it to preview.rumeau-design-co.pages.dev.
+          branch: preview
+      # Every deploy gets a throwaway per-commit URL, but the branch alias is
+      # stable - that's the one to point Studio's Presentation tab at, and the
+      # one worth bookmarking. Surfaced in the summary so it isn't buried in
+      # the log.
+      - name: Report preview URLs
+        run: |
+          STABLE="https://preview.rumeau-design-co.pages.dev"
+
+          # The action reports its `alias` output straight from the create-
+          # deployment response, and Cloudflare fills aliases in afterwards -
+          # so that output says "hash URL" even when the alias is fine. Ask
+          # the URL itself rather than believing the output, retrying because
+          # a brand new alias takes a few seconds to resolve.
+          status=000
+          for attempt in 1 2 3 4 5; do
+            status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$STABLE" || echo 000)
+            [ "$status" = "200" ] && break
+            echo "attempt $attempt: $STABLE -> $status, retrying..."
+            sleep 6
+          done
+
+          if [ "$status" = "200" ]; then
+            verdict="✅ live"
+          else
+            verdict="⚠️ not resolving (HTTP $status)"
+          fi
+
+          {
+            echo "### Preview URLs"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Stable (bookmark this) | $STABLE - $verdict |"
+            echo "| This deploy | ${{ steps.pages.outputs.url }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "STABLE_ALIAS=$STABLE"
+          echo "STABLE_ALIAS_STATUS=$status"
+          echo "THIS_DEPLOY=${{ steps.pages.outputs.url }}"
+
+      # Every template falls back to a "Content coming soon" placeholder when
+      # its Sanity document is missing or empty. That renders a perfectly
+      # healthy 200, so a page can quietly lose its content and nothing here
+      # notices - which is exactly what happened to About and Video earlier in
+      # this port, and what a half-finished migration would do again.
+      - name: Smoke test - no page fell back to a placeholder
+        run: |
+          BASE="https://preview.rumeau-design-co.pages.dev"
+          PATHS="/ /portfolio /about /video /collage /merchfolio /blog /privacy-policy"
+          empty=""
+          for p in $PATHS; do
+            body=$(curl -sL --max-time 20 "$BASE$p" || echo "")
+            code=$(curl -sL -o /dev/null -w "%{http_code}" --max-time 20 "$BASE$p" || echo 000)
+            if [ "$code" != "200" ]; then
+              echo "  $p -> HTTP $code"; empty="$empty $p(http:$code)"
+            elif printf '%s' "$body" | grep -q "Content coming soon"; then
+              echo "  $p -> 200 but showing the placeholder"; empty="$empty $p(placeholder)"
+            else
+              echo "  $p -> ok"
+            fi
+          done
+
+          if [ -n "$empty" ]; then
+            echo "::warning::Pages with no content:$empty"
+            {
+              echo ""
+              echo "**⚠️ Pages showing no content:**$empty"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "all pages returned real content"
+          fi

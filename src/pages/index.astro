@@ -1,0 +1,202 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { pageDescription } from '../lib/meta';
+import Img from '../components/Img.astro';
+import Sections from '../components/Sections.astro';
+import WorkGrid from '../components/WorkGrid.astro';
+import { getPage, getSiteSettings, getFeaturedWork } from '../lib/queries';
+import { backgroundUrl } from '../lib/image';
+
+const page = await getPage('home');
+const settings = await getSiteSettings();
+const clientLogos = settings?.clientLogos ?? [];
+
+/*
+  Work, high on the page.
+
+  The homepage's job - Chris's own brief for it - is a contact button and all
+  the context someone needs inside half a scroll. It did the context part with
+  words: a bio, four testimonials and a checklist, with the work itself nowhere
+  on the page. This puts a handful of tiles directly under the hero's buttons,
+  so the CTA still comes first and the evidence arrives immediately after it
+  rather than three screens down.
+
+  Curated in Studio, falling back to the most recent while the picker is empty.
+*/
+const featuredWork = await getFeaturedWork(8);
+
+// Editable in Studio under Site Settings. Fallbacks match what was already
+// live on the site, so nothing changes visually if a field is left blank.
+const TALLY_URL = settings?.contactUrl || 'https://tally.so/r/mZ8LXz';
+
+const bioText =
+  settings?.bioText ||
+  'Chris Rumeau is a brand designer, illustrator, and typographer building visual ' +
+    'identities rooted in heritage craft and hand-drawn precision.';
+
+const checklist =
+  settings?.checklist?.length > 0
+    ? settings.checklist
+    : [
+        'Hand-drawn from the first sketch',
+        'Deep vintage typography research',
+        'Designed for fabric, not just screens',
+      ];
+
+const proofStats =
+  settings?.proofStats?.length > 0
+    ? settings.proofStats
+    : [
+        {
+          stat: '22% Increase',
+          rest: ' in yearly revenue using RDC Branding.',
+          name: 'Anabel D.',
+          org: 'Hug a Mug Coffeehouse',
+          href: '/work/hug-a-mug',
+        },
+        {
+          stat: '16,000 Weekly Listeners',
+          rest: ' in 6 months, using with RDC.',
+          name: 'Jonathan Bell',
+          org: 'DumpStat Podcast',
+          href: '/work/dumpstat',
+        },
+        {
+          stat: '$3500',
+          rest: ' in first-day merch revenue with RDC.',
+          name: 'Adelante Barbell Club',
+          org: 'Union, New Jersey',
+          href: '/work/adelante-barbell-club',
+        },
+      ];
+
+const closerPrefix = settings?.closerPrefix || 'Hand-drawn brand identity and merch design, ';
+const closerBold = settings?.closerBold || 'rooted in heritage craft';
+const closerSuffix = settings?.closerSuffix || ' and built to perform on fabric.';
+const finalCtaHeading = settings?.finalCtaHeading || 'DTC Brands and Apparel Companies:';
+
+/*
+  backgroundUrl, not urlFor: this asked for w=1800 from an animated 800x800
+  source and came back at 10,704 KB - on its own 98% of this page's weight and
+  the heaviest file on the site. A CSS background bypasses Img.astro, so it got
+  neither the width clamp nor the pass-through that keep animated sources out
+  of the re-encode pipeline. See backgroundUrl in lib/image.ts.
+*/
+const heroBg = await backgroundUrl(settings?.heroBackground, 1800);
+const heroStyle = heroBg ? `--hero-bg-image: url(${heroBg})` : undefined;
+
+const proofBg = await backgroundUrl(settings?.proofBandBackground, 500);
+const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined;
+---
+
+<Layout title={page?.title ?? 'Rumeau Design Co'} description={pageDescription(page, 'Hand-drawn brand identity, lettering and merch design for heritage apparel brands and musicians. The studio of Chris Rumeau, New Jersey.')}>
+  <section class="statement" style={heroStyle}>
+    <div class="statement__line" aria-hidden="true"></div>
+    {/*
+      Three words, three lines - always, not just at the width where they
+      happen to wrap that way. The vh-sized font wrapped naturally, so a wide
+      viewport fit RUMEAU and DESIGN on one line and dropped COMPANY to a
+      second, which is not the mark: the old site stacked all three, one per
+      line, at every width. A block per word guarantees that instead of
+      depending on where the browser breaks it.
+    */}
+    <h1 class="statement__heading">
+      <span class="statement__word">RUMEAU</span>
+      <span class="statement__word">DESIGN</span>
+      <span class="statement__word">COMPANY</span>
+    </h1>
+    <div class="statement__line" aria-hidden="true"></div>
+    <p class="statement__sub">{settings?.tagline ?? 'Brand Identity & Merch Design for Heritage Apparel Brands.'}</p>
+  </section>
+
+  <div class="top-cta">
+    <a class="button button--outline" href="/portfolio">See Portfolio</a>
+    <a class="button" href={TALLY_URL}>Let's Work</a>
+  </div>
+
+  <WorkGrid items={featuredWork} heading={settings?.featuredWorkHeading || 'Selected work'} />
+
+  <section class="bio-row">
+    <h2 class="bio-row__text">{bioText}</h2>
+    <!-- Background video pending - drop the source file in and swap this placeholder for a <video>. -->
+    <div class="video-placeholder" role="img" aria-label="Process video coming soon"></div>
+  </section>
+
+  {clientLogos.length > 0 && (
+    <section class="logo-strip">
+      <div class="logo-strip__inner">
+        {clientLogos.map((item: any) =>
+          item.logo ? (
+            <a href={item.href || '#'} class="logo-strip__item">
+              <Img image={item.logo} alt={item.alt || ''} field="clientLogos[].logo" width={220} sizes="150px" />
+            </a>
+          ) : null,
+        )}
+      </div>
+    </section>
+  )}
+
+  <section class="proof-band" style={proofBandStyle}>
+    <div class="proof-band__inner">
+      <div class="proof-row">
+        {proofStats.map((p: any) => (
+          <a class="proof-card" href={p.href}>
+            <h3 class="proof-card__stat"><strong>{p.stat}</strong>{p.rest}</h3>
+            <div class="proof-card__rating" aria-hidden="true">
+              {Array.from({ length: 5 }).map(() => (
+                <span>&#9733;</span>
+              ))}
+            </div>
+            <p class="proof-card__name">{p.name}</p>
+            <p class="proof-card__org">{p.org}</p>
+          </a>
+        ))}
+
+        <div class="proof-card proof-card--closer">
+          <h2 class="closer__heading">
+            {closerPrefix}<strong>{closerBold}</strong>{closerSuffix}
+          </h2>
+          <a class="button" href={TALLY_URL}>Let's Work</a>
+        </div>
+      </div>
+
+      <div class="checklist">
+        {checklist.map((item: string) => (
+          <div class="checklist__item">
+            <span class="checklist__check" aria-hidden="true">&#10003;</span>
+            <p>{item}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/*
+    Editable block slot. The rest of this page is a fixed composition, so
+    anything added to "Page Sections" in Studio lands here - between the
+    checklist and the closing CTA - rather than being freely positionable.
+    Renders nothing when the array is empty.
+  */}
+  {page?.sections?.length > 0 && (
+    <div class="page-sections">
+      <Sections sections={page.sections} />
+    </div>
+  )}
+
+  <section class="final-cta">
+    {settings?.portrait && (
+      <Img
+        class="final-cta__portrait"
+        image={settings.portrait}
+        field="portrait (Portrait of you)"
+        alt="Chris Rumeau, founder of Rumeau Design Co"
+        width={700}
+        sizes="(max-width: 40rem) 100vw, 40vw"
+      />
+    )}
+    <div class="final-cta__card">
+      <h3>{finalCtaHeading}</h3>
+      <a class="button button--white" href={TALLY_URL}>Let's Work</a>
+    </div>
+  </section>
+</Layout>

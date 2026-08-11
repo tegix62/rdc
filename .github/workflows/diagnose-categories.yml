@@ -1,0 +1,26 @@
+name: Diagnose portfolio categories
+
+# Read-only. Prints the actual category value on every Grid Item, because the
+# filters have been "fixed" twice from inference and failed both times.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'studio/migration/diagnose-categories.mjs'
+      - '.github/workflows/diagnose-categories.yml'
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: studio
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run diagnose:categories
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}

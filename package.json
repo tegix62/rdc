@@ -1,0 +1,31 @@
+{
+  "name": "rdc",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/build-overlay.mjs && astro dev",
+    "build": "node scripts/build-overlay.mjs && astro build",
+    "preview": "astro preview",
+    "test:images": "node scripts/test-images.mjs",
+    "audit:cms": "node scripts/audit-cms.mjs",
+    "audit:pages": "node scripts/audit-pages.mjs",
+    "check:production": "node scripts/check-production-build.mjs",
+    "test:production-check": "node scripts/test-production-check.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter-tight": "^5.1.1",
+    "@fontsource/gothic-a1": "^5.1.1",
+    "@portabletext/to-html": "^2.0.13",
+    "@sanity/client": "^6.29.1",
+    "@sanity/image-url": "^1.1.0",
+    "astro": "^5.1.1"
+  },
+  "devDependencies": {
+    "@sanity/visual-editing": "2.13.4",
+    "esbuild": "^0.28.1"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

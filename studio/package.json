@@ -1,0 +1,30 @@
+{
+  "name": "rdc-studio",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "sanity dev",
+    "build": "sanity build",
+    "deploy": "sanity deploy",
+    "migrate": "node migration/migrate.mjs",
+    "test:migration": "node migration/seedDocument.test.mjs",
+    "example-sections": "node migration/exampleSections.mjs",
+    "diagnose:animations": "node migration/diagnose-animations.mjs",
+    "diagnose:categories": "node migration/diagnose-categories.mjs"
+  },
+  "dependencies": {
+    "@sanity/client": "^6.24.1",
+    "@sanity/vision": "^3.68.0",
+    "node-html-parser": "^6.1.13",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sanity": "^3.68.0",
+    "styled-components": "^6.1.15"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

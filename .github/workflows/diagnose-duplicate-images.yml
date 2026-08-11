@@ -1,0 +1,41 @@
+name: Diagnose duplicate pictures
+
+# Chris counted what he can actually see on the Portfolio grid: two Ruff
+# Grounds, three Horizon Kingdoms wordmarks, three of one Adelante photograph,
+# two Adelante logo sheets, two Doomwoken, two Keth, two Terremoto tees.
+#
+# diagnose-grid-items.mjs found eight pairs, because it compares asset
+# REFERENCES - one file used twice. It cannot see the same picture uploaded
+# twice as two distinct assets, which is what makes threes possible. This
+# compares the images themselves.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/diagnose-duplicate-images.mjs'
+      - '.github/workflows/diagnose-duplicate-images.yml'
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Look
+        run: |
+          set -o pipefail
+          node scripts/diagnose-duplicate-images.mjs 2>&1 | tee duplicate-images.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "## Duplicate pictures"
+            echo ""
+            echo '```'
+            cat duplicate-images.txt 2>/dev/null || echo '(the script did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

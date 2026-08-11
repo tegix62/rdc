@@ -1,0 +1,38 @@
+name: Compare speed against the live Webflow site
+
+# Decision-support measurement, not a gate. It hits the live production site,
+# so it must not run on every push - only when the measurement itself changes.
+# (workflow_dispatch is declared too, but GitHub only offers that once this
+# file reaches the default branch.)
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/perf-compare.mjs'
+      - '.github/workflows/perf-compare.yml'
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - name: Measure both sites
+        run: node scripts/perf-compare.mjs | tee /tmp/perf.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Transfer weight: live Webflow vs Astro port'
+            echo ''
+            echo 'Wire bytes in a real Chromium, cold cache, 1440x900.'
+            echo ''
+            echo '```'
+            cat /tmp/perf.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

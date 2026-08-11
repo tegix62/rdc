@@ -1,0 +1,288 @@
+---
+/*
+  Renders the flexible layout blocks editors build in Sanity. Shared by case
+  study pages and regular pages so both get the same set of building blocks
+  and there's only one place to change when a block type is added.
+*/
+import Img from './Img.astro';
+import { renderPortableText } from '../lib/portableText';
+import Video from './Video.astro';
+
+interface Props {
+  sections: any[];
+}
+
+const { sections } = Astro.props;
+
+
+---
+
+{sections?.map((section: any) => {
+  switch (section._type) {
+    case 'fullImageSection':
+      return section.image ? (
+        <div class="work-section work-section--full">
+          {/* No alt prop: it comes from the image's own field in Sanity now.
+              This used to read section.alt, which was never in the schema, so
+              every full-width image shipped with an empty alt. */}
+          <Img image={section.image} field={`${section._type} → image`} width={2000} sizes="100vw" />
+        </div>
+      ) : null;
+    case 'twoUpSection':
+      return (
+        <div class="work-section work-section--two-up">
+          {section.imageLeft && (
+            <Img image={section.imageLeft} field={`${section._type} → imageLeft`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
+          )}
+          {section.imageRight && (
+            <Img image={section.imageRight} field={`${section._type} → imageRight`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
+          )}
+        </div>
+      );
+    case 'threeUpSection':
+      return (
+        <div class="work-section work-section--three-up">
+          {[section.imageOne, section.imageTwo, section.imageThree].map(
+            (img: any) =>
+              img && <Img image={img} field={`${section._type} → imageOne/Two/Three`} width={800} sizes="(max-width: 40rem) 100vw, 33vw" />,
+          )}
+        </div>
+      );
+    case 'imageTextSection':
+      return (
+        <div
+          class:list={[
+            'work-section',
+            'work-section--image-text',
+            section.imagePosition === 'Right' && 'is-reversed',
+          ]}
+        >
+          {section.image && (
+            <Img image={section.image} field={`${section._type} → image`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
+          )}
+          <div class="work-section__text">
+            {section.heading && <h3>{section.heading}</h3>}
+            {section.text && <p>{section.text}</p>}
+          </div>
+        </div>
+      );
+    case 'videoSection':
+      return section.url || section.videoFile || section.videoWebm ? (
+        <div class="work-section work-section--video">
+          <div class="work-video-frame">
+            <Video
+              url={section.url}
+              file={section.videoFile}
+              webm={section.videoWebm}
+              poster={section.videoPoster}
+                posterField={`${section._type} → videoPoster`}
+              playback={section.videoPlayback}
+              title={section.caption ?? 'Video'}
+              width={1600}
+            />
+          </div>
+          {section.caption && <p class="work-video-caption">{section.caption}</p>}
+        </div>
+      ) : null;
+    case 'statCalloutSection':
+      return (
+        <div class="work-section work-section--stat-callout">
+          {section.heading && <h3>{section.heading}</h3>}
+          {section.checklist?.length > 0 && (
+            <ul class="work-stat-checklist">
+              {section.checklist.map((item: string) => <li>{item}</li>)}
+            </ul>
+          )}
+          {(section.statValue || section.statLabel) && (
+            <p class="work-stat">
+              {section.statValue && <strong>{section.statValue}</strong>} {section.statLabel}
+            </p>
+          )}
+        </div>
+      );
+    case 'textSection':
+      return (
+        <div class="work-section work-section--text">
+          {section.heading && <h3>{section.heading}</h3>}
+          {section.body?.length > 0 && <div set:html={renderPortableText(section.body)} />}
+        </div>
+      );
+    case 'achievementsSection':
+      return (
+        <div class="work-section work-section--achievements">
+          <div class="work-section--achievements__images">
+            {section.imageLeft && (
+              <Img image={section.imageLeft} field={`${section._type} → imageLeft`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
+            )}
+            {section.imageRight && (
+              <Img image={section.imageRight} field={`${section._type} → imageRight`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
+            )}
+          </div>
+          {section.items?.length > 0 && <div set:html={renderPortableText(section.items)} />}
+        </div>
+      );
+    case 'videoHeroSection':
+      return (
+        <div class="work-section work-section--video-hero">
+          {(section.url || section.videoFile || section.videoWebm) && (
+            <div class="work-video-hero__bg">
+              <Video
+                url={section.url}
+                file={section.videoFile}
+                webm={section.videoWebm}
+                poster={section.videoPoster}
+                posterField={`${section._type} → videoPoster`}
+                playback={section.videoPlayback}
+                title={section.heading ?? 'Video'}
+                width={2000}
+              />
+            </div>
+          )}
+          {section.heading && (
+            <div class="work-video-hero__overlay">
+              <h2>{section.heading}</h2>
+            </div>
+          )}
+        </div>
+      );
+    /*
+      Media Row. Each item is independently an image or a video, so three
+      animated GIFs across, two videos side by side, or a video beside a mockup
+      are all this one block. --media-count drives the column count; the CSS
+      stacks them on a phone regardless, because three things across 390px is
+      unreadable.
+    */
+    case 'mediaRowSection': {
+      const items = (section.items ?? []).filter(
+        (i: any) =>
+          (i._type === 'mediaVideo' && (i.url || i.videoFile || i.videoWebm)) ||
+          (i._type === 'mediaImage' && i.image),
+      );
+      if (items.length === 0) return null;
+      // Narrower slots want smaller files. This is the width each item is
+      // actually rendered at, so the srcset ceiling matches the layout.
+      const slotWidth = Math.round(2000 / items.length);
+      return (
+        <div class="work-section media-row" style={`--media-count: ${items.length}`}>
+          {section.heading && <h3 class="media-row__heading">{section.heading}</h3>}
+          <div class="media-row__items">
+            {items.map((item: any, i: number) => (
+              <figure class="media-row__item">
+                {item._type === 'mediaVideo' ? (
+                  <div class="work-video-frame">
+                    <Video
+                      url={item.url}
+                      file={item.videoFile}
+                      webm={item.videoWebm}
+                      poster={item.videoPoster}
+                      posterField={`mediaRowSection → items[${i}].videoPoster`}
+                      playback={item.videoPlayback}
+                      title={item.caption ?? 'Video'}
+                      width={slotWidth}
+                      sizes={`(max-width: 40rem) 100vw, ${Math.round(100 / items.length)}vw`}
+                    />
+                  </div>
+                ) : (
+                  <Img
+                    image={item.image}
+                    field={`mediaRowSection → items[${i}].image`}
+                    width={slotWidth}
+                    sizes={`(max-width: 40rem) 100vw, ${Math.round(100 / items.length)}vw`}
+                  />
+                )}
+                {item.caption && <figcaption>{item.caption}</figcaption>}
+              </figure>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    /*
+      Media + Text. Image + Text with the media half able to be a video, using
+      the same "fill in the video and it replaces the image" rule as a case
+      study hero.
+    */
+    case 'mediaTextSection':
+      return (
+        <div
+          class:list={[
+            'work-section',
+            'work-section--image-text',
+            section.mediaPosition === 'Right' && 'is-reversed',
+          ]}
+        >
+          {section.videoUrl || section.videoFile || section.videoWebm ? (
+            <div class="work-video-frame">
+              <Video
+                url={section.videoUrl}
+                file={section.videoFile}
+                webm={section.videoWebm}
+                poster={section.videoPoster}
+                posterField={`${section._type} → videoPoster`}
+                playback={section.videoPlayback}
+                title={section.heading ?? 'Video'}
+                width={1200}
+                sizes="(max-width: 40rem) 100vw, 50vw"
+              />
+            </div>
+          ) : (
+            section.image && (
+              <Img image={section.image} field={`${section._type} → image`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
+            )
+          )}
+          <div class="work-section__text">
+            {section.heading && <h3>{section.heading}</h3>}
+            {section.text && <p>{section.text}</p>}
+          </div>
+        </div>
+      );
+    case 'aestheticRangeSection': {
+      const items = section.items ?? [];
+      if (items.length === 0) return null;
+      return (
+        <div class="work-section aesthetic-range">
+          {section.heading && <h2 class="aesthetic-range__heading">{section.heading}</h2>}
+          {section.intro && <p class="aesthetic-range__intro">{section.intro}</p>}
+          <ul class="aesthetic-range__tray" style={`--tray-count: ${items.length}`}>
+            {items.map((item: any) => {
+              const inner = (
+                <>
+                  <span class="aesthetic-range__icon">
+                    {item.icon ? (
+                      <Img
+                        image={item.icon}
+                        alt={item.iconAlt ?? ''}
+                        field="aestheticRangeSection → items[].icon"
+                        width={320}
+                        sizes="(max-width: 40rem) 40vw, 160px"
+                      />
+                    ) : (
+                      /* No icon yet: a marker keeps the tile's shape and rhythm
+                         so the tray reads as deliberate rather than broken
+                         while the artwork is still being drawn. */
+                      <span class="aesthetic-range__placeholder" aria-hidden="true"></span>
+                    )}
+                  </span>
+                  <span class="aesthetic-range__label">{item.label}</span>
+                </>
+              );
+              return (
+                <li class="aesthetic-range__item">
+                  {item.href ? (
+                    <a class="aesthetic-range__tile" href={item.href}>
+                      {inner}
+                    </a>
+                  ) : (
+                    <span class="aesthetic-range__tile">{inner}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      );
+    }
+    default:
+      return null;
+  }
+})}

@@ -1,0 +1,265 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Img from '../../components/Img.astro';
+import Sections from '../../components/Sections.astro';
+import { sanityClient } from '../../lib/sanity';
+import { getCaseStudy, getGridItems, getOtherCaseStudies } from '../../lib/queries';
+import { socialCardUrl } from '../../lib/image';
+import { embedUrl } from '../../lib/video';
+import { renderPortableText } from '../../lib/portableText';
+import Video from '../../components/Video.astro';
+import { caseStudyNode } from '../../lib/structuredData';
+import { caseStudyDescription } from '../../lib/meta';
+import { readableOn } from '../../lib/color';
+
+export async function getStaticPaths() {
+  const slugs = await sanityClient.fetch(
+    `*[_type == "caseStudy" && pageType == "Case Study"].slug.current`,
+  );
+  return slugs.map((slug: string) => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+const caseStudy = await getCaseStudy(slug!);
+if (!caseStudy) {
+  throw new Error(`Case study not found for slug: ${slug}`);
+}
+const gridItems = await getGridItems(caseStudy._id);
+const otherWork = await getOtherCaseStudies(caseStudy._id);
+const galleries = ['merchGrid', 'flyerGrid', 'processGrid'] as const;
+
+/*
+  The sections band is painted with the project's own accent colour, so its
+  text colour has to be chosen from that colour rather than fixed. Without
+  this the copy inherited the site's near-black ink: Adelante Barbell Club's
+  accent is #333333, and its entire body section shipped as #1a1a1a on #333333.
+
+  Computed rather than authored per project, because the colour is Chris's to
+  pick in Studio and any value has to work.
+*/
+const bandStyle = caseStudy.accentColor
+  ? [
+      `--work-accent: ${caseStudy.accentColor}`,
+      readableOn(caseStudy.accentColor) && `--work-accent-fg: ${readableOn(caseStudy.accentColor)}`,
+    ]
+      .filter(Boolean)
+      .join('; ')
+  : undefined;
+
+/*
+  The film embed, resolved in advance.
+
+  `filmEmbed` is declared as a url but one migrated document holds an OBJECT,
+  which is truthy - so the block below rendered its frame, `Video` correctly
+  declined to render anything inside a frame it could not fill, and
+  /work/two-point-oh shipped an empty bordered gap. The build has been logging
+  `[Video] "[object Object]"` about it on every run.
+
+  Gating on the resolved URL instead of on the raw field means an unusable value
+  produces no block at all, which is the right amount of page for no video.
+*/
+const filmEmbed = embedUrl(caseStudy.filmEmbed);
+
+/*
+  `oneLineSummary` was the whole meta description, and it is empty on most of
+  the 13 projects - so those pages fell through to Layout's default and shipped
+  "Rumeau Design Co" as the description of every one of them. The fallback chain
+  is in lib/meta.ts with a test in front of it.
+*/
+const description = caseStudyDescription(caseStudy);
+
+// Social previews need an absolute URL and a predictable crop. socialCardUrl
+// holds the shape and the forced JPEG - see lib/image.ts. It was three
+// duplicated chains, one of which would eventually have drifted.
+const ogImage =
+  socialCardUrl(caseStudy.mainImage) ?? socialCardUrl(caseStudy.thumbnail) ?? undefined;
+---
+
+<Layout
+  title={caseStudy.title}
+  description={description}
+  ogType="article"
+  ogImage={ogImage}
+  jsonLd={(ctx) => caseStudyNode(ctx, caseStudy)}
+>
+  {/*
+    A case study leads with either a video or an image, never both. Hug a Mug's
+    real page opens straight into video, and stacking a static hero above it was
+    the port's invention. Setting Hero Video swaps the two rather than adding to
+    them.
+  */}
+  {caseStudy.heroVideo || caseStudy.heroVideoFile || caseStudy.heroVideoWebm ? (
+    <div class="work-hero work-hero--video full-bleed">
+      <Video
+        url={caseStudy.heroVideo}
+        file={caseStudy.heroVideoFile}
+        webm={caseStudy.heroVideoWebm}
+        poster={caseStudy.mainImage ?? caseStudy.thumbnail}
+        posterField={caseStudy.mainImage ? 'mainImage (Main Project Image)' : 'thumbnail (Tile Image)'}
+        playback={caseStudy.heroVideoPlayback ?? 'autoplay'}
+        title={caseStudy.title}
+        width={2400}
+      />
+    </div>
+  ) : (
+    caseStudy.mainImage && (
+      <div class="work-hero full-bleed">
+        <Img
+          image={caseStudy.mainImage}
+          field="mainImage (Main Project Image)"
+          alt={caseStudy.title}
+          width={2400}
+          sizes="100vw"
+          loading="eager"
+          fetchpriority="high"
+        />
+      </div>
+    )
+  )}
+
+  <section class="work-identity full-bleed">
+    <div class="work-identity__inner">
+      <div class="work-identity__main">
+        {caseStudy.subtitle && <p class="work-identity__kicker">{caseStudy.subtitle}</p>}
+        <h1>{caseStudy.headline ?? caseStudy.title}</h1>
+        {(caseStudy.summary || caseStudy.oneLineSummary) && (
+          <p class="work-identity__summary">{caseStudy.summary ?? caseStudy.oneLineSummary}</p>
+        )}
+        {/*
+          Result Stat was in the schema and read by nothing - the CMS audit
+          found it dead. It's the one number on the page a prospective client
+          scans for, so it gets its own line rather than being folded into the
+          summary paragraph.
+        */}
+        {caseStudy.resultStat && <p class="work-identity__stat">{caseStudy.resultStat}</p>}
+      </div>
+      {(caseStudy.clientLogo || caseStudy.credits?.length > 0 || caseStudy.principalType) && (
+        <div class="work-identity__aside">
+          {caseStudy.clientLogo && (
+            <div class="work-identity__mark">
+              <Img image={caseStudy.clientLogo} alt={caseStudy.client ?? ''} field="clientLogo (Client's Logo)" width={340} sizes="170px" />
+            </div>
+          )}
+          {caseStudy.credits?.length > 0 && (
+            <div class="work-identity__credits">
+              {/*
+                The name links out when a URL is given, the same treatment
+                Principal Type already gets. Deliberately a normal followed
+                link rather than nofollow: Chris credits collaborators partly
+                so the credit is worth something to them, and a nofollow credit
+                passes nothing on.
+              */}
+              {caseStudy.credits.map((c: any) => (
+                <p>
+                  <strong>{c.role}</strong>
+                  {c.name && ' — '}
+                  {c.name && (c.url ? (
+                    <a href={c.url} target="_blank" rel="noopener noreferrer">{c.name}</a>
+                  ) : c.name)}
+                </p>
+              ))}
+            </div>
+          )}
+          {/*
+            Principal type, credited the way a typography book does it. Sits
+            with the credits because that is what it is - crediting the
+            typographers the work borrows from, whether or not they know it.
+          */}
+          {caseStudy.principalType && (
+            <div class="work-identity__credits work-identity__type">
+              <p>
+                <strong>Principal Type</strong>{' — '}
+                {caseStudy.principalTypeUrl ? (
+                  <a href={caseStudy.principalTypeUrl} target="_blank" rel="noopener noreferrer">
+                    {caseStudy.principalType}
+                  </a>
+                ) : (
+                  caseStudy.principalType
+                )}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  </section>
+
+  {/*
+    Film Embed was likewise dead. It sits after the identity block so a case
+    study can lead with its story and then show the film, rather than
+    competing with the hero for the top of the page.
+  */}
+  {filmEmbed && (
+    <div class="work-section work-section--video">
+      <div class="work-video-frame">
+        {/* Through Video for the same reason as everything else: the 640 KB of
+            player script waits for someone to actually want it. */}
+        <Video url={filmEmbed} title={`${caseStudy.title} film`} width={1600} />
+      </div>
+    </div>
+  )}
+
+  {caseStudy.sections?.length > 0 ? (
+    <div class="work-band full-bleed" style={bandStyle}>
+      <div class="work-band__inner">
+        <Sections sections={caseStudy.sections} />
+      </div>
+    </div>
+  ) : (
+    <article class="prose">
+      {caseStudy.body?.length > 0 && <div set:html={renderPortableText(caseStudy.body)} />}
+      {caseStudy.servicesRendered?.length > 0 && (
+        <>
+          <h2>Services</h2>
+          <div set:html={renderPortableText(caseStudy.servicesRendered)} />
+        </>
+      )}
+      {galleries.map((field) =>
+        caseStudy[field]?.length > 0 ? (
+          <div class="grid">
+            {caseStudy[field].map((img: any) => (
+              <Img image={img} field={field} width={800} sizes="(max-width: 40rem) 100vw, 33vw" />
+            ))}
+          </div>
+        ) : null,
+      )}
+      {gridItems.length > 0 && (
+        <div class="grid">
+          {gridItems.map(
+            (item: any) =>
+              item.thumbnail && (
+                <Img image={item.thumbnail} alt={item.title} field="thumbnail (Tile Image)" width={800} sizes="(max-width: 40rem) 100vw, 33vw" />
+              ),
+          )}
+        </div>
+      )}
+    </article>
+  )}
+
+  {otherWork.length > 0 && (
+    <section class="work-related">
+      <p class="section-label">More Work</p>
+      <div class="grid">
+        {otherWork.map((item: any) => {
+          const img = item.thumbnail || item.mainImage;
+          return (
+            <a class="card" href={`/work/${item.slug.current}`}>
+              {img && (
+                <Img
+                  image={img}
+                  alt={item.title}
+                  field={item.thumbnail ? 'thumbnail (Tile Image)' : 'mainImage (Main Project Image)'}
+                  width={600}
+                  height={750}
+                  sizes="(max-width: 40rem) 33vw, 25vw"
+                />
+              )}
+              <p class="card__title">{item.title}</p>
+              {item.client && <p class="card__meta">{item.client}</p>}
+            </a>
+          );
+        })}
+      </div>
+    </section>
+  )}
+</Layout>

@@ -1,0 +1,277 @@
+name: Audit — pages, CMS fields, animated sources, visual editing
+
+# Everything measurable about the site in one run, published somewhere a
+# sandbox with no outbound network can still read it.
+#
+# The reports are committed to the `ci-reports` branch, not just left in the
+# step summary. A later session may not have the GitHub API available, but git
+# always works - so `git fetch origin ci-reports && git show
+# origin/ci-reports:latest/pages.md` gets the numbers with nothing but a clone.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Hourly is pointless for a site that only changes when something is
+    # pushed; this is here so an unattended session always has a recent report
+    # to read even if it never triggers one itself.
+    - cron: '0 */6 * * *'
+  push:
+    paths:
+      - 'scripts/audit-*.mjs'
+      - 'scripts/test-presentation-handshake.mjs'
+      - '.github/workflows/audit.yml'
+      # Styles and templates too. Without these, a typography or tap-target
+      # change shipped to the preview without ever being measured - which is
+      # exactly the gap this whole workflow exists to close. The measure cap
+      # and the 44px targets went out unverified for that reason.
+      - 'src/**'
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: the deploy-wait below asks whether the live commit is
+          # an ancestor of this one and what changed between them, and a
+          # depth-1 clone knows neither.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm install --prefix studio
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+
+      # Wait for THIS commit to be live, not for a fixed number of seconds.
+      #
+      # A fixed 90s sleep was a guess, and it was wrong often enough to matter:
+      # the deploy runs in parallel with this job, so a run could measure the
+      # previous build and report a real improvement as having changed nothing.
+      # Every page carries <meta name="build-commit">, so this polls until it
+      # matches - and says so loudly if it never does, rather than quietly
+      # measuring the wrong thing.
+      - name: Wait for this commit to be deployed
+        run: |
+          BASE="https://preview.rumeau-design-co.pages.dev"
+          want="$GITHUB_SHA"
+          live=""
+
+          # Three matches in a row, not one.
+          #
+          # A Cloudflare rollout is not atomic across edge nodes, so the first
+          # response carrying the new stamp only proves that ONE node has it.
+          # Measuring immediately after that meant later page fetches could
+          # still land on a node serving the previous build - which is exactly
+          # what "More than one build answered during this run" in the report
+          # means, and it has now happened on two runs in a row. Numbers that
+          # silently mix two builds are worse than no numbers, because nothing
+          # about them looks wrong.
+          #
+          # Consecutive, so a single lucky sample resets rather than counts.
+          need=3
+          streak=0
+          for attempt in $(seq 1 60); do
+            live=$(curl -s --max-time 20 "$BASE" \
+              | grep -o 'name="build-commit" content="[^"]*"' \
+              | head -1 | sed 's/.*content="\([^"]*\)".*/\1/')
+            if [ "$live" = "$want" ]; then
+              streak=$((streak + 1))
+              echo "attempt $attempt: match $streak/$need"
+              if [ "$streak" -ge "$need" ]; then
+                echo "deployed commit is live and stable across $need consecutive checks"
+                exit 0
+              fi
+            else
+              [ "$streak" -gt 0 ] && echo "attempt $attempt: streak broken by ${live:-none}"
+              streak=0
+              echo "attempt $attempt: live=${live:-none} want=$want"
+            fi
+            sleep 10
+          done
+          # Before failing: is the live build actually equivalent?
+          #
+          # This workflow triggers on its own file and on scripts/audit-*.mjs,
+          # and the deploy does not - quite rightly, since neither changes the
+          # site. So a commit that only touches the audit can never see its own
+          # stamp go live, and the run below would fail forever. That is not
+          # integrity, it is just noise, and noise is how a real failure gets
+          # ignored.
+          #
+          # The guarantee is kept by proving equivalence rather than assuming
+          # it: the live commit must be an ancestor of this one, and the diff
+          # between them must touch nothing that ends up in the build. If both
+          # hold, the deployed site is byte-identical to what this commit would
+          # produce, and measuring it is measuring this commit. Anything else
+          # still fails.
+          if [ -n "$live" ] && git merge-base --is-ancestor "$live" "$GITHUB_SHA" 2>/dev/null; then
+            affecting=$(git diff --name-only "$live" "$GITHUB_SHA" -- \
+              src public astro.config.mjs package.json scripts/build-overlay.mjs)
+            if [ -z "$affecting" ]; then
+              echo "live build $live is an ancestor of $GITHUB_SHA and nothing"
+              echo "between them affects the built site - measuring it as equivalent."
+              {
+                echo ""
+                echo "> Measuring \`${live:0:8}\`, not \`${GITHUB_SHA:0:8}\`."
+                echo "> Nothing between them touches \`src\`, \`public\`, the Astro config or the"
+                echo "> build scripts, so the deployed site is what this commit would produce."
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "live build is an ancestor, but these affect the build:"
+            echo "$affecting"
+          fi
+
+          # Hard failure, not a warning.
+          #
+          # A warning was not enough. The deploy failed on three consecutive
+          # commits - a build error in Video.astro - and the audit went right on
+          # publishing numbers for the last good deploy. Three rounds of
+          # debugging went into a component that had never actually shipped.
+          # A run that cannot measure the commit it was triggered for has
+          # nothing useful to say, so it stops.
+          echo "::error::Preview is serving ${live:-unknown}, expected $want. The deploy for this commit has not landed - check the Deploy to Cloudflare Pages run, it has probably failed."
+          {
+            echo ""
+            echo "## ❌ Audit did not run"
+            echo ""
+            echo "Preview served \`${live:-unknown}\`, this commit is \`$want\`."
+            echo "The deploy has not landed - most likely the build failed."
+            echo "No numbers are published, because they would describe a different build."
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+
+      # 2>&1 on every step below: the animated audit's first run wrote a 0-byte
+      # report because tee only captures stdout, so a crash that killed the
+      # script before its first console.log left no trace anywhere.
+      - name: Pages (desktop + mobile)
+        id: pages
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          node scripts/audit-pages.mjs --out audit 2>&1 | tee audit-pages.log
+
+      - name: CMS fields
+        id: cms
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          mkdir -p audit
+          node scripts/audit-cms.mjs --json audit/cms.json 2>&1 | tee audit/cms.md
+
+      # Why the four heaviest files on the site went through the transform
+      # pipeline when src/lib/animated.ts exists to stop them. Bundles and calls
+      # the shipped probe, so a disagreement is the real bug, not a copy's.
+      - name: Animated sources
+        id: animated
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          mkdir -p audit
+          node scripts/audit-animated.mjs --json audit/animated.json 2>&1 | tee audit/animated.md
+
+      - name: Visual editing handshake
+        id: ve
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          node scripts/test-presentation-handshake.mjs 2>&1 | tee audit/visual-editing.md
+
+      # Every audit step above is continue-on-error, deliberately: one broken
+      # audit should not cost the other three. What was missing is any sign
+      # that it happened. audit-cms crashed on an esbuild error for weeks - it
+      # wrote its own stack trace into cms.md, `tee` returned 0, the step was
+      # tolerated, and the workflow reported success the whole time. A
+      # diagnostic that fails silently is worse than no diagnostic, because the
+      # empty finding list reads as "nothing wrong".
+      - name: A report that is actually a crash log
+        if: always()
+        run: |
+          broken=""
+          for f in audit/pages.md audit/cms.md audit/animated.md audit/visual-editing.md; do
+            [ -f "$f" ] || { broken="$broken $f(missing)"; continue; }
+            if head -40 "$f" | grep -qE '^(Error|✘ \[ERROR\]|node:internal)|Build failed with'; then
+              broken="$broken $f(crashed)"
+            fi
+          done
+          if [ -n "$broken" ]; then
+            echo "::error::Audit reports that are crash logs, not reports:$broken"
+            { echo ""; echo "### ⚠️ Broken audits"; echo ""; echo "\`$broken\`"; } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "all four reports look like reports"
+
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          for f in audit/pages.md audit/cms.md audit/animated.md audit/visual-editing.md; do
+            [ -f "$f" ] || continue
+            {
+              echo ""
+              echo "<details><summary>$f</summary>"
+              echo ""
+              # pages.md is already markdown; the others are plain script output.
+              if [ "$f" = "audit/pages.md" ]; then cat "$f"; else printf '```\n'; cat "$f"; printf '```\n'; fi
+              echo ""
+              echo "</details>"
+            } >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audit
+          path: audit
+          if-no-files-found: warn
+
+      # The point of the whole workflow: get the reports somewhere reachable by
+      # `git fetch` alone.
+      - name: Commit the reports to the ci-reports branch
+        if: always()
+        run: |
+          set -euo pipefail
+          [ -d audit ] || exit 0
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          stamp=$(date -u +%Y-%m-%dT%H-%M-%SZ)
+          sha=$(git rev-parse --short HEAD)
+          mkdir -p /tmp/reports && cp -r audit /tmp/reports/payload
+
+          # An orphan branch so reports never mix with source history and the
+          # branch stays cheap to fetch. Reset to a single commit each time -
+          # the screenshots are large and nobody needs their history.
+          git checkout --orphan ci-reports
+          git rm -rf --cached . >/dev/null 2>&1 || true
+          find . -maxdepth 1 -mindepth 1 ! -name .git -exec rm -rf {} +
+
+          mkdir -p latest
+          cp -r /tmp/reports/payload/* latest/
+          {
+            echo "# CI reports"
+            echo ""
+            echo "Generated $stamp from \`$sha\` on \`$GITHUB_REF_NAME\`."
+            echo ""
+            echo "Read them without the GitHub API:"
+            echo ""
+            echo '```'
+            echo "git fetch origin ci-reports"
+            echo "git show origin/ci-reports:latest/pages.md"
+            echo "git show origin/ci-reports:latest/cms.md"
+            echo "git show origin/ci-reports:latest/animated.md"
+            echo "git show origin/ci-reports:latest/visual-editing.md"
+            echo '```'
+          } > README.md
+
+          git add -A
+          git commit -q -m "Audit reports $stamp ($sha)"
+          for attempt in 1 2 3 4; do
+            git push -f origin ci-reports && break
+            echo "push failed, retry $attempt"
+            sleep $((2 ** attempt))
+          done

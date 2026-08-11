@@ -1,0 +1,56 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Img from '../../components/Img.astro';
+import { sanityClient } from '../../lib/sanity';
+import { getBlogPost } from '../../lib/queries';
+import { socialCardUrl } from '../../lib/image';
+import { renderPortableText } from '../../lib/portableText';
+import { blogPostNode } from '../../lib/structuredData';
+import { dateAttr, formatDate } from '../../lib/date';
+import { blogPostDescription } from '../../lib/meta';
+
+export async function getStaticPaths() {
+  const slugs = await sanityClient.fetch(`*[_type == "blogPost"].slug.current`);
+  return slugs.map((slug: string) => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+const post = await getBlogPost(slug!);
+if (!post) {
+  throw new Error(`Blog post not found for slug: ${slug}`);
+}
+
+// socialCardUrl holds the 1200x630 shape and the forced JPEG - see lib/image.ts.
+const ogImage =
+  socialCardUrl(post.mainImage) ?? socialCardUrl(post.thumbnailImage) ?? undefined;
+---
+
+<Layout
+  title={post.title}
+  description={blogPostDescription(post)}
+  ogType="article"
+  ogImage={ogImage}
+  jsonLd={(ctx) => blogPostNode(ctx, post)}
+>
+  <article>
+    <h1>{post.title}</h1>
+    {/*
+      formatDate/dateAttr rather than toLocaleDateString: the build machine's
+      locale was deciding the format, and a post published late in the UTC day
+      printed the day before. See lib/date.ts.
+    */}
+    <p class="card__meta">
+      {post.author}
+      {post.author && formatDate(post.publishedAt) && ' · '}
+      {formatDate(post.publishedAt) && (
+        <time datetime={dateAttr(post.publishedAt)}>{formatDate(post.publishedAt)}</time>
+      )}
+    </p>
+    {post.mainImage && (
+      <Img image={post.mainImage} alt={post.title} field="mainImage" width={1600} sizes="100vw" loading="eager" fetchpriority="high" />
+    )}
+    {post.body?.length > 0 && (
+      <div class="prose" set:html={renderPortableText(post.body)} />
+    )}
+  </article>
+</Layout>

@@ -1,0 +1,39 @@
+name: Diagnose the portfolio grid
+
+# Chris: "can we make sure the grid items are all displaying and are not
+# duplicates?" Two questions that look the same from the page and neither is
+# answerable by scrolling 68 tiles.
+#
+# Absent, blank (an image field saved with no file passes `defined()` and
+# renders nothing), duplicated, linking nowhere, or missing a category.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/diagnose-grid-items.mjs'
+      - '.github/workflows/diagnose-grid-items.yml'
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Look
+        run: |
+          set -o pipefail
+          node scripts/diagnose-grid-items.mjs 2>&1 | tee grid-items.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "## Portfolio grid check"
+            echo ""
+            echo '```'
+            cat grid-items.txt 2>/dev/null || echo '(the script did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

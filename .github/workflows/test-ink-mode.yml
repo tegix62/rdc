@@ -1,0 +1,99 @@
+name: Test print mode actually toggles
+
+# This component has already shipped a control that did nothing: the old
+# collapse handle fired correctly while `panel.hidden = true` was silently
+# beaten by an author display rule, so the panel never moved. It took a user
+# report to find, because the failure mode is that nothing happens - which no
+# screenshot and no build check can see.
+#
+# So the button gets clicked in a real browser on every change to it.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'src/components/InkMode.astro'
+      - 'scripts/test-ink-mode.mjs'
+      - '.github/workflows/test-ink-mode.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The wait below asks whether the live commit is an ancestor of this
+          # one and what changed between them. A depth-1 clone knows neither.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+
+      # Same stability rule as the audit: a Cloudflare rollout is not atomic
+      # across edge nodes, so one matching response only proves one node has
+      # the new build. Three in a row, or this is testing the previous version
+      # of the component and passing for the wrong reason.
+      - name: Wait for this commit to be live and stable
+        run: |
+          BASE="https://preview.rumeau-design-co.pages.dev"
+          need=3
+          streak=0
+          for attempt in $(seq 1 60); do
+            live=$(curl -s --max-time 20 "$BASE" \
+              | grep -o 'name="build-commit" content="[^"]*"' \
+              | head -1 | sed 's/.*content="\([^"]*\)".*/\1/')
+            if [ "$live" = "$GITHUB_SHA" ]; then
+              streak=$((streak + 1))
+              [ "$streak" -ge "$need" ] && exit 0
+            else
+              streak=0
+              echo "attempt $attempt: live=${live:-none}"
+            fi
+            sleep 10
+          done
+
+          # Two of this workflow's three triggers - the test script and this
+          # file - change nothing the deploy cares about, so those commits can
+          # never see their own stamp go live. Accept the live build only when
+          # it can be proved equivalent: an ancestor of this commit, with
+          # nothing between them that reaches the build. Same rule as the audit.
+          if [ -n "$live" ] && git merge-base --is-ancestor "$live" "$GITHUB_SHA" 2>/dev/null; then
+            affecting=$(git diff --name-only "$live" "$GITHUB_SHA" -- \
+              src public astro.config.mjs package.json scripts/build-overlay.mjs)
+            if [ -z "$affecting" ]; then
+              echo "live build $live is equivalent to $GITHUB_SHA - testing it."
+              exit 0
+            fi
+            echo "live build is an ancestor, but these affect the build:"
+            echo "$affecting"
+          fi
+
+          echo "::error::Preview never served $GITHUB_SHA - the deploy has probably failed."
+          exit 1
+
+      - name: Click it
+        run: |
+          set -o pipefail
+          node scripts/test-ink-mode.mjs 2>&1 | tee ink-mode.txt
+
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo '## Print mode'
+            echo ''
+            echo '```'
+            cat ink-mode.txt 2>/dev/null || echo '(the test did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ink-mode
+          path: |
+            ink-mode.txt
+            ink-mode.png
+          if-no-files-found: ignore

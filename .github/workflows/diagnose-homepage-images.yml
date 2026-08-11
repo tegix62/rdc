@@ -1,0 +1,37 @@
+name: Diagnose homepage images
+
+# The page audit found the homepage fetching one 3,981 KB animated WebP twice on
+# desktop and once on mobile. It can see that it happened but not why, because it
+# records requests and not which element made them. This lists the homepage's
+# images by asset id, which proves or kills the "one file in two places" theory.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/diagnose-homepage-images.mjs'
+      - '.github/workflows/diagnose-homepage-images.yml'
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Look
+        run: |
+          set -o pipefail
+          node scripts/diagnose-homepage-images.mjs 2>&1 | tee homepage-images.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "## Homepage images"
+            echo ""
+            echo '```'
+            cat homepage-images.txt 2>/dev/null || echo '(the script did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

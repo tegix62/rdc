@@ -116,6 +116,56 @@ for (const k of changed) {
   console.log()
 }
 
+/*
+  The other thing that greys out Publish: a validation ERROR.
+
+  Studio disables the button while any field fails an error-level rule, and it
+  does not care that the field is unrelated to the edit you are trying to make.
+  Site Settings has two url-typed fields, and Sanity's built-in url validation
+  is error-level by default - an empty string, a mailto:, or a bare domain with
+  no scheme all fail it. Nobody has published this document since 6 August, so
+  a bad value written during the Webflow migration would have sat there
+  invisible until the first time someone tried.
+
+  The warning-level rules in the schema (client logo alt text, more than 12
+  featured tiles) are deliberately NOT checked here: warnings never block
+  publishing, and listing them would bury the one thing that does.
+*/
+const badUrl = (v) => {
+  if (v === undefined || v === null) return null // absent is fine
+  if (typeof v !== 'string') return 'not a string'
+  if (v.trim() === '') return 'empty string - Sanity treats this as invalid, not as absent'
+  try {
+    const scheme = new URL(v).protocol
+    return scheme === 'http:' || scheme === 'https:' ? null : `scheme "${scheme}" - url fields allow http and https only`
+  } catch {
+    return 'not a parseable URL - a bare domain with no https:// fails this'
+  }
+}
+
+const urlProblems = []
+const contactProblem = badUrl(draft.contactUrl)
+if (contactProblem) urlProblems.push([`contactUrl`, draft.contactUrl, contactProblem])
+for (const [i, link] of (draft.socialLinks ?? []).entries()) {
+  const p = badUrl(link?.url)
+  if (p) urlProblems.push([`socialLinks[${i}] (${link?.platform ?? 'unnamed'}).url`, link?.url, p])
+}
+
+console.log(`## Fields that would block Publish in Studio\n`)
+if (urlProblems.length) {
+  console.log(`${urlProblems.length} url field(s) fail validation. Studio disables Publish`)
+  console.log(`while any of these is invalid, whatever else you changed:\n`)
+  for (const [where, value, why] of urlProblems) {
+    console.log(`  ${where}`)
+    console.log(`      value  ${JSON.stringify(value)}`)
+    console.log(`      why    ${why}`)
+    console.log()
+  }
+} else {
+  console.log(`  None. Every url field is either empty-absent or a valid http(s) URL,`)
+  console.log(`  so a validation error is NOT why Publish is disabled.\n`)
+}
+
 if (!LIVE) {
   console.log('DRY RUN. Nothing was changed. Re-run with PUBLISH=yes to apply the above.')
   process.exit(0)

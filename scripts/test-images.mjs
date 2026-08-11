@@ -153,6 +153,34 @@ check('gif url carries no transform', originalUrl(gif).includes('?'), false)
 check('gif url keeps its extension', originalUrl(gif).endsWith('.gif'), true)
 
 
+console.log('\na source the layout will stretch is encoded better')
+/*
+  All six case study heroes are narrower than a 2x desktop needs - measured,
+  from 1.18x on Adelante to 3.69x on Two Point Oh. Nothing can add detail that
+  was never captured, but an image about to be enlarged 2.5x is the worst
+  possible candidate for q80: every ringing artifact is enlarged with it.
+
+  Checked on the srcset rather than only the src, because once a srcset exists
+  the browser chooses from it - improving only the fallback would improve the
+  one URL almost nobody is served.
+*/
+const short = img('image-small1-1200x800-jpg')   // asked for 2400: stretched
+const ample = img('image-big1-3200x2000-jpg')    // asked for 2400: pixels spare
+
+const shortSet = buildSrcSet(short, 2400)
+const ampleSet = buildSrcSet(ample, 2400)
+
+check('a stretched source is delivered at higher quality', /[?&]q=92/.test(shortSet), true)
+check('a stretched source is sharpened', /[?&]sharp=15/.test(shortSet), true)
+check('every candidate gets it, not just the largest', shortSet.split(', ').every((c) => c.includes('q=92')), true)
+// The default must be untouched, or this quietly becomes a site-wide quality
+// bump and a site-wide byte increase.
+check('a source with pixels to spare keeps q80', /[?&]q=80/.test(ampleSet) && !/q=92/.test(ampleSet), true)
+check('a source with pixels to spare is not sharpened', /sharp=/.test(ampleSet), false)
+// Sharpening is the one knob here that can make things worse; a big number
+// prints halos along every edge. Pinned so a future edit has to mean it.
+check('the sharpen amount stays modest', /sharp=(\d+)/.exec(shortSet)?.[1] === '15', true)
+
 console.log('\nsocial cards')
 /*
   Every page now emits an og:image, falling back to the wordmark for the pages

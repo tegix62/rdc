@@ -259,9 +259,22 @@ export function buildSrcSet(
   if (!widths.includes(ceiling)) widths.push(ceiling);
   if (widths.length < 2) return undefined;
 
+  /*
+    Same rule as the `src` in Img.astro, computed here rather than passed in so
+    the two cannot drift: when the layout wants more pixels than the file has,
+    every candidate is delivered at higher quality and lightly sharpened.
+
+    This has to be here as well, not only on `src`. Once a srcset exists the
+    browser chooses from IT, so improving only the fallback would improve the
+    one URL almost nobody is served.
+  */
+  const intrinsic = imageDimensions(source);
+  const willStretch = !!intrinsic && intrinsic.width < maxWidth;
+
   return widths
     .map((w) => {
       let b = urlFor(source).width(w);
+      if (willStretch) b = b.quality(92).sharpen(15);
       // Preserve a deliberate crop ratio across every variant, otherwise the
       // wider entries come back at the source aspect and the layout shifts
       // when the browser swaps them.

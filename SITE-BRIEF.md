@@ -69,7 +69,7 @@ Static routes:
 Generated from Sanity:
 
 ```
-/work/<slug>      13 case studies
+/work/<slug>      6 case studies
 /blog/<slug>      5 posts
 ```
 
@@ -84,7 +84,7 @@ Note the URL prefixes: the **old Webflow site used `/case-studies/` and
 Four document types in Sanity.
 
 **`caseStudy`** — does double duty, split by a `pageType` field:
-- `"Case Study"` (13) — gets a page at `/work/<slug>`
+- `"Case Study"` (6) — gets a page at `/work/<slug>`
 - `"Grid Item"` (67) — a supporting piece with **no page of its own**; links to
   its `parentBrand` instead
 
@@ -226,6 +226,28 @@ placeholders.
 **Known open items:** `/portfolio` page weight; an unexplained desktop LCP
 outlier on the homepage; several large animated images that need re-exporting
 at a sensible size (one is 3,981 KB and is 90% of the homepage's weight).
+
+**Case study hero resolution.** The hero renders full-bleed at 100vw and every
+srcset candidate is capped at the file's own width, so on a 2x display a source
+narrower than twice the viewport gets stretched. All six are short, measured at
+a 1512px laptop at 2x:
+
+| Project | Source | Stretch |
+|---|---|--:|
+| Adelante Barbell Club | 2572×1920 | 1.18× |
+| DumpStat | 1920×1440 | 1.57× |
+| Hug a Mug | 1920×1080 | 1.57× |
+| More Kilos, Less Egos | 1300×860 | 2.33× |
+| Chateau Seven | 1179×1461 | 2.56× |
+| Two Point Oh | 820×360 | 3.69× |
+
+A stretched file is now delivered at q92 and lightly sharpened instead of q80,
+which stops artifacts compounding but adds no detail. Two Point Oh needs a new
+export; nothing else fixes 820px. The unresolved design question is whether the
+hero should cap at the source's own width — small sources would get a margin
+instead of a blur. Re-measure with `scripts/diagnose-hero-resolution.mjs`.
+
+None of the six has a hotspot set, so the hero's CSS crop keeps the centre.
 
 One specific, fully diagnosed: **Chateau Seven's `thumbnail` has "serve exactly
 as uploaded" on.** Pass-through sends no transform parameters, so it cannot

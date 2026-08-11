@@ -246,8 +246,43 @@ if (cropped && passThrough && intrinsic) {
   entry yields no srcset at all, so that upscaled src was the only candidate
   the browser had.
 */
+/*
+  When the layout wants more pixels than the file has, encode what there is
+  better.
+
+  MEASURED, NOT ASSUMED
+
+  A case study hero is `width={2400} sizes="100vw"`, and every srcset candidate
+  is capped at the file's own width - correctly, since asking the CDN to upscale
+  only wastes bytes. So the browser's best option IS the source, and on a 2x
+  display it gets stretched. All six case study heroes are short:
+
+    Adelante Barbell Club  2572x1920   1.18x at 1512@2x
+    DumpStat               1920x1440   1.57x
+    Hug a Mug              1920x1080   1.57x
+    More Kilos, Less Egos  1300x860    2.33x
+    Chateau Seven          1179x1461   2.56x
+    Two Point Oh            820x360    3.69x
+
+  Nothing here creates detail that was never captured. What it does is stop
+  compression artifacts from compounding the softness: an image about to be
+  enlarged 2.5x is the worst possible candidate for q80, because every ringing
+  artifact gets enlarged with it. So a file the layout will stretch is delivered
+  at q92 and lightly sharpened, which is what the extra bytes are worth spending
+  on. A file with pixels to spare is untouched at the default q80.
+
+  `sharp=15` is deliberately modest. Sharpening is the one knob here that can
+  make things WORSE - too much prints halos along every edge, which on
+  hand-drawn linework would be very visible. I cannot see the rendered result
+  from this sandbox, so it is set low on purpose and is one number to change.
+
+  Two Point Oh is beyond this: 820x360 asked to span a 1512px screen at 2x is a
+  3.69x enlargement, and no encoder rescues that. It needs a new export.
+*/
 const askWidth = cappedWidth(image, width);
+const willStretch = !!intrinsic && intrinsic.width < width;
 let builtSrc = imageUrl(image)?.width(askWidth) ?? null;
+if (builtSrc && willStretch) builtSrc = builtSrc.quality(92).sharpen(15);
 if (builtSrc && cropped) builtSrc = builtSrc.height(Math.round((askWidth * height!) / width)).fit('crop');
 
 const src = original ?? builtSrc?.url() ?? '';

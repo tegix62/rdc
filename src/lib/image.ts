@@ -139,6 +139,26 @@ export function hasAsset(source: any): boolean {
   return typeof (source?.asset?._ref ?? source?._ref) === 'string';
 }
 
+/*
+  The Studio hotspot as a CSS position string, e.g. "62.40% 18.75%".
+
+  Sanity stores the hotspot as x/y in the range 0-1; both object-position and
+  background-position take percentages, so the conversion is the same for either
+  and the same value works in both.
+
+  This lived inline in Img.astro. It moved here when the hero background needed
+  it too - and a second copy of the arithmetic is exactly how one path ends up
+  honouring the hotspot while the other quietly stops.
+
+  Returns undefined when no hotspot is set, so callers can fall back to `center`
+  rather than printing "50.00% 50.00%" and implying somebody chose it.
+*/
+export function hotspotPosition(source: any): string | undefined {
+  const hotspot = source?.hotspot;
+  if (typeof hotspot?.x !== 'number' || typeof hotspot?.y !== 'number') return undefined;
+  return `${(hotspot.x * 100).toFixed(2)}% ${(hotspot.y * 100).toFixed(2)}%`;
+}
+
 export function imageDimensions(source: any): {width: number; height: number} | null {
   const ref: string | undefined = source?.asset?._ref ?? source?._ref;
   if (typeof ref !== 'string') return null;

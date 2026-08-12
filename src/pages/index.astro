@@ -5,7 +5,7 @@ import Img from '../components/Img.astro';
 import Sections from '../components/Sections.astro';
 import WorkGrid from '../components/WorkGrid.astro';
 import { getPage, getSiteSettings, getFeaturedWork } from '../lib/queries';
-import { backgroundUrl } from '../lib/image';
+import { backgroundUrl, hotspotPosition } from '../lib/image';
 
 const page = await getPage('home');
 const settings = await getSiteSettings();
@@ -83,7 +83,27 @@ const finalCtaHeading = settings?.finalCtaHeading || 'DTC Brands and Apparel Com
   of the re-encode pipeline. See backgroundUrl in lib/image.ts.
 */
 const heroBg = await backgroundUrl(settings?.heroBackground, 1800);
-const heroStyle = heroBg ? `--hero-bg-image: url(${heroBg})` : undefined;
+
+/*
+  The hotspot, for a CSS background.
+
+  A background-image is cropped by the BROWSER via background-size: cover, and
+  the stylesheet hardcoded `background-position: center` - so the hotspot set in
+  Studio had no effect on the single most prominent image on the site. It works
+  on tiles, on case study heroes and on social cards, and silently did nothing
+  here, which is the worst version: the control appears to exist.
+
+  Same conversion Img.astro uses for object-position, from the same function, so
+  the two cannot disagree. Undefined when no hotspot is set, and the stylesheet
+  falls back to `center` - which is what it did before, so nothing moves for an
+  image nobody has set a hotspot on.
+*/
+const heroPosition = hotspotPosition(settings?.heroBackground);
+const heroStyle = heroBg
+  ? [`--hero-bg-image: url(${heroBg})`, heroPosition && `--hero-bg-position: ${heroPosition}`]
+      .filter(Boolean)
+      .join('; ')
+  : undefined;
 
 const proofBg = await backgroundUrl(settings?.proofBandBackground, 500);
 const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined;

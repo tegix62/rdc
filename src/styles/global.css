@@ -429,6 +429,20 @@ a {
   color: var(--color-gray);
 }
 
+/*
+  DEAD RULE, kept only to be labelled as one.
+
+  Every page's <main> is rendered as `<main class="wrap">` by Layout.astro, and
+  `.wrap` sets `padding: 0 var(--space-3)`. A class beats an element selector, so
+  this never applies to anything - vertical padding on main is 0 site-wide, not
+  3rem.
+
+  Worth a note rather than a silent deletion, because it reads exactly like the
+  cause of a white gap under the nav, and I wasted a change on that theory: I
+  scoped it away for full-bleed pages with :has() and nothing moved, because
+  there was no padding to remove. A rule that looks live and is not is worse than
+  no rule.
+*/
 main {
   padding: var(--space-5) 0;
 }
@@ -574,7 +588,14 @@ main {
     ),
     var(--hero-bg-image, none);
   background-size: cover;
-  background-position: center;
+  /*
+    The hotspot set in Studio, when there is one. `center` was hardcoded here,
+    which meant the browser cropped this image from the middle regardless of what
+    Chris marked - on the one image where it matters most, since this band is
+    full-bleed and its source is only 800px wide. See hotspotPosition() in
+    lib/image.ts, and index.astro where the variable is set.
+  */
+  background-position: var(--hero-bg-position, center);
 }
 
 @media (max-width: 40rem) {
@@ -1572,8 +1593,19 @@ main {
 }
 
 /* Work / case study page */
+/*
+  No top margin. This is the first element on every case study page, directly
+  under the nav, and it is full-bleed - so 24px of margin above it rendered as a
+  white stripe between the nav's navy border and the hero image, on all 13
+  project pages.
+
+  It reads as a rendering fault rather than as spacing, because a full-bleed
+  image that stops short of the thing above it looks broken in a way an inset one
+  does not. The homepage never had it: its hero is `.statement`, which carries no
+  margin, which is why the two pages disagreed.
+*/
 .work-hero {
-  margin-top: var(--space-3);
+  margin-top: 0;
 }
 
 .work-hero img {

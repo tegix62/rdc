@@ -161,7 +161,16 @@ const navLinks = [
   { label: 'About', href: '/about' },
   { label: 'Video', href: '/video' },
 ];
-const TALLY_URL = settings?.contactUrl || 'https://tally.so/r/mZ8LXz';
+/*
+  Every "Contact" / "Get in Touch" button on the site, in one place.
+
+  Used to default to a Tally form; now defaults to the native /contact page
+  (functions/api/contact.ts, src/pages/contact.astro). `settings.contactUrl`
+  is left in place as an override rather than removed - if this site ever
+  needs to point Contact buttons somewhere else again, that is a Studio edit,
+  not a code change.
+*/
+const CONTACT_URL = settings?.contactUrl || '/contact';
 
 /*
   Structured data. The live Webflow site emits a JSON-LD block and this one
@@ -348,7 +357,7 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
         </button>
         <div class="site-nav__links" id="site-nav-links">
           {navLinks.map((link) => <a href={link.href}>{link.label}</a>)}
-          <a class="site-nav__contact" href={TALLY_URL}>Contact</a>
+          <a class="site-nav__contact" href={CONTACT_URL}>Contact</a>
         </div>
       </nav>
     </header>
@@ -388,7 +397,7 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
 
         <div class="site-footer__col">
           <p class="site-footer__heading">Contact</p>
-          <a class="button" href={TALLY_URL}>Get in Touch</a>
+          <a class="button" href={CONTACT_URL}>Get in Touch</a>
         </div>
       </div>
 

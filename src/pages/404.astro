@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import { getSiteSettings } from '../lib/queries';
 
 const settings = await getSiteSettings();
-const TALLY_URL = settings?.contactUrl || 'https://tally.so/r/mZ8LXz';
+const CONTACT_URL = settings?.contactUrl || '/contact';
 
 /*
   A 404 is where every old Webflow URL that public/_redirects does not cover
@@ -48,7 +48,7 @@ const routes = [
   </ul>
 
   <p>
-    Still can't find it? <a href={TALLY_URL}>Get in touch</a> and tell me what
+    Still can't find it? <a href={CONTACT_URL}>Get in touch</a> and tell me what
     you were looking for.
   </p>
 </Layout>

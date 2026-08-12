@@ -52,6 +52,7 @@ const STATIC_PATHS: [path: string, pageSlug: string | null][] = [
   ['/blog', 'blog'],
   ['/privacy-policy', 'privacy-policy'],
   ['/image-license-info', 'image-license-info'],
+  ['/contact', 'contact'],
 ];
 
 interface Entry {

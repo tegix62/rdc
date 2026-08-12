@@ -36,11 +36,11 @@ jobs:
       - run: npm install
       - run: npm run build
         env:
-          # This deployment is a preview/staging site - the real
-          # rumeaudesign.co is still served by Webflow - so it's the right
-          # place to turn click-to-edit on. Set this to false (or drop it)
-          # before pointing a real domain at this build: it embeds invisible
-          # markers in page text that visitors have no use for.
+          # This deployment is a preview/staging site, kept separate from the
+          # real rumeaudesign.co build (deploy-production.yml) precisely so it
+          # is the right place to turn click-to-edit on. Set this to false (or
+          # drop it) before pointing a real domain at this build: it embeds
+          # invisible markers in page text that visitors have no use for.
           PUBLIC_SANITY_VISUAL_EDITING: 'true'
           # Marks the build as the preview deployment: pages emit noindex and
           # robots.txt disallows everything, so this public URL can't be
@@ -50,6 +50,16 @@ jobs:
           # Stamped into every page as <meta name="build-commit">, so the audit
           # can tell whether what it is measuring is the build it meant to.
           PUBLIC_BUILD_SHA: ${{ github.sha }}
+          # Cloudflare Turnstile's SITE key - safe to expose, it only renders
+          # the widget on /contact. A repo VARIABLE, not a secret: the
+          # distinction matters here because this value genuinely is meant to
+          # be public, unlike everything functions/api/contact.ts reads from
+          # Cloudflare Pages' own environment variables (the write token,
+          # Turnstile's SECRET key, Resend's key), which never pass through
+          # this build at all. Empty until Chris creates the widget - see
+          # docs/contact-form-setup.md - and the page explains the gap rather
+          # than silently rendering nothing.
+          PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
       - name: Ensure Cloudflare Pages project exists
         run: npx wrangler@3 pages project create rumeau-design-co --production-branch main || true
         env:

@@ -132,6 +132,9 @@ jobs:
           # them back - see the header of this file, and the gate below, which
           # will refuse the deploy if they reappear.
           PUBLIC_BUILD_SHA: ${{ github.sha }}
+          # Same Turnstile SITE key as the preview build - see the note there.
+          # Public by design, so a repo variable rather than a secret.
+          PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
 
       # Nothing is deployed until this passes. It reads the built files rather
       # than trusting the env block above: robots.txt rules, canonical hosts,

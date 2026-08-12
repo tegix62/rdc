@@ -29,12 +29,19 @@ device type.
 
 ### When you contact us
 
-Our contact buttons open a form hosted by Tally. Whatever you type there —
-typically your name, your email address and your message — comes to us, and
-Tally holds a copy as the form provider.
+The contact form lives on this site — your name, email, and everything else
+you type there is sent straight to us and stored directly in our own systems,
+not a third-party form product's.
 
-We use that to reply to you and to do the work you are asking about. We do not
-add you to a mailing list, and we do not pass it to anyone else.
+Before it is accepted, Cloudflare Turnstile checks that the submission came
+from a real person rather than automated spam. It runs invisibly for almost
+everyone; only a small number of visitors ever see a challenge to solve. We
+then get an email telling us you got in touch, sent through Resend, an email
+delivery service — the notification passes through their systems, though it
+is addressed to us, not to you.
+
+We use what you send to reply to you and to do the work you are asking about.
+We do not add you to a mailing list, and we do not pass it to anyone else.
 
 ### The Meta pixel
 
@@ -72,10 +79,13 @@ Running a website means other companies handle some of this. These are all of
 them:
 
 - **Cloudflare** hosts the site, and sees your IP address and the pages you
-  request, in its server logs.
+  request, in its server logs. If you use the contact form, its Turnstile
+  service also checks that the submission is not automated.
 - **Sanity** stores the site's content and serves every image on it, so it sees
-  your IP address whenever your browser fetches one.
-- **Tally** runs the contact form, and holds whatever you type into it.
+  your IP address whenever your browser fetches one. If you use the contact
+  form, what you submit is stored here too.
+- **Resend** sends us an email when the contact form is used, so a submission
+  passes through their systems on its way to our inbox.
 - **Meta** receives what the pixel sends, described above.
 - **Google** supplies the preview thumbnail on a few pages that have a video
   with no still image of its own, and sees your IP address on those pages.
@@ -91,8 +101,11 @@ never press play.
 
 ## Cookies and browser storage
 
-The Meta pixel sets one cookie, `_fbp`, described above. That is the only
-cookie on this site.
+The Meta pixel sets one cookie, `_fbp`, described above. Cloudflare Turnstile,
+used on the contact form, may set its own short-lived cookie or similar
+browser storage as part of confirming you are not automated — it does not use
+this to track you across other sites, by Cloudflare's own description of how
+it works.
 
 One other thing is stored in your browser, and it is not a cookie and never
 leaves your device: if you use the ink-mode toggle to switch the site's

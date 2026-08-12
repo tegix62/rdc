@@ -22,6 +22,13 @@ on:
       # triggers the workflow. A few extra runs when a diagnose script changes is
       # a much cheaper mistake than a check that quietly does not fire.
       - 'scripts/**'
+      # The Cloudflare Pages Function behind /contact. It is not part of
+      # `npm run build`'s output - Astro never touches it, Cloudflare deploys it
+      # separately - so nothing else in this path list would have caught a
+      # change here. Exactly the same shape of gap the note above already
+      # describes, just in a directory that did not exist when that note was
+      # written.
+      - 'functions/**'
 
 jobs:
   build:
@@ -83,6 +90,28 @@ jobs:
       # homepage that looks slightly ragged, which nobody files a bug for - they
       # just come away thinking the site is a bit amateur.
       - run: node scripts/test-peek-grid.mjs
+
+      # The budget slider's clamp/snap/format arithmetic - the one function
+      # standing between a dragged handle and a number written into Sanity, and
+      # it runs on both the client and functions/api/contact.ts. Wrong here is
+      # wrong in both places at once, in agreement with each other.
+      - run: node scripts/test-budget.mjs
+
+      # /contact's server-side validation - the check that matters regardless
+      # of what a browser's `required` attribute already caught, since nothing
+      # stops a POST built by hand from skipping the browser entirely.
+      - run: node scripts/test-contact-validation.mjs
+
+      # The step-navigation and slider wiring in src/lib/contactForm.ts,
+      # against a real DOM via jsdom - not a read of the source, an actual
+      # click-Next/drag-the-slider run of the code the browser will execute.
+      - run: node scripts/test-contact-form.mjs
+
+      # functions/api/contact.ts itself, as a real Request -> Response round
+      # trip with fetch stubbed - proves the honeypot silently short-circuits
+      # everything downstream, a failed Turnstile check never reaches Sanity,
+      # and a Resend outage does not undo an already-successful Sanity write.
+      - run: node scripts/test-contact-function.mjs
 
       - run: npm run build
 

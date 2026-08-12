@@ -1,0 +1,278 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { pageDescription } from '../lib/meta';
+import { getPage } from '../lib/queries';
+
+const page = await getPage('contact');
+
+/*
+  Public, safe to ship in the HTML. Cloudflare Turnstile's design is a matched
+  pair: this site key only RENDERS the widget, and the secret key that
+  actually verifies a solve lives server-side in functions/api/contact.ts as a
+  Cloudflare Pages environment variable, never in a file that ships to a
+  browser.
+
+  Empty until Chris creates a Turnstile widget in the Cloudflare dashboard and
+  the site key is added here as PUBLIC_TURNSTILE_SITE_KEY. Until then the
+  widget silently does not render and the box below explains why, rather than
+  the page just showing a gap with no clue.
+*/
+const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as string | undefined;
+---
+
+<Layout
+  title={page?.title ?? 'Contact'}
+  description={pageDescription(page, "Tell me about your project — brand identity, merch, or something else. I'll get back to you soon.")}
+>
+  <div class="contact">
+    <h1 class="contact__heading">Let's Work Together</h1>
+    <p class="contact__intro">
+      This form takes about a minute. I read every one myself — there is no team, no CRM, just me.
+    </p>
+
+    {/*
+      One <form>, no framework. Every fieldset is visible in the raw HTML;
+      script.js below is what turns it into steps, and it does that by adding
+      `hidden` at RUNTIME rather than the markup starting hidden. So with
+      JavaScript off - or failing to load - this renders as one long form and
+      still submits normally to /api/contact. A multi-step form that cannot be
+      seen without JS is a form some visitors simply cannot fill in.
+
+      The one thing that does NOT work without JS: Turnstile needs a script to
+      render and solve its challenge, so a no-JS submission arrives at the
+      Function with no proof-of-human token and is rejected. That is the
+      correct failure mode for a spam gate - reject the unverified case rather
+      than silently accept it - but it is also the one place "works without
+      JS" has a real limit, stated here rather than left to be discovered.
+    */}
+    <form
+      id="contact-form"
+      class="contact-form"
+      method="POST"
+      action="/api/contact"
+      novalidate
+    >
+      {/*
+        The honeypot. A field named plausibly, positioned off-screen rather
+        than display:none - some spam bots specifically skip display:none
+        fields, having learned that trick exists. A human never sees it, so it
+        should always arrive empty; anything in it is close to certainly a
+        bot, and the Function drops the submission without saying so.
+
+        autocomplete="off" and tabindex="-1" so it cannot be reached by
+        accident via Tab or a browser's autofill.
+      */}
+      <div class="contact-form__honeypot" aria-hidden="true">
+        <label for="website">Leave this field blank</label>
+        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off" />
+      </div>
+
+      <fieldset class="contact-form__step" data-step="1">
+        <legend class="contact-form__step-heading">Welcome!</legend>
+        <p class="contact-form__step-copy">
+          This form is designed to help understand your business, and its compatibility for logo and brand design.
+          Let's get started.
+        </p>
+
+        <label class="contact-form__field">
+          <span>Full name <span class="contact-form__required">*</span></span>
+          <input type="text" name="name" required autocomplete="name" />
+        </label>
+
+        <label class="contact-form__field">
+          <span>Email address <span class="contact-form__required">*</span></span>
+          <input type="email" name="email" required autocomplete="email" />
+        </label>
+
+        <label class="contact-form__field">
+          <span>Company / organisation</span>
+          <input type="text" name="company" autocomplete="organization" />
+        </label>
+      </fieldset>
+
+      <fieldset class="contact-form__step" data-step="2">
+        <legend class="contact-form__step-heading">Your business</legend>
+
+        <label class="contact-form__field">
+          <span>
+            How would you describe your business? <span class="contact-form__required">*</span>
+            <small>Are you a startup, established business, getting ready, etc.</small>
+          </span>
+          <textarea name="businessDescription" required rows="3" placeholder="The more detail, the better"></textarea>
+        </label>
+
+        <label class="contact-form__field">
+          <span>
+            How can I help? <span class="contact-form__required">*</span>
+            <small>What are some goals you'd like to achieve for this project?</small>
+          </span>
+          <textarea name="goals" required rows="3" placeholder="Describe the project"></textarea>
+        </label>
+      </fieldset>
+
+      <fieldset class="contact-form__step" data-step="3">
+        <legend class="contact-form__step-heading">
+          On a scale of 1 to 10, how serious are you about reaching your goals?
+          <span class="contact-form__required">*</span>
+        </legend>
+
+        {/*
+          Real radio buttons, not eleven <div>s standing in for them. Native
+          radios come with arrow-key navigation between options, a group
+          announced correctly to a screen reader, and a checked state that
+          exists without a line of script - a custom-built equivalent has to
+          re-implement all three by hand or quietly lack them.
+        */}
+        <div class="contact-form__scale" role="radiogroup" aria-label="Seriousness, 0 to 10">
+          {Array.from({ length: 11 }, (_, n) => (
+            <label class="contact-form__scale-option">
+              <input type="radio" name="seriousness" value={n} required={n === 0} />
+              <span>{n}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset class="contact-form__step" data-step="4">
+        <legend class="contact-form__step-heading">Logistics</legend>
+
+        <label class="contact-form__field">
+          <span>
+            What's your timeframe? <span class="contact-form__required">*</span>
+            <small>Do you have a hard-set date you need it by?</small>
+          </span>
+          <input type="text" name="timeframe" required />
+        </label>
+
+        {/*
+          The slider. Two overlapping native <input type="range"> elements
+          rather than a from-scratch widget - each one keeps its own keyboard
+          support and screen-reader announcement for free, which a fully
+          custom drag control has to rebuild by hand and easily gets wrong.
+
+          Bounds and step come from lib/budget.ts so the SAME numbers drive
+          this markup, the client-side script, and the tests - see that file
+          for why $1,500 and $6,000 specifically, and why the top end reads
+          "$6,000+" rather than a number.
+        */}
+        <div class="contact-form__field">
+          <span>
+            What's the budget? <small>(Estimate)</small> <span class="contact-form__required">*</span>
+          </span>
+          <div
+            class="budget-slider"
+            data-min="1500"
+            data-max="6000"
+            data-step="250"
+          >
+            <div class="budget-slider__track">
+              <div class="budget-slider__range"></div>
+            </div>
+            <input
+              type="range"
+              class="budget-slider__input budget-slider__input--low"
+              name="budgetMin"
+              min="1500"
+              max="6000"
+              step="250"
+              value="1500"
+              aria-label="Budget, low end"
+            />
+            <input
+              type="range"
+              class="budget-slider__input budget-slider__input--high"
+              name="budgetMax"
+              min="1500"
+              max="6000"
+              step="250"
+              value="3000"
+              aria-label="Budget, high end"
+            />
+            <div class="budget-slider__labels">
+              <output class="budget-slider__value budget-slider__value--low">$1,500</output>
+              <span class="budget-slider__bound">$1,500</span>
+              <span class="budget-slider__bound">$6,000+</span>
+              <output class="budget-slider__value budget-slider__value--high">$3,000</output>
+            </div>
+          </div>
+          {/*
+            "Not sure yet" as an escape hatch rather than forcing a guess. A
+            slider always has SOME value under the handles, so without this
+            there is no way to say "I have not thought about it" - the form
+            would just silently record whatever position it happened to be
+            left in.
+          */}
+          <label class="contact-form__checkbox">
+            <input type="checkbox" name="budgetNotSure" value="true" id="budget-not-sure" />
+            <span>Not sure yet — want to discuss</span>
+          </label>
+        </div>
+
+        <label class="contact-form__field">
+          <span>How'd you find me? <span class="contact-form__required">*</span></span>
+          <input type="text" name="foundVia" required placeholder="Instagram, press, referral, etc." />
+        </label>
+      </fieldset>
+
+      <fieldset class="contact-form__step" data-step="5">
+        <legend class="contact-form__step-heading">What's the best phone number to reach you?</legend>
+        <p class="contact-form__step-copy">(This will only be used for a Discovery Call between the two of us.)</p>
+
+        <label class="contact-form__field">
+          <span class="visually-hidden">Phone number</span>
+          <input type="tel" name="phone" required autocomplete="tel" />
+        </label>
+
+        {TURNSTILE_SITE_KEY ? (
+          <div class="cf-turnstile" data-sitekey={TURNSTILE_SITE_KEY} data-theme="light"></div>
+        ) : (
+          /*
+            No key configured yet. Rendering nothing here would make the form
+            LOOK finished while every submission fails server-side with no clue
+            why - the least discoverable kind of broken. This says so, once, in
+            the one place a person building the form would actually look.
+          */
+          <p class="contact-form__missing-turnstile">
+            Spam check not configured (PUBLIC_TURNSTILE_SITE_KEY is unset) — submissions will be rejected until it is.
+          </p>
+        )}
+      </fieldset>
+
+      <div class="contact-form__nav">
+        <button type="button" class="button button--outline contact-form__back" hidden>← Back</button>
+        <button type="button" class="button contact-form__next">Next →</button>
+        <button type="submit" class="button contact-form__submit" hidden>Submit →</button>
+      </div>
+
+      <p class="contact-form__error" role="alert" hidden></p>
+    </form>
+
+    <div class="contact-form__done" hidden>
+      <h2>Thanks for filling this out!</h2>
+      <p><a href="/">I'll get back to you soon.</a></p>
+      <p class="contact-form__signature">— Chris Rumeau, Rumeau Design Co</p>
+    </div>
+  </div>
+
+  {/*
+    Turnstile's own script, which finds every `.cf-turnstile` element on the
+    page and renders the widget into it - not bundled with the site's other
+    scripts, and not loaded at all when there is no site key to render with,
+    so a build with the widget unconfigured does not pay for a script that
+    would render nothing.
+
+    async, not deferred: Turnstile is explicitly documented to render
+    correctly whenever this script happens to finish loading, which is what
+    async is for. It is also not on the critical path - it renders far below
+    the fold, on the form's last step - so there is nothing to gain from
+    blocking or reordering the rest of the page for it.
+  */}
+  {TURNSTILE_SITE_KEY && (
+    <script async defer src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
+  )}
+</Layout>
+
+<script>
+  import { initContactForm } from '../lib/contactForm';
+  initContactForm();
+</script>

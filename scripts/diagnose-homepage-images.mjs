@@ -136,8 +136,29 @@ if (!pageDoc) {
 
 const grid = settings?.featured?.length ? settings.featured : studies
 const gridSource = settings?.featured?.length ? 'curated picker' : 'FALLBACK (picker empty)'
+/*
+  BOTH images per grid item, not `thumb ?? main`.
+
+  The old line reported whichever the tile actually renders - the thumbnail when
+  there is one - and so never showed mainImage at all for any project that has a
+  thumbnail, which is all of them. That is a real hole in a script whose whole
+  job is to report what a document references.
+
+  It cost something concrete: Chris changed Chateau Seven's Main Project Image,
+  the site did not update, and this diagnostic printed an unchanged asset - which
+  reads as "Sanity never saved your edit" when in fact it was reporting a
+  different field entirely. A diagnostic that silently omits a field is worse
+  than one that omits it loudly, because its silence gets read as evidence.
+
+  Both are labelled, and a missing one is stated rather than skipped: "no
+  thumbnail" is a fact worth seeing on a page that renders tiles.
+*/
 for (const item of grid ?? []) {
-  add(`work grid: ${item?.title ?? '?'} [${gridSource}]`, item?.thumb ?? item?.main)
+  const label = `${item?.title ?? '?'} [${gridSource}]`
+  if (item?.thumb) add(`work grid: ${label} thumbnail`, item.thumb)
+  else console.log(`  (no thumbnail on ${item?.title ?? '?'} - the tile falls back to mainImage)`)
+  if (item?.main) add(`work grid: ${label} mainImage`, item.main)
+  else console.log(`  (no mainImage on ${item?.title ?? '?'})`)
 }
 
 console.log(`# Homepage images\n`)

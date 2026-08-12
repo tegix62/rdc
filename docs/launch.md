@@ -3,6 +3,51 @@
 The order below is the order. Each step is safe to stop at, and every step
 before the DNS change is reversible by doing nothing.
 
+## The words, first
+
+Skip this if they are already familiar.
+
+- **DNS** is the phone book of the internet. Someone types
+  `rumeaudesign.co`, and DNS is what answers "here is the computer that has
+  it". Changing hosts means changing that answer. Nothing about the website
+  itself moves.
+- **A record** points a name at a numeric address, e.g. `198.202.211.1`.
+  **CNAME** points a name at another *name*, e.g. `www` -> `cdn.webflow.com`.
+  Same job, two spellings.
+- **Apex** (or root) is the bare domain, `rumeaudesign.co`. `www.rumeaudesign.co`
+  is a *different* name and needs its own record. They are not automatically
+  linked, which is why both appear in every step below.
+- **Nameservers** decide who holds the phone book for your domain. Yours are
+  Cloudflare's already, so all of this happens in the Cloudflare dashboard -
+  no registrar involved, nothing to transfer.
+- **MX records** are the same phone book, for email instead of web. Separate
+  answer, same domain. This is why a website move can break mail.
+- **TTL** is how long the rest of the internet caches an answer before asking
+  again. It sets how fast a change - or an undo - actually takes effect.
+  Cloudflare's default is a few minutes.
+- **Proxied vs DNS-only** ("orange cloud" vs "grey cloud") is whether traffic
+  passes through Cloudflare or goes straight to the host. Yours are currently
+  DNS-only.
+
+## Is this risky?
+
+Not especially, and it is worth being precise about why.
+
+**Reversible by doing nothing:** everything up to and including publishing to
+production. That work lives at `rumeau-design-co.pages.dev` and no visitor to
+`rumeaudesign.co` sees any of it.
+
+**Reversible in minutes:** the DNS change itself. Put the old records back and
+the old site serves again within a TTL.
+
+**Not reversible:** cancelling Webflow. That is the last step, days later, on
+purpose.
+
+**The one genuine hazard** is your email, and only if the DNS records are
+hand-edited. The Google Workspace records share the domain with the website
+but have nothing to do with it. The runbook avoids the problem by using the
+Pages custom-domain flow, which only touches the records it needs.
+
 ## What the domain looks like right now
 
 Recorded here because after the change these are what you roll BACK to, and
@@ -26,6 +71,15 @@ connection to the website - mail that silently stops arriving is the worst
 possible launch-day bug because it does not announce itself.
 
 Only two records change: the apex `A` and the `www` `CNAME`.
+
+**Before changing anything, screenshot the DNS tab.** The table above was
+reconstructed from outside, by asking DNS what it answers - which is not the
+same as reading what Cloudflare has stored. In particular Cloudflare can store
+a CNAME at the apex and *answer* with an A record, so the real record may be
+`CNAME -> cdn.webflow.com` rather than `A -> 198.202.211.1`. Both resolve
+identically, so nothing outside can tell them apart. A screenshot can, and it
+takes five seconds. Roll back to what the screenshot says, not to what this
+file says.
 
 ## 1. Publish to production and check it there first
 
@@ -60,6 +114,14 @@ manual route is where mail records get caught in the crossfire.
 Certificates are usually issued within a few minutes. The domain will show
 "Verifying" and then "Active".
 
+While you are in the dashboard, check **SSL/TLS -> Overview** for the
+`rumeaudesign.co` zone. It should be **Full** or **Full (strict)**. If it says
+**Flexible**, change it: Flexible tells Cloudflare to fetch the site over plain
+HTTP, and against a host that redirects HTTP to HTTPS - which Pages does - that
+produces an endless redirect loop and a site that will not load at all. It is a
+one-setting problem with a dramatic symptom, and it is worth ruling out before
+the domain is pointed anywhere rather than debugging it live.
+
 ## 3. Send www to the apex
 
 Both hostnames now serve the same site, which means every page exists at two
@@ -88,6 +150,30 @@ it has no way to tell the two hostnames apart.
 That last one is not paranoia. It is the check that costs ten seconds and
 catches the failure that otherwise surfaces days later as "why has nobody
 replied to me".
+
+## Do NOT set up redirects in Webflow
+
+Once DNS moves, Webflow never sees a single request. Traffic goes to
+Cloudflare, Cloudflare serves this site, and Webflow is simply not in the path
+any more - so a redirect configured there could never fire. Redirects for this
+site live in `public/_redirects`, they are already written, and they ship with
+the build.
+
+**But do read Webflow's redirect list before cancelling.** Site settings ->
+Publishing -> 301 redirects. Anything in there is a record of an old URL that
+mattered enough for someone to redirect it once - possibly from a version of
+the site that predates the sitemap `public/_redirects` was built from. Those
+rules are about to stop existing.
+
+Copy any that still point somewhere real into `public/_redirects` in the same
+format, one per line:
+
+```
+/old-path    /new-path    301
+```
+
+If the list is empty, nothing to do. If it is not, that list is the only place
+those old URLs are written down, and cancelling the subscription deletes it.
 
 ## 5. Only now, Webflow
 

@@ -100,16 +100,21 @@ const altField = defineField({
 */
 const noRecompressField = defineField({
   name: 'noRecompress',
-  title: 'Serve exactly as uploaded (no re-compression)',
+  title: 'Serve exactly as uploaded',
   type: 'boolean',
   fieldset: 'delivery',
+  /*
+    Kept to two sentences: what it does, and the one reason to turn it off.
+
+    The previous version was six clauses covering byte-for-byte delivery, format
+    conversion, srcset, crops, hotspots and advice on upload sizes. All true, and
+    unreadable in a sidebar - so the sentence that actually matters, that this
+    switch disables cropping, was buried in the middle of it and got missed.
+  */
   description:
-    'ON by default: the file ships byte for byte, no resizing and no format ' +
-    'conversion, because you compress your own work. Turn it OFF when an ' +
-    'image needs the CDN: responsive sizes for phones, or a crop/hotspot - ' +
-    'both require re-encoding and are skipped while this is on. Left on, ' +
-    'upload something sensibly sized, because every device gets this exact ' +
-    'file.',
+    'On: your file ships untouched, exactly as you compressed it. ' +
+    'Turn it off if this image needs a crop/hotspot or phone-sized versions — ' +
+    'both need re-encoding, so neither does anything while this is on.',
   initialValue: true,
 })
 

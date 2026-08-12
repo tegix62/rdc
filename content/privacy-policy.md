@@ -112,6 +112,24 @@ not control and cannot shorten.
 
 What Meta keeps is up to Meta.
 
+## Why we are allowed to do any of this
+
+If you are in the UK or EU, the law requires us to name a lawful basis for each
+thing we do with your information. Ours are:
+
+- **Answering you.** When you send us an enquiry, we use it to reply and to
+  discuss the work. That is either the necessary first step toward a contract
+  with you, or our legitimate interest in running a design studio.
+- **Keeping the site up.** Server logs exist so the site can be served, kept
+  secure, and debugged when it breaks. That is our legitimate interest.
+- **The Meta pixel.** We use this for our legitimate interest in advertising
+  effectively as a small business. You can switch it off at any time by any of
+  the methods listed above, and nothing on the site stops working if you do.
+
+We do not use your information for anything else. Specifically, we do not
+profile you, we do not make automated decisions about you, and we have no
+mailing list to add you to.
+
 ## What you can ask us to do
 
 Whatever country you are in, you can ask us to:

@@ -301,10 +301,23 @@ if (manualPassThrough && intrinsic && intrinsic.width > width * 2) {
       `${width * 2}px.`,
   );
 }
-if (manualPassThrough && (image?.crop || image?.hotspot)) {
+/*
+  The CROP only. The hotspot is deliberately not mentioned here.
+
+  This warning used to fire on `crop || hotspot` and say both were ignored. Half
+  of that is wrong: the crop rectangle is applied by Sanity and does need
+  re-encoding, but the hotspot is handed to CSS as object-position a few lines
+  up - emitted unconditionally, pass-through or not - so it keeps working.
+
+  Warning about something that works is not a harmless excess of caution. It
+  teaches the reader to distrust the warnings that matter, and it sent Chris
+  looking for a reason his hotspots were doing nothing when they were fine.
+*/
+if (manualPassThrough && image?.crop) {
   console.warn(
     `[Img] ${where} is set to "serve exactly as uploaded", which ignores the ` +
-      `crop/hotspot set in Studio - cropping requires re-encoding.`,
+      `crop set in Studio - cropping requires re-encoding. The hotspot still ` +
+      `applies.`,
   );
 }
 ---

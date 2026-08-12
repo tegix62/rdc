@@ -1,0 +1,37 @@
+name: Diagnose homepage picks
+
+# The two content decisions left before launch - the default share image and
+# the homepage work grid - both need Chris to choose, and neither choice can be
+# made from a list of document ids. This prints the actual options.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/diagnose-homepage-picks.mjs'
+      - '.github/workflows/diagnose-homepage-picks.yml'
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Look
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+        run: |
+          set -o pipefail
+          node scripts/diagnose-homepage-picks.mjs 2>&1 | tee homepage-picks.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "## Homepage picks"
+            echo ""
+            echo '```'
+            cat homepage-picks.txt 2>/dev/null || echo '(the script did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

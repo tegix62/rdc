@@ -71,14 +71,16 @@ useful to a small studio buying ads, not because we want your browsing history.
 Running a website means other companies handle some of this. These are all of
 them:
 
-| Who | What they do | What they see |
-| --- | --- | --- |
-| **Cloudflare** | Hosts the site | Your IP address and the pages you request, in server logs |
-| **Sanity** | Stores the site's content and serves every image | Your IP address, when your browser fetches an image |
-| **Tally** | Runs the contact form | Whatever you type into the form |
-| **Meta** | The advertising pixel described above | As described above |
-| **Google (YouTube)** | Preview thumbnails on some pages with video | Your IP address, on those pages only |
-| **YouTube / Vimeo** | Video playback | Nothing until you press play — see below |
+- **Cloudflare** hosts the site, and sees your IP address and the pages you
+  request, in its server logs.
+- **Sanity** stores the site's content and serves every image on it, so it sees
+  your IP address whenever your browser fetches one.
+- **Tally** runs the contact form, and holds whatever you type into it.
+- **Meta** receives what the pixel sends, described above.
+- **Google** supplies the preview thumbnail on a few pages that have a video
+  with no still image of its own, and sees your IP address on those pages.
+- **YouTube and Vimeo** play the videos, and see nothing at all unless you press
+  play — see below.
 
 **Videos do not load until you ask them to.** Where this site shows a video, it
 displays a still image and a play button, and only builds the actual YouTube or

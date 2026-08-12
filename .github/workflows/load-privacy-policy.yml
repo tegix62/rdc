@@ -1,0 +1,63 @@
+name: Load privacy policy
+
+# /privacy-policy renders page.body, which has been empty since the migration,
+# so the page shows a placeholder. With the Meta pixel now live in Sanity, the
+# site tracks visitors while saying nothing about it, which is the gap this
+# closes.
+#
+# Dry by default; only writes when run from the Actions tab with "load" ticked,
+# so a push can never change content as a side effect.
+
+on:
+  workflow_dispatch:
+    inputs:
+      load:
+        description: 'Actually write it (unticked = show what would be written)'
+        type: boolean
+        default: false
+      overwrite:
+        description: 'Replace existing body content if the page already has some'
+        type: boolean
+        default: false
+  push:
+    paths:
+      - 'scripts/load-privacy-policy.mjs'
+      - 'scripts/lib/markdown-to-portable-text.mjs'
+      - 'content/privacy-policy.md'
+      - '.github/workflows/load-privacy-policy.yml'
+
+jobs:
+  load:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Before writing, not after. The converter is the only thing standing
+      # between the reviewed markdown and what the public page says, and a
+      # paragraph lost in translation would be invisible on a page that still
+      # renders fine.
+      - name: Check the converter still preserves the document
+        run: node scripts/test-markdown-to-portable-text.mjs
+
+      - name: Convert, and write only if asked
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          # Empty on a push event, so a push is always a dry run.
+          LOAD: ${{ inputs.load && 'yes' || '' }}
+          OVERWRITE: ${{ inputs.overwrite && 'yes' || '' }}
+        run: |
+          set -o pipefail
+          node scripts/load-privacy-policy.mjs 2>&1 | tee privacy-policy.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "## Privacy policy"
+            echo ""
+            echo '```'
+            cat privacy-policy.txt 2>/dev/null || echo '(the script did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

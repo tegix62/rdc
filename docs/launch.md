@@ -53,14 +53,32 @@ Pages custom-domain flow, which only touches the records it needs.
 Recorded here because after the change these are what you roll BACK to, and
 nobody remembers them under pressure. Checked 12 August 2026:
 
+Read from the Cloudflare dashboard on 12 August 2026, 11 records total:
+
 ```
-rumeaudesign.co        A       198.202.211.1
-www.rumeaudesign.co    CNAME   cdn.webflow.com
-MX                     aspmx.l.google.com (1), alt1/alt2 (5), alt3/alt4 (10)
-TXT                    google-site-verification=puQTOdlRYFYtQpd2LnGe7kb11apPRtCA7q2Bx3MCrec
-TXT                    v=spf1 include:_spf.google.com ~all
+rumeaudesign.co        CNAME   cdn.webflow.com          DNS only
+www.rumeaudesign.co    CNAME   cdn.webflow.com          DNS only
+rumeaudesign.co        MX      aspmx.l.google.com (1), alt1/alt2 (5), alt3/alt4 (10)
+google._domainkey      TXT     v=DKIM1; k=rsa; ...
+rumeaudesign.co        TXT     v=spf1 include:_spf.google.com ~all
+rumeaudesign.co        TXT     google-site-verification=puQTOdlRYFYtQpd2LnGe7kb11apPRtCA7q2Bx3MCrec
+_webflow.rumeaudesign.co  TXT  one-time-verification=...
 NS                     alexa.ns.cloudflare.com, gordon.ns.cloudflare.com
 ```
+
+**The apex is a CNAME, not an A record.** An earlier version of this file
+recorded `A -> 198.202.211.1`, because it was reconstructed from outside by
+asking DNS what it answers - and Cloudflare flattens a CNAME at the apex into an
+A response, so the two are indistinguishable from any external check. The stored
+record is a CNAME to `cdn.webflow.com`.
+
+That matters only in one place, and it is the place that matters: **rolling back
+means restoring two CNAMEs, both pointing at `cdn.webflow.com`.** Putting an A
+record to that IP back instead would depend on a Webflow load-balancer address
+that is not guaranteed to keep serving this site.
+
+This is the reason the instruction below is to screenshot the DNS tab rather
+than to trust this table.
 
 **The MX and TXT records are not part of this migration.** They are Google
 Workspace: the MX records deliver Chris's email, the SPF record stops his
@@ -100,11 +118,26 @@ Then open `https://rumeau-design-co.pages.dev` and check:
 
 ## 2. Add both hostnames to the Pages project
 
+**This step is the cutover.** Not step 4 - the moment Cloudflare replaces the
+apex record, traffic moves to the new site. Everything before this point was
+reversible by doing nothing; from here, rolling back means restoring records.
+
+Note the navigation: Workers & Pages is at the ACCOUNT level, not inside the
+`rumeaudesign.co` zone. From the DNS screen, that means going back out to
+Domains first. Being deep in the zone's own sidebar looking for it is the
+obvious wrong turn, because everything else in this runbook happens there.
+
 Cloudflare dashboard -> Workers & Pages -> `rumeau-design-co` -> Custom
 domains -> Set up a custom domain. Add **both**:
 
 - `rumeaudesign.co`
 - `www.rumeaudesign.co`
+
+**Expect a conflict warning on each, and accept it.** Both names already have a
+CNAME pointing at `cdn.webflow.com`; Cloudflare will say so and offer to replace
+it. Replacing is correct and is what actually performs the switch. Accept it for
+those two records only - nothing should touch MX, SPF, DKIM or the
+`google-site-verification` TXT.
 
 Because the domain's nameservers are already Cloudflare's, Cloudflare updates
 the DNS records itself. That is the safe path: it changes the two records it

@@ -1,17 +1,24 @@
 name: Deploy to production
 
-# The build that serves the real domain.
+# The build that serves the real domain. Live since 12 August 2026.
 #
-# This is deliberately NOT triggered by pushing. Every other workflow in this
-# repo is safe to fire by accident; this one is the difference between a
-# staging site and rumeaudesign.co, and the site is not launched yet. It runs
-# when someone asks it to run.
+# Three ways in, and only one of them cannot publish:
 #
-# It also does not publish by default. Dispatching it builds the production
-# bundle and puts it through scripts/check-production-build.mjs, which is the
-# part worth exercising often - you can prove a production build is correct
-# any number of times without anything going live. Tick "publish" only when
-# you mean it.
+#   workflow_dispatch     builds, and publishes only if the box is ticked
+#   repository_dispatch   a publish in Sanity Studio. Always publishes.
+#   push                  the gate's own files. NEVER publishes.
+#
+# Dispatching without ticking publish is still the cheap, useful thing: it
+# builds the real production bundle and puts it through
+# scripts/check-production-build.mjs without anything going live, so a
+# production build can be proven correct any number of times.
+#
+# This file used to say pushing must never trigger it because "the site is not
+# launched yet". It is launched now, and the risk has changed shape: the danger
+# is no longer a premature deploy, it is a live site quietly lagging behind the
+# CMS - which happened within an hour of cutover. See the note on
+# repository_dispatch below for what makes automating it safe, and what it
+# genuinely gives up.
 #
 # How this build differs from the preview one (deploy-pages.yml), which is the
 # whole reason the gate exists:
@@ -32,13 +39,34 @@ on:
         default: false
       verify_url:
         description: 'URL to verify after publishing'
-        default: 'https://rumeau-design-co.pages.dev'
+        default: 'https://rumeaudesign.co'
+  # A publish in Sanity Studio deploys to the real domain.
+  #
+  # Added after cutover, and it is a reversal of what this file used to say -
+  # that nothing should reach the real domain without a person choosing it. The
+  # reasoning changed because the site went live and the workflow that was
+  # protecting it started producing the opposite failure: Chris published a new
+  # homepage hero, the live site silently disagreed with Studio, and the only
+  # signal was him noticing.
+  #
+  # What makes it safe is not a person, it is the gate. Every run below still
+  # goes through scripts/check-production-build.mjs BEFORE anything uploads, so
+  # automating this means checked builds go live automatically rather than
+  # unchecked ones. What is genuinely accepted here is different: a content
+  # mistake reaches the domain in about two minutes rather than waiting for
+  # someone to deploy. Sanity keeps document history, so that is revertable in
+  # Studio - and the alternative was a site that quietly lagged behind its CMS
+  # forever.
+  #
+  # Same `sanity-publish` event the preview workflow listens for, so one webhook
+  # in Sanity drives both and there is no second thing to keep in sync.
+  repository_dispatch:
+    types: [sanity-publish]
   # GitHub only offers "Run workflow" for files that exist on the default
   # branch, so until this is merged there is no way to dispatch it - and an
   # untested launch gate is not a launch gate. This trigger covers only the
-  # three files that make up the gate itself, and cannot publish: `publish` is
-  # an input, and inputs are empty on a push. So a change here builds the real
-  # production bundle and checks it, and stops there.
+  # three files that make up the gate itself, and MUST NOT publish - see the
+  # PUBLISH expression below, which is what enforces that.
   push:
     paths:
       - '.github/workflows/deploy-production.yml'
@@ -51,6 +79,24 @@ jobs:
     permissions:
       contents: read
       deployments: write
+    # Whether this run publishes, decided ONCE.
+    #
+    # Every publishing step used to test `inputs.publish` individually. That was
+    # fine while a dispatch was the only way in, and became a trap the moment a
+    # second trigger existed: `inputs` is empty on anything that is not a
+    # workflow_dispatch, so a Sanity publish would have built, passed the gate,
+    # skipped every upload step, and reported success - a green run that deployed
+    # nothing, which is the worst possible way for this to fail.
+    #
+    # Resolved per event:
+    #   workflow_dispatch      whatever the tick box said
+    #   repository_dispatch    always - a publish in Studio means publish
+    #   push                   never. `inputs.publish` is empty and the event
+    #                          name does not match, so this is false. That is the
+    #                          property the push trigger's safety rests on.
+    env:
+      PUBLISH: ${{ inputs.publish || github.event_name == 'repository_dispatch' }}
+      VERIFY_URL: ${{ inputs.verify_url || 'https://rumeaudesign.co' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -123,14 +169,14 @@ jobs:
 
       # Everything below only runs when publishing was asked for.
       - name: Ensure the Pages project exists
-        if: inputs.publish
+        if: env.PUBLISH == 'true'
         run: npx wrangler@3 pages project create rumeau-design-co --production-branch main || true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - uses: cloudflare/pages-action@v1
-        if: inputs.publish
+        if: env.PUBLISH == 'true'
         id: pages
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -148,10 +194,10 @@ jobs:
       # robots.txt, or a domain pointed at the wrong branch would all sail
       # past a file check.
       - name: Verify what is live
-        if: inputs.publish
+        if: env.PUBLISH == 'true'
         run: |
           set -uo pipefail
-          BASE="${{ inputs.verify_url }}"
+          BASE="${{ env.VERIFY_URL }}"
           BASE="${BASE%/}"
           problems=0
 
@@ -236,12 +282,12 @@ jobs:
           [ "$problems" -eq 0 ]
 
       - name: Where it went
-        if: inputs.publish && always()
+        if: env.PUBLISH == 'true' && always()
         run: |
           {
             echo ''
             echo '| | |'
             echo '|---|---|'
             echo '| This deploy | ${{ steps.pages.outputs.url }} |'
-            echo '| Production alias | ${{ inputs.verify_url }} |'
+            echo '| Production alias | ${{ env.VERIFY_URL }} |'
           } >> "$GITHUB_STEP_SUMMARY"

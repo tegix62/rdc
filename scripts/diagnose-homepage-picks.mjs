@@ -46,6 +46,35 @@ const dims = (ref) => {
 
 const CARD_RATIO = 1200 / 630 // 1.905
 
+/*
+  How much of an image the 1200x630 crop throws away.
+
+  The first version of this computed `1 - min(1, CARD_RATIO / ratio)`, which is
+  backwards, and it clamped to zero for every image narrower than the card -
+  so it reported "loses about 0%" for a 2000x2000 square that actually loses
+  nearly half its height. Every candidate looked equally safe, which made the
+  whole column worthless for choosing between them.
+
+  Fit by width when the image is taller than the card: the visible strip is
+  width/CARD_RATIO tall out of an actual height of width/ratio, so the kept
+  fraction is ratio/CARD_RATIO. Fit by height in the other direction, and the
+  kept fraction of the width is CARD_RATIO/ratio.
+*/
+const cropNote = (ratio) => {
+  if (Math.abs(ratio - CARD_RATIO) < 0.02) return 'almost exactly the card shape - no meaningful crop'
+  const pct = Math.round((1 - (ratio < CARD_RATIO ? ratio / CARD_RATIO : CARD_RATIO / ratio)) * 100)
+  return ratio < CARD_RATIO
+    ? `taller than the card - loses ${pct}% off the top and bottom`
+    : `wider than the card - loses ${pct}% off the sides`
+}
+
+// Checked here rather than assumed, because the first version of this was
+// wrong in a way that read as reassuring.
+for (const [ratio, want] of [[1, 47], [1.78, 7], [CARD_RATIO, 0], [3, 36]]) {
+  const got = Math.round((1 - (ratio < CARD_RATIO ? ratio / CARD_RATIO : CARD_RATIO / ratio)) * 100)
+  if (Math.abs(got - want) > 1) throw new Error(`crop maths wrong: ratio ${ratio} gave ${got}%, expected ~${want}%`)
+}
+
 console.log('# The two homepage decisions\n')
 
 // --- 1. Grid candidates ----------------------------------------------------
@@ -113,12 +142,8 @@ if (!candidates.length) {
 } else {
   console.log(`  ${candidates.length} image(s) at least 1200px wide, closest shape first:\n`)
   for (const c of candidates.slice(0, 12)) {
-    const loss = Math.round((1 - Math.min(1, CARD_RATIO / c.ratio)) * 100)
     console.log(`  ${c.title}`)
-    console.log(
-      `      ${c.d.w}x${c.d.h}  ratio ${c.ratio.toFixed(2)}  ` +
-        `${c.ratio >= CARD_RATIO ? 'wider than the card - crops the sides' : `taller - loses about ${loss}% top and bottom`}`,
-    )
+    console.log(`      ${c.d.w}x${c.d.h}  ratio ${c.ratio.toFixed(2)}  ${cropNote(c.ratio)}`)
   }
   console.log()
 }

@@ -144,7 +144,13 @@ it has no way to tell the two hostnames apart.
 - `https://rumeaudesign.co` serves the new site
 - `https://www.rumeaudesign.co` redirects to it
 - the redirects from step 1 still work on the real domain
-- `https://rumeaudesign.co/sitemap-index.xml` loads
+- `https://rumeaudesign.co/sitemap.xml` loads, and lists 20 URLs on the real
+  domain rather than the preview host
+- `https://rumeaudesign.co/robots.txt` says `Allow: /` — **not** `Disallow: /`.
+  A `Disallow` here means the production build was made with the preview flag
+  set, and it would keep the whole site out of Google while looking perfectly
+  normal to a visitor. Ten seconds to check, and the one launch-day mistake
+  that has no visible symptom.
 - **send yourself an email**, from outside, and confirm it arrives
 
 That last one is not paranoia. It is the check that costs ten seconds and
@@ -187,8 +193,20 @@ Cancel once you are confident, not once it is live.
 
 ## 6. Afterwards
 
-- **Google Search Console**: submit `https://rumeaudesign.co/sitemap-index.xml`.
+- **Google Search Console**: submit `https://rumeaudesign.co/sitemap.xml`.
   The verification TXT record is untouched, so access carries over.
+
+  Note the filename. This said `sitemap-index.xml` until launch day was
+  imminent, which is the convention `@astrojs/sitemap` uses - and this site
+  deliberately does not use that plugin, so nothing ever served that URL. It
+  would have failed twice: a 404 during the checks above, and a sitemap
+  submission that silently never gets read.
+
+  Search Console is also where the value of the last SEO pass either shows up or
+  does not. Two reports worth opening after a couple of weeks: **Performance ->
+  Search appearance** for image results, since the site now opts in to large
+  image previews and declares its project images; and **Enhancements**, for
+  whether the structured data was accepted.
 - **Meta Events Manager**: re-run a test event against the real domain. The
   pixel does not load on preview builds by design, so this is the first time it
   will actually fire.
@@ -206,3 +224,19 @@ Cancel once you are confident, not once it is live.
   animation.
 - **No default share image.** Pages without one of their own share as the
   wordmark padded onto white. One image in Site Settings fixes every such page.
+  Nothing in the dataset is close to 1200x630 — the best candidate loses 7% to
+  the crop — so this wants a purpose-made export rather than a repurposed photo.
+
+- **`/image-license-info` is thin Webflow boilerplate, and now load-bearing.**
+  Every image on the site declares that page as its licence terms and as the
+  place to ask about them, which is what puts a "Licensable" badge on the work in
+  Google Images. So it is now the page a stranger lands on when they want to use
+  your artwork. The markup is correct; the copy is inherited. Worth a read.
+
+  The build gate fails if that page ever stops being built, so it cannot be
+  quietly deleted in a tidy-up while the licence URLs keep pointing at it.
+
+- **Three blog posts and five Site Settings fields still want writing.** None of
+  it blocks launch — every page ships a unique, valid description. Run
+  Actions -> "SEO copy audit" for the current list; it reads the live dataset,
+  so it stays accurate instead of going stale here.

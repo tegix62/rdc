@@ -97,6 +97,14 @@ jobs:
       # the real Sanity content enters.
       - run: node scripts/test-head.mjs
 
+      # docs/launch.md is the one document followed under time pressure, on the
+      # day the site is half-moved and nothing can be assumed to work. It told
+      # Chris to open /sitemap-index.xml and then to submit that URL to Search
+      # Console; nothing has ever served it. A wrong URL there does not read as a
+      # typo, it reads as "the deploy is broken" - and the Search Console half had
+      # no symptom at all, since a sitemap that 404s is simply never read.
+      - run: node scripts/test-launch-doc.mjs
+
       # public/_redirects is the only thing keeping the old Webflow URLs alive
       # after cutover, and nothing tied it to the content. Case studies have gone
       # from 13 to 5 over this project; any deletion can orphan a redirect

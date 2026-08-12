@@ -92,7 +92,8 @@ const [settings, studies, posts, pages] = await Promise.all([
     "hasSocialImage": defined(socialImage.asset),
     "socialCount": count(socialLinks[defined(url)])
   }`),
-  groq(`*[_type == "caseStudy" && pageType == "Case Study" && defined(slug.current)]
+  groq(`*[_type == "caseStudy" && pageType == "Case Study" && defined(slug.current)
+    && !(_id in path("drafts.**"))]
     | order(title asc){
       "slug": slug.current, title, category, client, principalType,
       seoDescription, oneLineSummary, summary
@@ -103,17 +104,35 @@ const [settings, studies, posts, pages] = await Promise.all([
     what the post says makes the reader go and open Studio to do anything about
     it - which is most of the friction between knowing and fixing.
   */
-  groq(`*[_type == "blogPost" && defined(slug.current)] | order(publishedAt desc){
+  groq(`*[_type == "blogPost" && defined(slug.current) && !(_id in path("drafts.**"))] | order(publishedAt desc){
     "slug": slug.current, title, metaDescription, excerpt, publishedAt,
     "bodyText": array::join(body[].children[].text, " ")
   }`),
-  groq(`*[_type == "page" && defined(slug.current)] | order(slug.current asc){
+  groq(`*[_type == "page" && defined(slug.current) && !(_id in path("drafts.**"))] | order(slug.current asc){
     "slug": slug.current, title, seoDescription
   }`),
 ])
 
 const siteName = settings?.siteTitle ?? 'Rumeau Design Co'
 
+/*
+  DRAFTS ARE EXCLUDED FROM ALL THREE QUERIES.
+
+  This script authenticates with SANITY_API_TOKEN, and an authenticated query
+  returns drafts alongside published documents. The site build does NOT: it uses
+  an unauthenticated client, so a draft is invisible to it.
+
+  Without this filter the audit therefore reports on a site that does not exist.
+  It cost real confusion: while Chris had Chateau Seven open in Studio, the draft
+  and the published document both matched, and the audit reported
+  "/work/chateau-seven + /work/chateau-seven" as a duplicate meta description -
+  which reads as two documents fighting over one URL. I took it at face value and
+  told him it probably explained why his image change had not appeared. It did
+  not; there was only ever one document.
+
+  An audit's whole value is that its output can be trusted as evidence, so seeing
+  something the build cannot see is not a small inaccuracy.
+*/
 const rows = []
 
 /*

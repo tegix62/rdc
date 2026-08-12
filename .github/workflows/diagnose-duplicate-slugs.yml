@@ -1,0 +1,42 @@
+name: Diagnose duplicate slugs
+
+# Two published documents claiming one URL. Nothing else looks for this: the
+# build writes a page per slug, so the second silently overwrites the first, and
+# which one survives depends on query order rather than on a decision.
+#
+# Read-only.
+
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - 'scripts/diagnose-duplicate-slugs.mjs'
+      - '.github/workflows/diagnose-duplicate-slugs.yml'
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Look for duplicate slugs
+        # Exits non-zero when it finds one, so the run is red rather than a
+        # green run whose output nobody reads.
+        continue-on-error: true
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+        run: |
+          set -o pipefail
+          node scripts/diagnose-duplicate-slugs.mjs 2>&1 | tee slugs.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "## Duplicate slugs"
+            echo ""
+            echo '```'
+            cat slugs.txt 2>/dev/null || echo '(the script did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

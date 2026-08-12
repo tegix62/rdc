@@ -106,9 +106,25 @@ console.log()
 
 const draftPixel = all.find((d) => d._id.startsWith('drafts.'))?.metaPixelId ?? null
 
-if (picked?.metaPixelId) {
-  console.log(`  So the pixel SHOULD be emitting. If a build still says "off", the`)
-  console.log(`  build ran before this value was saved - rebuild and check again.`)
+/*
+  Present is not the same as usable.
+
+  MetaPixel.astro emits nothing unless the value matches /^\d{8,20}$/ - a
+  pasted URL, a stray quote or a trailing space all turn the pixel off. So a
+  report that stops at "the field has something in it" can still be describing
+  a site with no tracking on it, which is the same gap that had us both reading
+  build logs for an hour.
+*/
+const VALID = /^\d{8,20}$/
+const live = picked?.metaPixelId
+
+if (live && !VALID.test(String(live).trim())) {
+  console.log(`  PRESENT BUT UNUSABLE. The site requires plain digits and this is`)
+  console.log(`  ${JSON.stringify(live)}, so MetaPixel.astro will emit nothing.`)
+} else if (live) {
+  console.log(`  Valid, and published. Every production build from here carries the`)
+  console.log(`  pixel. It is still absent from the live site until the next Deploy`)
+  console.log(`  to production runs - publishing content does not rebuild the site.`)
 } else if (draftPixel) {
   console.log(`  Empty HERE, but set to ${JSON.stringify(draftPixel)} on the draft.`)
   console.log(`  That is the whole answer: the ID is typed and saved, and saving in`)

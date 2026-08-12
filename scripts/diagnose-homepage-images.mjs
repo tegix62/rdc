@@ -39,6 +39,23 @@ const fetchGroq = async (groq) => {
   return (await res.json()).result
 }
 
+/*
+  The hero asset's own filename and byte size, resolved through the asset
+  document rather than inferred from the reference.
+
+  Added because Chris asked which file the hero actually is - he had one in mind -
+  and the reference alone cannot answer that: `image-<hash>-800x800-webp` names no
+  file a person recognises. Editing the wrong asset because a diagnostic reported
+  a hash is a cheap mistake to prevent and an annoying one to make.
+
+  Worth being clear about what this proves and what it does not: a filename is
+  evidence about which FILE was uploaded, not about what the image DEPICTS. If the
+  upload was called "export-final-2.webp" it will confirm nothing.
+*/
+const heroAsset = await fetchGroq(`*[_type == "siteSettings"][0].heroBackground.asset->{
+  originalFilename, size, mimeType, "w": metadata.dimensions.width, "h": metadata.dimensions.height
+}`)
+
 const settings = await fetchGroq(`*[_type == "siteSettings"][0]{
   "hero": heroBackground.asset._ref,
   "proof": proofBandBackground.asset._ref,
@@ -86,6 +103,16 @@ const used = []
 const add = (where, ref) => {
   const d = idOf(ref)
   if (d) used.push({where, ...d})
+}
+
+if (heroAsset) {
+  const kb = Math.round((heroAsset.size ?? 0) / 1024)
+  console.log('THE HERO BACKGROUND FILE\n')
+  console.log(`  filename    ${heroAsset.originalFilename ?? '(none recorded)'}`)
+  console.log(`  size        ${kb.toLocaleString()} KB`)
+  console.log(`  type        ${heroAsset.mimeType ?? '?'}`)
+  console.log(`  dimensions  ${heroAsset.w ?? '?'} x ${heroAsset.h ?? '?'}`)
+  console.log('\n  This names the FILE, not what is in the picture.\n')
 }
 
 add('hero background (CSS)', settings?.hero)

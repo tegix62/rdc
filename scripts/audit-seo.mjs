@@ -117,12 +117,24 @@ const rows = []
   copy exists, it just cannot be edited without a deploy.
 */
 for (const page of pages) {
+  const written = page.seoDescription?.trim() ?? ''
   rows.push({
     kind: 'page',
     route: page.slug === 'home' ? '/' : `/${page.slug}`,
     title: page.title,
-    description: page.seoDescription?.trim() ?? '',
-    source: page.seoDescription?.trim() ? 'written' : 'in the template',
+    description: written,
+    source: written ? 'written' : 'in the template',
+    /*
+      The fallback sentences live in the .astro templates, not in Sanity, so this
+      script cannot see them - it queries the dataset and never builds the site.
+
+      Flagged rather than measured, because the first version of this reported
+      those pages as "0 characters". They ship a perfectly good sentence; the
+      audit simply could not see it, and a zero it invented read exactly like a
+      page with no description at all. An audit that fabricates a number is worse
+      than one that admits a blind spot: the number gets acted on.
+    */
+    lengthUnknown: !written,
   })
 }
 
@@ -189,8 +201,10 @@ if (derived.length) {
   description is not an error - it is unused space in the one piece of copy
   whose entire job is to earn a click.
 */
-const short = rows.filter((r) => r.description.length < DESC_MIN)
-const long = rows.filter((r) => r.description.length > DESC_MAX)
+const measurable = rows.filter((r) => !r.lengthUnknown)
+const unmeasured = rows.filter((r) => r.lengthUnknown)
+const short = measurable.filter((r) => r.description.length < DESC_MIN)
+const long = measurable.filter((r) => r.description.length > DESC_MAX)
 
 console.log(`\n2. Length. Google renders about ${DESC_MAX} characters.\n`)
 if (short.length) {
@@ -200,10 +214,24 @@ if (short.length) {
   console.log(`   Nothing under ${DESC_MIN} characters.`)
 }
 if (long.length) {
-  console.log(`\n   ${long.length} over ${DESC_MAX} - these are cut off mid-thought in a result:`)
+  /*
+    Deliberately not truncated in code. Over-length descriptions carry no
+    penalty - Google cuts them for display - and the head sends max-snippet:-1,
+    which invites a longer snippet where one fits. Cutting them here would throw
+    away a tail somebody wrote in exchange for nothing.
+  */
+  console.log(`\n   ${long.length} over ${DESC_MAX} - Google will cut these where IT chooses:`)
   for (const r of long) console.log(`     ${String(r.description.length).padStart(3)}  ${r.route}`)
+  console.log('     (Not trimmed automatically. Rewriting beats truncating, and')
+  console.log('      an over-long description is not penalised - only cut.)')
 } else {
   console.log(`   Nothing over ${DESC_MAX} characters.`)
+}
+if (unmeasured.length) {
+  console.log(`\n   ${unmeasured.length} not measured - their copy lives in the .astro template,`)
+  console.log('   which this script does not read. They ship a real sentence; it just')
+  console.log('   cannot be edited in Studio until something is typed into the field:')
+  for (const r of unmeasured) console.log(`     ${r.route}`)
 }
 
 /*
@@ -227,8 +255,15 @@ if (longTitles.length) {
 }
 
 // --- duplicates --------------------------------------------------------------
+/*
+  Only the rows whose description this script can actually see. Including the
+  template-backed ones would compare their empty strings to each other and
+  report a duplicate that does not exist - two pages that in fact ship two
+  different sentences. test-head.mjs checks duplicates against the built HTML,
+  where every description is visible, and fails the build on a real one.
+*/
 const byDescription = new Map()
-for (const r of rows) {
+for (const r of measurable) {
   const list = byDescription.get(r.description) ?? []
   list.push(r.route)
   byDescription.set(r.description, list)
@@ -242,7 +277,8 @@ if (dupes.length) {
     console.log(`     "${desc.slice(0, 50)}…" on ${routes.join(' + ')}`)
   }
 } else {
-  console.log(`   None. ${byDescription.size} distinct across ${rows.length} pages.`)
+  console.log(`   None. ${byDescription.size} distinct across ${measurable.length} measurable pages.`)
+  console.log('   (The build gate checks all 21 against the built HTML and fails on a real one.)')
 }
 
 // --- the five Studio boxes ---------------------------------------------------

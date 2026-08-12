@@ -60,9 +60,22 @@ export function bareTitle(title: unknown, siteName: string = DEFAULT_SITE_NAME):
   Caps length at 160 characters - roughly where Google stops rendering a
   description - and does nothing else.
 
-  This is the right treatment for a field somebody wrote FOR search. Two short
-  sentences is a perfectly good meta description, and often better than one, so
-  cutting at the first full stop would throw away half of a deliberate line.
+  WHAT THIS IS AND IS NOT FOR
+
+  Used on text the CODE assembled, or on page copy being repurposed. NOT on a
+  line somebody wrote for the search result.
+
+  The distinction matters more than it looks. Over-length descriptions are not
+  penalised; Google truncates them for display and, since the head now sends
+  max-snippet:-1, may show more than 160 characters in some contexts. So
+  truncating here does not avoid a penalty - it permanently discards a tail that
+  the author wrote and that might otherwise have been shown.
+
+  For assembled text that trade is fine: nobody chose those words, and a clean
+  cut beats a ragged one. For a written line it is the wrong call, and it is the
+  call the first version of this made. Written fields now pass through whole and
+  the SEO audit reports their length instead, which puts the decision with the
+  person who wrote the sentence.
 */
 export function clamp(text: string, limit = 160): string {
   const trimmed = text.trim();
@@ -117,8 +130,8 @@ export const pageDescription = (
   filled in.
 
   The two written fields are treated differently on purpose. metaDescription was
-  written for the search result, so it is kept whole and only length-capped; the
-  excerpt is page copy, so it gets cut at its first sentence.
+  written for the search result, so it is passed through untouched; the excerpt is
+  page copy, so it gets cut at its first sentence and capped.
 */
 export function blogPostDescription(post: {
   metaDescription?: unknown;
@@ -126,7 +139,7 @@ export function blogPostDescription(post: {
   title?: unknown;
 }): string {
   const forSearch = stripStega(post?.metaDescription);
-  if (forSearch) return clamp(forSearch);
+  if (forSearch) return forSearch.trim();
 
   const written = stripStega(post?.excerpt);
   if (written) return firstSentence(written);
@@ -202,8 +215,10 @@ export function caseStudyDescription(
   study: CaseStudyMeta,
   siteName: string = DEFAULT_SITE_NAME,
 ): string {
+  // Whole, not clamped: see the note on clamp() about why truncating a line
+  // written for search is the wrong trade.
   const forSearch = stripStega(study?.seoDescription);
-  if (forSearch) return clamp(forSearch);
+  if (forSearch) return forSearch.trim();
 
   const written = stripStega(study?.oneLineSummary);
   if (written) return firstSentence(written);

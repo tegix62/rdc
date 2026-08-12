@@ -205,15 +205,20 @@ eq('text with no full stop is still returned', firstSentence('no punctuation her
   These two exist to treat two different kinds of text differently, and the
   distinction is the whole point:
 
-    firstSentence  page copy. Sentence two carries on a thought a search result
-                   has no room to finish, so it is cut.
-    clamp          a line somebody wrote FOR the search result. Two short
-                   sentences is a good meta description, so it is kept whole and
-                   only length-capped.
+    firstSentence  page copy, and text the code assembled. Sentence two carries
+                   on a thought a search result has no room to finish, so it is
+                   cut, then capped.
+    clamp          the cap on its own, for assembled text that is already one
+                   sentence.
 
   Before this split, every written description went through firstSentence - so a
   deliberate two-sentence line lost its second half, silently, and the only
   place that would ever have shown up is a Google result months later.
+
+  A line written FOR search goes through NEITHER. It is passed through whole:
+  truncating it discards a tail the author wrote, which the head now explicitly
+  invites Google to show in full via max-snippet:-1. The audit reports its
+  length instead, leaving the decision with the person who wrote the sentence.
 */
 const {clamp} = meta
 
@@ -261,6 +266,29 @@ eq(
   'and it is kept whole rather than cut at the first full stop',
   caseStudyDescription({seoDescription: 'A heritage mark for a winery. Hand-drawn over six weeks.'}),
   'A heritage mark for a winery. Hand-drawn over six weeks.',
+)
+/*
+  A written line is not truncated even when it is long.
+
+  This is the opposite of what the first version did, and the reason is
+  max-snippet:-1 in the head: the site now tells Google there is no limit on the
+  snippet it may show. Cutting the field at 160 with an ellipsis would throw away
+  a tail that Google was just invited to display - and over-length descriptions
+  carry no penalty, so the truncation bought nothing in exchange.
+
+  The audit reports the length instead. That keeps the choice with whoever wrote
+  it, which is the only place a judgement about their own sentence belongs.
+*/
+const longWritten = `${'A written sentence about the work. '.repeat(8)}End.`
+eq(
+  'a long written search description is passed through untouched',
+  caseStudyDescription({seoDescription: longWritten}),
+  longWritten.trim(),
+)
+eq(
+  'a long written post description is passed through untouched',
+  meta.blogPostDescription({metaDescription: longWritten}),
+  longWritten.trim(),
 )
 eq(
   'an empty search description falls through to the blurb',

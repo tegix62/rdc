@@ -1,0 +1,53 @@
+name: Recover client logo links
+
+# Chris emptied clientLogos[].href to clear a validation error that was blocking
+# Publish on the whole document. The values were right and the rule was wrong -
+# the field was typed `url`, which rejects internal paths like /work/dumpstat.
+# The schema now allows relative paths, so the old values can go back.
+#
+# Dry by default; only restores when run from the Actions tab with "restore"
+# ticked, so a push can never write content as a side effect.
+
+on:
+  workflow_dispatch:
+    inputs:
+      restore:
+        description: 'Actually restore (unticked = show what would change)'
+        type: boolean
+        default: false
+      at:
+        description: 'Read history from this time (RFC3339)'
+        type: string
+        default: '2026-08-11T23:30:00Z'
+  push:
+    paths:
+      - 'scripts/recover-client-logo-links.mjs'
+      - '.github/workflows/recover-client-logo-links.yml'
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Show what was lost, and restore only if asked
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          # Empty on a push event, so a push is always a dry run.
+          RESTORE: ${{ inputs.restore && 'yes' || '' }}
+          AT: ${{ inputs.at || '2026-08-11T23:30:00Z' }}
+        run: |
+          set -o pipefail
+          node scripts/recover-client-logo-links.mjs 2>&1 | tee logo-links.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "## Client logo links"
+            echo ""
+            echo '```'
+            cat logo-links.txt 2>/dev/null || echo '(the script did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

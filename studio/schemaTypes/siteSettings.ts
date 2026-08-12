@@ -203,7 +203,34 @@ export default defineType({
               validation: (Rule: any) =>
                 Rule.warning('Without this the logo is a link with no accessible name.'),
             },
-            {name: 'href', title: 'Link to their site (optional)', type: 'url'},
+            /*
+              Relative paths allowed, and that is the point of the override.
+
+              Sanity's url type rejects anything without a scheme, so
+              "/work/dumpstat" failed validation - and a failing field disables
+              the Publish button for the WHOLE document, whatever else you were
+              trying to change. Chris hit exactly that: he could not publish the
+              Meta Pixel ID until he emptied these, so a wrong rule here cost
+              real content elsewhere.
+
+              And the content was right. Half of these logos point at that
+              client's own case study rather than at their website, which is a
+              better link - it keeps the visitor on the site and shows the work.
+              The field was typed as if only external URLs were ever intended.
+
+              http and https only for the absolute case: a javascript: or data:
+              URL here would be an injection straight into an href.
+            */
+            {
+              name: 'href',
+              title: 'Link (optional) — their site, or /work/their-project',
+              type: 'url',
+              description:
+                'Either a full https:// address or an internal path starting ' +
+                'with / , e.g. /work/dumpstat to link the logo to that project.',
+              validation: (Rule: any) =>
+                Rule.uri({allowRelative: true, scheme: ['http', 'https']}),
+            },
           ],
           preview: {select: {title: 'alt', media: 'logo'}},
         },

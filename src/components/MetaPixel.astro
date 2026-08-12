@@ -67,8 +67,25 @@ if (raw && !pixelId) {
 const IS_PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
 const enabled = Boolean(pixelId) && !IS_PREVIEW;
 
+/*
+  Says so either way, because silence was unreadable.
+
+  Chris pasted the ID, deployed, and neither of us could tell from the build
+  whether the pixel had shipped - it logged only on REJECTION, so "nothing in
+  the log" meant both "working fine" and "no ID found". I had to infer the
+  answer from Cloudflare's upload count (8 changed files, not 21) to work out
+  it was absent, which is not a thing anyone should have to do.
+
+  The likely cause is worth naming here too: typing into Studio creates a DRAFT,
+  and the build reads PUBLISHED content. An unpublished field is invisible to
+  the site, and looks identical to a field nobody filled in.
+*/
 if (pixelId && IS_PREVIEW) {
   console.log('[MetaPixel] ID set, but this is the preview build - not loading it.');
+} else if (pixelId) {
+  console.log(`[MetaPixel] ON - tracking with ${pixelId} on every page of this build.`);
+} else if (!raw) {
+  console.log('[MetaPixel] off - no ID in Site Settings, so no tracking script is emitted.');
 }
 ---
 

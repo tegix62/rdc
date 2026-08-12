@@ -1,0 +1,48 @@
+name: Publish site settings
+
+# The Meta Pixel ID is saved on drafts.siteSettings and the published document
+# has not changed since 6 August, so the site cannot see it. Studio's Publish
+# button is greyed out on Chris's machine; the content operation behind it is
+# one API call.
+#
+# Diff-only by default. It only mutates when run from the Actions tab with
+# "publish" ticked, so a push can never publish content as a side effect.
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Actually publish (unticked = show the diff and change nothing)'
+        type: boolean
+        default: false
+  push:
+    paths:
+      - 'scripts/publish-site-settings.mjs'
+      - '.github/workflows/publish-site-settings.yml'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Diff, and publish only if asked
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          # Empty on a push event, so a push is always a dry run.
+          PUBLISH: ${{ inputs.publish && 'yes' || '' }}
+        run: |
+          set -o pipefail
+          node scripts/publish-site-settings.mjs 2>&1 | tee site-settings-publish.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "## Site Settings publish"
+            echo ""
+            echo '```'
+            cat site-settings-publish.txt 2>/dev/null || echo '(the script did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

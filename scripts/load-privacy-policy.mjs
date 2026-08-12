@@ -49,7 +49,8 @@ const md = readFileSync(new URL('../content/privacy-policy.md', import.meta.url)
 const body = markdownToPortableText(md)
 
 const page = await groq(`*[_type == "page" && slug.current == "privacy-policy" && !(_id in path("drafts.**"))][0]{
-  _id, title, heading, "blocks": count(body)
+  _id, title, heading, "blocks": count(body),
+  "existing": body[]{"style": style, "listItem": listItem, "text": array::join(children[].text, "")}
 }`)
 
 if (!page) {
@@ -63,14 +64,33 @@ console.log(`  heading  ${JSON.stringify(page.heading ?? null)}`)
 console.log(`  body     ${page.blocks ?? 0} block(s) currently\n`)
 
 /*
-  Overwriting is the intent, but it should not be silent. If someone has
-  written the policy in Studio in the meantime, this would erase it, and that
-  is worth stopping for rather than reporting afterwards.
+  Print what is already there before saying a word about replacing it.
+
+  I wrote the replacement policy believing this page was empty, on the strength
+  of a to-do item rather than a look at the data. It is not empty - it carries
+  29 blocks, migrated from Webflow - and the only reason the first run did not
+  overwrite a page of existing legal text was the guard below. So the existing
+  content is now shown in full: nobody should be asked to approve a replacement
+  without reading what it replaces.
+*/
+if ((page.blocks ?? 0) > 0) {
+  console.log(`WHAT IS ALREADY ON THIS PAGE - ${page.blocks} block(s)\n`)
+  for (const b of page.existing ?? []) {
+    const kind = b.listItem ? 'bullet' : (b.style ?? 'normal')
+    const t = (b.text ?? '').trim()
+    console.log(`  [${kind}] ${t || '(empty block)'}`)
+  }
+  console.log()
+}
+
+/*
+  Overwriting is the intent, but it must not be silent.
 */
 if ((page.blocks ?? 0) > 0 && process.env.OVERWRITE !== 'yes') {
   console.error(
-    `This page already has ${page.blocks} block(s) of body content. Loading ` +
-      `would replace all of it.\nRe-run with OVERWRITE=yes if that is what you want.`,
+    `This page already has ${page.blocks} block(s) of body content, printed ` +
+      `above. Loading would replace ALL of it.\nRead it first. Re-run with ` +
+      `OVERWRITE=yes only if the replacement is genuinely better.`,
   )
   process.exit(1)
 }

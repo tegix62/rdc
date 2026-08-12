@@ -1,0 +1,44 @@
+name: Set descriptions
+
+# Writes the five search descriptions Chris approved: four rewritten from the
+# over-length Webflow originals, plus one blog post that had none.
+#
+# Dry by default; only writes when run from the Actions tab with "set" ticked.
+
+on:
+  workflow_dispatch:
+    inputs:
+      set:
+        description: 'Actually write them (unticked = show what would change)'
+        type: boolean
+        default: false
+  push:
+    paths:
+      - 'scripts/set-descriptions.mjs'
+      - '.github/workflows/set-descriptions.yml'
+
+jobs:
+  set:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Show the change, and apply only if asked
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          SET: ${{ inputs.set && 'yes' || '' }}
+        run: |
+          set -o pipefail
+          node scripts/set-descriptions.mjs 2>&1 | tee descriptions.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "## Descriptions"
+            echo ""
+            echo '```'
+            cat descriptions.txt 2>/dev/null || echo '(the script did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

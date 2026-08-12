@@ -97,8 +97,15 @@ const [settings, studies, posts, pages] = await Promise.all([
       "slug": slug.current, title, category, client, principalType,
       seoDescription, oneLineSummary, summary
     }`),
+  /*
+    `bodyText` is here so this audit can show the raw material, not just the
+    verdict. Reporting "this post has no written description" while withholding
+    what the post says makes the reader go and open Studio to do anything about
+    it - which is most of the friction between knowing and fixing.
+  */
   groq(`*[_type == "blogPost" && defined(slug.current)] | order(publishedAt desc){
-    "slug": slug.current, title, metaDescription, excerpt, publishedAt
+    "slug": slug.current, title, metaDescription, excerpt, publishedAt,
+    "bodyText": array::join(body[].children[].text, " ")
   }`),
   groq(`*[_type == "page" && defined(slug.current)] | order(slug.current asc){
     "slug": slug.current, title, seoDescription
@@ -167,6 +174,9 @@ for (const post of posts) {
     title: post.title,
     description: blogPostDescription(post),
     source,
+    // The opening of the post itself, so a description can be written from what
+    // the post says rather than from its title.
+    material: (post.bodyText ?? '').trim().slice(0, 260),
   })
 }
 
@@ -189,7 +199,17 @@ if (derived.length) {
   console.log('   like a database row, and this is the sentence a stranger decides on.\n')
   for (const r of derived) {
     console.log(`   ${r.route}`)
-    console.log(`     now: ${r.description}`)
+    console.log(`     now:  ${r.description}`)
+    /*
+      The post's own opening, printed underneath.
+
+      Without it this section names a problem and withholds the only thing
+      needed to fix it, so the reader has to go and open Studio to find out what
+      the page is even about - which is most of the distance between knowing and
+      doing.
+    */
+    if (r.material) console.log(`     from: ${r.material}…`)
+    console.log()
   }
   console.log('\n   Fix: Studio → the project → "Short blurb (one line)". One sentence each.')
 } else {
@@ -221,7 +241,18 @@ if (long.length) {
     away a tail somebody wrote in exchange for nothing.
   */
   console.log(`\n   ${long.length} over ${DESC_MAX} - Google will cut these where IT chooses:`)
-  for (const r of long) console.log(`     ${String(r.description.length).padStart(3)}  ${r.route}`)
+  /*
+    The sentence itself, and where the cut falls.
+
+    Reporting only a character count means the next step is always "go and look
+    it up". Printing the text with a marker at the limit turns it into a reading
+    task: everything after the marker is what a search result drops.
+  */
+  for (const r of long) {
+    console.log(`\n     ${r.route} - ${r.description.length} chars`)
+    console.log(`       ${r.description.slice(0, DESC_MAX)}`)
+    console.log(`       ---- cut ---- ${r.description.slice(DESC_MAX)}`)
+  }
   console.log('     (Not trimmed automatically. Rewriting beats truncating, and')
   console.log('      an over-long description is not penalised - only cut.)')
 } else {

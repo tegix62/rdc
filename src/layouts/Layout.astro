@@ -6,7 +6,7 @@ import '@fontsource/gothic-a1/700.css';
 import '../styles/global.css';
 import { getSiteSettings } from '../lib/queries';
 import Img from '../components/Img.astro';
-import { imageUrl, socialCardUrl } from '../lib/image';
+import { hasAsset, imageUrl, socialCardDimensions, socialCardUrl } from '../lib/image';
 import VisualEditing from '../components/VisualEditing.astro';
 import MetaPixel from '../components/MetaPixel.astro';
 import { buildGraph, serialise, type SiteContext } from '../lib/structuredData';
@@ -16,6 +16,7 @@ import {
   DEFAULT_LEGAL_NAME,
   DEFAULT_SITE_NAME,
   pageTitle,
+  twitterHandle,
 } from '../lib/meta';
 
 interface Props {
@@ -23,6 +24,12 @@ interface Props {
   description?: string;
   /** Absolute URL for social previews. Falls back to no og:image. */
   ogImage?: string;
+  /**
+   * What the social image shows, for og:image:alt. Defaults to naming the page,
+   * which is true of a case study's hero or a post's lead image. Worth passing
+   * when the image is of something the title doesn't name.
+   */
+  ogImageAlt?: string;
   /** 'article' for blog posts and case studies. */
   ogType?: 'website' | 'article';
   /**
@@ -48,6 +55,7 @@ const {
   title,
   description = 'Rumeau Design Co',
   ogImage,
+  ogImageAlt,
   ogType = 'website',
   noindex = false,
   jsonLd,
@@ -113,6 +121,34 @@ const socialImage =
   socialCardUrl(settings?.socialImage) ??
   socialCardUrl(settings?.logo, {pad: true});
 
+/*
+  og:image:width and og:image:height, read back out of the URL rather than
+  assumed - see socialCardDimensions in lib/image.ts for why that matters.
+
+  Their absence is the usual reason a link that "should" show a big card shows a
+  small one instead: a scraper that has to fetch the file to learn its shape
+  will often fall back to the compact layout rather than wait.
+*/
+const socialImageSize = socialCardDimensions(socialImage ?? undefined);
+
+/*
+  og:image:alt describes the card to somebody who cannot see it - screen readers
+  announce it on Slack and Mastodon posts.
+
+  The default names the page, which is accurate for the two templates that pass
+  a real image: a case study's card IS the project, a post's card IS the post.
+  When the wordmark fallback is standing in, the honest description is the
+  studio's name, since that is literally all the image contains.
+*/
+const usingWordmarkFallback = !ogImage && !hasAsset(settings?.socialImage);
+const socialImageAlt = ogImageAlt ?? (usingWordmarkFallback ? SITE_NAME : shareTitle);
+
+/*
+  twitter:site, from the X link in the footer rather than a field of its own.
+  Undefined when there is no X account, which omits the tag entirely.
+*/
+const twitterAccount = twitterHandle(settings?.socialLinks);
+
 // The preview deployment is a public URL. Without this it is perfectly
 // crawlable and would compete with rumeaudesign.co in search results for
 // duplicated copy. Webflow's staging is noindexed for the same reason.
@@ -155,12 +191,37 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     {/*
+      Every image on the site is served from cdn.sanity.io, and the largest
+      element on most pages is one of them. Without this the browser cannot
+      start the DNS lookup and TLS handshake for that host until it has parsed
+      the markup and found the first <img> - so the connection setup lands
+      directly in front of the LCP image instead of overlapping the HTML parse.
+
+      crossorigin is required and easy to get wrong: images are fetched
+      anonymously, and a preconnect without it opens a connection on different
+      terms that the image request then cannot reuse - which silently buys
+      nothing while looking correct.
+    */}
+    <link rel="preconnect" href="https://cdn.sanity.io" crossorigin />
+    {/*
       Served from Sanity so it can be changed without a code edit. Falls back
       to /favicon.svg, which has never existed - so until one is uploaded every
       page load 404s on it and tabs show a blank icon.
     */}
     {imageUrl(settings?.favicon) ? (
-      <link rel="icon" href={imageUrl(settings.favicon)!.width(64).height(64).fit('crop').url()} />
+      <>
+        <link rel="icon" href={imageUrl(settings.favicon)!.width(64).height(64).fit('crop').url()} />
+        {/*
+          What iOS uses when the site is added to a home screen. Without it
+          Safari screenshots the page and uses that, which at icon size is an
+          unreadable grey rectangle. 180px is the size Apple asks for; PNG
+          because iOS ignores an SVG here.
+        */}
+        <link
+          rel="apple-touch-icon"
+          href={imageUrl(settings.favicon)!.width(180).height(180).fit('crop').format('png').url()}
+        />
+      </>
     ) : (
       <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     )}
@@ -175,20 +236,74 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
     <meta name="description" content={description} />
     <title>{fullTitle}</title>
     <link rel="canonical" href={canonical} />
-    {(IS_PREVIEW || noindex) && <meta name="robots" content="noindex, nofollow" />}
+    {/*
+      A robots meta on every page, not just the hidden ones.
+
+      max-image-preview:large is the reason this is here. Google shows a small
+      thumbnail beside a result by default and a large one only when a site opts
+      in - and in Google Images and Discover, which is where an image-heavy
+      portfolio has the most to gain, the difference is between a postage stamp
+      and something a person would click. Nothing about the site suggests
+      restraint here: every image on it is meant to be looked at.
+
+      max-snippet:-1 and max-video-preview:-1 lift the same self-imposed caps on
+      the text snippet and video preview length. All three are opt-ins, so
+      omitting them is not neutral - it silently accepts the smaller version.
+    */}
+    <meta
+      name="robots"
+      content={
+        IS_PREVIEW || noindex
+          ? 'noindex, nofollow'
+          : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
+      }
+    />
+    {/*
+      The colour of the browser chrome on mobile Safari and Chrome. Not a
+      ranking signal - it is the strip above the page on a phone, which is
+      otherwise the browser's own grey.
+
+      This is --color-navy from global.css, restated because a <meta> content
+      attribute cannot read a CSS custom property. If the brand navy ever
+      changes, this is a second place to change it.
+
+      Worth knowing what it looks like: the nav below it is WHITE, so this
+      paints a navy band above a white bar rather than extending one surface.
+      That reads as deliberate, but it is a design call - swap it to #ffffff for
+      the seamless version.
+    */}
+    <meta name="theme-color" content="#002885" />
 
     {/* Webflow emitted these per page; without them a shared link previews
         as a bare URL with no title, description or image. */}
     <meta property="og:type" content={ogType} />
     <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:title" content={shareTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
-    {socialImage && <meta property="og:image" content={socialImage} />}
+    {socialImage && (
+      <>
+        <meta property="og:image" content={socialImage} />
+        <meta property="og:image:alt" content={socialImageAlt} />
+        {socialImageSize && (
+          <>
+            <meta property="og:image:width" content={String(socialImageSize.width)} />
+            <meta property="og:image:height" content={String(socialImageSize.height)} />
+          </>
+        )}
+      </>
+    )}
     <meta name="twitter:card" content={socialImage ? 'summary_large_image' : 'summary'} />
+    {twitterAccount && <meta name="twitter:site" content={twitterAccount} />}
     <meta name="twitter:title" content={shareTitle} />
     <meta name="twitter:description" content={description} />
-    {socialImage && <meta name="twitter:image" content={socialImage} />}
+    {socialImage && (
+      <>
+        <meta name="twitter:image" content={socialImage} />
+        <meta name="twitter:image:alt" content={socialImageAlt} />
+      </>
+    )}
 
     {/* Explicit closing tag: a self-closed <script/> is not valid HTML and
         browsers swallow the rest of the head. */}

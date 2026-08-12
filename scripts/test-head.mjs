@@ -113,6 +113,19 @@ for (const file of pages) {
     robots: meta(html, 'robots'),
     canonical: attr(html, /<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']*)["']/i),
     h1s: html.match(/<h1[\s>]/gi)?.length ?? 0,
+    ogImageAlt: meta(html, 'og:image:alt'),
+    ogImageWidth: meta(html, 'og:image:width'),
+    ogImageHeight: meta(html, 'og:image:height'),
+    twitterCard: meta(html, 'twitter:card'),
+    twitterImageAlt: meta(html, 'twitter:image:alt'),
+    /*
+      Captured RAW, not through decode(). The contents of a <script> are not
+      HTML-escaped, so running the entity decoder over them would rewrite any
+      literal "&amp;" inside a JSON string value and produce JSON that differs
+      from what the browser and Google actually parse - a checker corrupting its
+      own evidence.
+    */
+    jsonLd: html.match(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/i)?.[1] ?? null,
   })
 }
 
@@ -179,6 +192,61 @@ check('every og:image is an absolute https URL', badOgImage.length === 0, report
 */
 const notJpeg = docs.filter((d) => d.ogImage?.includes('cdn.sanity.io') && !/[?&]fm=jpg(&|$)/.test(d.ogImage))
 check('every Sanity og:image is forced to jpeg', notJpeg.length === 0, report(notJpeg))
+
+/*
+  og:image:alt describes the card to somebody who cannot see it - screen readers
+  announce it on Slack and Mastodon. An og:image with no alt is the image
+  equivalent of a bare <img>.
+*/
+const noOgAlt = docs.filter((d) => d.ogImage && !d.ogImageAlt?.trim())
+check('every og:image has an alt', noOgAlt.length === 0, report(noOgAlt))
+
+const noTwitterAlt = docs.filter((d) => d.ogImage && !d.twitterImageAlt?.trim())
+check('every twitter:image has an alt', noTwitterAlt.length === 0, report(noTwitterAlt))
+
+/*
+  og:image:width and og:image:height, checked AGAINST the URL rather than merely
+  for presence.
+
+  Presence alone is the easy check and the useless one: the whole risk with these
+  two tags is that they state a size the file does not have, which is worse than
+  omitting them - a scraper that trusts them lays out a space the image does not
+  fill. So the numbers are compared to the w and h in the image URL itself. If
+  they ever disagree, one of them is lying and this says which.
+*/
+// Never throws: a URL this cannot parse is already reported by the absolute-https
+// check above, and a checker that crashes reports nothing at all about the other
+// twenty pages.
+const askedSize = (url) => {
+  try {
+    const params = new URL(url).searchParams
+    return {w: params.get('w'), h: params.get('h')}
+  } catch {
+    return {w: null, h: null}
+  }
+}
+
+const sized = docs.filter((d) => d.ogImage?.includes('cdn.sanity.io'))
+const missingSize = sized.filter((d) => !d.ogImageWidth || !d.ogImageHeight)
+check('every Sanity og:image states its dimensions', missingSize.length === 0, report(missingSize))
+
+const wrongSize = sized.filter((d) => {
+  const {w, h} = askedSize(d.ogImage)
+  return w !== d.ogImageWidth || h !== d.ogImageHeight
+})
+check(
+  'the stated dimensions match the image URL',
+  wrongSize.length === 0,
+  wrongSize
+    .map((d) => {
+      const {w, h} = askedSize(d.ogImage)
+      return `${d.route}: says ${d.ogImageWidth}x${d.ogImageHeight}, URL asks for ${w}x${h}`
+    })
+    .join(' | ') || `${sized.length} pages`,
+)
+
+const smallCard = docs.filter((d) => d.ogImage && d.twitterCard !== 'summary_large_image')
+check('every page with an image asks for the large card', smallCard.length === 0, report(smallCard))
 
 /*
   og:title sits directly above og:site_name in every social card, so restating
@@ -266,6 +334,197 @@ if (IS_PREVIEW) {
   check('internal pages are noindexed', leaked.length === 0, report(leaked))
   const hidden = docs.filter((d) => !INTERNAL.has(d.route) && d.route !== '/404' && /noindex/i.test(d.robots ?? ''))
   check('no real page is accidentally noindexed', hidden.length === 0, report(hidden))
+}
+
+/*
+  Google shows a small thumbnail beside a result unless a site opts in to a large
+  one. For a portfolio the image IS the pitch, so the opt-in matters more here
+  than the text snippet does - and being an opt-in, its absence is silent.
+*/
+if (!IS_PREVIEW) {
+  const smallPreview = indexable.filter((d) => !/max-image-preview:large/.test(d.robots ?? ''))
+  check('indexable pages opt in to large image previews', smallPreview.length === 0, report(smallPreview))
+}
+
+// Every image on the site comes from this host, and the largest element on most
+// pages is one of them.
+const noPreconnect = docs.filter((d) => !/rel=["']preconnect["'][^>]*cdn\.sanity\.io/.test(d.html))
+check('every page preconnects to the image CDN', noPreconnect.length === 0, report(noPreconnect))
+
+// --- structured data ---------------------------------------------------------
+/*
+  WHY THIS IS CHECKED AT ALL
+
+  The JSON-LD block was shipped and never verified beyond "a script tag exists".
+  It is the single most breakable thing in the head: it is machine-only, so no
+  amount of looking at the site reveals a fault, and one unescaped character
+  anywhere in it invalidates the WHOLE block - not the field that contained it.
+  A studio name with an apostrophe, a project title with a "</" in it, and every
+  page silently stops carrying any structured data at all.
+
+  So: it must parse, and it must contain the nodes it is supposed to.
+*/
+const noJsonLd = docs.filter((d) => !d.jsonLd?.trim())
+check('every page emits a JSON-LD block', noJsonLd.length === 0, report(noJsonLd))
+
+const parsed = new Map()
+const unparseable = []
+for (const d of docs) {
+  if (!d.jsonLd?.trim()) continue
+  try {
+    parsed.set(d.route, JSON.parse(d.jsonLd))
+  } catch (error) {
+    unparseable.push(`${d.route}: ${error.message}`)
+  }
+}
+check('every JSON-LD block is valid JSON', unparseable.length === 0, unparseable.join(' | ') || `${parsed.size} parsed`)
+
+const typesOf = (graph) =>
+  new Set((graph?.['@graph'] ?? []).map((node) => node?.['@type']).filter(Boolean))
+
+const REQUIRED_NODES = ['Organization', 'WebSite', 'WebPage']
+const missingNodes = [...parsed.entries()].filter(
+  ([, graph]) => !REQUIRED_NODES.every((type) => typesOf(graph).has(type)),
+)
+check(
+  'every page states Organization, WebSite and WebPage',
+  missingNodes.length === 0,
+  missingNodes.map(([route, graph]) => `${route}: has ${[...typesOf(graph)].join('+') || 'nothing'}`).join(' | '),
+)
+
+// The per-template nodes. A case study that lost its CreativeWork still looks
+// perfect and no longer says who made the work or who it was for.
+const workPages = [...parsed.entries()].filter(([route]) => route.startsWith('/work/'))
+const noWorkNode = workPages.filter(([, graph]) => !typesOf(graph).has('CreativeWork'))
+check(
+  'every case study states a CreativeWork',
+  noWorkNode.length === 0,
+  noWorkNode.map(([route]) => route).join(', ') || `${workPages.length} pages`,
+)
+
+const postPages = [...parsed.entries()].filter(([route]) => /^\/blog\/.+/.test(route))
+const noPostNode = postPages.filter(([, graph]) => !typesOf(graph).has('BlogPosting'))
+check(
+  'every blog post states a BlogPosting',
+  noPostNode.length === 0,
+  noPostNode.map(([route]) => route).join(', ') || `${postPages.length} pages`,
+)
+
+const noCrumbs = [...parsed.entries()]
+  .filter(([route]) => route.startsWith('/work/') || /^\/blog\/.+/.test(route))
+  .filter(([, graph]) => !typesOf(graph).has('BreadcrumbList'))
+check('every nested page states a breadcrumb trail', noCrumbs.length === 0, noCrumbs.map(([route]) => route).join(', '))
+
+/*
+  Zero-width stega markers inside JSON-LD are the failure that broke the
+  Portfolio filters, except the reader here is Google rather than a click
+  handler - so it produces no symptom at all, just subtly wrong strings.
+*/
+const stegaInJsonLd = [...parsed.entries()].filter(([, graph]) =>
+  /[​-‏⁠-⁤﻿]/.test(JSON.stringify(graph)),
+)
+check('no JSON-LD carries zero-width characters', stegaInJsonLd.length === 0, stegaInJsonLd.map(([route]) => route).join(', '))
+
+/*
+  The licence URL attached to every image must be a page that actually exists and
+  can be crawled. Google requires it for the licensable-image markup to count,
+  and more plainly: a licence nobody can reach is not a licence.
+
+  Checked against the built output rather than assumed, because the page it points
+  at was previously left out of the sitemap on the grounds that it was thin
+  boilerplate - exactly the kind of page that gets deleted in a tidy-up.
+*/
+const licenceUrls = new Set()
+for (const [, graph] of parsed) {
+  for (const match of JSON.stringify(graph).matchAll(/"(?:license|acquireLicensePage)":"([^"]+)"/g)) {
+    licenceUrls.add(match[1])
+  }
+}
+const licenceRoutes = [...licenceUrls]
+  .map((url) => {
+    try {
+      return new URL(url).pathname.replace(/(.)\/$/, '$1')
+    } catch {
+      return url
+    }
+  })
+const builtRoutes = new Set(docs.map((d) => d.route))
+const danglingLicence = licenceRoutes.filter((route) => !builtRoutes.has(route))
+check(
+  'the licence page every image points at was built',
+  danglingLicence.length === 0,
+  danglingLicence.join(', ') || [...licenceUrls].join(', ') || 'no licensable images on this build',
+)
+
+const licencePageIndexable = docs.find((d) => licenceRoutes.includes(d.route))
+if (!IS_PREVIEW && licencePageIndexable) {
+  check(
+    'the licence page is indexable',
+    !/noindex/i.test(licencePageIndexable.robots ?? ''),
+    licencePageIndexable.route,
+  )
+}
+
+// --- sitemap -----------------------------------------------------------------
+/*
+  Checked here rather than trusted, because this file now interpolates
+  hand-written titles and query-string URLs into XML - and "Hug a Mug Coffeehouse
+  & Ceramics Studio" contains a character that makes the whole document a parse
+  error rather than a sitemap with one odd title in it. A broken sitemap does not
+  degrade; Search Console rejects the file entirely.
+*/
+const sitemapPath = path.join(dir, 'sitemap.xml')
+let sitemap = null
+try {
+  sitemap = await readFile(sitemapPath, 'utf8')
+} catch {
+  // Astro emits this route only on a full build; a partial dist is not a failure
+  // of the sitemap itself.
+  console.log('skip  sitemap.xml not in this build')
+}
+
+if (sitemap) {
+  /*
+    No XML parser in the standard library, so this asserts the property that
+    actually breaks: a bare & that is not the start of an entity. That is the one
+    the titles and the image URLs can introduce.
+  */
+  const bareAmp = sitemap.match(/&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-f]+);)/gi)
+  check('sitemap has no unescaped ampersands', !bareAmp, bareAmp ? `${bareAmp.length} found` : 'clean')
+
+  const locs = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])
+  check('sitemap lists URLs', locs.length > 0, `${locs.length} <loc> entries`)
+
+  const relative = locs.filter((loc) => !loc.startsWith('https://'))
+  check('every sitemap URL is absolute', relative.length === 0, relative.join(', '))
+
+  // Trailing slashes must match the canonicals exactly or a crawler reads two
+  // URLs for one page. This is the pair that silently drifted once already.
+  const canonicals = new Set(docs.map((d) => d.canonical).filter(Boolean))
+  const unmatched = locs.filter((loc) => !canonicals.has(loc))
+  check(
+    'every sitemap URL matches a page canonical exactly',
+    unmatched.length === 0,
+    unmatched.join(', ') || `${locs.length} URLs`,
+  )
+
+  const lastmods = [...sitemap.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((m) => m[1])
+  const badLastmod = lastmods.filter((value) => !/^\d{4}-\d{2}-\d{2}$/.test(value))
+  check('every lastmod is a W3C date', badLastmod.length === 0, badLastmod.join(', ') || `${lastmods.length} dated`)
+
+  // A lastmod in the future is the shape a fabricated one takes, and crawlers
+  // discount the field when they see it.
+  const today = new Date().toISOString().slice(0, 10)
+  const futureLastmod = lastmods.filter((value) => value > today)
+  check('no lastmod is in the future', futureLastmod.length === 0, futureLastmod.join(', '))
+
+  if (!IS_PREVIEW) {
+    check('sitemap declares the image namespace', sitemap.includes('sitemap-image/1.1'), '')
+    const imageLocs = [...sitemap.matchAll(/<image:loc>([^<]+)<\/image:loc>/g)].map((m) => m[1])
+    check('sitemap declares project images', imageLocs.length > 0, `${imageLocs.length} images`)
+    const badImage = imageLocs.filter((loc) => !loc.startsWith('https://cdn.sanity.io/'))
+    check('every sitemap image is a CDN URL', badImage.length === 0, badImage.join(', '))
+  }
 }
 
 console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll checks passed.')

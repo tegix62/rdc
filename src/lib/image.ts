@@ -238,6 +238,35 @@ export function socialCardUrl(source: unknown, {pad = false} = {}): string | nul
     : sized.fit('crop').url();
 }
 
+/*
+  The pixel size of a social-card URL, read back OUT of the URL.
+
+  og:image:width and og:image:height let a scraper reserve the card's shape
+  before fetching the file, and LinkedIn in particular is much more willing to
+  render a large card when they are present. The temptation is to hardcode
+  1200x630, since that is what socialCardUrl always asks for.
+
+  Hardcoding it would be a lie waiting to happen. `ogImage` is a plain string
+  prop on the Layout - any page could pass a URL from somewhere else, and the
+  tags would then confidently state the wrong dimensions, which is worse than
+  omitting them: a scraper that trusts them lays out a space the image does not
+  fill. Reading w and h back out of the URL means the numbers cannot disagree
+  with the image, and a URL that carries neither simply gets no tags.
+*/
+export function socialCardDimensions(url: string | undefined): {width: number; height: number} | null {
+  if (!url) return null;
+  let params: URLSearchParams;
+  try {
+    params = new URL(url).searchParams;
+  } catch {
+    return null;
+  }
+  const width = Number(params.get('w'));
+  const height = Number(params.get('h'));
+  if (!Number.isFinite(width) || !Number.isFinite(height) || !width || !height) return null;
+  return {width, height};
+}
+
 // The widths offered to the browser. Chosen to bracket the sizes this site
 // actually renders at rather than a generic ladder. Sanity generates each on
 // first request and caches it.

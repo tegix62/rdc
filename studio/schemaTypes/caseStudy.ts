@@ -240,6 +240,38 @@ export default defineType({
         'description for this page, so write it for a stranger. Overlaps with ' +
         'Full Summary below - these two are due to be merged into one field.',
     }),
+    /*
+      The search-result line, when it should differ from anything on the page.
+
+      Every other description on a project page is page copy doing double duty:
+      the short blurb and the full summary both APPEAR, so rewriting one to read
+      better in Google changes the design. This field appears nowhere. It exists
+      for the case where the honest thing to show a visitor who already clicked
+      and the honest thing to show a stranger deciding whether to are not the
+      same sentence.
+
+      Left empty, the page falls back to the blurb, then the summary, then a
+      line assembled from category and client - see caseStudyDescription in
+      src/lib/meta.ts. So this is an override, never a requirement.
+    */
+    defineField({
+      name: 'seoDescription',
+      title: 'Search description (optional) — shown in Google, not on the page',
+      type: 'text',
+      rows: 2,
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+      description:
+        'Leave empty and the short blurb is used. Fill it in when the line ' +
+        'that should pull a stranger in differs from the line that belongs on ' +
+        'the page. Around 150 characters is what Google shows; longer is ' +
+        'trimmed at a word boundary.',
+      validation: (Rule) =>
+        Rule.max(300).warning(
+          'Google renders about 150 characters. This will be cut off - which is ' +
+            'fine if the first 150 stand on their own.',
+        ),
+    }),
     defineField({
       name: 'summary',
       title: 'Full Summary (paragraph) — wins over the short blurb on the page',

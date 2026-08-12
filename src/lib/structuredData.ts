@@ -40,6 +40,47 @@ function compact<T extends Record<string, unknown>>(obj: T): Record<string, unkn
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined && v !== null));
 }
 
+/** Where the site states what may and may not be done with its images. */
+export const LICENCE_PATH = '/image-license-info';
+
+/*
+  An image, declared as licensable.
+
+  This is the one piece of structured data on the site that exists for a reason
+  other than search ranking. Google Images shows a "Licensable" badge on images
+  that carry these two properties, linking to the terms - and the whole site is
+  already built around the position that the work is not free to take: the
+  right-click handler, the drag guard, the /image-license-info page.
+
+  Those measures are all deterrents, and weak ones by their own admission. This
+  is the opposite kind of thing: it makes no attempt to stop anybody, and instead
+  attaches the terms to the image in the one place a person looking for an image
+  to use will actually see them.
+
+    license            the terms themselves.
+    acquireLicensePage where to ask. The same page, which is where the contact
+                       route is.
+
+  Deliberately NOT applied to the wordmark. A logo is a trademark, not stock -
+  marking it licensable invites exactly the use that trademark exists to refuse.
+*/
+export function licensableImage(
+  url: string | undefined,
+  origin: string,
+  caption?: string,
+): Record<string, unknown> | undefined {
+  if (!url) return undefined;
+  const licence = `${origin}${LICENCE_PATH}`;
+  return compact({
+    '@type': 'ImageObject',
+    url,
+    contentUrl: url,
+    caption: clean(caption),
+    license: licence,
+    acquireLicensePage: licence,
+  });
+}
+
 export interface SiteContext {
   /** Absolute origin, e.g. https://rumeaudesign.co */
   origin: string;
@@ -80,14 +121,55 @@ export function buildGraph(ctx: SiteContext, extra: Record<string, unknown>[] = 
         .filter((u: string | undefined): u is string => Boolean(u && /^https?:\/\//.test(u)))
     : [];
 
+  /*
+    The founder, as a Person with an @id of their own.
+
+    For a one-person studio the designer's name is a search entity in its own
+    right - people look for "Chris Rumeau" as readily as for the studio - and
+    without this the two are unrelated strings that happen to appear on the same
+    site. `founder` states the relationship, which is what lets a search engine
+    show one when asked about the other.
+
+    The About page is the Person's url because that is where the site actually
+    talks about him. Falls back to the homepage if that page has been removed.
+  */
+  const founderName = clean(settings?.founderName);
+  const founder = founderName
+    ? compact({
+        '@type': 'Person',
+        '@id': `${origin}/#founder`,
+        name: founderName,
+        url: `${origin}/about`,
+        jobTitle: clean(settings?.founderRole),
+      })
+    : undefined;
+
+  /*
+    Where the studio works from and who it serves.
+
+    Both are plain strings rather than a full PostalAddress: a studio that takes
+    remote clients has no counter to walk up to, and an address with a street in
+    it is a claim about a place of business. `areaServed` is the honest version
+    of what a design studio wants from a local search - "yes, this business
+    covers you" - without inventing premises.
+  */
+  const locality = clean(settings?.locality);
+
   const organization = compact({
     '@type': 'Organization',
     '@id': orgId,
     name,
+    // The name on the copyright line, when it differs from the trading name.
+    legalName: clean(settings?.legalName),
     url: `${origin}/`,
     description: clean(settings?.tagline),
+    email: clean(settings?.email),
     // Resolved by the caller, which is where the image URL builder lives.
+    // Plain ImageObject, not licensable - see licensableImage.
     logo: ctx.logoUrl ? {'@type': 'ImageObject', url: ctx.logoUrl} : undefined,
+    founder,
+    address: locality ? compact({'@type': 'PostalAddress', addressLocality: locality}) : undefined,
+    areaServed: clean(settings?.areaServed),
     sameAs: sameAs.length ? sameAs : undefined,
   });
 
@@ -107,7 +189,7 @@ export function buildGraph(ctx: SiteContext, extra: Record<string, unknown>[] = 
     name: clean(ctx.title),
     description: clean(ctx.description),
     isPartOf: {'@id': siteId},
-    primaryImageOfPage: ctx.image ? {'@type': 'ImageObject', url: ctx.image} : undefined,
+    primaryImageOfPage: licensableImage(ctx.image, origin, clean(ctx.title)),
     inLanguage: 'en',
   });
 
@@ -161,9 +243,9 @@ export function caseStudyNode(
     '@id': `${canonical}#work`,
     name: clean(study.title),
     headline: clean(study.headline),
-    description: clean(study.oneLineSummary) ?? clean(study.summary),
+    description: clean(study.seoDescription) ?? clean(study.oneLineSummary) ?? clean(study.summary),
     url: canonical,
-    image: ctx.image,
+    image: licensableImage(ctx.image, origin, clean(study.title)),
     creator: {'@id': orgId},
     // Named on the page as the client, so it is the subject of the work.
     about: client ? {'@type': 'Organization', name: client} : undefined,
@@ -189,10 +271,16 @@ export function blogPostNode(
     headline: clean(post.title),
     description: clean(post.metaDescription) ?? clean(post.excerpt),
     url: canonical,
-    image: ctx.image,
+    image: licensableImage(ctx.image, origin, clean(post.title)),
     // Only stated when the field is filled. An invented date is a lie a
     // crawler will happily repeat.
     datePublished: clean(post.publishedAt),
+    /*
+      Sanity's own _updatedAt, so an edited post says it was edited. Only
+      emitted alongside a real publish date: dateModified on its own describes
+      a revision to something that was apparently never published.
+    */
+    dateModified: clean(post.publishedAt) ? clean(post._updatedAt) : undefined,
     author: author ? {'@type': 'Person', name: author} : {'@id': orgId},
     publisher: {'@id': orgId},
     mainEntityOfPage: {'@id': `${canonical}#webpage`},

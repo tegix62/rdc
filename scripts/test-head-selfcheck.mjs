@@ -38,6 +38,22 @@ const CHECKER = path.join(repo, 'scripts/test-head.mjs')
 // leaves nothing behind in the working tree.
 const here = path.join(repo, 'node_modules', '.cache', 'head-selfcheck')
 
+/*
+  The default JSON-LD graph: the three nodes every page must state. Built as a
+  function of the canonical so the fixture's @ids are self-consistent, the same
+  way the real one is.
+*/
+const graphFor = (canonical, extra = []) =>
+  JSON.stringify({
+    '@context': 'https://schema.org',
+    '@graph': [
+      {'@type': 'Organization', '@id': 'https://rumeaudesign.co/#organization', name: 'Rumeau Design Co'},
+      {'@type': 'WebSite', '@id': 'https://rumeaudesign.co/#website', name: 'Rumeau Design Co'},
+      {'@type': 'WebPage', '@id': `${canonical}#webpage`, url: canonical},
+      ...extra,
+    ],
+  })
+
 const page = ({
   title = 'About | Rumeau Design Co',
   description = 'About the studio.',
@@ -45,19 +61,34 @@ const page = ({
   ogTitle = 'About',
   siteName = 'Rumeau Design Co',
   ogImage = 'https://cdn.sanity.io/images/x/production/a-1200x630.jpg?w=1200&amp;h=630&amp;fm=jpg&amp;fit=crop',
-  robots = null,
+  ogImageAlt = 'About',
+  ogImageWidth = '1200',
+  ogImageHeight = '630',
+  twitterCard = 'summary_large_image',
+  twitterImageAlt = 'About',
+  // The production default. Pages that must NOT be indexed override it.
+  robots = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
+  preconnect = '<link rel="preconnect" href="https://cdn.sanity.io" crossorigin />',
+  jsonLd = null,
   h1 = '<h1>Hello</h1>',
   skip = '<a class="skip-link" href="#main-content">Skip to content</a>',
   main = '<main id="main-content" tabindex="-1">',
 } = {}) =>
   `<!doctype html><html lang="en"><head>
+${preconnect}
 <meta name="description" content="${description}" />
 <title>${title}</title>
 ${canonical ? `<link rel="canonical" href="${canonical}" />` : ''}
 ${ogTitle ? `<meta property="og:title" content="${ogTitle}" />` : ''}
 ${siteName ? `<meta property="og:site_name" content="${siteName}" />` : ''}
 ${ogImage ? `<meta property="og:image" content="${ogImage}" />` : ''}
+${ogImageAlt ? `<meta property="og:image:alt" content="${ogImageAlt}" />` : ''}
+${ogImageWidth ? `<meta property="og:image:width" content="${ogImageWidth}" />` : ''}
+${ogImageHeight ? `<meta property="og:image:height" content="${ogImageHeight}" />` : ''}
+${twitterCard ? `<meta name="twitter:card" content="${twitterCard}" />` : ''}
+${twitterImageAlt ? `<meta name="twitter:image:alt" content="${twitterImageAlt}" />` : ''}
 ${robots ? `<meta name="robots" content="${robots}" />` : ''}
+<script type="application/ld+json">${jsonLd ?? graphFor(canonical || 'https://rumeaudesign.co/about')}</script>
 </head><body>${skip}
 ${main}${h1}</main></body></html>`
 
@@ -74,10 +105,24 @@ const build = async (name, overrides = {}) => {
   await rm(dir, {recursive: true, force: true})
   await mkdir(path.join(dir, 'about'), {recursive: true})
   await mkdir(path.join(dir, 'style-guide'), {recursive: true})
+  // A project page, so the per-template structured-data checks are exercised by
+  // the default fixture rather than only by the defect cases.
+  await mkdir(path.join(dir, 'work', 'a-project'), {recursive: true})
+  const workCanonical = 'https://rumeaudesign.co/work/a-project'
   const pages = {
     'index.html': {title: 'Rumeau Design Co', description: 'The homepage.', canonical: 'https://rumeaudesign.co/', ogTitle: 'Rumeau Design Co'},
     'about/index.html': {},
     'style-guide/index.html': {title: 'Style Guide | Rumeau Design Co', description: 'Design tokens.', canonical: 'https://rumeaudesign.co/style-guide', ogTitle: 'Style Guide', robots: 'noindex, nofollow'},
+    'work/a-project/index.html': {
+      title: 'A Project | Rumeau Design Co',
+      description: 'A project page.',
+      canonical: workCanonical,
+      ogTitle: 'A Project',
+      jsonLd: graphFor(workCanonical, [
+        {'@type': 'CreativeWork', '@id': `${workCanonical}#work`, name: 'A Project'},
+        {'@type': 'BreadcrumbList', itemListElement: []},
+      ]),
+    },
     ...overrides,
   }
   for (const [file, props] of Object.entries(pages)) {
@@ -171,6 +216,117 @@ await expectCaught('a missing skip link', await build('fx-noskip', {'about/index
 await expectCaught('a missing skip target', await build('fx-notarget', {'about/index.html': {main: '<main>'}}), 'skip target')
 await expectCaught('an internal page left indexable', await build('fx-leak', {'style-guide/index.html': {title: 'Style Guide | Rumeau Design Co', description: 'Design tokens.', canonical: 'https://rumeaudesign.co/style-guide', ogTitle: 'Style Guide', robots: null}}), 'internal pages are noindexed')
 await expectCaught('a real page accidentally noindexed', await build('fx-hidden', {'about/index.html': {robots: 'noindex'}}), 'accidentally noindexed')
+
+console.log('\n--- social cards ---')
+await expectCaught('an og:image with no alt', await build('fx-noalt', {'about/index.html': {ogImageAlt: ''}}), 'og:image has an alt')
+await expectCaught('a twitter:image with no alt', await build('fx-notwalt', {'about/index.html': {twitterImageAlt: ''}}), 'twitter:image has an alt')
+await expectCaught('an og:image with no stated size', await build('fx-nosize', {'about/index.html': {ogImageWidth: '', ogImageHeight: ''}}), 'states its dimensions')
+/*
+  The one that matters most of the four, and the reason the dimensions are read
+  back out of the URL rather than hardcoded. Tags that state a size the file does
+  not have are worse than no tags: a scraper lays out a space the image cannot
+  fill. Here the markup claims 1200x1200 for a URL that asks for 1200x630.
+*/
+await expectCaught('stated dimensions that disagree with the URL', await build('fx-badsize', {'about/index.html': {ogImageHeight: '1200'}}), 'match the image URL')
+await expectCaught('an image page asking for the small card', await build('fx-smallcard', {'about/index.html': {twitterCard: 'summary'}}), 'large card')
+
+console.log('\n--- crawl directives and preconnect ---')
+await expectCaught(
+  'an indexable page not opting in to large image previews',
+  await build('fx-smallpreview', {'about/index.html': {robots: 'index, follow'}}),
+  'large image previews',
+)
+await expectCaught('a page not preconnecting to the image CDN', await build('fx-nopreconnect', {'about/index.html': {preconnect: ''}}), 'preconnects')
+
+console.log('\n--- structured data ---')
+await expectCaught('a page with no JSON-LD at all', await build('fx-nold', {'about/index.html': {jsonLd: ' '}}), 'emits a JSON-LD block')
+/*
+  The failure mode this whole section exists for. One unescaped character
+  invalidates the ENTIRE block, not the field that contained it - so a studio
+  name with an apostrophe in the wrong place silently removes all structured data
+  from every page, with nothing on the site looking any different.
+*/
+await expectCaught('JSON-LD that does not parse', await build('fx-badld', {'about/index.html': {jsonLd: '{"@context":"https://schema.org","@graph":[}'}}), 'valid JSON')
+await expectCaught(
+  'JSON-LD missing the Organization node',
+  await build('fx-noorg', {
+    'about/index.html': {
+      jsonLd: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@graph': [
+          {'@type': 'WebSite', '@id': 'https://rumeaudesign.co/#website'},
+          {'@type': 'WebPage', '@id': 'https://rumeaudesign.co/about#webpage'},
+        ],
+      }),
+    },
+  }),
+  'Organization, WebSite and WebPage',
+)
+await expectCaught(
+  'a project page that lost its CreativeWork',
+  await build('fx-nowork', {'work/a-project/index.html': {
+    title: 'A Project | Rumeau Design Co',
+    description: 'A project page.',
+    canonical: 'https://rumeaudesign.co/work/a-project',
+    ogTitle: 'A Project',
+  }}),
+  'states a CreativeWork',
+)
+await expectCaught(
+  'a project page with no breadcrumb trail',
+  await build('fx-nocrumb', {'work/a-project/index.html': {
+    title: 'A Project | Rumeau Design Co',
+    description: 'A project page.',
+    canonical: 'https://rumeaudesign.co/work/a-project',
+    ogTitle: 'A Project',
+    jsonLd: graphFor('https://rumeaudesign.co/work/a-project', [
+      {'@type': 'CreativeWork', '@id': 'https://rumeaudesign.co/work/a-project#work'},
+    ]),
+  }}),
+  'breadcrumb trail',
+)
+/*
+  Zero-width stega markers inside JSON-LD produce no symptom whatsoever - the
+  same class of bug that broke the Portfolio filters, except the reader is Google.
+*/
+await expectCaught(
+  'stega markers inside JSON-LD',
+  await build('fx-ldstega', {
+    'about/index.html': {
+      jsonLd: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@graph': [
+          {'@type': 'Organization', name: 'Rumeau Design Co​‌'},
+          {'@type': 'WebSite'},
+          {'@type': 'WebPage'},
+        ],
+      }),
+    },
+  }),
+  'zero-width',
+)
+/*
+  A licence URL pointing at a page that was not built. This is a real hazard
+  rather than a hypothetical: the page it points at is thin Webflow boilerplate,
+  which is exactly the kind of page a tidy-up deletes - and deleting it turns
+  every "Licensable" badge on the site into a broken promise.
+*/
+await expectCaught(
+  'a licence URL pointing at a page that does not exist',
+  await build('fx-nolicence', {
+    'about/index.html': {
+      jsonLd: graphFor('https://rumeaudesign.co/about', [
+        {
+          '@type': 'ImageObject',
+          url: 'https://cdn.sanity.io/images/x/production/a.jpg',
+          license: 'https://rumeaudesign.co/image-license-info',
+          acquireLicensePage: 'https://rumeaudesign.co/image-license-info',
+        },
+      ]),
+    },
+  }),
+  'licence page',
+)
 
 console.log('\n--- the preview build has the opposite rule ---')
 // On a preview build EVERY page must be noindex, including the real ones.

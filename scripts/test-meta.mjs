@@ -199,6 +199,98 @@ eq('a short sentence is not touched', firstSentence('Short one.'), 'Short one.')
 // No sentence-ending punctuation at all - must not return empty.
 eq('text with no full stop is still returned', firstSentence('no punctuation here'), 'no punctuation here')
 
+/*
+  --- clamp vs firstSentence --------------------------------------------------
+
+  These two exist to treat two different kinds of text differently, and the
+  distinction is the whole point:
+
+    firstSentence  page copy. Sentence two carries on a thought a search result
+                   has no room to finish, so it is cut.
+    clamp          a line somebody wrote FOR the search result. Two short
+                   sentences is a good meta description, so it is kept whole and
+                   only length-capped.
+
+  Before this split, every written description went through firstSentence - so a
+  deliberate two-sentence line lost its second half, silently, and the only
+  place that would ever have shown up is a Google result months later.
+*/
+const {clamp} = meta
+
+eq('clamp keeps a deliberate second sentence', clamp('A heritage mark. Drawn by hand.'), 'A heritage mark. Drawn by hand.')
+eq('firstSentence cuts the same string', firstSentence('A heritage mark. Drawn by hand.'), 'A heritage mark.')
+eq('clamp trims surrounding whitespace', clamp('  spaced out  '), 'spaced out')
+
+// Long text breaks at a word boundary, not mid-word: "...for herit…" reads as a
+// rendering fault rather than as a truncation.
+const longProse = `${'word '.repeat(60)}end.`
+const clamped = clamp(longProse)
+check('clamp caps at 160', clamped.length <= 160, `${clamped.length} chars`)
+check('clamp marks the cut', clamped.endsWith('…'))
+/*
+  Cutting at a word boundary, stated precisely: strip the ellipsis, and what is
+  left must be a prefix of the source that ENDS where a space begins. That is
+  what distinguishes "...brand identity" from "...brand ident".
+*/
+const body = clamped.slice(0, -1)
+check(
+  'clamp cuts at a word boundary, not mid-word',
+  longProse.startsWith(body) && /^\s/.test(longProse.slice(body.length)),
+  `ends "${body.slice(-12)}" then "${longProse.slice(body.length, body.length + 3)}"`,
+)
+check('clamp leaves no dangling punctuation before the ellipsis', !/[,;:.\s]…$/.test(clamped), clamped.slice(-12))
+
+// The pathological case the word-boundary logic has to survive: one long word,
+// where there is no boundary to break on.
+const oneWord = 'x'.repeat(400)
+check('a single over-long word is still capped', clamp(oneWord).length <= 160, `${clamp(oneWord).length} chars`)
+
+/*
+  seoDescription on a case study: the override that appears nowhere on the page.
+
+  It sits above oneLineSummary because the two answer different questions - what
+  belongs on the page, and what pulls a stranger in - and those are not always
+  the same sentence.
+*/
+eq(
+  'a case study search description outranks the on-page blurb',
+  caseStudyDescription({seoDescription: 'Written for Google.', oneLineSummary: 'Written for the page.'}),
+  'Written for Google.',
+)
+eq(
+  'and it is kept whole rather than cut at the first full stop',
+  caseStudyDescription({seoDescription: 'A heritage mark for a winery. Hand-drawn over six weeks.'}),
+  'A heritage mark for a winery. Hand-drawn over six weeks.',
+)
+eq(
+  'an empty search description falls through to the blurb',
+  caseStudyDescription({seoDescription: '', oneLineSummary: 'The blurb.'}),
+  'The blurb.',
+)
+
+/*
+  --- twitter:site ------------------------------------------------------------
+
+  Derived from the X link already in the footer rather than asked for twice.
+  The narrowness is the point: an Instagram URL also ends in a username, and
+  putting that in twitter:site attributes the card to whoever holds the same
+  name on X.
+*/
+const {twitterHandle} = meta
+
+eq('an x.com link becomes a handle', twitterHandle([{platform: 'X', url: 'https://x.com/rumeaudesign'}]), '@rumeaudesign')
+eq('twitter.com works too', twitterHandle([{platform: 'Twitter', url: 'https://twitter.com/rumeaudesign'}]), '@rumeaudesign')
+eq('www and a trailing slash are tolerated', twitterHandle([{url: 'https://www.x.com/rumeaudesign/'}]), '@rumeaudesign')
+eq('a query string is ignored', twitterHandle([{url: 'https://x.com/rumeaudesign?s=20'}]), '@rumeaudesign')
+eq('an instagram link is NOT read as a handle', twitterHandle([{platform: 'Instagram', url: 'https://instagram.com/rumeaudesign'}]), undefined)
+eq('a share link does not become @intent', twitterHandle([{url: 'https://x.com/intent/tweet'}]), undefined)
+eq('an /i/ link does not become @i', twitterHandle([{url: 'https://x.com/i/flow/login'}]), undefined)
+eq('the X link is found among others', twitterHandle([{url: 'https://instagram.com/a'}, {url: 'https://x.com/b'}]), '@b')
+eq('no social links at all is undefined, not a crash', twitterHandle(undefined), undefined)
+eq('an empty list is undefined', twitterHandle([]), undefined)
+eq('a link with no url is skipped', twitterHandle([{platform: 'X'}]), undefined)
+eq('stega markers do not leak into the handle', twitterHandle([{url: `https://x.com/rumeaudesign${MARK}`}]), '@rumeaudesign')
+
 // --- page and post descriptions ----------------------------------------------
 const {pageDescription, blogPostDescription} = meta
 const FALLBACK = 'Apparel and merchandise design.'

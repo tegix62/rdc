@@ -15,6 +15,7 @@ export default defineType({
     {name: 'brand', title: 'Brand & contact', default: true},
     {name: 'homepage', title: 'Homepage'},
     {name: 'footer', title: 'Footer'},
+    {name: 'seo', title: 'Search'},
   ],
   fields: [
     // --- Brand & contact ---------------------------------------------------
@@ -117,6 +118,80 @@ export default defineType({
       description:
         'Used by every "Let\'s Work" / "Get in Touch" button and the nav ' +
         'Contact button site-wide. One field, so there is never a stale link.',
+    }),
+
+    /*
+      --- Search -------------------------------------------------------------
+
+      WHAT THESE ARE FOR, AND WHY THEY ARE SEPARATE FROM EVERYTHING ELSE
+
+      None of these appear anywhere on the site. They go into the JSON-LD block
+      in the page head, which is how a search engine is told what kind of thing
+      this business is rather than left to infer it from the copy.
+
+      That makes them the one group of fields where leaving a box empty has no
+      visible consequence at all - the page looks identical - so it is worth
+      saying what each one buys. Every one of them is optional, and an empty
+      field states nothing rather than guessing: structured data that is wrong
+      about a business is worse than structured data that is thin.
+
+      Five boxes. Ten minutes, once, and then not again.
+    */
+    defineField({
+      name: 'founderName',
+      title: 'Your name — ties you to the studio in search results',
+      type: 'string',
+      group: 'seo',
+      description:
+        'People search for the designer as often as the studio. Filling this in ' +
+        'states that the two are related, which is what lets Google show one ' +
+        'when somebody asks for the other. Without it they are unrelated ' +
+        'strings that happen to share a website.',
+    }),
+    defineField({
+      name: 'founderRole',
+      title: 'Your title (optional)',
+      type: 'string',
+      group: 'seo',
+      description: 'E.g. "Designer" or "Founder & Designer". Skip it if it feels odd.',
+    }),
+    defineField({
+      name: 'email',
+      title: 'Public email (optional)',
+      type: 'string',
+      group: 'seo',
+      description:
+        'Only fill this in if you are happy for it to be machine-readable in ' +
+        'the page source. Every button on the site points at the contact form ' +
+        'instead, so this changes nothing a visitor sees - and scrapers do ' +
+        'read it. Left empty, no email is published anywhere.',
+      validation: (Rule: any) =>
+        Rule.custom((value: string | undefined) =>
+          !value || /^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(value.trim())
+            ? true
+            : 'That does not look like an email address.',
+        ),
+    }),
+    defineField({
+      name: 'locality',
+      title: 'City or region you work from',
+      type: 'string',
+      group: 'seo',
+      description:
+        'E.g. "New Jersey". Just the place - deliberately not a street ' +
+        'address, since a studio taking remote work has no counter to walk up ' +
+        'to, and publishing premises you do not have is worse than publishing ' +
+        'nothing. Helps for "brand designer near me"-shaped searches.',
+    }),
+    defineField({
+      name: 'areaServed',
+      title: 'Who you take work from',
+      type: 'string',
+      group: 'seo',
+      description:
+        'E.g. "United States" or "Worldwide". Says the studio is not ' +
+        'restricted to the city above - useful precisely because the city is ' +
+        'stated, which on its own reads as local-only.',
     }),
 
     // --- Homepage ----------------------------------------------------------

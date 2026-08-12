@@ -57,13 +57,38 @@ export function bareTitle(title: unknown, siteName: string = DEFAULT_SITE_NAME):
 }
 
 /*
-  Trims to the first sentence, and to 160 characters - roughly where Google
-  stops rendering a description.
+  Caps length at 160 characters - roughly where Google stops rendering a
+  description - and does nothing else.
+
+  This is the right treatment for a field somebody wrote FOR search. Two short
+  sentences is a perfectly good meta description, and often better than one, so
+  cutting at the first full stop would throw away half of a deliberate line.
+*/
+export function clamp(text: string, limit = 160): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= limit) return trimmed;
+  /*
+    Break on a word boundary rather than mid-word. Slicing at exactly the limit
+    produces "...brand identity for herit…", which reads as a rendering fault
+    rather than as a truncation.
+  */
+  const cut = trimmed.slice(0, limit - 1);
+  const lastSpace = cut.lastIndexOf(' ');
+  // Guard the pathological case of a single 160-character word.
+  const body = lastSpace > limit * 0.6 ? cut.slice(0, lastSpace) : cut;
+  return `${body.replace(/[,;:.\s]+$/, '')}…`;
+}
+
+/*
+  Trims to the first sentence, then caps length.
+
+  For prose that was written to be READ ON THE PAGE - a summary paragraph, an
+  excerpt - where sentence two carries on a thought that a search result has no
+  room to finish.
 */
 export function firstSentence(text: string, limit = 160): string {
   const match = text.match(/^.*?[.!?](\s|$)/);
-  const candidate = (match ? match[0] : text).trim();
-  return candidate.length > limit ? `${candidate.slice(0, limit - 1).trimEnd()}…` : candidate;
+  return clamp(match ? match[0] : text, limit);
 }
 
 /*
@@ -87,19 +112,54 @@ export const pageDescription = (
 ): string => stripStega(page?.seoDescription) ?? fallback;
 
 /*
-  A blog post's, same idea. metaDescription, else the excerpt, else the first
-  sentence of the body - and only then something derived, because a post always
-  has a title even when nothing else is filled in.
+  A blog post's, same idea. metaDescription, else the excerpt - and only then
+  something derived, because a post always has a title even when nothing else is
+  filled in.
+
+  The two written fields are treated differently on purpose. metaDescription was
+  written for the search result, so it is kept whole and only length-capped; the
+  excerpt is page copy, so it gets cut at its first sentence.
 */
 export function blogPostDescription(post: {
   metaDescription?: unknown;
   excerpt?: unknown;
   title?: unknown;
 }): string {
-  const written = stripStega(post?.metaDescription) ?? stripStega(post?.excerpt);
+  const forSearch = stripStega(post?.metaDescription);
+  if (forSearch) return clamp(forSearch);
+
+  const written = stripStega(post?.excerpt);
   if (written) return firstSentence(written);
   const title = stripStega(post?.title);
   return title ? `${title} — notes from ${DEFAULT_SITE_NAME}.` : `Notes from ${DEFAULT_SITE_NAME}.`;
+}
+
+/*
+  The @handle for twitter:site, dug out of the social links.
+
+  X reads twitter:site to attribute the card, and without it the card renders
+  with no account line at all. It could have been a new field in Studio, but the
+  handle is already there inside the X/Twitter social link - asking for it a
+  second time invites the two copies to disagree, and the one in the footer is
+  the one anybody would notice was wrong.
+
+  Matches x.com and twitter.com only. Deliberately narrow: an Instagram URL also
+  ends in a username, and putting that in twitter:site attributes the card to
+  whoever happens to hold the same name on X.
+*/
+export function twitterHandle(socialLinks: unknown): string | undefined {
+  if (!Array.isArray(socialLinks)) return undefined;
+  for (const link of socialLinks) {
+    const url = stripStega((link as {url?: unknown})?.url);
+    if (!url) continue;
+    const match = url.match(/^https?:\/\/(?:www\.)?(?:twitter|x)\.com\/@?([A-Za-z0-9_]{1,15})\/?(?:[?#].*)?$/i);
+    // Reserved paths that are not accounts, so an /i/... or /share link
+    // doesn't become "@i".
+    if (match && !/^(i|share|home|intent|search|explore)$/i.test(match[1])) {
+      return `@${match[1]}`;
+    }
+  }
+  return undefined;
 }
 
 interface CaseStudyMeta {
@@ -107,6 +167,7 @@ interface CaseStudyMeta {
   category?: unknown;
   client?: unknown;
   principalType?: unknown;
+  seoDescription?: unknown;
   oneLineSummary?: unknown;
   summary?: unknown;
 }
@@ -120,8 +181,12 @@ interface CaseStudyMeta {
   Duplicate meta descriptions across a site are the one SEO fault Google names
   outright, and the search result then says nothing about the project either.
 
-  Three levels, in descending order of how much a person wrote:
+  Four levels, in descending order of how much a person wrote:
 
+    seoDescription  written for search, and for nothing else. The only one of
+                    these that can be tuned without changing what the page says
+                    - the others all appear on the page too, so rewriting one
+                    to read better in Google changes the design.
     oneLineSummary  the field whose stated job this is.
     summary         the longer paragraph shown on the page. Its first sentence
                     is a real description; better than anything generated.
@@ -137,6 +202,9 @@ export function caseStudyDescription(
   study: CaseStudyMeta,
   siteName: string = DEFAULT_SITE_NAME,
 ): string {
+  const forSearch = stripStega(study?.seoDescription);
+  if (forSearch) return clamp(forSearch);
+
   const written = stripStega(study?.oneLineSummary);
   if (written) return firstSentence(written);
 

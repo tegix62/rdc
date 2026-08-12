@@ -11,33 +11,31 @@ either - they need his GitHub account and his Sanity project.
 
 ---
 
-## ⚠️ DO NOT SET THIS UP UNTIL THE WORK BRANCH IS MERGED TO `main`
+## ✅ SAFE TO SET UP AS OF 12 AUGUST 2026
 
 `repository_dispatch` always runs the workflow on the repository's **default
 branch**. There is no way to point it at another one: the event carries no ref,
 and GitHub picks `main` regardless of where the workflow file also exists.
 
-At the time of writing, `main` is **203 commits behind**
-`claude/webflow-astro-sanity-port-ig55e2`, which is where every change lives. So
-turning this on today would mean: publish in Studio → GitHub rebuilds `main` →
-the preview is replaced by a months-old build. Every publish would appear to
-destroy the site.
+That used to be the blocker. `main` was 203 commits behind the work branch, so
+turning this on would have meant: publish in Studio → GitHub rebuilds `main` →
+the preview is replaced by a months-old build. Every publish would have appeared
+to destroy the site.
 
-Check before enabling it:
+The work branch has since been merged, so `main` now carries everything.
+Re-check before enabling if any time has passed:
 
 ```
 git fetch origin main
-git rev-list --count origin/main..origin/<work-branch>
+git rev-list --count origin/main..origin/claude/webflow-astro-sanity-port-ig55e2
 ```
 
 `0` means `main` has everything and this is safe to turn on. Anything else means
 wait.
 
-**Until then, rebuild by hand** - which is all Claude has been doing:
+To rebuild the preview by hand in the meantime:
 https://github.com/tegix62/rdc/actions/workflows/deploy-pages.yml → "Run
-workflow" → **choose the work branch, not `main`** → Run. About two minutes.
-Same gotcha as above: the branch selector defaults to `main`, and running it on
-`main` deploys the stale build.
+workflow" → Run. `main` is now the right choice, where it previously was not.
 
 ---
 

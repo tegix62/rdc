@@ -134,25 +134,95 @@ Two real gaps: the three photographers belong in the `credits` array (built,
 empty), and the hero is **820×360** — the only source on the site that no
 amount of processing can save. It needs a re-export. See `SITE-BRIEF.md` § 8.
 
-### Chateau Seven — cannot carry a page today. Decide, don't grind.
+### Chateau Seven — the assets exist. They were never migrated.
 
-One asset: a brand sheet JPEG. No `mainImage`, no client, no body, no
-services, no grid items, no summary beyond one line. Its thumbnail also has
-"serve exactly as uploaded" switched on, which is why the tile reads wrong on
-desktop — that's a one-click fix, fully diagnosed in `SITE-BRIEF.md` § 8.
+**This section previously said to demote it. That was wrong**, and it was wrong
+because it judged the project by what is in Sanity. Sanity has one Chateau
+Seven asset. Webflow has thirteen.
 
-You cannot write your way out of one image. Two honest options:
+Still sitting on the old site, never carried over:
 
-**(a) Shoot it.** Embroidery and a modular logo system is the most distinctive
-craft story in the whole portfolio, and it deserves better than a flat sheet.
-Five assets, half a day: the modular system laid out showing the permutations,
-an embroidery macro (thread texture is the entire pitch), a garment on a body,
-the existing brand sheet, one sketch.
+| Asset | Webflow ID |
+|---|---|
+| `ChateauSeven-RumeauDesignCo-BrandSheet.jpg` | `6893a7204eef04d7c8b63b8e` |
+| `C7Icon` BLACK / WHITE | `689e40426471fed853bbda50` / `689e4042746e0f384c502bad` |
+| `C7Peggy` BLACK / WHITE | `689e4042801197adc785e6f2` / `689e40422938382a7701a813` |
+| `C7 + Peggy` BLACK / WHITE | `689e4042048ee94f1374e4b5` / `689e4042246d4aae09d82c17` |
+| `C7Wordmark` BLACK / WHITE | `689e4042e2f90a575ba6be59` / `689e4041a42e1a9fa20eb8c8` |
+| `C7Wordmark (Alt)` BLACK / WHITE | `689e4042baf479dacb3f03d4` / `689e4041fca2855d1154bad3` |
+| `C7Lockup` BLACK / WHITE | `689e40439d9863f1cce72a8e` / `67fc0cb73702277a30ae192a` |
 
-**(b) Demote it to a Grid Item for launch** and ship four case studies.
+That is six configurations in two colourways — **the modular system itself,
+already exported**. Icon (the C7 ligature), Peggy (the pegasus), the two
+combined, the script wordmark, an alternate wordmark, and the full lockup.
+Nothing needs to be made. It needs to be uploaded.
 
-Recommendation: (b) now, (a) when you have the day. Four finished pages beat
-five with a thin one — the thin one is what an agency remembers.
+**And the "brand sheet" is misnamed.** It is not a brand sheet. It is roughly
+eighty hand-drawn explorations on grid paper — crests, shields, monograms,
+pegasus studies, wordmark passes — with the blue pencil underdrawing still
+visible, arranged as one dense plate around the finished mark. It is the single
+strongest piece of evidence on the entire site for the thing the About page
+claims: *"I sketch extensively before anything goes digital."*
+
+It is currently being used as a **thumbnail**. Cropped. At tile size.
+
+#### Why this one shouldn't use the seven-block spine either
+
+A modular identity is the one thing a photograph cannot show. You can shoot a
+garment beautifully and still not have demonstrated that the mark *composes* —
+that the icon works at cap size, the lockup at back-panel size, and that they
+are the same drawing. Showing that needs the configurations in sequence, which
+is exactly what `mediaRowSection` (2–4 slots) is for and what it has never once
+been used for.
+
+| # | Block | Content | Source |
+|---|---|---|---|
+| 1 | `fullImage` | Garment, embroidery legible | **your photographer** |
+| 2 | `imageText` | `C7Lockup BLACK` + the brief | exists |
+| 3 | `mediaRow` ×4 | **Icon → Peggy → Wordmark → Lockup** | exists |
+| 4 | `fullImage` | The sketch plate, full bleed, uncropped | exists |
+| 5 | `twoUp` | Embroidery macro + garment on body | **your photographer** |
+| 6 | `videoSection` | Timelapse: drawn → digitised → stitched | **your stash** |
+| 7 | `fullImage` | Closer, strongest frame | **your photographer** |
+
+Block 3 is the case study. Everything else supports it.
+
+#### Fixes independent of any new asset
+
+- **Turn off "serve exactly as uploaded" on the thumbnail.** Fully diagnosed in
+  `SITE-BRIEF.md` § 8 — it is why the tile reads wrong on desktop, on the
+  homepage grid, and in the More Work card on all twelve other project pages.
+  Also takes it 89 KB → ~20 KB.
+- **Stop using the sketch plate as the thumbnail.** Eighty sketches at tile
+  size is mud no matter how the crop is fixed. Use `C7Peggy` or `C7Lockup` —
+  a single mark, legible at 300px, and it is what `archiveMark` and the
+  `mark` tile treatment were built for. `heroTile` is already `true`, so it
+  spans two columns at 3:2.
+- **`mainImage` is null**, so the page has no hero at all. Whatever the
+  photographer's best frame is, that's the field.
+- **Credit the photographer** in `credits` — name and URL. The array is built
+  and empty here; it is exactly what Two Point Oh's three photographers need
+  too, and it is a normal followed link on purpose (`[slug].astro:143`).
+- **`accentColor` is unset.** The mark is pure black and white, and the site
+  has deliberately no black in its palette — pull the accent from the garment
+  or the thread, not from the logo.
+
+#### The copy blanks
+
+`client` is null — who is Chateau Seven Apparel, and is the name usable?
+`headline`, `summary`, `subtitle` are all empty. `oneLineSummary` —
+*"Embroidery and modular logo for apparel company"* — is accurate and is
+already the spine of a real headline.
+
+`principalType` is **"Custom/Hand-drawn"**, which is correct, and is the only
+project on the site where that is true. The sketch plate proves it. That is
+worth saying out loud in the body rather than leaving it as one line in the
+aside.
+
+`resultStat` has no number behind it yet. If there isn't one, leave it empty —
+an empty stat is honest, and `[slug].astro:134` simply omits the line.
+
+### Bonus: you have six, not five.
 
 ### Bonus: you have six, not five.
 

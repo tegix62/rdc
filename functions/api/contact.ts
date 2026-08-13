@@ -142,20 +142,33 @@ export const onRequestPost = async ({ request, env }: Context): Promise<Response
     pasted", which is why re-pasting a confirmed-correct value hasn't changed
     anything. This settles which one it actually is before guessing further.
   */
-  if (typeof env.TURNSTILE_SECRET_KEY !== 'string' || env.TURNSTILE_SECRET_KEY.length === 0) {
+  const raw = typeof env.TURNSTILE_SECRET_KEY === 'string' ? env.TURNSTILE_SECRET_KEY : '';
+  /*
+    .trim() is the fix, not a precaution.
+
+    A secret pasted into the Cloudflare dashboard with a trailing newline or
+    space keeps it, and nothing shows that: the field looks identical, the
+    value is a real non-empty string, and siteverify rejects it as
+    invalid-input-secret - the same error as a genuinely wrong key. Both the
+    real secret and Cloudflare's own always-passes test secret failed
+    identically here, which is only explicable if something was being appended
+    to whatever was pasted.
+  */
+  const secret = raw.trim();
+  if (secret.length === 0) {
     return respondError(
       request,
       400,
       `The spam check didn't pass. Please try again. (debug: TURNSTILE_SECRET_KEY is ${
-        env.TURNSTILE_SECRET_KEY === undefined ? 'undefined' : JSON.stringify(env.TURNSTILE_SECRET_KEY)
-      } in this Function's env - it never reached Cloudflare, this is not about which value was pasted)`,
+        env.TURNSTILE_SECRET_KEY === undefined ? 'not set at all' : 'set but empty once trimmed'
+      } in this Function's env)`,
     );
   }
   const verify = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      secret: env.TURNSTILE_SECRET_KEY,
+      secret,
       response: turnstileToken,
       remoteip: request.headers.get('CF-Connecting-IP') ?? '',
     }),
@@ -182,7 +195,17 @@ export const onRequestPost = async ({ request, env }: Context): Promise<Response
       working end to end, revert this to the plain message below.
     */
     const codes = verifyResult['error-codes']?.join(', ') || 'no error-codes returned';
-    return respondError(request, 400, `The spam check didn't pass. Please try again. (debug: ${codes})`);
+    /*
+      Lengths, never the value. A Turnstile secret key is 35 characters; if
+      raw is longer than trimmed, something invisible was pasted along with
+      it, and the trim above is what saved the request rather than a
+      cosmetic tidy-up.
+    */
+    return respondError(
+      request,
+      400,
+      `The spam check didn't pass. Please try again. (debug: ${codes}; secret was ${raw.length} chars raw, ${secret.length} after trimming)`,
+    );
   }
 
   // --- validation ------------------------------------------------------------

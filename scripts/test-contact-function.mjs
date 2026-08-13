@@ -158,6 +158,52 @@ const post = (fields, headers = {}) => {
   check('the rejection message does not silently claim success', body.ok === false)
 }
 
+/*
+  --- the secret is sent clean, whatever the dashboard stored -------------------
+
+  The bug this locks in cost an afternoon of live debugging. A Turnstile secret
+  pasted into Cloudflare's dashboard with a trailing newline keeps it, and
+  every symptom points the wrong way: the value is a real non-empty string, the
+  dashboard field looks identical, and siteverify answers invalid-input-secret -
+  which reads exactly like a wrong key. Chris re-pasted a confirmed-correct key
+  five times, and even Cloudflare's own always-passes TEST secret failed, which
+  is the only reason this turned out to be about whitespace rather than the
+  value.
+
+  Asserting on what was SENT, not just that the request succeeded: a test that
+  only checked the response would pass whether or not the trim happened, since
+  the mock says success either way.
+*/
+{
+  const fetchMock = mockFetch({
+    'turnstile/v0/siteverify': [jsonRes(200, {success: true})],
+    'api.sanity.io': [jsonRes(200, {transactionId: 'tx1'})],
+    'api.resend.com': [jsonRes(200, {id: 'email1'})],
+  })
+  globalThis.fetch = fetchMock
+
+  const padded = {...ENV, TURNSTILE_SECRET_KEY: `  ${ENV.TURNSTILE_SECRET_KEY}\n`}
+  const res = await onRequestPost({request: post(VALID_FIELDS), env: padded})
+  check('a secret stored with stray whitespace still verifies', res.status === 200, res.status)
+
+  const sent = new URLSearchParams(fetchMock.calls[0].init.body).get('secret')
+  check(
+    'the whitespace is stripped before the secret is sent to Cloudflare',
+    sent === ENV.TURNSTILE_SECRET_KEY,
+    JSON.stringify(sent),
+  )
+}
+
+// A secret that is nothing BUT whitespace is not a secret, and must not be
+// sent to Cloudflare as if it were one.
+{
+  const fetchMock = mockFetch({})
+  globalThis.fetch = fetchMock
+  const res = await onRequestPost({request: post(VALID_FIELDS), env: {...ENV, TURNSTILE_SECRET_KEY: '   \n'}})
+  check('a whitespace-only secret is rejected with 400', res.status === 400, res.status)
+  check('and siteverify is never called with it', fetchMock.calls.length === 0, `${fetchMock.calls.length} call(s)`)
+}
+
 // --- server-side validation still runs, independent of Turnstile passing ------
 {
   const fetchMock = mockFetch({

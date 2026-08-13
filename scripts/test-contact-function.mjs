@@ -1,7 +1,9 @@
 /*
-  functions/api/contact.ts, exercised as a real Request -> Response round trip
-  with the three outbound calls (Turnstile, Sanity, Resend) stubbed via a
-  mocked global fetch - not reimplemented or read as source. Reading the code
+  parked/contact-form/functions/contact.ts, exercised as a real
+  Request -> Response round trip. The two outbound HTTP calls (Turnstile,
+  Resend) are stubbed via a mocked global fetch; the D1 database is stubbed as
+  a fake binding, because D1 is not reached over HTTP - it arrives on env as an
+  object. Neither is reimplemented or read as source. Reading the code
   and agreeing with it proves nothing about whether it actually rejects a
   missing honeypot check or a failed Turnstile verification when a real
   Request hits it; running it does.
@@ -41,8 +43,36 @@ await build({
 })
 const {onRequestPost} = await import(outfile)
 
+/*
+  A stand-in for the D1 binding, recording what was actually bound rather than
+  just that something was called. The SQL and its parameters are the whole
+  contract with the database - a test that only checked "insert happened"
+  would pass while writing a visitor's phone number into the wrong column.
+
+  `fails` makes .run() throw, which is how a real D1 error surfaces: a
+  rejected promise, not an { ok: false } response like fetch.
+*/
+function mockDb({fails = false} = {}) {
+  const writes = []
+  return {
+    writes,
+    prepare(sql) {
+      return {
+        bind(...params) {
+          return {
+            async run() {
+              if (fails) throw new Error('D1_ERROR: no such table: enquiries')
+              writes.push({sql, params})
+              return {success: true}
+            },
+          }
+        },
+      }
+    },
+  }
+}
+
 const ENV = {
-  SANITY_WRITE_TOKEN: 'fake-write-token',
   TURNSTILE_SECRET_KEY: 'fake-turnstile-secret',
   RESEND_API_KEY: 'fake-resend-key',
   CONTACT_NOTIFY_EMAIL: 'chris@rumeaudesign.co',
@@ -67,7 +97,7 @@ const VALID_FIELDS = {
   A scripted fetch: each call the Function makes gets matched by URL and
   answered from a queue, so a test can assert not just the Function's final
   response but WHICH outbound calls it made, in what order, and with what it
-  sent them - e.g. that a failed Turnstile check never reaches Sanity at all.
+  sent them - e.g. that a failed Turnstile check never reaches the database.
 */
 function mockFetch(responses) {
   const calls = []
@@ -101,26 +131,45 @@ const post = (fields, headers = {}) => {
 {
   const fetchMock = mockFetch({
     'turnstile/v0/siteverify': [jsonRes(200, {success: true})],
-    'api.sanity.io': [jsonRes(200, {transactionId: 'tx1'})],
     'api.resend.com': [jsonRes(200, {id: 'email1'})],
   })
   globalThis.fetch = fetchMock
 
-  const res = await onRequestPost({request: post(VALID_FIELDS), env: ENV})
+  const db = mockDb()
+  const res = await onRequestPost({request: post(VALID_FIELDS), env: {...ENV, DB: db}})
   const body = await res.json()
   check('a fully valid submission returns 200', res.status === 200, res.status)
   check('and ok: true', body.ok === true)
-  check('Turnstile was checked before Sanity was written', fetchMock.calls[0].url.includes('turnstile'))
-  check('Sanity was called after Turnstile passed', fetchMock.calls[1].url.includes('api.sanity.io'))
-  check('Resend was called last, after the Sanity write succeeded', fetchMock.calls[2].url.includes('api.resend.com'))
+  check('Turnstile was checked before anything was stored', fetchMock.calls[0].url.includes('turnstile'))
+  check('exactly one row was written', db.writes.length === 1, `${db.writes.length} write(s)`)
+  check('Resend was called after the row was committed', fetchMock.calls[1].url.includes('api.resend.com'))
 
-  const sanityBody = JSON.parse(fetchMock.calls[1].init.body)
-  const doc = sanityBody.mutations[0].create
-  check('the Sanity mutation is a create of type submission', doc._type === 'submission')
-  check('status is set explicitly to "new"', doc.status === 'new', doc.status)
-  check('submittedAt is a real ISO timestamp, not left for Sanity to fill in', !Number.isNaN(Date.parse(doc.submittedAt)))
-  check('the honeypot field never reaches Sanity', !('website' in doc))
-  check('the Turnstile token never reaches Sanity', !('cf-turnstile-response' in doc))
+  const {sql, params} = db.writes[0]
+  check('the write is an INSERT into enquiries', /INSERT INTO enquiries/i.test(sql))
+
+  /*
+    Parameter binding, not interpolation. These values are attacker-controlled
+    free text off a public form; an apostrophe in a company name breaks an
+    interpolated statement before anyone even tries anything deliberate.
+  */
+  const placeholders = (sql.match(/\?/g) ?? []).length
+  check(
+    'every value is bound, not interpolated into the SQL',
+    placeholders === params.length,
+    `${placeholders} placeholder(s) vs ${params.length} bound value(s)`,
+  )
+  check('no submitted value appears inline in the SQL text', !sql.includes(VALID_FIELDS.email))
+
+  check('submitted_at is a real ISO timestamp', !Number.isNaN(Date.parse(params[0])))
+  check('the name is stored', params.includes(VALID_FIELDS.name))
+  check('the email is stored', params.includes(VALID_FIELDS.email))
+  check('the phone number is stored', params.includes(VALID_FIELDS.phone))
+  check('the honeypot field is never stored', !params.includes('http://spam.example'))
+  check('the Turnstile token is never stored', !params.includes('fake-solved-token'))
+
+  // status is a literal in the statement rather than a bound parameter, so it
+  // cannot be set to anything else by a request.
+  check("status is fixed to 'new' by the SQL itself", /'new'/.test(sql))
 }
 
 // --- the honeypot: silently accepted, and NOTHING downstream is called --------
@@ -128,11 +177,16 @@ const post = (fields, headers = {}) => {
   const fetchMock = mockFetch({}) // any call at all is a failure for this case
   globalThis.fetch = fetchMock
 
-  const res = await onRequestPost({request: post({...VALID_FIELDS, website: 'http://spam.example'}), env: ENV})
+  const honeypotDb = mockDb()
+  const res = await onRequestPost({
+    request: post({...VALID_FIELDS, website: 'http://spam.example'}),
+    env: {...ENV, DB: honeypotDb},
+  })
   const body = await res.json()
   check('a filled honeypot still returns 200 (does not tip the bot off)', res.status === 200)
   check('and ok: true, indistinguishable from a real success', body.ok === true)
-  check('NEITHER Turnstile, Sanity, nor Resend was ever called', fetchMock.calls.length === 0, `${fetchMock.calls.length} call(s) made`)
+  check('NEITHER Turnstile nor Resend was ever called', fetchMock.calls.length === 0, `${fetchMock.calls.length} call(s) made`)
+  check('and nothing was written to the database', honeypotDb.writes.length === 0, `${honeypotDb.writes.length} write(s)`)
 }
 
 // --- Turnstile: missing token never reaches the verify API at all -------------
@@ -140,7 +194,7 @@ const post = (fields, headers = {}) => {
   const fetchMock = mockFetch({})
   globalThis.fetch = fetchMock
   const {['cf-turnstile-response']: _drop, ...withoutToken} = VALID_FIELDS
-  const res = await onRequestPost({request: post(withoutToken), env: ENV})
+  const res = await onRequestPost({request: post(withoutToken), env: {...ENV, DB: mockDb()}})
   check('a missing Turnstile token is rejected with 400', res.status === 400)
   check('and no outbound call is made for it - nothing to verify', fetchMock.calls.length === 0)
 }
@@ -151,10 +205,11 @@ const post = (fields, headers = {}) => {
     'turnstile/v0/siteverify': [jsonRes(200, {success: false})],
   })
   globalThis.fetch = fetchMock
-  const res = await onRequestPost({request: post(VALID_FIELDS), env: ENV})
+  const turnstileFailDb = mockDb()
+  const res = await onRequestPost({request: post(VALID_FIELDS), env: {...ENV, DB: turnstileFailDb}})
   const body = await res.json()
   check('a failed Turnstile verification is rejected with 400', res.status === 400)
-  check('Sanity is never reached when Turnstile fails', fetchMock.calls.length === 1, `${fetchMock.calls.length} call(s) made`)
+  check('nothing is stored when Turnstile fails', turnstileFailDb.writes.length === 0, `${turnstileFailDb.writes.length} write(s)`)
   check('the rejection message does not silently claim success', body.ok === false)
 }
 
@@ -177,12 +232,11 @@ const post = (fields, headers = {}) => {
 {
   const fetchMock = mockFetch({
     'turnstile/v0/siteverify': [jsonRes(200, {success: true})],
-    'api.sanity.io': [jsonRes(200, {transactionId: 'tx1'})],
     'api.resend.com': [jsonRes(200, {id: 'email1'})],
   })
   globalThis.fetch = fetchMock
 
-  const padded = {...ENV, TURNSTILE_SECRET_KEY: `  ${ENV.TURNSTILE_SECRET_KEY}\n`}
+  const padded = {...ENV, DB: mockDb(), TURNSTILE_SECRET_KEY: `  ${ENV.TURNSTILE_SECRET_KEY}\n`}
   const res = await onRequestPost({request: post(VALID_FIELDS), env: padded})
   check('a secret stored with stray whitespace still verifies', res.status === 200, res.status)
 
@@ -210,68 +264,100 @@ const post = (fields, headers = {}) => {
     'turnstile/v0/siteverify': [jsonRes(200, {success: true})],
   })
   globalThis.fetch = fetchMock
-  const res = await onRequestPost({request: post({...VALID_FIELDS, email: 'not-an-email'}), env: ENV})
+  const invalidDb = mockDb()
+  const res = await onRequestPost({
+    request: post({...VALID_FIELDS, email: 'not-an-email'}),
+    env: {...ENV, DB: invalidDb},
+  })
   check('an invalid email is rejected even after Turnstile passes', res.status === 400)
-  check('Sanity is never reached for an invalid submission', fetchMock.calls.length === 1)
+  check('nothing is stored for an invalid submission', invalidDb.writes.length === 0, `${invalidDb.writes.length} write(s)`)
 }
 
-// --- Sanity failing is reported honestly, not papered over -------------------
+/*
+  --- a database failure is reported honestly, not papered over ----------------
+
+  D1 signals failure by THROWING, where fetch returns a non-ok response. An
+  uncaught throw inside a Pages Function is a bare 500 with no body, so a
+  visitor would watch a filled-in form vanish into a blank error page with no
+  idea their enquiry never arrived and no route to a human.
+*/
 {
   const fetchMock = mockFetch({
     'turnstile/v0/siteverify': [jsonRes(200, {success: true})],
-    'api.sanity.io': [jsonRes(500, {error: 'internal'})],
   })
   globalThis.fetch = fetchMock
-  const res = await onRequestPost({request: post(VALID_FIELDS), env: ENV})
+  const res = await onRequestPost({request: post(VALID_FIELDS), env: {...ENV, DB: mockDb({fails: true})}})
   const body = await res.json()
-  check('a Sanity write failure surfaces as a real error, not a 200', res.status >= 500)
-  check('and directs the visitor to a fallback that does not depend on Sanity', /email/i.test(body.message))
+  check('a database failure surfaces as a real error, not a 200', res.status >= 500, res.status)
+  check('and directs the visitor to a fallback that does not depend on it', /email/i.test(body.message))
+  check(
+    'no notification claims an enquiry arrived when none was stored',
+    !fetchMock.calls.some((c) => c.url.includes('api.resend.com')),
+  )
 }
 
-// --- Resend failing must NOT undo an already-successful Sanity write -----------
+// --- Resend failing must NOT undo an already-committed row --------------------
 {
   const fetchMock = mockFetch({
     'turnstile/v0/siteverify': [jsonRes(200, {success: true})],
-    'api.sanity.io': [jsonRes(200, {transactionId: 'tx2'})],
     'api.resend.com': [jsonRes(500, {error: 'resend is down'})],
   })
   globalThis.fetch = fetchMock
-  const res = await onRequestPost({request: post(VALID_FIELDS), env: ENV})
+  const resendFailDb = mockDb()
+  const res = await onRequestPost({request: post(VALID_FIELDS), env: {...ENV, DB: resendFailDb}})
   const body = await res.json()
   check(
     'the submission still succeeds when only the email notification fails - the enquiry is already saved',
     res.status === 200 && body.ok === true,
   )
-  check('all three calls were still attempted, in order', fetchMock.calls.length === 3)
+  /*
+    Two HTTP calls now, not three: the storage step moved from Sanity's REST
+    API to a D1 binding, which is not fetch. Asserting the row landed as well
+    as the calls being made - "Resend failed but the enquiry survived" is the
+    entire point of this case, and counting fetches alone would not show it.
+  */
+  check('both HTTP calls were still attempted, in order', fetchMock.calls.length === 2, `${fetchMock.calls.length}`)
+  check('and the enquiry was committed despite the email failing', resendFailDb.writes.length === 1)
 }
 
 // --- "not sure yet" budget is accepted through the whole pipeline -----------
 {
   const fetchMock = mockFetch({
     'turnstile/v0/siteverify': [jsonRes(200, {success: true})],
-    'api.sanity.io': [jsonRes(200, {transactionId: 'tx3'})],
     'api.resend.com': [jsonRes(200, {id: 'email3'})],
   })
   globalThis.fetch = fetchMock
+  const notSureDb = mockDb()
   const {budgetMin: _m, budgetMax: _x, ...rest} = VALID_FIELDS
   const res = await onRequestPost({
     request: post({...rest, budgetNotSure: 'true'}),
-    env: ENV,
+    env: {...ENV, DB: notSureDb},
   })
   check('a "not sure yet" submission with no budget numbers still succeeds', res.status === 200)
-  const doc = JSON.parse(fetchMock.calls[1].init.body).mutations[0].create
-  check('budgetNotSure is recorded as true in the saved document', doc.budgetNotSure === true)
+
+  /*
+    NULL, not 0. Storing zero for "I do not know my budget" makes it
+    indistinguishable from someone answering "nothing" - a different enquiry,
+    and the same conflation behind the Number('') === 0 bug caught before
+    launch. The column is nullable specifically so these stay distinct.
+  */
+  const {params} = notSureDb.writes[0]
+  check('budget_not_sure is stored as 1', params.includes(1))
+  check(
+    'the budget columns are NULL rather than 0',
+    params.filter((v) => v === null).length === 2,
+    `${params.filter((v) => v === null).length} null(s), ${params.filter((v) => v === 0).length} zero(s)`,
+  )
 }
 
 // --- the no-JS fallback: no Accept header -> HTML, not JSON -------------------
 {
   const fetchMock = mockFetch({
     'turnstile/v0/siteverify': [jsonRes(200, {success: true})],
-    'api.sanity.io': [jsonRes(200, {transactionId: 'tx4'})],
     'api.resend.com': [jsonRes(200, {id: 'email4'})],
   })
   globalThis.fetch = fetchMock
-  const res = await onRequestPost({request: post(VALID_FIELDS, {Accept: 'text/html'}), env: ENV})
+  const res = await onRequestPost({request: post(VALID_FIELDS, {Accept: 'text/html'}), env: {...ENV, DB: mockDb()}})
   const contentType = res.headers.get('Content-Type') ?? ''
   check('a request that did not ask for JSON gets HTML back', contentType.includes('text/html'), contentType)
   const text = await res.text()

@@ -1,7 +1,7 @@
 /*
   The contact form's backend: a Cloudflare Pages Function, not an Astro route.
   This site's pages are static - built once, served as files - so anything
-  that has to run PER REQUEST (verifying a spam token, writing to Sanity,
+  that has to run PER REQUEST (verifying a spam token, writing to D1,
   sending an email) has to live here instead, in `functions/`, which Cloudflare
   Pages picks up automatically alongside the static build. It does not change
   how the rest of the site is built or deployed.
@@ -16,14 +16,14 @@
 
     1. Honeypot        a hidden field only a bot fills in. Free, and it
                         catches the least sophisticated bots without ever
-                        involving Turnstile or Sanity.
+                        involving Turnstile or the database.
     2. Turnstile        Cloudflare's own proof-of-human check. Requires an
                         API call, so it runs after the honeypot, not before.
     3. Validation       src/lib/contactValidation.ts, shared with nothing
                         here that a client could have supplied honestly -
                         this is what would matter even with the two spam
                         checks disabled entirely.
-    4. Sanity + email   only reached once the above are all satisfied.
+    4. D1 + email       only reached once the above are all satisfied.
 
   A submission that fails an earlier, cheaper check never reaches the more
   expensive ones - so a bot hammering this endpoint costs an API call at
@@ -31,8 +31,25 @@
 */
 import { validateSubmission } from '../../../src/lib/contactValidation';
 
+/*
+  Only the shape this file actually uses, hand-written rather than pulled from
+  @cloudflare/workers-types - nothing else in this project depends on that
+  package, and one Function is not a reason to add it. Structural typing means
+  the real D1Database satisfies this at runtime regardless.
+*/
+interface D1Database {
+  prepare(query: string): {
+    bind(...values: unknown[]): { run(): Promise<unknown> };
+  };
+}
+
 interface Env {
-  SANITY_WRITE_TOKEN: string;
+  /*
+    The D1 binding, configured on the Pages project rather than passed as a
+    string. It replaced SANITY_WRITE_TOKEN: enquiries used to be written into
+    the public-read Sanity dataset, where anyone could read them back.
+  */
+  DB: D1Database;
   TURNSTILE_SECRET_KEY: string;
   RESEND_API_KEY: string;
   CONTACT_NOTIFY_EMAIL: string;
@@ -42,9 +59,6 @@ interface Context {
   request: Request;
   env: Env;
 }
-
-const SANITY_PROJECT_ID = '8337vjtf';
-const SANITY_DATASET = 'production';
 
 /*
   Two response shapes, chosen by what the request itself asked for - not by
@@ -246,49 +260,61 @@ export const onRequestPost = async ({ request, env }: Context): Promise<Response
   }
   const data = result.data;
 
-  // --- write to Sanity -------------------------------------------------------
-  const submittedAt = new Date().toISOString();
-  const sanityRes = await fetch(
-    `https://${SANITY_PROJECT_ID}.api.sanity.io/v2024-01-01/data/mutate/${SANITY_DATASET}`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${env.SANITY_WRITE_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        mutations: [
-          {
-            create: {
-              _type: 'submission',
-              ...data,
-              submittedAt,
-              /*
-                Set explicitly rather than relying on the schema's
-                `initialValue: 'new'`. That field only fires when a document
-                is created THROUGH STUDIO'S OWN UI - it is a desk-tool
-                convenience, not something the content lake enforces - so a
-                document created by a direct API mutation, which this is,
-                would otherwise land with no status at all and vanish from
-                every view that filters or sorts by it.
-              */
-              status: 'new',
-            },
-          },
-        ],
-      }),
-    },
-  );
+  /*
+    --- store the enquiry -------------------------------------------------------
 
-  if (!sanityRes.ok) {
+    D1, not Sanity. This used to write into the Sanity dataset, which is
+    public-read: the project ID and dataset name are committed in a public
+    repository, so every name, email and phone number submitted was readable
+    by anyone with no credentials. D1 has no public read path - a row is
+    reachable only through a Function with the database bound, or through
+    Chris's own Cloudflare login. See parked/contact-form/schema.sql.
+
+    Parameter binding rather than string interpolation, which is not a style
+    preference: these values are attacker-controlled free text straight off a
+    public form, and an interpolated apostrophe in a company name is enough to
+    break the statement even before anyone tries anything deliberate.
+  */
+  const submittedAt = new Date().toISOString();
+  try {
+    await env.DB.prepare(
+      `INSERT INTO enquiries (
+         submitted_at, status, name, email, company, business_description,
+         goals, seriousness, timeframe, budget_min, budget_max,
+         budget_open_ended, budget_not_sure, found_via, phone
+       ) VALUES (?, 'new', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+      .bind(
+        submittedAt,
+        data.name,
+        data.email,
+        data.company,
+        data.businessDescription,
+        data.goals,
+        data.seriousness,
+        data.timeframe,
+        /*
+          NULL rather than 0 when the budget is unknown. Storing 0 would be
+          indistinguishable from someone genuinely answering "nothing", which
+          is a different enquiry entirely - the same conflation that produced
+          the Number('') === 0 bug the validation tests caught before launch.
+        */
+        data.budgetNotSure ? null : data.budgetMin,
+        data.budgetNotSure ? null : data.budgetMax,
+        data.budgetOpenEnded ? 1 : 0,
+        data.budgetNotSure ? 1 : 0,
+        data.foundVia,
+        data.phone,
+      )
+      .run();
+  } catch (error) {
     /*
-      Sanity failing is not the visitor's fault and "please try again" is not
-      an honest response to it - retrying would very likely fail the same way.
-      Logged for Chris to notice in the Cloudflare dashboard; the visitor gets
-      a straight answer and a fallback that does not depend on this system
-      working.
+      A database failure is not the visitor's fault, and "please try again" is
+      not an honest response - a retry would very likely fail identically.
+      Logged for the Cloudflare dashboard; the visitor gets a straight answer
+      and a route to Chris that does not depend on this system working at all.
     */
-    console.error('Sanity write failed', sanityRes.status, await sanityRes.text());
+    console.error('D1 insert failed', error);
     return respondError(
       request,
       502,
@@ -299,10 +325,10 @@ export const onRequestPost = async ({ request, env }: Context): Promise<Response
   // --- notify by email -------------------------------------------------------
   /*
     Best-effort, and deliberately not allowed to fail the request. The
-    submission is already safely in Sanity by this point - Studio is the
-    record of truth - so a Resend outage should cost Chris a delayed email
-    notification, not cost the visitor a form that appears to have failed
-    when their enquiry in fact went through.
+    enquiry is already committed to D1 by this point - that row is the record
+    of truth - so a Resend outage should cost Chris a delayed notification,
+    not cost the visitor a form that appears to have failed when their enquiry
+    in fact went through.
   */
   try {
     await fetch('https://api.resend.com/emails', {
@@ -334,7 +360,7 @@ export const onRequestPost = async ({ request, env }: Context): Promise<Response
           `Found via: ${data.foundVia}`,
           `Phone: ${data.phone}`,
           '',
-          'Full record in Sanity Studio under Contact form submissions.',
+          'Full record at https://rumeaudesign.co/admin/enquiries',
         ].join('\n'),
       }),
     });

@@ -39,7 +39,13 @@ const check = (name, ok, detail = '') => {
 const get = async (url, {follow = true} = {}) => {
   try {
     const res = await fetch(url, {redirect: follow ? 'follow' : 'manual'})
-    return {status: res.status, location: res.headers.get('location'), body: await res.text(), url: res.url}
+    return {
+      status: res.status,
+      location: res.headers.get('location'),
+      cacheControl: res.headers.get('cache-control'),
+      body: await res.text(),
+      url: res.url,
+    }
   } catch (error) {
     return {status: 0, error: error.message, body: ''}
   }
@@ -59,6 +65,32 @@ if (home.status !== 200) {
 // different statements that can be compared.
 const commit = home.body.match(/<meta name="build-commit" content="([^"]*)"/)?.[1]
 console.log(`      built from commit ${commit ?? '(not stated)'}\n`)
+
+/*
+  public/_headers, checked against what Cloudflare actually SENDS, not just
+  what the file says - a typo in the pattern syntax there would fail silently
+  (Cloudflare ignores a rule it cannot parse rather than erroring), so this is
+  the only check that can catch that class of mistake. See
+  scripts/test-headers.mjs for the build-time check on the file itself; this
+  is the live-request check on top of it.
+*/
+check(
+  'the homepage is NOT cached by the browser',
+  (home.cacheControl ?? '').includes('no-cache'),
+  home.cacheControl ?? '(no Cache-Control header at all)',
+)
+
+const assetHref = home.body.match(/\/_astro\/[^"'\s)]+\.(?:css|js)/)?.[0]
+if (assetHref) {
+  const asset = await get(`${BASE}${assetHref}`)
+  check(
+    `a hashed build asset (${assetHref}) is cached for a year and marked immutable`,
+    (asset.cacheControl ?? '').includes('max-age=31536000') && (asset.cacheControl ?? '').includes('immutable'),
+    asset.cacheControl ?? '(no Cache-Control header at all)',
+  )
+} else {
+  check('a hashed /_astro/ asset was found on the homepage to check caching on', false, 'none referenced in the HTML')
+}
 
 // --- robots.txt: the invisible one -------------------------------------------
 const robots = await get(`${BASE}/robots.txt`)

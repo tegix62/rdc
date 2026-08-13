@@ -211,10 +211,27 @@ export const onRequestPost = async ({ request, env }: Context): Promise<Response
       reject a request Cloudflare would have accepted - which is why it lives
       here and not in a pre-flight check.
     */
+    /*
+      Cloudflare's own definition of invalid-input-secret covers three
+      different mistakes: the secret was invalid, did not exist, OR "is a
+      testing secret key with a non-testing response". That last one is the
+      trap, because Cloudflare's test secret is 35 characters - exactly the
+      length of a real one. So a length check proves the site key is not in
+      the secret slot, and says nothing at all about whether the TEST secret
+      is still sitting there from a debugging session.
+
+      The prefix is what separates them, and it is safe to report: every
+      Cloudflare test key begins 1x/2x/3x followed by zeros, and those values
+      are published in their documentation. Saying "this is a test key"
+      reveals nothing about a real secret beyond the fact that it is not one.
+    */
+    const isTestSecret = /^[123]x0{6}/.test(secret);
     const looksLikeSiteKey = codes.includes('invalid-input-secret') && secret.length < 30;
     const hint = looksLikeSiteKey
       ? ` - that is the length of a SITE key, not a SECRET key (35 chars). The site key appears to have been pasted into TURNSTILE_SECRET_KEY.`
-      : '';
+      : isTestSecret
+        ? ` - TURNSTILE_SECRET_KEY is still one of CLOUDFLARE'S TEST SECRETS (it begins 1x000000). The live site key is a real one, and a test secret cannot verify a real widget's token. Replace it with the real 35-character secret key.`
+        : '';
     return respondError(
       request,
       400,

@@ -97,9 +97,29 @@ the preview site needs a working form too, for testing:
 | Variable | Value | Encrypt? |
 |---|---|---|
 | `SANITY_WRITE_TOKEN` | the token from step 3 | Yes |
-| `TURNSTILE_SECRET_KEY` | the secret key from step 1 | Yes |
+| `TURNSTILE_SECRET_KEY` | the secret key from step 1 - **check it is 35 characters** | Yes |
 | `RESEND_API_KEY` | the key from step 4 | Yes |
 | `CONTACT_NOTIFY_EMAIL` | `chris@rumeaudesign.co` | No, but fine either way |
+
+### Count the characters in the secret key before saving it
+
+Turnstile's site key and secret key sit next to each other on the same page,
+both begin with the same characters (`0x4AAAAAAA…` for a real pair), and look
+identical at a glance. The only reliable difference is length:
+
+- **site key: 24 characters** - the public one, goes in the GitHub *variable* at step 2
+- **secret key: 35 characters** - the private one, goes here
+
+Pasting the site key into `TURNSTILE_SECRET_KEY` produces
+`invalid-input-secret` from Cloudflare, which reads as *"this key is wrong"*
+rather than *"this is the wrong kind of key"*. That misdirection cost an
+afternoon of setup: the key being pasted was correct every time, it was
+simply the wrong one of the two. Re-copying it cannot fix it, and neither can
+redeploying.
+
+If /contact ever rejects a submission you know is genuine, its error message
+prints the stored secret's character count. 24 means this mistake; the
+message says so outright.
 
 **Environment variables apply to deployments made AFTER they are set** - an
 already-live deployment does not retroactively pick them up. A fresh deploy

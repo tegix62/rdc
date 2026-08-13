@@ -196,15 +196,29 @@ export const onRequestPost = async ({ request, env }: Context): Promise<Response
     */
     const codes = verifyResult['error-codes']?.join(', ') || 'no error-codes returned';
     /*
-      Lengths, never the value. A Turnstile secret key is 35 characters; if
-      raw is longer than trimmed, something invisible was pasted along with
-      it, and the trim above is what saved the request rather than a
-      cosmetic tidy-up.
+      The hint that would have saved an afternoon.
+
+      A Turnstile SITE key and SECRET key look almost identical - the real
+      pair both begin 0x4AAAAAAA, the published test pair both begin 1x0000 -
+      and pasting the site key into the secret slot yields
+      invalid-input-secret, which reads as "wrong key" rather than "wrong
+      KIND of key". That misdirected five rounds of re-pasting a key that was
+      correct all along; it was simply the wrong one of the two.
+
+      Length is the tell, and it is the one thing about a secret that is safe
+      to print: a site key is 24 characters, a secret key is 35. This only
+      annotates a failure Cloudflare has already declared, so it can never
+      reject a request Cloudflare would have accepted - which is why it lives
+      here and not in a pre-flight check.
     */
+    const looksLikeSiteKey = codes.includes('invalid-input-secret') && secret.length < 30;
+    const hint = looksLikeSiteKey
+      ? ` - that is the length of a SITE key, not a SECRET key (35 chars). The site key appears to have been pasted into TURNSTILE_SECRET_KEY.`
+      : '';
     return respondError(
       request,
       400,
-      `The spam check didn't pass. Please try again. (debug: ${codes}; secret was ${raw.length} chars raw, ${secret.length} after trimming)`,
+      `The spam check didn't pass. Please try again. (debug: ${codes}; secret was ${raw.length} chars raw, ${secret.length} after trimming${hint})`,
     );
   }
 

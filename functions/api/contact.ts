@@ -133,6 +133,24 @@ export const onRequestPost = async ({ request, env }: Context): Promise<Response
       'The spam check did not complete. If you have JavaScript disabled, please email chris@rumeaudesign.co directly instead.',
     );
   }
+  /*
+    TEMPORARY: new URLSearchParams({secret: undefined}) stringifies to the
+    literal text "undefined" rather than omitting the key or throwing - so if
+    env.TURNSTILE_SECRET_KEY never reached this Function at all, Cloudflare
+    would still get sent a real, non-empty, garbage value and correctly call
+    it invalid-input-secret. That reads identically to "the wrong key was
+    pasted", which is why re-pasting a confirmed-correct value hasn't changed
+    anything. This settles which one it actually is before guessing further.
+  */
+  if (typeof env.TURNSTILE_SECRET_KEY !== 'string' || env.TURNSTILE_SECRET_KEY.length === 0) {
+    return respondError(
+      request,
+      400,
+      `The spam check didn't pass. Please try again. (debug: TURNSTILE_SECRET_KEY is ${
+        env.TURNSTILE_SECRET_KEY === undefined ? 'undefined' : JSON.stringify(env.TURNSTILE_SECRET_KEY)
+      } in this Function's env - it never reached Cloudflare, this is not about which value was pasted)`,
+    );
+  }
   const verify = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

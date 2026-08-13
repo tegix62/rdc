@@ -1,0 +1,38 @@
+name: Audit entity artifacts
+
+# Literal HTML entities (&nbsp;, &#8217;, ...) left over from copying content
+# out of Webflow's rich-text editor, which decodes them - a plain-text
+# migration does not. Found once by accident in a blog post; this checks
+# every document for the same thing. Read-only.
+
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - 'scripts/audit-entity-artifacts.mjs'
+      - '.github/workflows/audit-entity-artifacts.yml'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Audit
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+        run: |
+          set -o pipefail
+          node scripts/audit-entity-artifacts.mjs 2>&1 | tee entity-artifacts.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "## Entity artifacts"
+            echo ""
+            echo '```'
+            cat entity-artifacts.txt 2>/dev/null || echo '(the audit did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

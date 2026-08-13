@@ -102,12 +102,38 @@ if (assetHref) {
 const contact = await get(`${BASE}/contact`)
 check('/contact responds 200', contact.status === 200, `HTTP ${contact.status}`)
 if (contact.status === 200) {
-  const hasSiteKey = /cf-turnstile[^>]+data-sitekey="[^"]+"/.test(contact.body)
+  const siteKey = contact.body.match(/cf-turnstile[^>]+data-sitekey="([^"]+)"/)?.[1]
+  const hasSiteKey = Boolean(siteKey)
   check(
     'the Turnstile widget has a real site key baked in (setup step 2)',
     hasSiteKey,
     hasSiteKey ? undefined : 'still shows the "spam check not configured" placeholder - PUBLIC_TURNSTILE_SITE_KEY is not set, or this build predates setting it',
   )
+  /*
+    Printed in full on purpose. A site key is public by definition - it is in
+    the HTML of every visitor's page - so there is nothing here to protect,
+    and having it visible settles a question that otherwise takes a deploy
+    cycle to answer: WHICH key is live.
+
+    The site key and secret key must come from the same widget. A page serving
+    Cloudflare's test key (1x0000...) while the Function holds a real secret
+    fails with invalid-input-secret - identical to the failure of a wrong
+    secret, and reached by a completely different mistake. Seeing both halves
+    is the only way to tell those apart.
+  */
+  if (siteKey) {
+    const kind = siteKey.startsWith('1x')
+      ? "Cloudflare's ALWAYS-PASSES TEST key - not a real one"
+      : siteKey.startsWith('2x') || siteKey.startsWith('3x')
+        ? "one of Cloudflare's TEST keys - not a real one"
+        : 'a real key'
+    console.log(`      live site key: ${siteKey} (${siteKey.length} chars - ${kind})`)
+    check(
+      'the live site key is a real one, not a Cloudflare test key',
+      !/^[123]x/.test(siteKey),
+      /^[123]x/.test(siteKey) ? 'the real site key never replaced the test one' : undefined,
+    )
+  }
   check(
     "Turnstile's own script is loaded (only true once a site key exists)",
     contact.body.includes('challenges.cloudflare.com/turnstile'),

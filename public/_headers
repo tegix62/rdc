@@ -1,0 +1,31 @@
+# Cloudflare Pages reads this file at deploy time to set response headers
+# per path. Addresses the PageSpeed Insights "Use efficient cache lifetimes"
+# finding (158 KiB estimated savings) - nothing here previously told the
+# browser how long it may keep anything, so it was guessing.
+
+# Astro's build output under /_astro/ is content-hashed: the filename itself
+# changes whenever the file's content does (about._fzSo2Rs.css, the hash
+# suffix, is exactly that). A browser can therefore cache these forever with
+# zero staleness risk - a content change is a NEW url, never a silent update
+# to an old one. `immutable` additionally tells the browser not to even
+# revalidate on a hard refresh.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The two vendor scripts (isotope, imagesloaded) are not content-hashed, but
+# their version is IN the filename (isotope-3.0.6.min.js) - the same safety
+# property as a content hash, as long as an upgrade always means a new
+# filename, which it does here since there is only ever one committed copy.
+/vendor/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Every HTML page, explicitly NOT cached for any real duration. This site
+# auto-deploys production the moment something is published in Sanity (see
+# docs/sanity-publish-webhook.md) - a fix or a typo correction can be live
+# within about two minutes of Chris hitting Publish. Caching HTML client-side
+# would mean a visitor who loaded the page moments before that keeps seeing
+# the OLD version for as long as the cache lasts. `no-cache` (not `no-store`)
+# still lets Cloudflare's edge serve a fast conditional/304 response - it
+# just stops a BROWSER from silently trusting a stale copy without asking.
+/*
+  Cache-Control: no-cache

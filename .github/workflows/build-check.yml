@@ -29,6 +29,12 @@ on:
       # describes, just in a directory that did not exist when that note was
       # written.
       - 'functions/**'
+      # Copied VERBATIM into dist/ by Astro's build - _headers, favicon.svg,
+      # the vendor scripts. A change here reaches production exactly as
+      # written, with no build step to catch a mistake in it, which is the
+      # strongest possible reason for it to be covered by this same gate
+      # rather than the weakest.
+      - 'public/**'
 
 jobs:
   build:
@@ -113,6 +119,21 @@ jobs:
       # and a Resend outage does not undo an already-successful Sanity write.
       - run: node scripts/test-contact-function.mjs
 
+      # The allow-list behind /api/form-progress (drop-off tracking) - the
+      # ONLY defence that endpoint has, since a vanity step counter does not
+      # warrant Turnstile. Caught a real bug on its first run: `"x" in {}` is
+      # true in JavaScript for every name Object.prototype defines, so a
+      # plain-object allow-list would have accepted `form=__proto__` as a
+      # "known form" purely because that name exists on the prototype chain.
+      - run: node scripts/test-form-funnel-validation.mjs
+
+      # functions/api/form-progress.ts itself, same real-Request approach as
+      # test-contact-function.mjs above - proves a valid ping increments
+      # exactly the one field a given step should, and a rejected ping
+      # (unknown form, out-of-range step, a prototype-chain name) never
+      # reaches Sanity at all.
+      - run: node scripts/test-form-progress-function.mjs
+
       - run: npm run build
 
       # test-meta proves the composition functions are right; it cannot prove the
@@ -125,6 +146,13 @@ jobs:
       # After the build on purpose: dist/ has to exist, and the build is where
       # the real Sanity content enters.
       - run: node scripts/test-head.mjs
+
+      # public/_headers, checked against the BUILT copy in dist/ - the cache
+      # rules PageSpeed's "efficient cache lifetimes" finding asked for.
+      # Wrong in one direction (HTML cached too long) means visitors see
+      # stale content after an auto-deploy; wrong the other way (build
+      # assets not cached) is the 158 KiB this exists to stop re-downloading.
+      - run: node scripts/test-headers.mjs
 
       # docs/launch.md is the one document followed under time pressure, on the
       # day the site is half-moved and nothing can be assumed to work. It told

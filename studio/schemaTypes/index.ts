@@ -4,6 +4,7 @@ import caseStudy from './caseStudy'
 import blogPost from './blogPost'
 import siteSettings from './siteSettings'
 import submission from './submission'
+import formFunnel from './formFunnel'
 import {caseStudySectionTypes} from './caseStudySections'
 
 export const schemaTypes = [
@@ -13,5 +14,6 @@ export const schemaTypes = [
   blogPost,
   tag,
   submission,
+  formFunnel,
   ...caseStudySectionTypes,
 ]

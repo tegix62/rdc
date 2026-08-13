@@ -15,8 +15,11 @@ our host keeps standard server logs, and — because we advertise on Facebook an
 Instagram — a Meta tracking pixel loads on every page. If you fill in the
 contact form, we keep what you send us for up to two years.
 
-We do not run analytics of any kind, we do not load web fonts from anyone else,
-and apart from the Meta pixel described below, we set no cookies.
+We do not run analytics that watch you around the site or build a profile of
+you. The one exception: the contact form counts how many people reach each of
+its steps, so we can tell where people give up on it — described below. We do
+not load web fonts from anyone else, and apart from the Meta pixel described
+below, we set no cookies.
 
 ## What we collect, and when
 
@@ -42,6 +45,15 @@ is addressed to us, not to you.
 
 We use what you send to reply to you and to do the work you are asking about.
 We do not add you to a mailing list, and we do not pass it to anyone else.
+
+**We also count how many people reach each step of the form**, so we can tell
+where people give up rather than finishing it. This is five running totals —
+"how many people got this far" — not a record about you individually: no
+name, no email, no identifier of any kind is attached to these numbers, and
+nothing here can be traced back to a particular visit or a particular person.
+Your browser remembers, only for as long as the tab stays open, that it
+already counted itself for a given step, so reloading the page or clicking
+back and forward does not count you twice.
 
 ### The Meta pixel
 
@@ -107,10 +119,17 @@ browser storage as part of confirming you are not automated — it does not use
 this to track you across other sites, by Cloudflare's own description of how
 it works.
 
-One other thing is stored in your browser, and it is not a cookie and never
-leaves your device: if you use the ink-mode toggle to switch the site's
-appearance, your choice is remembered under `rdc-ink` so the site looks the same
-next time. Nobody sees it but you, and clearing your browser data removes it.
+Two other things are stored in your browser, and neither is a cookie:
+
+- If you use the ink-mode toggle to switch the site's appearance, your choice
+  is remembered under `rdc-ink` so the site looks the same next time. This
+  never leaves your device — nobody sees it but you.
+- If you use the contact form, your browser remembers, only for as long as
+  the tab stays open, which of the form's steps it has already told us you
+  reached — this is what stops a reload from being counted twice, described
+  above. It is cleared when you close the tab.
+
+Clearing your browser data removes both.
 
 There is nothing here to accept or dismiss.
 

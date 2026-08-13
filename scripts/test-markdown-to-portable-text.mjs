@@ -184,7 +184,12 @@ for (const phrase of [
   'two years',
   'We do not sell your personal information',
   'Cloudflare',
-  'Tally',
+  // Tally was replaced by the native /contact form - see
+  // functions/api/contact.ts and docs/contact-form-setup.md. These three are
+  // the facts that replaced it and must not silently go missing the same way.
+  'Resend',
+  'Turnstile',
+  'no name, no email',
 ]) {
   check(`the output still contains ${JSON.stringify(phrase)}`, all.includes(phrase), true)
 }

@@ -107,6 +107,36 @@ const TEST_HTML = `
 </div>
 `
 
+/*
+  A minimal in-memory sessionStorage and a recording fetch, installed on
+  globalThis before each test - matching what pingFunnelStep in
+  contactForm.ts actually reads from the GLOBAL scope, not from `document`.
+  Without these, the real `fetch` global (Node 22 has one; jsdom does not)
+  fires actual, immediately-rejecting network calls on every render() during
+  every test - harmless (caught internally), but untested: nothing then
+  proves the funnel ping sends the right form name and step, or that it
+  dedupes correctly. This is what turns "does not crash" into "does the
+  right thing."
+*/
+function mockStorage() {
+  const data = new Map()
+  return {
+    getItem: (k) => (data.has(k) ? data.get(k) : null),
+    setItem: (k, v) => data.set(k, String(v)),
+    removeItem: (k) => data.delete(k),
+    clear: () => data.clear(),
+  }
+}
+function mockFundFetch() {
+  const calls = []
+  const fn = async (url, init) => {
+    calls.push({url: String(url), init})
+    return new Response(null, {status: 204})
+  }
+  fn.calls = calls
+  return fn
+}
+
 const setup = () => {
   const dom = new JSDOM(`<!doctype html><body>${TEST_HTML}</body>`, {pretendToBeVisual: true})
   const {document} = dom.window
@@ -116,8 +146,11 @@ const setup = () => {
   for (const el of document.querySelectorAll('input, textarea')) {
     el.reportValidity = () => el.checkValidity()
   }
+  globalThis.sessionStorage = mockStorage()
+  const fetchMock = mockFundFetch()
+  globalThis.fetch = fetchMock
   initContactForm(document)
-  return {dom, document}
+  return {dom, document, fetchMock}
 }
 
 const step = (document, n) => document.querySelector(`.contact-form__step[data-step="${n}"]`)
@@ -255,6 +288,59 @@ const click = (document, selector) => {
   notSure.checked = true
   notSure.dispatchEvent(new document.defaultView.Event('change', {bubbles: true}))
   check('checking "not sure" dims the slider', root.classList.contains('budget-slider--disabled'))
+}
+
+// --- drop-off tracking -----------------------------------------------------
+{
+  const {document, fetchMock} = setup()
+  check('landing on step 1 pings the funnel once', fetchMock.calls.length === 1)
+  const firstBody = fetchMock.calls[0]?.init?.body
+  check('the ping goes to the funnel endpoint', fetchMock.calls[0]?.url === '/api/form-progress')
+  check('the ping names the contact form', firstBody?.get('form') === 'contact')
+  check('the ping for the first step says step 1', firstBody?.get('step') === '1')
+
+  fill(document, 'name', 'A')
+  fill(document, 'email', 'a@example.com')
+  click(document, '.contact-form__next')
+  check('advancing to step 2 sends a second ping', fetchMock.calls.length === 2)
+  check('the second ping says step 2', fetchMock.calls[1]?.init?.body?.get('step') === '2')
+
+  click(document, '.contact-form__back')
+  check('going back to step 1 does NOT re-ping (already recorded this tab-session)', fetchMock.calls.length === 2)
+
+  click(document, '.contact-form__next')
+  check('returning to step 2 a second time does NOT re-ping either', fetchMock.calls.length === 2)
+}
+
+/*
+  A REAL reload of the same tab, simulated properly: sessionStorage survives
+  a reload (that is its entire purpose - session-scoped, not page-scoped), so
+  this reuses the SAME storage mock across two separate initContactForm()
+  calls rather than letting setup() hand each one a fresh Map. The previous
+  version of this test called setup() twice and asserted a second ping fired
+  - which passed, but only because setup() itself hands out fresh storage
+  every time, proving nothing about dedup across an actual reload. This is
+  the version that would have caught pingFunnelStep reading from the wrong
+  place, or the key format not matching between two calls.
+*/
+{
+  const dom = new JSDOM(`<!doctype html><body>${TEST_HTML}</body>`, {pretendToBeVisual: true})
+  for (const el of dom.window.document.querySelectorAll('input, textarea')) {
+    el.reportValidity = () => el.checkValidity()
+  }
+  const sharedStorage = mockStorage()
+  globalThis.sessionStorage = sharedStorage
+  const fetchMock = mockFundFetch()
+  globalThis.fetch = fetchMock
+
+  initContactForm(dom.window.document)
+  check('the first load of a tab pings step 1', fetchMock.calls.length === 1)
+
+  // Same storage, a SECOND initContactForm call - standing in for reloading
+  // the same tab, since a real reload re-runs this site's script but keeps
+  // sessionStorage intact.
+  initContactForm(dom.window.document)
+  check('reloading the same tab does NOT re-ping step 1', fetchMock.calls.length === 1)
 }
 
 console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll checks passed.')

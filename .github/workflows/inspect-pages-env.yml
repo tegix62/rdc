@@ -1,0 +1,81 @@
+name: Inspect the Pages env config
+
+# Read-only. Asks Cloudflare what environment variables the Pages project
+# ACTUALLY has, per environment, instead of asking a person to read a
+# dashboard and report back.
+#
+# WHY THIS EXISTS
+#
+# /contact's Turnstile check failed with invalid-input-secret through five
+# rounds of re-pasting a confirmed-correct secret key. The decisive test was
+# swapping in Cloudflare's own published always-passes test pair: the SITE key
+# (which travels GitHub variable -> build) visibly took effect, and the SECRET
+# key (which travels Cloudflare dashboard -> Function) did not. Same deploy,
+# two paths, only one of them delivering. At that point the question stopped
+# being "is the value right" and became "which entry does production actually
+# read", which no amount of looking at the dashboard had settled.
+#
+# WHAT IT PRINTS, AND WHAT IT DELIBERATELY DOES NOT
+#
+# Names, types and value LENGTHS. Never values. Cloudflare omits the value of
+# a secret_text entry from this response, but it returns plain_text values in
+# full - and the whole reason this workflow exists is the suspicion that a
+# sensitive value is sitting in a plain_text entry, so printing values is
+# exactly the mistake to avoid. Length alone separates the two keys that got
+# confused here: a Turnstile site key is ~24 characters, a secret key is 35.
+# A length that matches neither means whitespace or truncation.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask Cloudflare what the project's env config is
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+
+          response=$(curl -sS \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/rumeau-design-co")
+
+          if [ "$(printf '%s' "$response" | jq -r '.success')" != "true" ]; then
+            echo "::error::Cloudflare refused the request:"
+            printf '%s' "$response" | jq -r '.errors // .' >&2
+            exit 1
+          fi
+
+          # name, type, and length only - see the header.
+          summarise() {
+            printf '%s' "$response" \
+              | jq -r --arg envname "$1" '
+                  .result.deployment_configs[$envname].env_vars // {}
+                  | to_entries
+                  | if length == 0 then ["  (none set)"] else
+                      map("  \(.key)  [\(.value.type)]  \(
+                        if .value.type == "secret_text" then "value hidden by Cloudflare"
+                        else "\((.value.value // "") | length) chars"
+                        end)")
+                    end
+                  | .[]
+                '
+          }
+
+          {
+            echo '## What Cloudflare actually has'
+            echo ''
+            echo 'Names, types and lengths only - no values. A Turnstile SITE key is'
+            echo 'about 24 characters; a SECRET key is 35.'
+            echo ''
+            echo '```'
+            echo 'PRODUCTION  (this is what rumeaudesign.co serves)'
+            summarise production
+            echo ''
+            echo 'PREVIEW'
+            summarise preview
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"

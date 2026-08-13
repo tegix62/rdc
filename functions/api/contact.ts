@@ -151,9 +151,20 @@ export const onRequestPost = async ({ request, env }: Context): Promise<Response
     runtime either way; the cast just keeps this honest for whichever types
     actually apply.
   */
-  const verifyResult = (await verify.json().catch(() => ({ success: false }))) as { success: boolean };
+  const verifyResult = (await verify.json().catch(() => ({ success: false }))) as {
+    success: boolean;
+    'error-codes'?: string[];
+  };
   if (!verifyResult.success) {
-    return respondError(request, 400, "The spam check didn't pass. Please try again.");
+    /*
+      TEMPORARY: Cloudflare's siteverify response carries specific error codes
+      (invalid-input-secret, missing-input-secret, timeout-or-duplicate, etc.)
+      that say exactly what's wrong - none of which touch the secret's value
+      itself, so they're safe to surface. Once setup step 5 is confirmed
+      working end to end, revert this to the plain message below.
+    */
+    const codes = verifyResult['error-codes']?.join(', ') || 'no error-codes returned';
+    return respondError(request, 400, `The spam check didn't pass. Please try again. (debug: ${codes})`);
   }
 
   // --- validation ------------------------------------------------------------

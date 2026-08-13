@@ -92,6 +92,28 @@ if (assetHref) {
   check('a hashed /_astro/ asset was found on the homepage to check caching on', false, 'none referenced in the HTML')
 }
 
+/*
+  /contact's Turnstile setup, checked in the order Chris is actually working
+  through docs/contact-form-setup.md - each check here corresponds to one
+  step finishing, so a run of this partway through setup tells him exactly
+  which step landed and which is still pending, rather than a single
+  pass/fail for the whole form.
+*/
+const contact = await get(`${BASE}/contact`)
+check('/contact responds 200', contact.status === 200, `HTTP ${contact.status}`)
+if (contact.status === 200) {
+  const hasSiteKey = /cf-turnstile[^>]+data-sitekey="[^"]+"/.test(contact.body)
+  check(
+    'the Turnstile widget has a real site key baked in (setup step 2)',
+    hasSiteKey,
+    hasSiteKey ? undefined : 'still shows the "spam check not configured" placeholder - PUBLIC_TURNSTILE_SITE_KEY is not set, or this build predates setting it',
+  )
+  check(
+    "Turnstile's own script is loaded (only true once a site key exists)",
+    contact.body.includes('challenges.cloudflare.com/turnstile'),
+  )
+}
+
 // --- robots.txt: the invisible one -------------------------------------------
 const robots = await get(`${BASE}/robots.txt`)
 check('robots.txt is served', robots.status === 200, `HTTP ${robots.status}`)

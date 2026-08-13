@@ -29,7 +29,7 @@
   expensive ones - so a bot hammering this endpoint costs an API call at
   most, not two.
 */
-import { validateSubmission } from '../../src/lib/contactValidation';
+import { validateSubmission } from '../../../src/lib/contactValidation';
 
 interface Env {
   SANITY_WRITE_TOKEN: string;

@@ -23,6 +23,16 @@
 /post/brand-identity-cost-why-400-is-too-low   /blog/brand-identity-cost-why-400-is-too-low   301
 /post/logo-design-worth-paying-for             /blog/logo-design-worth-paying-for             301
 
+# The native contact form, parked. See parked/contact-form/README.md.
+#
+# 302, not 301, and that is the whole point of the line. Every other rule here
+# is a permanent move; this one is explicitly reversible - the form is built
+# and working, and is parked only because enquiries would have been stored in a
+# public-read Sanity dataset. A 301 would tell crawlers and browsers to cache
+# the Tally URL as this path's permanent home, which is exactly wrong for
+# something intended to come back.
+/contact    https://tally.so/r/mZ8LXz    302
+
 # Published Webflow leftovers, deliberately not ported: two abandoned duplicate
 # drafts and an unused collection template. Sent somewhere sensible rather than
 # left to 404, since they may still be indexed or linked.

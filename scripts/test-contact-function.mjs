@@ -32,7 +32,7 @@ const outdir = path.join(root, 'node_modules', '.cache', 'contact-function-test'
 await mkdir(outdir, {recursive: true})
 const outfile = path.join(outdir, 'contact.mjs')
 await build({
-  entryPoints: [path.join(root, 'functions/api/contact.ts')],
+  entryPoints: [path.join(root, 'parked/contact-form/functions/contact.ts')],
   outfile,
   bundle: true,
   format: 'esm',

@@ -1,9 +1,10 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { getSiteSettings } from '../lib/queries';
+import { TALLY_FORM_URL } from '../lib/contactUrl';
 
 const settings = await getSiteSettings();
-const CONTACT_URL = settings?.contactUrl || '/contact';
+const CONTACT_URL = settings?.contactUrl || TALLY_FORM_URL;
 
 /*
   A 404 is where every old Webflow URL that public/_redirects does not cover

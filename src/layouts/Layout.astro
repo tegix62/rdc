@@ -5,6 +5,7 @@ import '@fontsource/gothic-a1/500.css';
 import '@fontsource/gothic-a1/700.css';
 import '../styles/global.css';
 import { getSiteSettings } from '../lib/queries';
+import { TALLY_FORM_URL } from '../lib/contactUrl';
 import Img from '../components/Img.astro';
 import { hasAsset, imageUrl, socialCardDimensions, socialCardUrl } from '../lib/image';
 import VisualEditing from '../components/VisualEditing.astro';
@@ -164,13 +165,19 @@ const navLinks = [
 /*
   Every "Contact" / "Get in Touch" button on the site, in one place.
 
-  Used to default to a Tally form; now defaults to the native /contact page
-  (functions/api/contact.ts, src/pages/contact.astro). `settings.contactUrl`
-  is left in place as an override rather than removed - if this site ever
-  needs to point Contact buttons somewhere else again, that is a Studio edit,
-  not a code change.
+  Back to Tally, deliberately - see parked/contact-form/README.md.
+
+  The native /contact form was built, tested and proven working end to end,
+  then parked: it stored enquiries in Sanity, and this project's dataset is
+  public-read, which would have published every name, email and phone number
+  submitted. Private datasets are a paid Sanity tier, so the fix was not a
+  setting to flip. Tally keeps enquiries behind its own auth at no cost, which
+  makes it the better option today despite the branding.
+
+  `settings.contactUrl` still overrides this, so pointing Contact buttons
+  somewhere else stays a Studio edit rather than a code change.
 */
-const CONTACT_URL = settings?.contactUrl || '/contact';
+const CONTACT_URL = settings?.contactUrl || TALLY_FORM_URL;
 
 /*
   Structured data. The live Webflow site emits a JSON-LD block and this one

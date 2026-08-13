@@ -5,6 +5,7 @@ import Img from '../components/Img.astro';
 import Sections from '../components/Sections.astro';
 import WorkGrid from '../components/WorkGrid.astro';
 import { getPage, getSiteSettings, getFeaturedWork } from '../lib/queries';
+import { TALLY_FORM_URL } from '../lib/contactUrl';
 import { backgroundUrl, hotspotPosition } from '../lib/image';
 
 const page = await getPage('home');
@@ -28,7 +29,7 @@ const featuredWork = await getFeaturedWork(8);
 // Editable in Studio under Site Settings. Defaults to the native /contact
 // page - see the same override note in Layout.astro, which every
 // "Contact" button on the site now shares.
-const CONTACT_URL = settings?.contactUrl || '/contact';
+const CONTACT_URL = settings?.contactUrl || TALLY_FORM_URL;
 
 const bioText =
   settings?.bioText ||

@@ -93,52 +93,33 @@ if (assetHref) {
 }
 
 /*
-  /contact's Turnstile setup, checked in the order Chris is actually working
-  through docs/contact-form-setup.md - each check here corresponds to one
-  step finishing, so a run of this partway through setup tells him exactly
-  which step landed and which is still pending, rather than a single
-  pass/fail for the whole form.
-*/
-const contact = await get(`${BASE}/contact`)
-check('/contact responds 200', contact.status === 200, `HTTP ${contact.status}`)
-if (contact.status === 200) {
-  const siteKey = contact.body.match(/cf-turnstile[^>]+data-sitekey="([^"]+)"/)?.[1]
-  const hasSiteKey = Boolean(siteKey)
-  check(
-    'the Turnstile widget has a real site key baked in (setup step 2)',
-    hasSiteKey,
-    hasSiteKey ? undefined : 'still shows the "spam check not configured" placeholder - PUBLIC_TURNSTILE_SITE_KEY is not set, or this build predates setting it',
-  )
-  /*
-    Printed in full on purpose. A site key is public by definition - it is in
-    the HTML of every visitor's page - so there is nothing here to protect,
-    and having it visible settles a question that otherwise takes a deploy
-    cycle to answer: WHICH key is live.
+  /contact goes to Tally, and NOTHING on this domain collects enquiries.
 
-    The site key and secret key must come from the same widget. A page serving
-    Cloudflare's test key (1x0000...) while the Function holds a real secret
-    fails with invalid-input-secret - identical to the failure of a wrong
-    secret, and reached by a completely different mistake. Seeing both halves
-    is the only way to tell those apart.
-  */
-  if (siteKey) {
-    const kind = siteKey.startsWith('1x')
-      ? "Cloudflare's ALWAYS-PASSES TEST key - not a real one"
-      : siteKey.startsWith('2x') || siteKey.startsWith('3x')
-        ? "one of Cloudflare's TEST keys - not a real one"
-        : 'a real key'
-    console.log(`      live site key: ${siteKey} (${siteKey.length} chars - ${kind})`)
-    check(
-      'the live site key is a real one, not a Cloudflare test key',
-      !/^[123]x/.test(siteKey),
-      /^[123]x/.test(siteKey) ? 'the real site key never replaced the test one' : undefined,
-    )
-  }
-  check(
-    "Turnstile's own script is loaded (only true once a site key exists)",
-    contact.body.includes('challenges.cloudflare.com/turnstile'),
-  )
-}
+  The native form is parked (parked/contact-form/README.md) because it wrote
+  submissions into a public-read Sanity dataset. Two things could quietly undo
+  that, and neither has a visible symptom:
+
+    - the redirect stops working, leaving /contact a 404 on the one page every
+      "Get in Touch" button is meant to reach
+    - the Cloudflare Function comes back, at which case /contact would accept
+      POSTs and write real names, emails and phone numbers into a dataset
+      anyone can read, with no form on the site to hint that it is happening
+
+  So this asserts the redirect fires AND that the endpoint behind it is gone.
+*/
+const contact = await get(`${BASE}/contact`, {follow: false})
+check(
+  '/contact redirects to Tally rather than 404ing',
+  contact.status === 302 && (contact.location ?? '').includes('tally.so'),
+  `HTTP ${contact.status} -> ${contact.location ?? '(no Location header)'}`,
+)
+
+const contactApi = await get(`${BASE}/api/contact`)
+check(
+  'the parked contact API is NOT deployed (it wrote to a public dataset)',
+  contactApi.status === 404,
+  `HTTP ${contactApi.status}${contactApi.status !== 404 ? ' - this endpoint is live again and can write enquiries into a world-readable dataset' : ''}`,
+)
 
 // --- robots.txt: the invisible one -------------------------------------------
 const robots = await get(`${BASE}/robots.txt`)

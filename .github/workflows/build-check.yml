@@ -22,13 +22,14 @@ on:
       # triggers the workflow. A few extra runs when a diagnose script changes is
       # a much cheaper mistake than a check that quietly does not fire.
       - 'scripts/**'
-      # The Cloudflare Pages Function behind /contact. It is not part of
-      # `npm run build`'s output - Astro never touches it, Cloudflare deploys it
-      # separately - so nothing else in this path list would have caught a
-      # change here. Exactly the same shape of gap the note above already
-      # describes, just in a directory that did not exist when that note was
-      # written.
-      - 'functions/**'
+      # The parked contact form - the page and the two Cloudflare Functions,
+      # moved out of src/pages/ and functions/ so neither deploys while
+      # enquiries would land in a public-read dataset. Its test suites still
+      # run on every change, which is the point of parking it rather than
+      # deleting it: the code stays proven, so bringing it back is a move
+      # rather than a rewrite. Untested parked code rots silently and is worth
+      # nothing when you reach for it.
+      - 'parked/**'
       # Copied VERBATIM into dist/ by Astro's build - _headers, favicon.svg,
       # the vendor scripts. A change here reaches production exactly as
       # written, with no build step to catch a mistake in it, which is the

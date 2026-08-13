@@ -74,13 +74,38 @@ console.log(`${rules.length} redirect rules in public/_redirects\n`)
 
 check('every line parses', malformed.length === 0, malformed.join(' | ') || 'no malformed rules')
 
-// A 302 tells crawlers the OLD url is still canonical, which throws away the
-// ranking this file exists to pass on.
-const notPermanent = rules.filter((r) => r.status !== '301')
+/*
+  A 302 tells crawlers the OLD url is still canonical, which throws away the
+  ranking this file exists to pass on. That is right for every Webflow move
+  here and wrong for exactly one rule.
+
+  /contact is REVERSIBLE, and that is the reason it is exempt rather than an
+  oversight. The native form is built and working, parked only because
+  enquiries would have been stored in a public-read Sanity dataset - see
+  parked/contact-form/README.md. A 301 would tell crawlers and browsers to
+  cache Tally as this path's permanent home, and browsers honour a cached 301
+  without re-asking, so visitors who hit /contact once would keep landing on
+  Tally after the form came back.
+
+  Named explicitly rather than allowing 302s generally: a new 302 appearing in
+  this file should still fail, because it almost certainly means someone meant
+  301 and did not know the difference.
+*/
+const REVERSIBLE = new Set(['/contact'])
+const notPermanent = rules.filter((r) => r.status !== '301' && !REVERSIBLE.has(r.from))
 check(
-  'every redirect is a 301',
+  'every redirect is a 301, except the ones deliberately reversible',
   notPermanent.length === 0,
   notPermanent.map((r) => `line ${r.line}: ${r.from} -> ${r.status}`).join(', ') || `${rules.length} rules`,
+)
+
+// The exemption has to stay honest in the other direction too: if /contact
+// ever becomes a 301, that is the cached-permanently bug above, shipped.
+const wronglyPermanent = rules.filter((r) => REVERSIBLE.has(r.from) && r.status === '301')
+check(
+  'the reversible redirects are NOT 301 (browsers cache those indefinitely)',
+  wronglyPermanent.length === 0,
+  wronglyPermanent.map((r) => `line ${r.line}: ${r.from}`).join(', ') || 'correct',
 )
 
 /*

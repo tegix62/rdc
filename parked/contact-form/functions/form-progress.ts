@@ -20,7 +20,7 @@
   allow-list in formFunnelValidation.ts is the only defence, and is enough
   for what is actually at stake.
 */
-import { validateFunnelPing } from '../../src/lib/formFunnelValidation';
+import { validateFunnelPing } from '../../../src/lib/formFunnelValidation';
 
 interface Env {
   SANITY_WRITE_TOKEN: string;

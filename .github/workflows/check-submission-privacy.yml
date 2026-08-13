@@ -1,0 +1,93 @@
+name: Can anyone read the contact form submissions?
+
+# Read-only, unauthenticated, and the answer matters more than almost anything
+# else about /contact.
+#
+# WHY
+#
+# Contact form submissions are the most sensitive data this project stores:
+# real names, email addresses, phone numbers, budgets, and a description of
+# someone's business. They live in the same Sanity dataset as the site's
+# content.
+#
+# This repository is PUBLIC, so the Sanity project ID (8337vjtf) and dataset
+# name (production) are public knowledge - they are committed in plain sight
+# and there is no way to treat them as secret. A Sanity dataset can be
+# configured either public-read or private. If this one is public-read, then
+# anyone who reads the repo can query every submission ever made, directly
+# from Sanity's API, with no credentials at all. Nothing on the website would
+# show that; the leak has no symptom.
+#
+# The site's own build client is unauthenticated, which is what makes the
+# question live rather than theoretical: if the dataset were private, the
+# build would need a token to read content, and it does not appear to use one
+# for public queries.
+#
+# WHAT IT PRINTS
+#
+# The HTTP status and whether submissions were readable - never any
+# submission content. Printing a name or email into a public repository's
+# workflow log would be the exact harm this check exists to detect.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query Sanity with no credentials at all
+        run: |
+          set -uo pipefail
+
+          # count() rather than the documents themselves: enough to prove
+          # readability, incapable of leaking a submission into this log.
+          url='https://8337vjtf.api.sanity.io/v2024-01-01/data/query/production?query=count(*%5B_type%3D%3D%22submission%22%5D)'
+
+          body=$(curl -sS -m 30 -w '\n%{http_code}' "$url")
+          status=$(printf '%s' "$body" | tail -1)
+          payload=$(printf '%s' "$body" | sed '$d')
+
+          echo "HTTP $status"
+
+          verdict=""
+          if [ "$status" = "200" ]; then
+            count=$(printf '%s' "$payload" | jq -r '.result // "unknown"')
+            verdict="EXPOSED"
+            echo "::error::The dataset is PUBLIC-READ. Anyone can read every contact form submission with no credentials. Count returned: $count"
+          elif [ "$status" = "401" ] || [ "$status" = "403" ]; then
+            verdict="private"
+            echo "Sanity refused the unauthenticated read - the dataset is private."
+          else
+            verdict="inconclusive"
+            echo "::warning::Unexpected status $status - treat as unresolved, not as safe."
+            printf '%s' "$payload" | head -c 400
+          fi
+
+          {
+            echo '## Can a stranger read the contact form submissions?'
+            echo ''
+            case "$verdict" in
+              EXPOSED)
+                echo '**YES - the dataset is public-read.**'
+                echo ''
+                echo 'Every submission (name, email, phone, budget, business description)'
+                echo 'is readable by anyone, with no credentials, using only the project ID'
+                echo 'and dataset name that this public repository already discloses.'
+                echo ''
+                echo 'Fix before collecting any real enquiry: Sanity project settings ->'
+                echo 'API -> Dataset -> set `production` to private, then confirm the site'
+                echo 'still builds (it will need a read token if it does not already use one).'
+                ;;
+              private)
+                echo '**No.** Sanity refused the unauthenticated read, so submissions are'
+                echo 'only reachable with a credential.'
+                ;;
+              *)
+                echo '**Unresolved** - the probe got an unexpected response. Do not read this'
+                echo 'as a pass.'
+                ;;
+            esac
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          [ "$verdict" != "EXPOSED" ]

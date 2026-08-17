@@ -43,6 +43,17 @@ jobs:
           set -o pipefail
           node scripts/audit-structured-data.mjs dist 2>&1 | tee -a onpage.txt
 
+      # Where the Contact buttons actually point. Reads Sanity, not dist,
+      # because the answer lives in a Studio field - and audit-a11y-seo.mjs
+      # finding /contact with zero inbound links is what raised the question.
+      - name: Contact button target
+        if: always()
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+        run: |
+          set -o pipefail
+          node scripts/check-contact-url.mjs 2>&1 | tee -a onpage.txt
+
       - name: Report
         if: always()
         run: |

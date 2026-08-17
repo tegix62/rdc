@@ -1,0 +1,45 @@
+name: Fix text in Sanity (entities and em dashes)
+
+# Substitutes literal HTML entities and em dashes across published documents.
+#
+# DRY RUN BY DEFAULT. The `apply` box has to be ticked for anything to be
+# written, and the run prints which mode it is in either way - so the normal
+# use is to run it once, read the diff, then run it again with the box ticked.
+#
+# Sanity keeps document history, so every change is revertable in Studio.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Actually write the changes (off = report only)'
+        type: boolean
+        default: false
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Fix text
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          APPLY: ${{ inputs.apply && 'yes' || 'no' }}
+        run: |
+          set -o pipefail
+          node scripts/fix-text-in-sanity.mjs 2>&1 | tee fix.txt
+
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo '## Text fixes in Sanity'
+            echo ''
+            echo '```'
+            cat fix.txt 2>/dev/null || echo '(the script did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

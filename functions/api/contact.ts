@@ -89,7 +89,7 @@ const jsonResponse = (status: number, body: Record<string, unknown>) =>
 
 const htmlPage = (status: number, heading: string, message: string) =>
   new Response(
-    `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${heading} — Rumeau Design Co</title>
+    `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${heading} - Rumeau Design Co</title>
     <meta name="robots" content="noindex, nofollow">
     <style>body{font-family:system-ui,sans-serif;max-width:32rem;margin:4rem auto;padding:0 1.5rem;color:#1a1a1a;line-height:1.5}
     h1{color:#002885;font-size:1.5rem}a{color:#002885}</style></head>
@@ -380,7 +380,7 @@ export const onRequestPost = async ({ request, env }: Context): Promise<Response
         reply_to: data.email,
         subject: `New enquiry: ${data.name}${data.company ? ` (${data.company})` : ''}`,
         text: [
-          `${data.name} <${data.email}>${data.company ? ` — ${data.company}` : ''}`,
+          `${data.name} <${data.email}>${data.company ? ` - ${data.company}` : ''}`,
           '',
           `Business: ${data.businessDescription}`,
           `Goals: ${data.goals}`,
@@ -418,7 +418,7 @@ export const onRequestPost = async ({ request, env }: Context): Promise<Response
 
   return wantsJson(request)
     ? jsonResponse(200, { ok: true })
-    : htmlPage(200, 'Thanks for filling this out!', "I'll get back to you soon. — Chris Rumeau, Rumeau Design Co");
+    : htmlPage(200, 'Thanks for filling this out!', "I'll get back to you soon. - Chris Rumeau, Rumeau Design Co");
 };
 
 // Anything other than POST is not a form submission this endpoint understands.

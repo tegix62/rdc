@@ -11,13 +11,13 @@ If you would rather just ask: **chris@rumeaudesign.co**.
 
 Browsing this site does not require you to give us anything, and we do not ask
 you to make an account or accept anything. Two things do happen automatically:
-our host keeps standard server logs, and — because we advertise on Facebook and
-Instagram — a Meta tracking pixel loads on every page. If you fill in the
+our host keeps standard server logs, and - because we advertise on Facebook and
+Instagram - a Meta tracking pixel loads on every page. If you fill in the
 contact form, we keep what you send us for up to two years.
 
 We do not run analytics that watch you around the site or build a profile of
 you. The one exception: the contact form counts how many people reach each of
-its steps, so we can tell where people give up on it — described below. We do
+its steps, so we can tell where people give up on it - described below. We do
 not load web fonts from anyone else, and apart from the Meta pixel described
 below, we set no cookies.
 
@@ -32,7 +32,7 @@ device type.
 
 ### When you contact us
 
-The contact form lives on this site — your name, email, and everything else
+The contact form lives on this site - your name, email, and everything else
 you type there is sent straight to us and stored directly in our own systems,
 not a third-party form product's.
 
@@ -40,15 +40,15 @@ Before it is accepted, Cloudflare Turnstile checks that the submission came
 from a real person rather than automated spam. It runs invisibly for almost
 everyone; only a small number of visitors ever see a challenge to solve. We
 then get an email telling us you got in touch, sent through Resend, an email
-delivery service — the notification passes through their systems, though it
+delivery service - the notification passes through their systems, though it
 is addressed to us, not to you.
 
 We use what you send to reply to you and to do the work you are asking about.
 We do not add you to a mailing list, and we do not pass it to anyone else.
 
 **We also count how many people reach each step of the form**, so we can tell
-where people give up rather than finishing it. This is five running totals —
-"how many people got this far" — not a record about you individually: no
+where people give up rather than finishing it. This is five running totals -
+"how many people got this far" - not a record about you individually: no
 name, no email, no identifier of any kind is attached to these numbers, and
 nothing here can be traced back to a particular visit or a particular person.
 Your browser remembers, only for as long as the tab stays open, that it
@@ -75,7 +75,7 @@ own policies, not ours: **facebook.com/privacy/policy**.
 
 **How to stop it.** Any of these work, and none of them break the site:
 
-- Use a content blocker, or a browser that blocks trackers by default — Firefox,
+- Use a content blocker, or a browser that blocks trackers by default - Firefox,
   Brave and Safari all do to varying degrees.
 - Turn off "Activity off Meta technologies" in your Facebook or Instagram
   settings, which stops Meta connecting this browsing to your account.
@@ -102,7 +102,7 @@ them:
 - **Google** supplies the preview thumbnail on a few pages that have a video
   with no still image of its own, and sees your IP address on those pages.
 - **YouTube and Vimeo** play the videos, and see nothing at all unless you press
-  play — see below.
+  play - see below.
 
 **Videos do not load until you ask them to.** Where this site shows a video, it
 displays a still image and a play button, and only builds the actual YouTube or
@@ -115,7 +115,7 @@ never press play.
 
 The Meta pixel sets one cookie, `_fbp`, described above. Cloudflare Turnstile,
 used on the contact form, may set its own short-lived cookie or similar
-browser storage as part of confirming you are not automated — it does not use
+browser storage as part of confirming you are not automated - it does not use
 this to track you across other sites, by Cloudflare's own description of how
 it works.
 
@@ -123,10 +123,10 @@ Two other things are stored in your browser, and neither is a cookie:
 
 - If you use the ink-mode toggle to switch the site's appearance, your choice
   is remembered under `rdc-ink` so the site looks the same next time. This
-  never leaves your device — nobody sees it but you.
+  never leaves your device - nobody sees it but you.
 - If you use the contact form, your browser remembers, only for as long as
   the tab stays open, which of the form's steps it has already told us you
-  reached — this is what stops a reload from being counted twice, described
+  reached - this is what stops a reload from being counted twice, described
   above. It is cleared when you close the tab.
 
 Clearing your browser data removes both.
@@ -172,7 +172,7 @@ Whatever country you are in, you can ask us to:
 - or stop using it.
 
 Email **chris@rumeaudesign.co** and we will do it. There is no form and no
-process — this is a small studio, and it will be Chris reading the message.
+process - this is a small studio, and it will be Chris reading the message.
 
 If you are in the UK or EU, the GDPR gives you those rights formally, plus the
 right to receive your data in a portable form and the right to complain to your
@@ -181,7 +181,7 @@ comparable rights under the CCPA.
 
 **We do not sell your personal information.** For completeness: the Meta pixel
 shares browsing activity with Meta for advertising purposes, and some privacy
-laws — California's among them — treat that kind of sharing as its own category
+laws - California's among them - treat that kind of sharing as its own category
 even though no money changes hands. Turning it off is covered above.
 
 ## Children

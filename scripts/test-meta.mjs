@@ -338,7 +338,11 @@ eq('stega markers never reach a page description', pageDescription({seoDescripti
 
 eq('a post uses its metaDescription', blogPostDescription({metaDescription: 'Written for search.', excerpt: 'x', title: 'T'}), 'Written for search.')
 eq('a post falls back to its excerpt', blogPostDescription({excerpt: 'The opening line. And more.', title: 'T'}), 'The opening line.')
-eq('a post with only a title still gets one', blogPostDescription({title: 'On Hand Lettering'}), 'On Hand Lettering — notes from Rumeau Design Co.')
+// Hyphen, not an em dash. Chris's house style, applied across the site's copy
+// - see scripts/fix-text-in-sanity.mjs for the Sanity-side pass. This assertion
+// held the old convention and is the reason a style change shows up as a test
+// failure rather than silently disagreeing with everything else.
+eq('a post with only a title still gets one', blogPostDescription({title: 'On Hand Lettering'}), 'On Hand Lettering - notes from Rumeau Design Co.')
 eq('an empty post still gets one', blogPostDescription({}), 'Notes from Rumeau Design Co.')
 
 // --- dates -------------------------------------------------------------------

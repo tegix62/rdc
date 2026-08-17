@@ -144,7 +144,7 @@ export function blogPostDescription(post: {
   const written = stripStega(post?.excerpt);
   if (written) return firstSentence(written);
   const title = stripStega(post?.title);
-  return title ? `${title} — notes from ${DEFAULT_SITE_NAME}.` : `Notes from ${DEFAULT_SITE_NAME}.`;
+  return title ? `${title} - notes from ${DEFAULT_SITE_NAME}.` : `Notes from ${DEFAULT_SITE_NAME}.`;
 }
 
 /*

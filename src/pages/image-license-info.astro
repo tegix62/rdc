@@ -14,6 +14,6 @@ const page = await getPage('image-license-info');
   {page?.body?.length > 0 ? (
     <div class="prose" set:html={renderPortableText(page.body)} />
   ) : (
-    <p>Content coming soon — add this page's copy in Studio.</p>
+    <p>Content coming soon - add this page's copy in Studio.</p>
   )}
 </Layout>

@@ -152,7 +152,7 @@ const ogImage =
               {caseStudy.credits.map((c: any) => (
                 <p>
                   <strong>{c.role}</strong>
-                  {c.name && ' — '}
+                  {c.name && ' - '}
                   {c.name && (c.url ? (
                     <a href={c.url} target="_blank" rel="noopener noreferrer">{c.name}</a>
                   ) : c.name)}
@@ -168,7 +168,7 @@ const ogImage =
           {caseStudy.principalType && (
             <div class="work-identity__credits work-identity__type">
               <p>
-                <strong>Principal Type</strong>{' — '}
+                <strong>Principal Type</strong>{' - '}
                 {caseStudy.principalTypeUrl ? (
                   <a href={caseStudy.principalTypeUrl} target="_blank" rel="noopener noreferrer">
                     {caseStudy.principalType}

@@ -11,7 +11,7 @@ const page = await getPage('merchfolio');
 const items = await getMerchItems();
 ---
 
-<Layout title={page?.title ?? 'Merch Portfolio'} description={pageDescription(page, 'Apparel and merchandise design — garments, prints and packaging built to perform on fabric.')}>
+<Layout title={page?.title ?? 'Merch Portfolio'} description={pageDescription(page, 'Apparel and merchandise design - garments, prints and packaging built to perform on fabric.')}>
   <h1>{page?.heading ?? page?.title ?? 'Merch Portfolio'}</h1>
 
   {/*
@@ -62,7 +62,7 @@ const items = await getMerchItems();
       })}
     </div>
   ) : (
-    <p>No merch work here yet — tag a project "Merch &amp; Apparel" in Studio to list it.</p>
+    <p>No merch work here yet - tag a project "Merch &amp; Apparel" in Studio to list it.</p>
   )}
 
   {page?.sections?.length > 0 && (

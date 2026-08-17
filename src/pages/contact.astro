@@ -22,12 +22,12 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as string |
 
 <Layout
   title={page?.title ?? 'Contact'}
-  description={pageDescription(page, "Tell me about your project — brand identity, merch, or something else. I'll get back to you soon.")}
+  description={pageDescription(page, "Tell me about your project - brand identity, merch, or something else. I'll get back to you soon.")}
 >
   <div class="contact">
     <h1 class="contact__heading">Let's Work Together</h1>
     <p class="contact__intro">
-      This form takes about a minute. I read every one myself — there is no team, no CRM, just me.
+      This form takes about a minute. I read every one myself - there is no team, no CRM, just me.
     </p>
 
     {/*
@@ -204,7 +204,7 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as string |
           */}
           <label class="contact-form__checkbox">
             <input type="checkbox" name="budgetNotSure" value="true" id="budget-not-sure" />
-            <span>Not sure yet — want to discuss</span>
+            <span>Not sure yet - want to discuss</span>
           </label>
         </div>
 
@@ -233,7 +233,7 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as string |
             the one place a person building the form would actually look.
           */
           <p class="contact-form__missing-turnstile">
-            Spam check not configured (PUBLIC_TURNSTILE_SITE_KEY is unset) — submissions will be rejected until it is.
+            Spam check not configured (PUBLIC_TURNSTILE_SITE_KEY is unset) - submissions will be rejected until it is.
           </p>
         )}
       </fieldset>
@@ -250,7 +250,7 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as string |
     <div class="contact-form__done" hidden>
       <h2>Thanks for filling this out!</h2>
       <p><a href="/">I'll get back to you soon.</a></p>
-      <p class="contact-form__signature">— Chris Rumeau, Rumeau Design Co</p>
+      <p class="contact-form__signature">- Chris Rumeau, Rumeau Design Co</p>
     </div>
   </div>
 

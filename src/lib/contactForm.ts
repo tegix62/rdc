@@ -170,9 +170,9 @@ export function initContactForm(doc: Document = document): void {
         ask why the form will not work.
       */
       const body = await res.json().catch(() => null);
-      showError(errorBox, body?.message ?? "Something went wrong sending this — please try again, or email chris@rumeaudesign.co directly.");
+      showError(errorBox, body?.message ?? "Something went wrong sending this - please try again, or email chris@rumeaudesign.co directly.");
     } catch {
-      showError(errorBox, "Could not reach the server — check your connection and try again.");
+      showError(errorBox, "Could not reach the server - check your connection and try again.");
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;

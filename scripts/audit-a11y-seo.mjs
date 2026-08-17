@@ -74,13 +74,25 @@ for (const file of pages) {
   const html = readFileSync(file, 'utf8')
   const route = routeOf(file)
   for (const tag of html.match(/<img\b[^>]*>/gi) ?? []) {
-    const alt = tag.match(/\salt\s*=\s*"([^"]*)"/i)
+    /*
+      Both quoting styles. The first version of this only matched alt="…", and
+      reported 42 missing on a site where every emitter demonstrably writes an
+      alt - Img.astro, portableText.ts and Video.astro all do. A checker that
+      confidently reports a defect the code cannot produce is worse than no
+      checker, so it now accepts single quotes too and PRINTS THE TAG on a
+      miss, which is the only way to tell a real gap from a parsing artefact.
+    */
+    const alt = tag.match(/\salt\s*=\s*("([^"]*)"|'([^']*)')/i)
     if (!alt) {
-      // The src is what makes this findable in Studio - "an image on /about"
-      // is not something you can go and fix.
-      const src = tag.match(/\ssrc\s*=\s*"([^"]*)"/i)?.[1] ?? '(no src)'
-      missingAlt.push({route, src: src.slice(0, 90)})
-    } else if (alt[1].trim() === '') decorative += 1
+      const src = tag.match(/\ssrc\s*=\s*("([^"]*)"|'([^']*)')/i)
+      missingAlt.push({
+        route,
+        src: (src?.[2] ?? src?.[3] ?? '(no src)').slice(0, 80),
+        // Truncated, because a Sanity srcset runs to thousands of characters
+        // and the useful part is which attributes are present.
+        tag: tag.replace(/\s+/g, ' ').slice(0, 160),
+      })
+    } else if ((alt[2] ?? alt[3] ?? '').trim() === '') decorative += 1
     else withAlt += 1
   }
 }
@@ -88,8 +100,12 @@ for (const file of pages) {
 console.log(`\n1. Image alt text\n`)
 console.log(`   ${withAlt} described, ${decorative} deliberately decorative (alt=""), ${missingAlt.length} MISSING\n`)
 if (missingAlt.length) {
-  for (const {route, src} of missingAlt.slice(0, 25)) console.log(`   ${route}\n     ${src}`)
-  if (missingAlt.length > 25) console.log(`   ...and ${missingAlt.length - 25} more`)
+  for (const {route, src, tag} of missingAlt.slice(0, 12)) {
+    console.log(`   ${route}`)
+    console.log(`     src: ${src}`)
+    console.log(`     tag: ${tag}`)
+  }
+  if (missingAlt.length > 12) console.log(`   ...and ${missingAlt.length - 12} more`)
   console.log(`\n   An <img> with no alt attribute at all is announced as just "image".`)
   console.log(`   alt="" is the CORRECT markup for a purely decorative image - those are`)
   console.log(`   counted above, not listed here.`)

@@ -1,8 +1,24 @@
 /*
   functions/api/form-progress.ts as a real Request -> Response round trip,
-  Sanity's mutate API stubbed via a mocked global fetch - same approach as
-  test-contact-function.mjs, for the same reason: reading the code and
-  agreeing with it proves nothing about what a real Request produces.
+  with global fetch mocked - same approach as test-contact-function.mjs, for
+  the same reason: reading the code and agreeing with it proves nothing about
+  what a real Request produces.
+
+  WHAT THIS NOW ASSERTS, AND WHY IT IS THE OPPOSITE OF WHAT IT USED TO
+
+  This file used to prove that a valid ping incremented exactly one field on a
+  published Sanity document. It did prove that, and the behaviour it was
+  guarding turned out to be the bug: a Sanity webhook redeploys the site on
+  any published-document change, so every ping was a production deploy. On
+  17 August 2026 ordinary traffic on /contact produced several hundred of them
+  in minutes.
+
+  So the assertion is inverted. The endpoint must now make NO outbound request
+  whatsoever - not a mocked one, not a stubbed one, none - because "it only
+  writes a little" is precisely the reasoning that failed. Everything else it
+  did well (the allow-list, the prototype-chain defence, rejecting malformed
+  bodies) is still checked, because that input handling is what whatever
+  replaces this will inherit.
 
   Usage: node scripts/test-form-progress-function.mjs
 */
@@ -35,7 +51,12 @@ await build({
 })
 const {onRequestPost, onRequestGet} = await import(outfile)
 
-const ENV = {SANITY_WRITE_TOKEN: 'fake-write-token'}
+/*
+  No env at all. The Function's Context no longer declares one, and passing a
+  write token here would quietly keep the old shape alive in the test long
+  after the code stopped having it.
+*/
+const ENV = undefined
 
 function mockFetch(responses) {
   const calls = []
@@ -60,20 +81,18 @@ const post = (fields) => {
   return new Request('https://rumeaudesign.co/api/form-progress', {method: 'POST', body: form})
 }
 
-// --- a valid ping writes a two-mutation transaction --------------------------
+// --- a valid ping is accepted and recorded NOWHERE ---------------------------
 {
-  const fetchMock = mockFetch({'api.sanity.io': [jsonRes(200, {transactionId: 'tx1'})]})
+  /*
+    An empty stub map, so ANY outbound request throws "no stubbed response".
+    That is the point: this asserts the absence of a network call, and the
+    strongest way to assert that is to make one impossible to fake.
+  */
+  const fetchMock = mockFetch({})
   globalThis.fetch = fetchMock
   const res = await onRequestPost({request: post({form: 'contact', step: '3'}), env: ENV})
-  check('a valid ping returns 204', res.status === 204)
-  check('exactly one Sanity call is made', fetchMock.calls.length === 1)
-
-  const body = JSON.parse(fetchMock.calls[0].init.body)
-  check('the transaction has exactly two mutations', body.mutations.length === 2)
-  check('the first mutation creates the counter doc if missing', 'createIfNotExists' in body.mutations[0])
-  check('the counter doc id is namespaced by form name', body.mutations[0].createIfNotExists._id === 'formFunnel.contact')
-  check('the second mutation increments the RIGHT field for step 3', body.mutations[1].patch.inc.step3 === 1)
-  check('it does not touch any other step field', Object.keys(body.mutations[1].patch.inc).length === 1)
+  check('a valid ping still returns 204', res.status === 204)
+  check('and makes NO outbound request - nothing reaches the CMS', fetchMock.calls.length === 0)
 }
 
 // --- an unknown form is rejected before any Sanity call is made --------------
@@ -124,13 +143,11 @@ const post = (fields) => {
   check('a non-form body is rejected rather than throwing', res.status === 400)
 }
 
-// --- a Sanity failure is reported with a server error, not a false success ---
-{
-  const fetchMock = mockFetch({'api.sanity.io': [jsonRes(500, {error: 'internal'})]})
-  globalThis.fetch = fetchMock
-  const res = await onRequestPost({request: post({form: 'contact', step: '1'}), env: ENV})
-  check('a Sanity failure surfaces as 5xx, not a false 204', res.status >= 500)
-}
+/*
+  The old "a Sanity failure surfaces as 5xx" case is gone with the write it
+  described. There is no upstream left to fail, so a 204 is now the only
+  answer a well-formed ping can get - which is what the first case asserts.
+*/
 
 // --- GET is not a ping -------------------------------------------------------
 {

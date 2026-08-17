@@ -73,6 +73,27 @@ on:
       - 'scripts/check-production-build.mjs'
       - 'scripts/test-production-check.mjs'
 
+# One deploy at a time, and only the NEWEST one survives.
+#
+# Added after 17 August 2026, when ordinary traffic on /contact produced
+# several hundred repository_dispatch events in a few minutes and every one of
+# them started a full production deploy. The cause was fixed at source
+# (functions/api/form-progress.ts), but the shape of the failure is what
+# matters here: this workflow had nothing at all bounding how many times it
+# could run, so ANY burst - a webhook loop, a script, a mis-click held down -
+# became hundreds of deploys of the same commit.
+#
+# cancel-in-progress, not a queue. Every run of this workflow deploys the
+# CURRENT content of the CMS, so when two are in flight the older one is
+# already deploying something stale by definition - waiting for it to finish
+# only delays the one that is right. A cancelled run leaves no deployment
+# behind (the upload is the last step), and the newest run always survives,
+# so the end state is the same one deploy that a queue would have arrived at
+# eventually.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest

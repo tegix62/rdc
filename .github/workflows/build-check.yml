@@ -127,13 +127,20 @@ jobs:
       - run: node scripts/test-form-funnel-validation.mjs
 
       # functions/api/form-progress.ts itself, same real-Request approach as
-      # test-contact-function.mjs above - proves a valid ping increments
-      # exactly the one field a given step should, and a rejected ping
-      # (unknown form, out-of-range step, a prototype-chain name) never
-      # reaches Sanity at all. Drop-off counters DO still live in Sanity: they
-      # are integers with no personal data in them, so a public-read dataset
-      # is not a problem for these the way it was for enquiries.
+      # test-contact-function.mjs above. It now proves the endpoint makes NO
+      # outbound request at all: the drop-off counter used to increment a
+      # published Sanity document, and because a Sanity webhook redeploys the
+      # site on any published-document change, every ping was a production
+      # deploy. Ordinary traffic on /contact turned that into several hundred
+      # deploys on 17 August 2026. The counter is off until it can live in D1.
       - run: node scripts/test-form-progress-function.mjs
+
+      # The general form of that bug, asserted about every file under
+      # functions/ rather than about the one endpoint that got it wrong.
+      # Everything there is a public HTTP endpoint, and the CMS is now part of
+      # the deploy trigger, so a CMS write from a public endpoint is an
+      # unauthenticated deploy trigger however small the write looks.
+      - run: node scripts/test-no-public-cms-writes.mjs
 
       - run: npm run build
 

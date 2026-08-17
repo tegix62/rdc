@@ -109,14 +109,16 @@ const TEST_HTML = `
 
 /*
   A minimal in-memory sessionStorage and a recording fetch, installed on
-  globalThis before each test - matching what pingFunnelStep in
-  contactForm.ts actually reads from the GLOBAL scope, not from `document`.
-  Without these, the real `fetch` global (Node 22 has one; jsdom does not)
-  fires actual, immediately-rejecting network calls on every render() during
-  every test - harmless (caught internally), but untested: nothing then
-  proves the funnel ping sends the right form name and step, or that it
-  dedupes correctly. This is what turns "does not crash" into "does the
-  right thing."
+  globalThis before each test.
+
+  The recording fetch is now what proves the form makes NO network requests
+  while a visitor walks through the steps - see the drop-off block below for
+  why that is the property worth holding. Node 22 has a real `fetch` global
+  and jsdom does not, so without this stub a stray call would fire an actual
+  request that fails silently, and "no requests" would be unfalsifiable.
+
+  sessionStorage stays because jsdom's document has no storage of its own and
+  contactForm.ts must keep working if anything reads it again.
 */
 function mockStorage() {
   const data = new Map()
@@ -332,57 +334,36 @@ const reachFinalStep = (document) => {
   check('checking "not sure" dims the slider', root.classList.contains('budget-slider--disabled'))
 }
 
-// --- drop-off tracking -----------------------------------------------------
+// --- drop-off tracking is GONE, and must stay gone -------------------------
+/*
+  This block used to assert the opposite: that landing on step 1 pinged
+  /api/form-progress, that advancing sent a second ping, and that
+  sessionStorage deduped the two. All of that worked. It was also the bug.
+
+  The endpoint those pings hit incremented a PUBLISHED Sanity document, and a
+  Sanity webhook redeploys the site whenever a published document changes - so
+  every step a visitor advanced was a full production deploy of
+  rumeaudesign.co. On 17 August 2026 ordinary traffic on /contact turned into
+  several hundred of them in a few minutes.
+
+  So the assertion is inverted, and it is worth having rather than just
+  deleting the old one: the whole point of the ping was that it was invisible
+  and never awaited, which is exactly the sort of call that gets reintroduced
+  by accident. A form that advances through every step while making zero
+  network requests is the property to hold on to.
+*/
 {
   const {document, fetchMock} = setup()
-  check('landing on step 1 pings the funnel once', fetchMock.calls.length === 1)
-  const firstBody = fetchMock.calls[0]?.init?.body
-  check('the ping goes to the funnel endpoint', fetchMock.calls[0]?.url === '/api/form-progress')
-  check('the ping names the contact form', firstBody?.get('form') === 'contact')
-  check('the ping for the first step says step 1', firstBody?.get('step') === '1')
+  check('landing on step 1 sends no request at all', fetchMock.calls.length === 0)
 
   fill(document, 'name', 'A')
   fill(document, 'email', 'a@example.com')
   click(document, '.contact-form__next')
-  check('advancing to step 2 sends a second ping', fetchMock.calls.length === 2)
-  check('the second ping says step 2', fetchMock.calls[1]?.init?.body?.get('step') === '2')
+  check('advancing to step 2 sends no request either', fetchMock.calls.length === 0)
 
   click(document, '.contact-form__back')
-  check('going back to step 1 does NOT re-ping (already recorded this tab-session)', fetchMock.calls.length === 2)
-
   click(document, '.contact-form__next')
-  check('returning to step 2 a second time does NOT re-ping either', fetchMock.calls.length === 2)
-}
-
-/*
-  A REAL reload of the same tab, simulated properly: sessionStorage survives
-  a reload (that is its entire purpose - session-scoped, not page-scoped), so
-  this reuses the SAME storage mock across two separate initContactForm()
-  calls rather than letting setup() hand each one a fresh Map. The previous
-  version of this test called setup() twice and asserted a second ping fired
-  - which passed, but only because setup() itself hands out fresh storage
-  every time, proving nothing about dedup across an actual reload. This is
-  the version that would have caught pingFunnelStep reading from the wrong
-  place, or the key format not matching between two calls.
-*/
-{
-  const dom = new JSDOM(`<!doctype html><body>${TEST_HTML}</body>`, {pretendToBeVisual: true})
-  for (const el of dom.window.document.querySelectorAll('input, textarea')) {
-    el.reportValidity = () => el.checkValidity()
-  }
-  const sharedStorage = mockStorage()
-  globalThis.sessionStorage = sharedStorage
-  const fetchMock = mockFundFetch()
-  globalThis.fetch = fetchMock
-
-  initContactForm(dom.window.document)
-  check('the first load of a tab pings step 1', fetchMock.calls.length === 1)
-
-  // Same storage, a SECOND initContactForm call - standing in for reloading
-  // the same tab, since a real reload re-runs this site's script but keeps
-  // sessionStorage intact.
-  initContactForm(dom.window.document)
-  check('reloading the same tab does NOT re-ping step 1', fetchMock.calls.length === 1)
+  check('and neither does navigating back and forth', fetchMock.calls.length === 0)
 }
 
 /*

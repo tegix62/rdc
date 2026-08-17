@@ -1,6 +1,25 @@
 import {defineField, defineType} from 'sanity'
 
 /*
+  THESE COUNTERS ARE FROZEN. Nothing increments them any more.
+
+  On 17 August 2026 it turned out that incrementing them WAS the deploy
+  trigger: the Sanity webhook that keeps the live site in step with the CMS
+  fires on any published-document change, so every ping from
+  /api/form-progress deployed rumeaudesign.co. Ordinary traffic on /contact
+  produced several hundred deploys in a few minutes.
+
+  The type stays registered so the existing `formFunnel.contact` document is
+  still visible and deletable in Studio rather than becoming an orphan the
+  Studio cannot render. If drop-off tracking comes back it belongs in D1
+  alongside the enquiries, and this type should be deleted at that point.
+
+  Everything below describes what it did while it was running, and is left
+  intact because the reasoning about privacy is still the reasoning any
+  replacement has to satisfy.
+
+  ---
+
   Drop-off analytics for /contact - the thing Tally sold at its $29/month
   tier, built as five running counters instead of Tally's per-visitor
   records.

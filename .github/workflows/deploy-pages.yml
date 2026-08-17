@@ -22,6 +22,15 @@ on:
       - 'scripts/build-overlay.mjs'
       - '.github/workflows/deploy-pages.yml'
 
+# One preview deploy at a time, newest wins. Same reasoning as the identical
+# block in deploy-production.yml, and it belongs here for the same reason:
+# this workflow listens for the same `sanity-publish` event, so the burst that
+# hit production on 17 August 2026 hit this one too. Grouped by ref so a push
+# to a work branch and a webhook publish do not cancel each other.
+concurrency:
+  group: deploy-pages-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest

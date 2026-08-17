@@ -1,40 +1,69 @@
 /*
-  Drop-off tracking for /contact: increments one of five running counters on
-  a single Sanity document, `formFunnel.contact`. See
-  studio/schemaTypes/formFunnel.ts for why this is one document forever
-  rather than one per visitor.
+  Drop-off tracking for /contact. THE COUNTER IS OFF. This endpoint accepts a
+  ping, validates it, and records nothing.
 
-  NO SPAM PROTECTION HERE, DELIBERATELY - AND STATED, NOT JUST OMITTED
+  WHY - AND WHAT THE ORIGINAL REASONING GOT WRONG
 
-  functions/api/contact.ts runs a honeypot, then Turnstile, then validation,
-  because what it protects (Sanity writes that cost real storage and produce
-  a document Chris acts on - replying to an enquiry) is worth defending.
+  This used to increment five counters on a published Sanity document,
+  `formFunnel.contact`, with no spam protection at all. The comment that used
+  to sit here argued that was fine, in these words:
 
-  This endpoint protects a vanity counter. The worst outcome of someone
-  hammering it with garbage is a wrong number on a dashboard nobody's
-  business decision depends on - not a lost enquiry, not spam in an inbox,
-  not unbounded storage growth (this document has exactly five numbers in it
-  regardless of how many times they are incremented). Adding Turnstile here
-  would mean solving a spam challenge to increment a step counter, which is a
-  worse experience for zero real protection of anything that matters. The
-  allow-list in formFunnelValidation.ts is the only defence, and is enough
-  for what is actually at stake.
+      "The worst outcome of someone hammering it with garbage is a wrong
+       number on a dashboard nobody's business decision depends on."
+
+  That was wrong, and on 17 August 2026 it cost the site several hundred
+  unintended production deploys in a few minutes.
+
+  The step the reasoning missed is that a Sanity webhook fires a GitHub
+  `repository_dispatch` on any create/update/delete of a PUBLISHED document,
+  and both deploy-production.yml and deploy-pages.yml listen for it. So the
+  real chain was:
+
+      anyone POSTs here  ->  published document changes
+                         ->  Sanity webhook
+                         ->  repository_dispatch
+                         ->  a full build and a deploy to rumeaudesign.co
+
+  One unauthenticated HTTP request, one production deploy. No rate limit, no
+  Turnstile, no cap. The blast radius was never "a wrong number on a
+  dashboard" - it was an open amplification path into the deploy pipeline, and
+  it does not matter whether the traffic that found it was a scanner or a
+  crawler.
+
+  Two things were wrong together, and each is worth fixing on its own:
+
+    - an endpoint reachable by anyone wrote to the CMS
+    - a CMS write redeployed the live site, with nothing bounding the rate
+
+  This file fixes the first. scripts/test-no-public-cms-writes.mjs keeps it
+  fixed. The `concurrency` blocks added to both deploy workflows bound the
+  second, so no future burst of ANY kind - webhook, script, or mistake - can
+  turn into hundreds of deploys again.
+
+  WHY THE ENDPOINT STILL EXISTS AT ALL
+
+  Pages already cached by browsers and CDNs still contain the old script and
+  will keep pinging for a while. A 404 for each of those is noise in the logs
+  and a failed request in someone's devtools for no reason. Validating and
+  discarding is quieter and costs nothing.
+
+  BRINGING THE COUNTER BACK
+
+  It needs a store that is not the CMS - D1, where the enquiries already live
+  (see db/schema.sql). A `funnel` table of five integers and an UPDATE per
+  ping. That is a deliberate piece of work rather than something to reinstate
+  quietly: it needs a table created against the remote database, and it is
+  worth deciding whether a step counter is worth an endpoint at all first.
+  Until then this is honest about recording nothing, rather than looking like
+  it works.
 */
 import { validateFunnelPing } from '../../src/lib/formFunnelValidation';
 
-interface Env {
-  SANITY_WRITE_TOKEN: string;
-}
-
 interface Context {
   request: Request;
-  env: Env;
 }
 
-const SANITY_PROJECT_ID = '8337vjtf';
-const SANITY_DATASET = 'production';
-
-export const onRequestPost = async ({ request, env }: Context): Promise<Response> => {
+export const onRequestPost = async ({ request }: Context): Promise<Response> => {
   let fields: Record<string, string>;
   try {
     const raw = await request.formData();
@@ -56,60 +85,13 @@ export const onRequestPost = async ({ request, env }: Context): Promise<Response
     return new Response(null, { status: 400 });
   }
 
-  const { form, step } = result.data;
-  const docId = `formFunnel.${form}`;
-  const field = `step${step}`;
-
   /*
-    Two mutations in ONE transaction, applied in order: create the counter
-    document if this is the very first ping this form has ever received,
-    THEN increment the field. `createIfNotExists` combined with a `patch` in
-    the same transaction is the standard Sanity pattern for a counter that
-    must exist before it can be incremented, without a separate read to check
-    first - a read-then-write here would race under concurrent requests in a
-    way this single transaction cannot.
+    Validated and discarded. 204 rather than an error, because as far as a
+    caller is concerned nothing went wrong - there is simply nowhere for this
+    to go until the counter is rebuilt on D1. The validation above is kept so
+    that whatever replaces this inherits a checked input rather than a raw
+    one.
   */
-  const res = await fetch(
-    `https://${SANITY_PROJECT_ID}.api.sanity.io/v2024-01-01/data/mutate/${SANITY_DATASET}`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${env.SANITY_WRITE_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        mutations: [
-          {
-            createIfNotExists: {
-              _id: docId,
-              _type: 'formFunnel',
-              formName: form,
-              since: new Date().toISOString(),
-              step1: 0,
-              step2: 0,
-              step3: 0,
-              step4: 0,
-              step5: 0,
-            },
-          },
-          {
-            patch: {
-              id: docId,
-              inc: { [field]: 1 },
-            },
-          },
-        ],
-      }),
-    },
-  );
-
-  if (!res.ok) {
-    // Same reasoning as the validation failure above: logged for later,
-    // never surfaced to whoever is filling in the actual form.
-    console.error('formFunnel increment failed', res.status, await res.text());
-    return new Response(null, { status: 502 });
-  }
-
   return new Response(null, { status: 204 });
 };
 

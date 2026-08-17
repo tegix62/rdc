@@ -1,5 +1,35 @@
 # Auto-rebuild the preview when you publish in Sanity
 
+> ## ⚠️ READ THIS BEFORE CHANGING ANYTHING ABOUT THIS WEBHOOK
+>
+> This webhook makes **the Sanity dataset part of the deploy trigger**. Any
+> create, update or delete of a published document deploys the site.
+>
+> That is the feature. It is also the thing that made 17 August 2026 go wrong,
+> so it needs saying out loud: **anything that can write a published document
+> can deploy the live site, as many times as it can write.**
+>
+> `/api/form-progress` used to increment a counter on a published document on
+> every step of the contact form, with no rate limit, because the counter
+> looked harmless. Ordinary traffic on /contact therefore produced several
+> hundred deploys of rumeaudesign.co in a few minutes.
+>
+> Two things now stand between that and happening again, and both matter:
+>
+> - **No Pages Function writes to Sanity.** `scripts/test-no-public-cms-writes.mjs`
+>   fails the build if one does. Anything a public endpoint needs to record
+>   goes in D1 (`db/schema.sql`), where a write triggers nothing.
+> - **Both deploy workflows have a `concurrency` group with
+>   `cancel-in-progress: true`.** A burst of any size now collapses to one
+>   deploy instead of one per event.
+>
+> **If a storm ever starts again**, the fastest stop is either end of the
+> chain: delete or disable this webhook at
+> [manage.sanity.io](https://manage.sanity.io) → project `8337vjtf` → API →
+> Webhooks, **or** revoke the `sanity-publish-deploy` classic token in GitHub
+> → Settings → Developer settings → Tokens (classic). Either one cuts it dead
+> and neither loses any content.
+
 **What this fixes:** the site is fully static. Editing content in Studio and
 clicking Publish changes nothing on `preview.rumeau-design-co.pages.dev` until
 something rebuilds it. Right now that "something" is a person - Chris asking,

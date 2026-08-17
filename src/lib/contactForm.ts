@@ -24,35 +24,26 @@
 import { BUDGET_MIN, BUDGET_MAX, formatBudget, formatBudgetHigh } from './budget';
 
 /*
-  Drop-off tracking: fire-and-forget, deduplicated per browser tab.
+  DROP-OFF TRACKING IS REMOVED. There used to be a `pingFunnelStep` here,
+  fired on every step advance, and the endpoint it called wrote to a published
+  Sanity document.
 
-  sessionStorage, not a value sent to the server, is what prevents a reload or
-  a repeat visit within the same tab from inflating the count - the server
-  never receives or stores anything that identifies this visitor or this
-  session; it only ever hears "someone reached step N" as an anonymous
-  increment. See functions/api/form-progress.ts and
-  studio/schemaTypes/formFunnel.ts for the rest of that reasoning.
+  A Sanity webhook redeploys the site on any published-document change, so
+  each of those pings was a full production deploy - which on 17 August 2026
+  turned ordinary traffic on /contact into several hundred deploys of
+  rumeaudesign.co in a few minutes. functions/api/form-progress.ts has the
+  full chain written out.
 
-  Never awaited, and any failure is swallowed. A visitor's actual submission
-  must never be affected by whether a vanity counter's PING happened to
-  succeed - the two are entirely different stakes, handled with entirely
-  different amounts of care on purpose.
+  Nothing about the form itself depended on it: the ping was never awaited and
+  every failure was already swallowed, precisely because a counter must never
+  affect a submission. Removing it therefore changes nothing a visitor
+  experiences, which is the clearest possible sign of what it was worth
+  against what it cost.
+
+  If the counter comes back it belongs in D1 alongside the enquiries, not in
+  the CMS. scripts/test-no-public-cms-writes.mjs now fails the build if any
+  Pages Function writes to Sanity again.
 */
-function pingFunnelStep(formName: string, step: number): void {
-  try {
-    const key = `contact-funnel-pinged-${formName}-${step}`;
-    if (sessionStorage.getItem(key)) return;
-    sessionStorage.setItem(key, '1');
-  } catch {
-    // Private browsing in some engines throws on sessionStorage access
-    // rather than just no-opping it. Losing dedup for that one visit is a
-    // fine trade against breaking the form over a counter.
-  }
-  const body = new FormData();
-  body.set('form', formName);
-  body.set('step', String(step));
-  fetch('/api/form-progress', { method: 'POST', body, keepalive: true }).catch(() => {});
-}
 
 export function initContactForm(doc: Document = document): void {
   const form = doc.querySelector<HTMLFormElement>('#contact-form');
@@ -91,12 +82,6 @@ export function initContactForm(doc: Document = document): void {
       heading.setAttribute('tabindex', '-1');
       heading.focus();
     }
-    // 1-indexed to match the step numbers in studio/schemaTypes/formFunnel.ts
-    // (step1..step5) and the `data-step="1"` attributes already in the
-    // markup - `current` itself stays 0-indexed because it is an array
-    // position, and translating at the one call site is clearer than
-    // carrying two different numbering schemes through the rest of the file.
-    pingFunnelStep('contact', current + 1);
   };
 
   /*

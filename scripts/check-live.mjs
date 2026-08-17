@@ -93,32 +93,69 @@ if (assetHref) {
 }
 
 /*
-  /contact goes to Tally, and NOTHING on this domain collects enquiries.
+  /contact and its Turnstile widget.
 
-  The native form is parked (parked/contact-form/README.md) because it wrote
-  submissions into a public-read Sanity dataset. Two things could quietly undo
-  that, and neither has a visible symptom:
-
-    - the redirect stops working, leaving /contact a 404 on the one page every
-      "Get in Touch" button is meant to reach
-    - the Cloudflare Function comes back, at which case /contact would accept
-      POSTs and write real names, emails and phone numbers into a dataset
-      anyone can read, with no form on the site to hint that it is happening
-
-  So this asserts the redirect fires AND that the endpoint behind it is gone.
+  Every check here has a silent failure mode. A missing site key renders a
+  "spam check not configured" note and rejects every real enquiry; a leftover
+  Cloudflare TEST key renders a widget that always passes and cannot verify
+  server-side. Both look like a working form to anyone glancing at the page,
+  and the only symptom is enquiries that never arrive - which is exactly the
+  thing nobody notices, because a form that eats submissions looks identical
+  to a quiet week.
 */
-const contact = await get(`${BASE}/contact`, {follow: false})
-check(
-  '/contact redirects to Tally rather than 404ing',
-  contact.status === 302 && (contact.location ?? '').includes('tally.so'),
-  `HTTP ${contact.status} -> ${contact.location ?? '(no Location header)'}`,
-)
+const contact = await get(`${BASE}/contact`)
+check('/contact responds 200', contact.status === 200, `HTTP ${contact.status}`)
+if (contact.status === 200) {
+  const siteKey = contact.body.match(/cf-turnstile[^>]+data-sitekey="([^"]+)"/)?.[1]
+  check(
+    'the Turnstile widget has a real site key baked in',
+    Boolean(siteKey),
+    siteKey ? undefined : 'shows the "spam check not configured" placeholder - PUBLIC_TURNSTILE_SITE_KEY was not set at build time',
+  )
+  /*
+    Printed in full deliberately: a site key is public by definition, sitting
+    in the HTML of every visitor's page, so there is nothing to protect and a
+    real question to settle - WHICH key is live. Cloudflare's test keys all
+    begin 1x/2x/3x, and a test site key left in place is a widget that waves
+    every bot through.
+  */
+  if (siteKey) {
+    console.log(`      live site key: ${siteKey} (${siteKey.length} chars)`)
+    check(
+      'the live site key is a real one, not a Cloudflare test key',
+      !/^[123]x/.test(siteKey),
+      /^[123]x/.test(siteKey) ? 'this is a TEST key - it passes everything, including bots' : undefined,
+    )
+  }
+  check(
+    "Turnstile's own script is loaded",
+    contact.body.includes('challenges.cloudflare.com/turnstile'),
+  )
+  /*
+    The form must work with JavaScript off, which is the reason every fieldset
+    is in the markup rather than being built at runtime. If a build ever
+    started shipping the steps hidden, a no-JS visitor would get a form with
+    one visible question and no way forward.
+  */
+  check(
+    'every step is present in the raw HTML (works without JavaScript)',
+    (contact.body.match(/<fieldset/g) ?? []).length >= 5,
+    `${(contact.body.match(/<fieldset/g) ?? []).length} fieldset(s)`,
+  )
+}
 
+/*
+  The Function behind the form. A GET is answered 405 by design - the handler
+  only accepts POST - and that is precisely what makes it a useful check: 405
+  proves the Function is DEPLOYED, where 404 would mean Cloudflare never picked
+  it up and every submission dies at the last step. Those look identical from
+  the form itself, which just says something broke.
+*/
 const contactApi = await get(`${BASE}/api/contact`)
 check(
-  'the parked contact API is NOT deployed (it wrote to a public dataset)',
-  contactApi.status === 404,
-  `HTTP ${contactApi.status}${contactApi.status !== 404 ? ' - this endpoint is live again and can write enquiries into a world-readable dataset' : ''}`,
+  'the contact Function is deployed (405 on GET, not 404)',
+  contactApi.status === 405,
+  `HTTP ${contactApi.status}${contactApi.status === 404 ? ' - Cloudflare has not picked up functions/api/contact.ts, so every submission will fail' : ''}`,
 )
 
 // --- robots.txt: the invisible one -------------------------------------------

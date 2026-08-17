@@ -52,10 +52,7 @@ const STATIC_PATHS: [path: string, pageSlug: string | null][] = [
   ['/blog', 'blog'],
   ['/privacy-policy', 'privacy-policy'],
   ['/image-license-info', 'image-license-info'],
-  // /contact is deliberately absent: the native form is parked (see
-  // parked/contact-form/README.md) and the path now redirects to Tally.
-  // Listing a URL here that only redirects tells crawlers to index a
-  // destination this sitemap does not own.
+  ['/contact', 'contact'],
 ];
 
 interface Entry {

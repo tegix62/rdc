@@ -29,7 +29,7 @@
   expensive ones - so a bot hammering this endpoint costs an API call at
   most, not two.
 */
-import { validateSubmission } from '../../../src/lib/contactValidation';
+import { validateSubmission } from '../../src/lib/contactValidation';
 
 /*
   Only the shape this file actually uses, hand-written rather than pulled from
@@ -268,7 +268,7 @@ export const onRequestPost = async ({ request, env }: Context): Promise<Response
     repository, so every name, email and phone number submitted was readable
     by anyone with no credentials. D1 has no public read path - a row is
     reachable only through a Function with the database bound, or through
-    Chris's own Cloudflare login. See parked/contact-form/schema.sql.
+    Chris's own Cloudflare login. See db/schema.sql.
 
     Parameter binding rather than string interpolation, which is not a style
     preference: these values are attacker-controlled free text straight off a

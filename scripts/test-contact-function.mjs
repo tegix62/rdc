@@ -1,5 +1,5 @@
 /*
-  parked/contact-form/functions/contact.ts, exercised as a real
+  functions/api/contact.ts, exercised as a real
   Request -> Response round trip. The two outbound HTTP calls (Turnstile,
   Resend) are stubbed via a mocked global fetch; the D1 database is stubbed as
   a fake binding, because D1 is not reached over HTTP - it arrives on env as an
@@ -34,7 +34,7 @@ const outdir = path.join(root, 'node_modules', '.cache', 'contact-function-test'
 await mkdir(outdir, {recursive: true})
 const outfile = path.join(outdir, 'contact.mjs')
 await build({
-  entryPoints: [path.join(root, 'parked/contact-form/functions/contact.ts')],
+  entryPoints: [path.join(root, 'functions/api/contact.ts')],
   outfile,
   bundle: true,
   format: 'esm',

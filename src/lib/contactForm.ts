@@ -178,8 +178,56 @@ export function initContactForm(doc: Document = document): void {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Submit →';
       }
+      /*
+        Mint a fresh Turnstile token for the retry.
+
+        This is a real trap, not housekeeping. A Turnstile token is SINGLE-USE
+        and short-lived: the moment a submission is attempted, that token is
+        spent whether the submission succeeded or not. So a visitor who
+        mistypes their email, gets the validation error, corrects it and
+        presses Submit again sends the SAME spent token - and Cloudflare
+        answers timeout-or-duplicate, which this form reports as "the spam
+        check didn't pass".
+
+        The result is somebody who has filled in five steps being told they
+        look like a bot, with no way out except reloading the page and
+        starting over, which nobody does. They just leave. Every retry after
+        any error would hit it - a validation slip becomes a lost enquiry.
+
+        Found by hitting it in testing. Reset unconditionally rather than only
+        on a spam-check failure: the token is spent either way, so any error
+        that leaves the visitor on this form needs a new one.
+      */
+      resetTurnstile(form.ownerDocument.defaultView);
     }
   });
+}
+
+/*
+  Turnstile's own reset, guarded twice over.
+
+  Reached through the form's OWN window rather than the bare `window` global,
+  which is the convention the rest of this module already follows - every
+  entry point takes a document instead of assuming one. Writing `window` here
+  broke that and threw immediately under test, where jsdom's window is not a
+  Node global. In a browser it would have worked, which is the worst version
+  of that mistake: invisible until something else depends on it.
+
+  The try/catch is the second guard, for a different failure. Turnstile's
+  script is third-party and blockable - a privacy extension or a flaky network
+  leaves `turnstile` undefined, or leaves reset() throwing. This runs inside a
+  `finally`, so an exception here would replace the error message the visitor
+  needs to read with nothing happening at all: "check your email address"
+  becomes a dead button.
+*/
+function resetTurnstile(win: (Window & typeof globalThis) | null): void {
+  try {
+    (win as unknown as {turnstile?: {reset: () => void}} | null)?.turnstile?.reset();
+  } catch {
+    // A failed reset leaves the visitor exactly where they already were -
+    // needing a page reload. Not worth an error message of its own, and
+    // certainly not worth losing the real one.
+  }
 }
 
 function showError(box: HTMLElement | null, message: string): void {

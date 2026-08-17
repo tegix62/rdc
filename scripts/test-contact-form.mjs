@@ -146,7 +146,26 @@ const setup = () => {
   for (const el of document.querySelectorAll('input, textarea')) {
     el.reportValidity = () => el.checkValidity()
   }
+  /*
+    jsdom implements no layout, so scrollIntoView does not exist on any
+    element - showError() calls it to bring the message into view. Same
+    category as reportValidity above: a real browser API this environment
+    simply lacks, stubbed so the code under test can run rather than worked
+    around in the code itself.
+  */
+  for (const el of document.querySelectorAll('*')) {
+    el.scrollIntoView = () => {}
+  }
   globalThis.sessionStorage = mockStorage()
+  /*
+    jsdom's FormData, not Node's. `new FormData(form)` in the submit handler
+    reads a jsdom HTMLFormElement, and Node's own global FormData (from undici)
+    rejects it outright - the constructor throws, the submit handler's catch
+    reports "could not reach the server", and a test looks like a network
+    failure when nothing about the network was involved. A browser has exactly
+    one FormData and this mismatch cannot happen there.
+  */
+  globalThis.FormData = dom.window.FormData
   const fetchMock = mockFundFetch()
   globalThis.fetch = fetchMock
   initContactForm(document)
@@ -166,6 +185,29 @@ const check_ = (document, name, value) => {
 }
 const click = (document, selector) => {
   document.querySelector(selector).dispatchEvent(new document.defaultView.Event('click', {bubbles: true}))
+}
+
+/*
+  Walk a form all the way to the final step with every required field filled.
+
+  Needed because the submit handler returns BEFORE spending a Turnstile token
+  when client-side validation blocks - which is correct behaviour, and means a
+  test that submits an empty form never reaches the code it is trying to
+  exercise. It passes for the wrong reason and proves nothing.
+*/
+const reachFinalStep = (document) => {
+  fill(document, 'name', 'A')
+  fill(document, 'email', 'a@example.com')
+  click(document, '.contact-form__next')
+  fill(document, 'businessDescription', 'x')
+  fill(document, 'goals', 'y')
+  click(document, '.contact-form__next')
+  check_(document, 'seriousness', '5')
+  click(document, '.contact-form__next')
+  fill(document, 'timeframe', 'ASAP')
+  fill(document, 'foundVia', 'Instagram')
+  click(document, '.contact-form__next')
+  fill(document, 'phone', '555-0100')
 }
 
 // --- initial state -------------------------------------------------------
@@ -341,6 +383,76 @@ const click = (document, selector) => {
   // sessionStorage intact.
   initContactForm(dom.window.document)
   check('reloading the same tab does NOT re-ping step 1', fetchMock.calls.length === 1)
+}
+
+/*
+  --- a failed submit must mint a fresh Turnstile token -------------------------
+
+  The trap this guards cost a real round of live debugging, and it would have
+  cost real enquiries.
+
+  A Turnstile token is single-use and short-lived. Attempting a submission
+  spends it whether or not the submission succeeded. So a visitor who mistypes
+  their email, gets the validation error back, fixes it and presses Submit
+  again re-sends the SAME spent token - Cloudflare answers
+  timeout-or-duplicate, and the form tells them the spam check didn't pass.
+
+  Somebody who has filled in five steps is then told they look like a bot,
+  with no way out but reloading and starting over. Nobody does that; they
+  leave. Any error at all leads there, so one mistyped character turns into a
+  lost enquiry.
+
+  Asserting reset() was CALLED rather than that a retry succeeds: the token
+  lifecycle lives inside Cloudflare's script, so calling their reset is the
+  only part this code is responsible for, and the only part a test here can
+  honestly verify.
+*/
+{
+  const {document, dom} = setup()
+  reachFinalStep(document)
+  let resets = 0
+  dom.window.turnstile = {reset: () => {resets += 1}}
+
+  // A rejection the Function would really produce - the visitor stays on the
+  // form with the message, which is exactly when a stale token bites.
+  globalThis.fetch = async () =>
+    new Response(JSON.stringify({ok: false, message: 'Email is required.'}), {status: 400})
+
+  const form = document.querySelector('form')
+  form.dispatchEvent(new dom.window.Event('submit', {bubbles: true, cancelable: true}))
+  await new Promise((r) => setTimeout(r, 0))
+
+  check('a rejected submission resets the Turnstile widget', resets === 1, `reset called ${resets} time(s)`)
+  check(
+    'and the visitor still sees why it was rejected',
+    /Email is required/.test(document.querySelector('.contact-form__error')?.textContent ?? ''),
+    document.querySelector('.contact-form__error')?.textContent ?? '(no message shown)',
+  )
+}
+
+/*
+  Turnstile's script is third-party and blockable - a privacy extension or a
+  flaky network leaves window.turnstile undefined. An unguarded reset() would
+  throw inside the `finally` block and swallow the error message the visitor
+  needs to read, turning "check your email address" into nothing happening.
+*/
+{
+  const {document, dom} = setup()
+  reachFinalStep(document)
+  delete dom.window.turnstile
+
+  globalThis.fetch = async () =>
+    new Response(JSON.stringify({ok: false, message: 'Email is required.'}), {status: 400})
+
+  const form = document.querySelector('form')
+  form.dispatchEvent(new dom.window.Event('submit', {bubbles: true, cancelable: true}))
+  await new Promise((r) => setTimeout(r, 0))
+
+  check(
+    'with no Turnstile script loaded, the error message still reaches the visitor',
+    /Email is required/.test(document.querySelector('.contact-form__error')?.textContent ?? ''),
+    document.querySelector('.contact-form__error')?.textContent ?? '(no message shown)',
+  )
 }
 
 console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll checks passed.')

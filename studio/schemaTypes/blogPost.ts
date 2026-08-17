@@ -26,12 +26,12 @@ export default defineType({
     */
     imageSpec({
       name: 'thumbnailImage',
-      title: 'Card image — the /blog index',
+      title: 'Card image - the /blog index',
       description: 'Shown on the blog index. Falls back to the header image below.',
     }),
     imageSpec({
       name: 'mainImage',
-      title: 'Header image — top of the post itself',
+      title: 'Header image - top of the post itself',
       description: 'Also used for the social share card when this post is linked.',
     }),
     /*
@@ -40,13 +40,13 @@ export default defineType({
     */
     defineField({
       name: 'excerpt',
-      title: 'Excerpt — shown under the title on /blog',
+      title: 'Excerpt - shown under the title on /blog',
       type: 'text',
       rows: 3,
     }),
     defineField({
       name: 'metaDescription',
-      title: 'Search & social description — not shown on the site',
+      title: 'Search & social description - not shown on the site',
       type: 'string',
       description:
         'What Google and a shared link display. Falls back to the excerpt ' +

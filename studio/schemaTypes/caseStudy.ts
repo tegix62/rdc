@@ -77,14 +77,14 @@ export default defineType({
     }),
     defineField({
       name: 'category',
-      title: 'Category — drives the Portfolio filters',
+      title: 'Category - drives the Portfolio filters',
       type: 'string',
       group: 'tile',
       options: {list: CATEGORIES},
     }),
     imageSpec({
       name: 'thumbnail',
-      title: 'Grid Thumbnail — the tile image',
+      title: 'Grid Thumbnail - the tile image',
       group: 'tile',
       tile: true,
       description:
@@ -93,7 +93,7 @@ export default defineType({
     }),
     imageSpec({
       name: 'archiveMark',
-      title: 'Archive Mark — hand-drawn B&W alternate',
+      title: 'Archive Mark - hand-drawn B&W alternate',
       group: 'tile',
       description:
         'A hand-thresholded black-and-white version of this tile, shown instead ' +
@@ -116,7 +116,7 @@ export default defineType({
     */
     defineField({
       name: 'heroTile',
-      title: 'Hero Tile — spans two columns',
+      title: 'Hero Tile - spans two columns',
       type: 'boolean',
       group: 'tile',
       description:
@@ -131,7 +131,7 @@ export default defineType({
     }),
     defineField({
       name: 'assetType',
-      title: 'Asset Type — what kind of artefact',
+      title: 'Asset Type - what kind of artefact',
       type: 'string',
       group: 'tile',
       description:
@@ -148,7 +148,7 @@ export default defineType({
     */
     defineField({
       name: 'tileTreatment',
-      title: 'Tile Layout — override how it sits in the grid',
+      title: 'Tile Layout - override how it sits in the grid',
       type: 'string',
       group: 'tile',
       options: {
@@ -166,7 +166,7 @@ export default defineType({
     }),
     defineField({
       name: 'parentBrand',
-      title: 'Parent Brand — the project this belongs to',
+      title: 'Parent Brand - the project this belongs to',
       type: 'reference',
       to: [{type: 'caseStudy'}],
       group: 'tile',
@@ -185,7 +185,7 @@ export default defineType({
     */
     imageSpec({
       name: 'mainImage',
-      title: 'Main Project Image — page hero, and tile fallback',
+      title: 'Main Project Image - page hero, and tile fallback',
       group: 'tile',
       tile: true,
       description:
@@ -214,7 +214,7 @@ export default defineType({
     }),
     defineField({
       name: 'headline',
-      title: 'Display Headline — overrides Title in the big heading',
+      title: 'Display Headline - overrides Title in the big heading',
       type: 'string',
       group: 'page',
       hidden: onlyOnCaseStudies,
@@ -224,14 +224,14 @@ export default defineType({
     }),
     defineField({
       name: 'subtitle',
-      title: 'Kicker — small line ABOVE the heading',
+      title: 'Kicker - small line ABOVE the heading',
       type: 'string',
       group: 'page',
       hidden: onlyOnCaseStudies,
     }),
     defineField({
       name: 'oneLineSummary',
-      title: 'Short blurb (one line) — also the page meta description',
+      title: 'Short blurb (one line) - also the page meta description',
       type: 'string',
       group: 'page',
       hidden: onlyOnCaseStudies,
@@ -256,7 +256,7 @@ export default defineType({
     */
     defineField({
       name: 'seoDescription',
-      title: 'Search description (optional) — shown in Google, not on the page',
+      title: 'Search description (optional) - shown in Google, not on the page',
       type: 'text',
       rows: 2,
       group: 'page',
@@ -274,7 +274,7 @@ export default defineType({
     }),
     defineField({
       name: 'summary',
-      title: 'Full Summary (paragraph) — wins over the short blurb on the page',
+      title: 'Full Summary (paragraph) - wins over the short blurb on the page',
       type: 'text',
       rows: 3,
       group: 'page',
@@ -286,7 +286,7 @@ export default defineType({
     }),
     defineField({
       name: 'resultStat',
-      title: 'Result Stat — the one number a client scans for',
+      title: 'Result Stat - the one number a client scans for',
       type: 'string',
       group: 'page',
       hidden: onlyOnCaseStudies,
@@ -303,13 +303,13 @@ export default defineType({
     }),
     imageSpec({
       name: 'clientLogo',
-      title: "Client's Logo — shown beside the project intro",
+      title: "Client's Logo - shown beside the project intro",
       group: 'page',
       hidden: onlyOnCaseStudies,
     }),
     defineField({
       name: 'sections',
-      title: 'Page Builder — the body of the project page',
+      title: 'Page Builder - the body of the project page',
       type: 'array',
       group: 'page',
       hidden: onlyOnCaseStudies,
@@ -337,7 +337,7 @@ export default defineType({
     // --- Credits -----------------------------------------------------------
     defineField({
       name: 'principalType',
-      title: 'Principal Type — the typeface this is built on',
+      title: 'Principal Type - the typeface this is built on',
       type: 'string',
       group: 'credits',
       hidden: onlyOnCaseStudies,
@@ -349,7 +349,7 @@ export default defineType({
     }),
     defineField({
       name: 'principalTypeUrl',
-      title: 'Principal Type — link to the foundry',
+      title: 'Principal Type - link to the foundry',
       type: 'url',
       group: 'credits',
       hidden: onlyOnCaseStudies,
@@ -406,7 +406,7 @@ export default defineType({
     */
     defineField({
       name: 'body',
-      title: 'Project Details (legacy — prefer Page Builder)',
+      title: 'Project Details (legacy - prefer Page Builder)',
       type: 'array',
       group: 'legacy',
       hidden: onlyOnCaseStudies,
@@ -458,7 +458,7 @@ export default defineType({
     }),
     defineField({
       name: 'accentColor',
-      title: 'Accent Colour — background of the page-builder band',
+      title: 'Accent Colour - background of the page-builder band',
       type: 'string',
       group: 'legacy',
       hidden: onlyOnCaseStudies,

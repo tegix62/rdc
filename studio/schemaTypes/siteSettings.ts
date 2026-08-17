@@ -21,19 +21,19 @@ export default defineType({
     // --- Brand & contact ---------------------------------------------------
     defineField({
       name: 'siteTitle',
-      title: 'Site name — browser tabs, social cards, footer',
+      title: 'Site name - browser tabs, social cards, footer',
       type: 'string',
       group: 'brand',
     }),
     defineField({
       name: 'tagline',
-      title: 'Tagline — the line under RUMEAU DESIGN COMPANY',
+      title: 'Tagline - the line under RUMEAU DESIGN COMPANY',
       type: 'string',
       group: 'brand',
     }),
     imageSpec({
       name: 'logo',
-      title: 'Wordmark — nav and footer',
+      title: 'Wordmark - nav and footer',
       group: 'brand',
       description: 'The stacked "Rumeau Design" wordmark used in the site nav.',
     }),
@@ -44,7 +44,7 @@ export default defineType({
     */
     defineField({
       name: 'favicon',
-      title: 'Favicon — the browser-tab icon',
+      title: 'Favicon - the browser-tab icon',
       type: 'image',
       group: 'brand',
       description:
@@ -55,7 +55,7 @@ export default defineType({
     }),
     imageSpec({
       name: 'portrait',
-      title: 'Portrait of you — bottom of the homepage',
+      title: 'Portrait of you - bottom of the homepage',
       group: 'brand',
     }),
     /*
@@ -71,10 +71,10 @@ export default defineType({
     */
     imageSpec({
       name: 'socialImage',
-      title: 'Default share image — Slack, iMessage, LinkedIn, X',
+      title: 'Default share image - Slack, iMessage, LinkedIn, X',
       group: 'brand',
       description:
-        'Used when a page has no image of its own — the homepage, About, ' +
+        'Used when a page has no image of its own - the homepage, About, ' +
         'Portfolio, and so on. Project pages and blog posts use their own ' +
         'main image instead. Shown at 1200x630 and CROPPED to that shape, so ' +
         'keep anything important away from the top and bottom edges. Leave it ' +
@@ -93,7 +93,7 @@ export default defineType({
     */
     defineField({
       name: 'metaPixelId',
-      title: 'Meta Pixel ID — leave empty for no tracking at all',
+      title: 'Meta Pixel ID - leave empty for no tracking at all',
       type: 'string',
       group: 'brand',
       description:
@@ -112,7 +112,7 @@ export default defineType({
     }),
     defineField({
       name: 'contactUrl',
-      title: 'Contact form link — every button on the site',
+      title: 'Contact form link - every button on the site',
       type: 'url',
       group: 'brand',
       description:
@@ -139,7 +139,7 @@ export default defineType({
     */
     defineField({
       name: 'founderName',
-      title: 'Your name — ties you to the studio in search results',
+      title: 'Your name - ties you to the studio in search results',
       type: 'string',
       group: 'seo',
       description:
@@ -197,7 +197,7 @@ export default defineType({
     // --- Homepage ----------------------------------------------------------
     imageSpec({
       name: 'heroBackground',
-      title: 'Hero background — behind the big RUMEAU DESIGN COMPANY type',
+      title: 'Hero background - behind the big RUMEAU DESIGN COMPANY type',
       group: 'homepage',
       description:
         'Full-bleed, with a navy wash over it. Heaviest file on the site by a ' +
@@ -221,7 +221,7 @@ export default defineType({
     */
     defineField({
       name: 'featuredWork',
-      title: 'Work grid — which tiles, in which order',
+      title: 'Work grid - which tiles, in which order',
       type: 'array',
       group: 'homepage',
       description:
@@ -237,21 +237,21 @@ export default defineType({
     }),
     defineField({
       name: 'featuredWorkHeading',
-      title: 'Work grid — small label above it',
+      title: 'Work grid - small label above it',
       type: 'string',
       group: 'homepage',
       description: 'Defaults to "Selected work".',
     }),
     defineField({
       name: 'bioText',
-      title: 'Bio — the big navy sentence mid-page',
+      title: 'Bio - the big navy sentence mid-page',
       type: 'text',
       rows: 3,
       group: 'homepage',
     }),
     defineField({
       name: 'clientLogos',
-      title: 'Client logo strip — the navy band',
+      title: 'Client logo strip - the navy band',
       type: 'array',
       group: 'homepage',
       description: 'Logos shown in the dark navy strip on the homepage.',
@@ -269,7 +269,7 @@ export default defineType({
             */
             {
               name: 'alt',
-              title: "Client name — this is the link's only label",
+              title: "Client name - this is the link's only label",
               type: 'string',
               description:
                 'Required in practice: the logo image is all this link ' +
@@ -298,7 +298,7 @@ export default defineType({
             */
             {
               name: 'href',
-              title: 'Link (optional) — their site, or /work/their-project',
+              title: 'Link (optional) - their site, or /work/their-project',
               type: 'url',
               description:
                 'Either a full https:// address or an internal path starting ' +
@@ -313,7 +313,7 @@ export default defineType({
     }),
     defineField({
       name: 'proofStats',
-      title: 'Testimonial cards — the three metric cards',
+      title: 'Testimonial cards - the three metric cards',
       type: 'array',
       group: 'homepage',
       description:
@@ -339,7 +339,7 @@ export default defineType({
     }),
     defineField({
       name: 'checklist',
-      title: 'Checkmark list — the three ticks under the cards',
+      title: 'Checkmark list - the three ticks under the cards',
       type: 'array',
       group: 'homepage',
       of: [{type: 'string'}],
@@ -358,7 +358,7 @@ export default defineType({
     */
     defineField({
       name: 'closerPrefix',
-      title: 'Closing line — part 1, before the bold bit',
+      title: 'Closing line - part 1, before the bold bit',
       type: 'text',
       rows: 2,
       group: 'homepage',
@@ -366,14 +366,14 @@ export default defineType({
     }),
     defineField({
       name: 'closerBold',
-      title: 'Closing line — part 2, the bold bit',
+      title: 'Closing line - part 2, the bold bit',
       type: 'string',
       group: 'homepage',
       description: 'e.g. "rooted in heritage craft"',
     }),
     defineField({
       name: 'closerSuffix',
-      title: 'Closing line — part 3, after the bold bit',
+      title: 'Closing line - part 3, after the bold bit',
       type: 'text',
       rows: 2,
       group: 'homepage',
@@ -381,7 +381,7 @@ export default defineType({
     }),
     defineField({
       name: 'finalCtaHeading',
-      title: 'Last CTA heading — beside your portrait',
+      title: 'Last CTA heading - beside your portrait',
       type: 'string',
       group: 'homepage',
       description: 'e.g. "DTC Brands and Apparel Companies:"',
@@ -405,7 +405,7 @@ export default defineType({
     */
     defineField({
       name: 'legalName',
-      title: 'Legal entity — the name on the copyright line',
+      title: 'Legal entity - the name on the copyright line',
       type: 'string',
       group: 'footer',
       description:

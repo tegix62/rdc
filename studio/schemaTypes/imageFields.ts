@@ -113,7 +113,7 @@ const noRecompressField = defineField({
   */
   description:
     'On: your file ships untouched, exactly as you compressed it. ' +
-    'Turn it off if this image needs a crop or phone-sized versions — both ' +
+    'Turn it off if this image needs a crop or phone-sized versions - both ' +
     'need re-encoding. The hotspot works either way.',
   initialValue: true,
 })

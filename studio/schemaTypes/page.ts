@@ -34,7 +34,7 @@ export default defineType({
     }),
     imageSpec({
       name: 'heroImage',
-      title: 'Hero image — top of this page',
+      title: 'Hero image - top of this page',
     }),
     /*
       Overlaps with the hero image's own "Alt text" field, which is the same

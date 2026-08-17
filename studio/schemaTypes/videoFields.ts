@@ -60,7 +60,7 @@ export const videoBehaviourFields = [
   */
   defineField(imageSpec({
     name: 'videoPoster',
-    title: 'Poster image — the still shown before playing',
+    title: 'Poster image - the still shown before playing',
     description:
       'The still shown before the video plays. For a YouTube link this is what ' +
       'the visitor sees and clicks, so it matters: leave it empty and the site ' +

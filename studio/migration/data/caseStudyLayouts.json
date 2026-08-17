@@ -60,8 +60,8 @@
   "dumpstat": {
     "accentColor": "#db1e32",
     "credits": [
-      {"role": "Font — FairyTaleJF", "name": "Jason Walcott"},
-      {"role": "Font — ITC Benguiat", "name": "Ed Benguiat"}
+      {"role": "Font - FairyTaleJF", "name": "Jason Walcott"},
+      {"role": "Font - ITC Benguiat", "name": "Ed Benguiat"}
     ],
     "sections": [
       {
@@ -87,7 +87,7 @@
         "type": "achievements",
         "imageLeft": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/6696ac3912443df9de6235a6_Keth-Sitetransparency.webp",
         "imageRight": "https://s3.amazonaws.com/webflow-prod-assets/66295bdafa62074ef5551950/66cf86d91407bb0a5c97833e_Rime%20Artwork.webp",
-        "itemsHtml": "<ul><li>Built a standout brand in a crowded genre. Named, designed, and launched a full visual identity that cut through the noise and earned long-term listener loyalty.</li><li>Directed post-production to shape pacing and punchlines. Edited every episode for clarity, tone, and humor—meeting Apple and Spotify standards.</li><li>Scaled to 15K weekly downloads and Top 5 on Spotify in under a year. Drove community support with 100+ Patreon backers and charity collabs with <a href=\"https://www.dicebreaker.com/games/dungeons-and-dragons-5e/news/dungeons-and-dragons-oath-of-accessibility\">Bristol Royal Children's Hospital</a> and Mythroll Armory.</li></ul>"
+        "itemsHtml": "<ul><li>Built a standout brand in a crowded genre. Named, designed, and launched a full visual identity that cut through the noise and earned long-term listener loyalty.</li><li>Directed post-production to shape pacing and punchlines. Edited every episode for clarity, tone, and humor-meeting Apple and Spotify standards.</li><li>Scaled to 15K weekly downloads and Top 5 on Spotify in under a year. Drove community support with 100+ Patreon backers and charity collabs with <a href=\"https://www.dicebreaker.com/games/dungeons-and-dragons-5e/news/dungeons-and-dragons-oath-of-accessibility\">Bristol Royal Children's Hospital</a> and Mythroll Armory.</li></ul>"
       },
       {
         "type": "twoUp",
@@ -103,8 +103,8 @@
   "adelante-barbell-club": {
     "accentColor": "#333333",
     "credits": [
-      {"role": "Font — Cervo Neue", "name": "Błażej Ostoja Lniski"},
-      {"role": "Font — Union Condensed", "name": "Lachlan Philp"}
+      {"role": "Font - Cervo Neue", "name": "Błażej Ostoja Lniski"},
+      {"role": "Font - Union Condensed", "name": "Lachlan Philp"}
     ],
     "sections": [
       {

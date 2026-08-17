@@ -60,8 +60,8 @@ async function main() {
       _type: 'imageTextSection',
       image: imageRef(doc.clientLogo || doc.thumbnail),
       imagePosition: 'Left',
-      heading: 'PLACEHOLDER — replace with real copy',
-      text: 'PLACEHOLDER: a short paragraph about this part of the project — the brief, the craft process, or a client quote. Swap this image for a real in-context shot when you have one.',
+      heading: 'PLACEHOLDER - replace with real copy',
+      text: 'PLACEHOLDER: a short paragraph about this part of the project - the brief, the craft process, or a client quote. Swap this image for a real in-context shot when you have one.',
     },
     {
       _key: key(),

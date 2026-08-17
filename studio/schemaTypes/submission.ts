@@ -158,7 +158,7 @@ export default defineType({
       const date = submittedAt ? new Date(submittedAt).toLocaleDateString() : '?'
       const badge = status === 'new' ? '\u{1F7E2}' : status === 'replied' ? '✅' : '\u{1F5C4}️'
       return {
-        title: `${badge} ${name ?? 'Unnamed'}${company ? ` — ${company}` : ''}`,
+        title: `${badge} ${name ?? 'Unnamed'}${company ? ` - ${company}` : ''}`,
         subtitle: date,
       }
     },

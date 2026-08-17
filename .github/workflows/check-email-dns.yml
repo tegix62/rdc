@@ -1,0 +1,105 @@
+name: Check the email DNS
+
+# Read-only DNS lookups against rumeaudesign.co. Writes nothing, needs no
+# credentials, and touches no account.
+#
+# WHY THIS EXISTS
+#
+# Setting up a verified sending domain in Resend means adding DNS records to
+# the domain that also carries Chris's own mailbox. Three things can go wrong,
+# and the worst of them is silent:
+#
+#   MX clobbered      MX records are what deliver mail TO
+#                     chris@rumeaudesign.co. If a setup step replaced them
+#                     instead of adding alongside, incoming mail stops. Nothing
+#                     announces this - you notice when someone says "I emailed
+#                     you last week". Far worse than the spam problem being
+#                     solved.
+#   two SPF records   A domain is allowed exactly ONE. Two does not mean
+#                     "either is fine", it means SPF evaluation fails outright,
+#                     which makes deliverability worse than having none. Easy
+#                     to cause by adding Resend's alongside an existing one
+#                     rather than merging.
+#   DKIM missing      The record Resend actually verifies against. Its absence
+#                     just means "not verified yet", which Resend's own
+#                     dashboard reports clearly - the mild case.
+#
+# Uses 1.1.1.1 explicitly rather than the runner's resolver, so the answer is
+# what the public internet sees rather than something cached locally.
+
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: 'Domain to check'
+        type: string
+        default: 'rumeaudesign.co'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Look up the mail records
+        run: |
+          set -uo pipefail
+          DOMAIN="${{ inputs.domain }}"
+          problems=0
+          ok()  { echo "ok    $1"; }
+          bad() { echo "FAIL  $1"; problems=$((problems + 1)); }
+
+          echo "Checking $DOMAIN via 1.1.1.1"
+          echo
+
+          # --- MX: does mail still reach Chris? --------------------------------
+          mx=$(dig +short @1.1.1.1 MX "$DOMAIN" | sort)
+          if [ -z "$mx" ]; then
+            bad "NO MX RECORDS AT ALL - incoming mail to @$DOMAIN is not being delivered anywhere"
+          else
+            ok "MX records present ($(printf '%s' "$mx" | wc -l | tr -d ' ') found)"
+            printf '%s\n' "$mx" | sed 's/^/        /'
+          fi
+
+          # --- SPF: exactly one record, and it should mention Resend -----------
+          spf=$(dig +short @1.1.1.1 TXT "$DOMAIN" | tr -d '"' | grep -c '^v=spf1' || true)
+          if [ "$spf" -eq 0 ]; then
+            bad "no SPF record - senders cannot be authenticated for this domain"
+          elif [ "$spf" -eq 1 ]; then
+            ok "exactly one SPF record (this is the requirement)"
+            spfval=$(dig +short @1.1.1.1 TXT "$DOMAIN" | tr -d '"' | grep '^v=spf1')
+            echo "        $spfval"
+            if printf '%s' "$spfval" | grep -q 'resend'; then
+              ok "the SPF record includes Resend"
+            else
+              echo "warn  the SPF record does not mention Resend - fine if Resend only asked for DKIM"
+            fi
+          else
+            bad "$spf SPF RECORDS - a domain may have exactly one; two or more makes SPF fail entirely, which is worse than none. Merge them into a single record."
+            dig +short @1.1.1.1 TXT "$DOMAIN" | tr -d '"' | grep '^v=spf1' | sed 's/^/        /'
+          fi
+
+          # --- DKIM: the record Resend verifies against ------------------------
+          # resend._domainkey is Resend's usual selector. A miss here is not
+          # conclusive, since the selector is theirs to choose.
+          dkim=$(dig +short @1.1.1.1 TXT "resend._domainkey.$DOMAIN" | tr -d '"')
+          if [ -n "$dkim" ]; then
+            ok "DKIM record found at resend._domainkey.$DOMAIN"
+          else
+            echo "warn  nothing at resend._domainkey.$DOMAIN - either not added yet, or Resend used a different selector. Resend's Domains page is the authority on whether it is verified."
+          fi
+
+          # --- DMARC: not required, worth knowing ------------------------------
+          dmarc=$(dig +short @1.1.1.1 TXT "_dmarc.$DOMAIN" | tr -d '"')
+          if [ -n "$dmarc" ]; then
+            ok "DMARC record present"
+            echo "        $dmarc"
+          else
+            echo "warn  no DMARC record. Not required, and not why mail lands in spam, but it is the record that most improves deliverability once SPF and DKIM are in place."
+          fi
+
+          echo
+          if [ "$problems" -eq 0 ]; then
+            echo "Nothing broken. Whether Resend considers the domain VERIFIED is its own dashboard's call."
+          else
+            echo "$problems problem(s) above - the MX one, if present, affects Chris's own incoming mail and matters more than the form."
+          fi
+          [ "$problems" -eq 0 ]

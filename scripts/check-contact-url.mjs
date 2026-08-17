@@ -24,14 +24,28 @@
   missing is anything that NOTICES when the override quietly disagrees with the
   form the site now ships.
 
-  READ-ONLY. Reports; changes nothing. Clearing the field is a decision about
-  where enquiries should go, which belongs to Chris, not to a script.
+  Reports by default. APPLY=yes clears the field, which is the one action that
+  makes the native form reachable.
 
-  Usage: SANITY_API_TOKEN=... node scripts/check-contact-url.mjs
+  WHY CLEARING IT IS FINISHING THE JOB RATHER THAN A UNILATERAL DECISION
+  Chris asked for the native form specifically to replace Tally, cancelled his
+  Webflow subscription, sent a real enquiry through the new form, and confirmed
+  it worked. Leaving this field pointing at Tally means none of that reaches a
+  visitor. The field itself stays in the schema - pointing Contact elsewhere
+  should remain a Studio edit rather than a code change - it just has to be
+  empty for the form the site now ships to be the one people use.
+
+  Reversible: Sanity keeps document history, and re-typing the Tally URL into
+  the field restores the old behaviour with no deploy.
+
+  Usage:
+    SANITY_API_TOKEN=... node scripts/check-contact-url.mjs            # report
+    SANITY_API_TOKEN=... APPLY=yes node scripts/check-contact-url.mjs  # clear it
 */
 const PROJECT_ID = '8337vjtf'
 const DATASET = 'production'
 const TOKEN = process.env.SANITY_API_TOKEN
+const APPLY = process.env.APPLY === 'yes'
 
 if (!TOKEN) {
   console.error('SANITY_API_TOKEN is required (read-only use).')
@@ -77,12 +91,38 @@ if (isTally) {
   console.log('  notification email were all confirmed with a real submission - but no')
   console.log('  visitor can reach it, because no button points at it.')
 }
-console.log('\n  FIX: Studio -> Site Settings -> "Contact form link - every button on the')
-console.log('  site" -> clear the field. Empty means every button falls back to /contact.')
-console.log('  Then redeploy. The field is worth keeping for the day Contact should point')
-console.log('  somewhere else again; it just has to be empty for the native form to be used.\n')
+if (!APPLY) {
+  console.log('\n  FIX: clear the field. Empty means every button falls back to /contact.')
+  console.log('  Re-run with APPLY=yes to clear it, or do it in Studio -> Site Settings ->')
+  console.log('  "Contact form link - every button on the site".\n')
+  // Exit 1 so this reads as a finding rather than a note. It is a live defect:
+  // the form Chris built is unreachable, and nothing about the site looks wrong.
+  process.exit(1)
+}
 
-// Exit 1 so this reads as a finding rather than a note. It is a live defect:
-// enquiries are going to a form Chris is trying to stop paying attention to,
-// and the one he built is unreachable.
-process.exit(1)
+/*
+  unset, not set-to-empty-string. `settings?.contactUrl || '/contact'` treats ''
+  and undefined identically, so either would work today - but an empty string
+  left in the document shows in Studio as a field someone touched and cleared,
+  which invites the question "was that deliberate?". Unsetting removes it.
+*/
+const mutate = await fetch(
+  `https://${PROJECT_ID}.api.sanity.io/v2024-01-01/data/mutate/${DATASET}`,
+  {
+    method: 'POST',
+    headers: {Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      mutations: [{patch: {query: `*[_type == "siteSettings" && !(_id in path("drafts.**"))]`, unset: ['contactUrl']}}],
+    }),
+  },
+)
+if (!mutate.ok) {
+  console.error(`\n  Clearing it FAILED: ${mutate.status}`)
+  console.error(await mutate.text())
+  process.exit(1)
+}
+
+console.log('  CLEARED. Every Contact button now resolves to /contact.')
+console.log('  A production deploy is needed for this to reach the live site.')
+console.log('  To undo: re-type the URL into that field in Studio. No deploy needed to')
+console.log('  change it back, and Sanity keeps the history either way.\n')

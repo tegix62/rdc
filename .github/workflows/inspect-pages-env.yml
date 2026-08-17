@@ -65,6 +65,30 @@ jobs:
                 '
           }
 
+          # D1 bindings live in the same project config, under their own key.
+          # Reported because a missing or misnamed binding is the difference
+          # between a working contact form and a 502 on every submission - the
+          # Function reads env.DB, and any other variable name simply is not
+          # found at runtime.
+          bindings() {
+            printf '%s' "$response" \
+              | jq -r --arg envname "$1" '
+                  .result.deployment_configs[$envname].d1_databases // {}
+                  | to_entries
+                  | if length == 0 then ["  (no D1 database bound)"] else
+                      map("  \(.key)  ->  database id \(.value.id // "?")")
+                    end
+                  | .[]
+                '
+          }
+
+          # Does the database itself exist yet, independent of any binding?
+          # "Created but not bound" and "bound but never created" both fail at
+          # runtime and need completely different fixes.
+          databases=$(curl -sS \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database")
+
           {
             echo '## What Cloudflare actually has'
             echo ''
@@ -72,10 +96,24 @@ jobs:
             echo 'about 24 characters; a SECRET key is 35.'
             echo ''
             echo '```'
-            echo 'PRODUCTION  (this is what rumeaudesign.co serves)'
+            echo 'PRODUCTION env vars  (this is what rumeaudesign.co serves)'
             summarise production
             echo ''
-            echo 'PREVIEW'
+            echo 'PRODUCTION D1 bindings'
+            bindings production
+            echo ''
+            echo 'PREVIEW env vars'
             summarise preview
+            echo ''
+            echo 'PREVIEW D1 bindings'
+            bindings preview
+            echo ''
+            echo 'D1 DATABASES IN THE ACCOUNT'
+            if [ "$(printf '%s' "$databases" | jq -r '.success')" = "true" ]; then
+              printf '%s' "$databases" \
+                | jq -r '.result // [] | if length == 0 then ["  (none created yet)"] else map("  \(.name)  (\(.uuid))") end | .[]'
+            else
+              echo '  (could not list - the API token may not cover D1)'
+            fi
             echo '```'
           } | tee -a "$GITHUB_STEP_SUMMARY"

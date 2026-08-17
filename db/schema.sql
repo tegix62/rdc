@@ -20,7 +20,7 @@
 -- editing the website changes.
 --
 -- Apply with:
---   npx wrangler d1 execute rdc-enquiries --remote --file=parked/contact-form/schema.sql
+--   npx wrangler d1 execute rdc-enquiries --remote --file=db/schema.sql
 
 CREATE TABLE IF NOT EXISTS enquiries (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

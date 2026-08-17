@@ -26,7 +26,7 @@ const outdir = path.join(root, 'node_modules', '.cache', 'form-progress-function
 await mkdir(outdir, {recursive: true})
 const outfile = path.join(outdir, 'form-progress.mjs')
 await build({
-  entryPoints: [path.join(root, 'parked/contact-form/functions/form-progress.ts')],
+  entryPoints: [path.join(root, 'functions/api/form-progress.ts')],
   outfile,
   bundle: true,
   format: 'esm',

@@ -79,7 +79,7 @@ database**.
 Then create the table. From a terminal in this repo:
 
 ```
-npx wrangler d1 execute rdc-enquiries --remote --file=parked/contact-form/schema.sql
+npx wrangler d1 execute rdc-enquiries --remote --file=db/schema.sql
 ```
 
 `--remote` matters. Without it wrangler writes to a local SQLite file on your
@@ -163,16 +163,16 @@ message says so outright.
 already-live deployment does not retroactively pick them up. A fresh deploy
 is needed once these are in place; see step 7.
 
-## 6. Restore the form to the site
+## 6. Merge the branch that puts /contact back
 
-The page and its Functions are currently parked in `parked/contact-form/` so
-that nothing collects enquiries while the storage question was open. Tell me
-once steps 1-5 are done and I will move them back and open the pull request -
-it is a file move plus a handful of one-line reversions, all listed in
-`parked/contact-form/README.md`.
+The form lives on `claude/webflow-astro-sanity-port-ig55e2` rather than `main`,
+deliberately: a Sanity publish triggers a production deploy by webhook, so if
+the restored `/contact` sat on `main` and you published a blog post before
+step 3 was done, the form would go live with no database bound and reject every
+enquiry.
 
-Deliberately last. Everything above can be set up while the live site keeps
-pointing at Tally, so a half-finished setup never reaches a visitor.
+So steps 1-5 first, then this merges and deploys. Until then the live site
+keeps pointing at Tally and a half-finished setup cannot reach a visitor.
 
 ## 7. Deploy the site
 

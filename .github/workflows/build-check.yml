@@ -22,14 +22,11 @@ on:
       # triggers the workflow. A few extra runs when a diagnose script changes is
       # a much cheaper mistake than a check that quietly does not fire.
       - 'scripts/**'
-      # The parked contact form - the page and the two Cloudflare Functions,
-      # moved out of src/pages/ and functions/ so neither deploys while
-      # enquiries would land in a public-read dataset. Its test suites still
-      # run on every change, which is the point of parking it rather than
-      # deleting it: the code stays proven, so bringing it back is a move
-      # rather than a rewrite. Untested parked code rots silently and is worth
-      # nothing when you reach for it.
-      - 'parked/**'
+      # The Cloudflare Pages Functions behind /contact. Not part of
+      # `npm run build`'s output - Astro never touches them, Cloudflare deploys
+      # them separately - so nothing else in this path list would catch a
+      # change here.
+      - 'functions/**'
       # Copied VERBATIM into dist/ by Astro's build - _headers, favicon.svg,
       # the vendor scripts. A change here reaches production exactly as
       # written, with no build step to catch a mistake in it, which is the
@@ -99,9 +96,9 @@ jobs:
       - run: node scripts/test-peek-grid.mjs
 
       # The budget slider's clamp/snap/format arithmetic - the one function
-      # standing between a dragged handle and a number written into Sanity, and
-      # it runs on both the client and functions/api/contact.ts. Wrong here is
-      # wrong in both places at once, in agreement with each other.
+      # standing between a dragged handle and a number written to the database,
+      # and it runs on both the client and functions/api/contact.ts. Wrong here
+      # is wrong in both places at once, in agreement with each other.
       - run: node scripts/test-budget.mjs
 
       # /contact's server-side validation - the check that matters regardless
@@ -115,9 +112,10 @@ jobs:
       - run: node scripts/test-contact-form.mjs
 
       # functions/api/contact.ts itself, as a real Request -> Response round
-      # trip with fetch stubbed - proves the honeypot silently short-circuits
-      # everything downstream, a failed Turnstile check never reaches Sanity,
-      # and a Resend outage does not undo an already-successful Sanity write.
+      # trip with fetch stubbed and D1 faked - proves the honeypot silently
+      # short-circuits everything downstream, a failed Turnstile check never
+      # reaches the database, values are bound rather than interpolated into
+      # the SQL, and a Resend outage does not undo an already-committed row.
       - run: node scripts/test-contact-function.mjs
 
       # The allow-list behind /api/form-progress (drop-off tracking) - the
@@ -132,7 +130,9 @@ jobs:
       # test-contact-function.mjs above - proves a valid ping increments
       # exactly the one field a given step should, and a rejected ping
       # (unknown form, out-of-range step, a prototype-chain name) never
-      # reaches Sanity at all.
+      # reaches Sanity at all. Drop-off counters DO still live in Sanity: they
+      # are integers with no personal data in them, so a public-read dataset
+      # is not a problem for these the way it was for enquiries.
       - run: node scripts/test-form-progress-function.mjs
 
       - run: npm run build

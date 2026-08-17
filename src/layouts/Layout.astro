@@ -5,7 +5,6 @@ import '@fontsource/gothic-a1/500.css';
 import '@fontsource/gothic-a1/700.css';
 import '../styles/global.css';
 import { getSiteSettings } from '../lib/queries';
-import { TALLY_FORM_URL } from '../lib/contactUrl';
 import Img from '../components/Img.astro';
 import { hasAsset, imageUrl, socialCardDimensions, socialCardUrl } from '../lib/image';
 import VisualEditing from '../components/VisualEditing.astro';
@@ -165,19 +164,17 @@ const navLinks = [
 /*
   Every "Contact" / "Get in Touch" button on the site, in one place.
 
-  Back to Tally, deliberately - see parked/contact-form/README.md.
+  The native /contact form, which stores enquiries in Cloudflare D1
+  (functions/api/contact.ts, db/schema.sql). It briefly wrote
+  them into Sanity instead and was pulled for it - that dataset is public-read
+  and the project ID is in a public repo, so every name, email and phone number
+  was readable by anyone. D1 has no public read path, which is the whole reason
+  storage moved rather than the form changing.
 
-  The native /contact form was built, tested and proven working end to end,
-  then parked: it stored enquiries in Sanity, and this project's dataset is
-  public-read, which would have published every name, email and phone number
-  submitted. Private datasets are a paid Sanity tier, so the fix was not a
-  setting to flip. Tally keeps enquiries behind its own auth at no cost, which
-  makes it the better option today despite the branding.
-
-  `settings.contactUrl` still overrides this, so pointing Contact buttons
-  somewhere else stays a Studio edit rather than a code change.
+  `settings.contactUrl` still overrides this, so pointing Contact buttons back
+  at Tally or anywhere else stays a Studio edit rather than a code change.
 */
-const CONTACT_URL = settings?.contactUrl || TALLY_FORM_URL;
+const CONTACT_URL = settings?.contactUrl || '/contact';
 
 /*
   Structured data. The live Webflow site emits a JSON-LD block and this one

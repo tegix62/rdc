@@ -82,7 +82,7 @@ check('every line parses', malformed.length === 0, malformed.join(' | ') || 'no 
   /contact is REVERSIBLE, and that is the reason it is exempt rather than an
   oversight. The native form is built and working, parked only because
   enquiries would have been stored in a public-read Sanity dataset - see
-  parked/contact-form/README.md. A 301 would tell crawlers and browsers to
+  db/schema.sql. A 301 would tell crawlers and browsers to
   cache Tally as this path's permanent home, and browsers honour a cached 301
   without re-asking, so visitors who hit /contact once would keep landing on
   Tally after the form came back.
@@ -91,7 +91,13 @@ check('every line parses', malformed.length === 0, malformed.join(' | ') || 'no 
   this file should still fail, because it almost certainly means someone meant
   301 and did not know the difference.
 */
-const REVERSIBLE = new Set(['/contact'])
+/*
+  Empty now that /contact serves the native form again rather than redirecting
+  to Tally. Kept rather than deleted, with both checks intact: the next
+  reversible redirect wants the same treatment, and the reasoning above is the
+  part that is expensive to reconstruct.
+*/
+const REVERSIBLE = new Set()
 const notPermanent = rules.filter((r) => r.status !== '301' && !REVERSIBLE.has(r.from))
 check(
   'every redirect is a 301, except the ones deliberately reversible',

@@ -95,6 +95,19 @@ export function getSiteSettings() {
 }
 
 /*
+  The copy for every step of /contact.
+
+  Returns undefined until the document is created in Studio, and every field on
+  it is optional, so the contact template reads each string through `copy()`
+  below and falls back to the wording that is live today. That is what makes
+  this deployable on its own: nothing changes on the site until someone types
+  something.
+*/
+export function getContactForm() {
+  return sanityClient.fetch(`*[_type == "contactForm"][0]`);
+}
+
+/*
   `parentType` is fetched alongside the slug because only "Case Study"
   documents get a page at /work/<slug>. Linking a Grid Item to its own slug
   would produce a 404 that reads as a broken site, so a tile only links to a

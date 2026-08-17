@@ -1,9 +1,28 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { pageDescription } from '../lib/meta';
-import { getPage } from '../lib/queries';
+import { getContactForm, getPage } from '../lib/queries';
 
 const page = await getPage('contact');
+
+/*
+  Every word below is editable in Studio → Contact Form, and every one of those
+  fields is optional. `copy()` is what makes both true at once: it takes the
+  Studio value and the wording that is live today, and returns the fallback for
+  anything blank.
+
+  Blank, not just missing. `??` alone would leave a label rendering as an empty
+  string the moment someone selected a box and hit delete - a form field with no
+  visible name and no error anywhere, which is the sort of thing you only find
+  out about from a visitor. Trimming to a fallback means a cleared box restores
+  the original line rather than removing it.
+
+  The document does not exist yet at the time of writing, so `form` is
+  undefined and this page renders exactly as it did before.
+*/
+const form = await getContactForm();
+const copy = (value: unknown, fallback: string) =>
+  typeof value === 'string' && value.trim() ? value : fallback;
 
 /*
   Public, safe to ship in the HTML. Cloudflare Turnstile's design is a matched
@@ -25,9 +44,12 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as string |
   description={pageDescription(page, "Tell me about your project - brand identity, merch, or something else. I'll get back to you soon.")}
 >
   <div class="contact">
-    <h1 class="contact__heading">Let's Work Together</h1>
+    <h1 class="contact__heading">{copy(form?.heading, "Let's Work Together")}</h1>
     <p class="contact__intro">
-      This form takes about a minute. I read every one myself - there is no team, no CRM, just me.
+      {copy(
+        form?.intro,
+        'This form takes about a minute. I read every one myself - there is no team, no CRM, just me.',
+      )}
     </p>
 
     {/*
@@ -68,51 +90,67 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as string |
       </div>
 
       <fieldset class="contact-form__step" data-step="1">
-        <legend class="contact-form__step-heading">Welcome!</legend>
+        <legend class="contact-form__step-heading">{copy(form?.step1Heading, 'Welcome!')}</legend>
         <p class="contact-form__step-copy">
-          This form is designed to help understand your business, and its compatibility for logo and brand design.
-          Let's get started.
+          {copy(
+            form?.step1Copy,
+            "This form is designed to help understand your business, and its compatibility for logo and brand design. Let's get started.",
+          )}
         </p>
 
         <label class="contact-form__field">
-          <span>Full name <span class="contact-form__required">*</span></span>
+          <span>{copy(form?.nameLabel, 'Full name')} <span class="contact-form__required">*</span></span>
           <input type="text" name="name" required autocomplete="name" />
         </label>
 
         <label class="contact-form__field">
-          <span>Email address <span class="contact-form__required">*</span></span>
+          <span>{copy(form?.emailLabel, 'Email address')} <span class="contact-form__required">*</span></span>
           <input type="email" name="email" required autocomplete="email" />
         </label>
 
         <label class="contact-form__field">
-          <span>Company / organisation</span>
+          <span>{copy(form?.companyLabel, 'Company / organisation')}</span>
           <input type="text" name="company" autocomplete="organization" />
         </label>
       </fieldset>
 
       <fieldset class="contact-form__step" data-step="2">
-        <legend class="contact-form__step-heading">Your business</legend>
+        <legend class="contact-form__step-heading">{copy(form?.step2Heading, 'Your business')}</legend>
 
         <label class="contact-form__field">
           <span>
-            How would you describe your business? <span class="contact-form__required">*</span>
-            <small>Are you a startup, established business, getting ready, etc.</small>
+            {copy(form?.businessLabel, 'How would you describe your business?')}
+            <span class="contact-form__required">*</span>
+            <small>{copy(form?.businessHelp, 'Are you a startup, established business, getting ready, etc.')}</small>
           </span>
-          <textarea name="businessDescription" required rows="3" placeholder="The more detail, the better"></textarea>
+          <textarea
+            name="businessDescription"
+            required
+            rows="3"
+            placeholder={copy(form?.businessPlaceholder, 'The more detail, the better')}
+          ></textarea>
         </label>
 
         <label class="contact-form__field">
           <span>
-            How can I help? <span class="contact-form__required">*</span>
-            <small>What are some goals you'd like to achieve for this project?</small>
+            {copy(form?.goalsLabel, 'How can I help?')} <span class="contact-form__required">*</span>
+            <small>{copy(form?.goalsHelp, "What are some goals you'd like to achieve for this project?")}</small>
           </span>
-          <textarea name="goals" required rows="3" placeholder="Describe the project"></textarea>
+          <textarea
+            name="goals"
+            required
+            rows="3"
+            placeholder={copy(form?.goalsPlaceholder, 'Describe the project')}
+          ></textarea>
         </label>
       </fieldset>
 
       <fieldset class="contact-form__step" data-step="3">
         <legend class="contact-form__step-heading">
-          On a scale of 1 to 10, how serious are you about reaching your goals?
+          {copy(
+            form?.step3Heading,
+            'On a scale of 1 to 10, how serious are you about reaching your goals?',
+          )}
           <span class="contact-form__required">*</span>
         </legend>
 
@@ -134,12 +172,13 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as string |
       </fieldset>
 
       <fieldset class="contact-form__step" data-step="4">
-        <legend class="contact-form__step-heading">Logistics</legend>
+        <legend class="contact-form__step-heading">{copy(form?.step4Heading, 'Logistics')}</legend>
 
         <label class="contact-form__field">
           <span>
-            What's your timeframe? <span class="contact-form__required">*</span>
-            <small>Do you have a hard-set date you need it by?</small>
+            {copy(form?.timeframeLabel, "What's your timeframe?")}
+            <span class="contact-form__required">*</span>
+            <small>{copy(form?.timeframeHelp, 'Do you have a hard-set date you need it by?')}</small>
           </span>
           <input type="text" name="timeframe" required />
         </label>
@@ -157,7 +196,15 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as string |
         */}
         <div class="contact-form__field">
           <span>
-            What's the budget? <small>(Estimate)</small> <span class="contact-form__required">*</span>
+            {/*
+              Required marker BEFORE the <small>, matching every other field.
+              `.contact-form__field small` is display:block - correct for a
+              help line under the label - so a <small> in the middle of the
+              sentence broke the line and left the asterisk stranded on its
+              own row underneath, reading as a bullet rather than a marker.
+            */}
+            {copy(form?.budgetLabel, "What's the budget?")} <span class="contact-form__required">*</span>
+            <small>{copy(form?.budgetHelp, '(Estimate)')}</small>
           </span>
           <div
             class="budget-slider"
@@ -204,19 +251,31 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as string |
           */}
           <label class="contact-form__checkbox">
             <input type="checkbox" name="budgetNotSure" value="true" id="budget-not-sure" />
-            <span>Not sure yet - want to discuss</span>
+            <span>{copy(form?.budgetNotSureLabel, 'Not sure yet - want to discuss')}</span>
           </label>
         </div>
 
         <label class="contact-form__field">
-          <span>How'd you find me? <span class="contact-form__required">*</span></span>
-          <input type="text" name="foundVia" required placeholder="Instagram, press, referral, etc." />
+          <span>{copy(form?.foundViaLabel, "How'd you find me?")} <span class="contact-form__required">*</span></span>
+          <input
+            type="text"
+            name="foundVia"
+            required
+            placeholder={copy(form?.foundViaPlaceholder, 'Instagram, press, referral, etc.')}
+          />
         </label>
       </fieldset>
 
       <fieldset class="contact-form__step" data-step="5">
-        <legend class="contact-form__step-heading">What's the best phone number to reach you?</legend>
-        <p class="contact-form__step-copy">(This will only be used for a Discovery Call between the two of us.)</p>
+        <legend class="contact-form__step-heading">
+          {copy(form?.step5Heading, "What's the best phone number to reach you?")}
+        </legend>
+        <p class="contact-form__step-copy">
+          {copy(
+            form?.step5Copy,
+            '(This will only be used for a Discovery Call between the two of us.)',
+          )}
+        </p>
 
         <label class="contact-form__field">
           <span class="visually-hidden">Phone number</span>
@@ -239,18 +298,24 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as string |
       </fieldset>
 
       <div class="contact-form__nav">
-        <button type="button" class="button button--outline contact-form__back" hidden>← Back</button>
-        <button type="button" class="button contact-form__next">Next →</button>
-        <button type="submit" class="button contact-form__submit" hidden>Submit →</button>
+        <button type="button" class="button button--outline contact-form__back" hidden>
+          {copy(form?.backLabel, '← Back')}
+        </button>
+        <button type="button" class="button contact-form__next">{copy(form?.nextLabel, 'Next →')}</button>
+        <button type="submit" class="button contact-form__submit" hidden>
+          {copy(form?.submitLabel, 'Submit →')}
+        </button>
       </div>
 
       <p class="contact-form__error" role="alert" hidden></p>
     </form>
 
     <div class="contact-form__done" hidden>
-      <h2>Thanks for filling this out!</h2>
-      <p><a href="/">I'll get back to you soon.</a></p>
-      <p class="contact-form__signature">- Chris Rumeau, Rumeau Design Co</p>
+      <h2>{copy(form?.doneHeading, 'Thanks for filling this out!')}</h2>
+      <p><a href="/">{copy(form?.doneBody, "I'll get back to you soon.")}</a></p>
+      <p class="contact-form__signature">
+        {copy(form?.doneSignature, '- Chris Rumeau, Rumeau Design Co')}
+      </p>
     </div>
   </div>
 

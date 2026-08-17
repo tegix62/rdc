@@ -163,6 +163,15 @@ jobs:
       # no symptom at all, since a sitemap that 404s is simply never read.
       - run: node scripts/test-launch-doc.mjs
 
+      # Nothing on the site may load from Webflow. Checked against the BUILT
+      # output rather than the source, because that is the only place Sanity's
+      # content and these templates exist together: an image URL pasted into
+      # Studio months ago is invisible to every source-level grep, and renders
+      # perfectly right up until the Webflow plan lapses and it 404s. Chris is
+      # cancelling that subscription, so this is the difference between a clean
+      # exit and a case study full of broken images.
+      - run: node scripts/check-webflow-independence.mjs dist
+
       # public/_redirects is the only thing keeping the old Webflow URLs alive
       # after cutover, and nothing tied it to the content. Case studies have gone
       # from 13 to 5 over this project; any deletion can orphan a redirect

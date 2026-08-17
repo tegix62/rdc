@@ -1,0 +1,55 @@
+name: On-page audit (alt text, headings, links, structured data)
+
+# The four SEO gaps audit-seo.mjs does not cover, all of which need the BUILT
+# HTML rather than Sanity: alt text, heading hierarchy, internal linking, and
+# whether the JSON-LD block actually parses.
+#
+# Read-only. Builds the site to read its output, writes nothing anywhere.
+#
+# Not part of build-check.yml on purpose. Three of these four are judgement
+# calls about copy and structure - whether an image is decorative, whether a
+# page deserves inbound links - and a gate that blocks a deploy over a
+# judgement call gets switched off, at which point it guards nothing.
+# audit-structured-data.mjs is the exception and does exit non-zero, because
+# "this JSON does not parse" is not a matter of opinion.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+
+      # The real content has to be in the HTML for any of this to mean
+      # anything - an alt attribute filled from a Sanity field is exactly the
+      # kind that goes missing.
+      - run: npm run build
+
+      - name: Alt text, headings, internal links
+        if: always()
+        run: |
+          set -o pipefail
+          node scripts/audit-a11y-seo.mjs dist 2>&1 | tee onpage.txt
+
+      - name: Structured data
+        if: always()
+        run: |
+          set -o pipefail
+          node scripts/audit-structured-data.mjs dist 2>&1 | tee -a onpage.txt
+
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo '## On-page audit'
+            echo ''
+            echo '```'
+            cat onpage.txt 2>/dev/null || echo '(the audit did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

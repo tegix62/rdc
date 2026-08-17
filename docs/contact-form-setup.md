@@ -201,3 +201,76 @@ Fill in `/contact` end to end, submit it, and check three places:
 
 If any of the three is missing, that narrows exactly which step above needs
 a second look.
+
+
+## 9. Stop notifications landing in spam (verified sending domain)
+
+The form works before this is done - enquiries are saved and the email
+arrives - but it arrives in **spam**, because it is sent from Resend's shared
+`onboarding@resend.dev`. That address carries no SPF or DKIM record tying it to
+rumeaudesign.co, so filters treat it as unauthenticated bulk mail. A missed
+enquiry defeats the point of a notification, so this is worth doing.
+
+### Add the domain in Resend
+
+[resend.com](https://resend.com) -> **Domains** -> **Add Domain** ->
+`rumeaudesign.co`.
+
+Resend then shows a set of DNS records to add - typically a DKIM `TXT` record,
+an SPF `TXT` record, and sometimes a `MX` record for bounce handling.
+
+### Add the records in Cloudflare DNS
+
+Cloudflare dashboard -> **rumeaudesign.co** -> **DNS** -> **Records** ->
+**Add record**, once per record Resend listed. Copy name and value exactly.
+
+Two things that quietly go wrong here:
+
+- **Proxy status must be DNS only** (grey cloud, not orange) for these. They
+  are not web traffic; proxying a TXT record is meaningless and an MX record
+  behind the proxy stops working.
+- **If a record's name looks duplicated** (`resend._domainkey.rumeaudesign.co`
+  when Cloudflare already appends the domain), enter just the subdomain part -
+  `resend._domainkey`. Cloudflare shows the full name it will create beneath
+  the field; check it matches what Resend asked for before saving.
+
+**Do not touch or replace any existing MX records** unless Resend explicitly
+says to. Those are what deliver mail TO chris@rumeaudesign.co, and replacing
+them stops your own email arriving - a far worse outcome than notifications in
+spam.
+
+If you already have an SPF record (a `TXT` starting `v=spf1`), do **not** add a
+second one - a domain with two SPF records fails SPF entirely. Merge Resend's
+include into the existing record instead, and send me both values if you want
+me to check the merge before you save it.
+
+### Wait for Resend to verify
+
+Back in Resend -> Domains, the status changes to **Verified**, usually within
+minutes. It will not verify while any record is missing or mistyped, and the
+page names which one is unhappy.
+
+### Switch the sending address
+
+Only once Resend reports **Verified**. Resend refuses to send from an
+unverified domain, so flipping this early makes every notification fail
+silently - the form still saves the enquiry, but no email goes anywhere.
+
+Cloudflare -> Workers & Pages -> `rumeau-design-co` -> Settings ->
+**Environment variables** -> Production -> add:
+
+| Variable | Value |
+|---|---|
+| `CONTACT_FROM_EMAIL` | `Rumeau Design Co <enquiries@rumeaudesign.co>` |
+
+The mailbox does not need to exist - nothing receives mail at that address.
+Replies go to the enquirer, because the notification sets `Reply-To` to
+whoever submitted the form.
+
+Then tell me and I will redeploy, since env var changes only apply to
+deployments made afterwards. Send one more test enquiry and confirm it lands in
+the inbox rather than spam.
+
+**If anything goes wrong**, clear `CONTACT_FROM_EMAIL` and redeploy: the code
+falls back to `onboarding@resend.dev`, which works. Notifications go back to
+spam, but nothing breaks.

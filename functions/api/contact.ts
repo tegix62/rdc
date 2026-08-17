@@ -53,6 +53,12 @@ interface Env {
   TURNSTILE_SECRET_KEY: string;
   RESEND_API_KEY: string;
   CONTACT_NOTIFY_EMAIL: string;
+  /*
+    Optional. Unset means Resend's shared onboarding@resend.dev, which needs
+    no DNS setup but lands notifications in spam - see the from: line below
+    for why this is a variable rather than a hard-coded address.
+  */
+  CONTACT_FROM_EMAIL?: string;
 }
 
 interface Context {
@@ -338,14 +344,40 @@ export const onRequestPost = async ({ request, env }: Context): Promise<Response
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        // Resend's own shared sending domain. Sending FROM it rather than
-        // from @rumeaudesign.co is what avoids touching this domain's DNS -
-        // no SPF/DKIM records to add, which is exactly the category of
-        // change that silently breaks Google Workspace mail if gotten wrong.
-        // This is a note to Chris about a submission, not a message to a
-        // client, so the From address being generic costs nothing.
-        from: 'Rumeau Design Co site <onboarding@resend.dev>',
+        /*
+          Configurable, with Resend's shared domain as the fallback.
+
+          Sending from onboarding@resend.dev works with no DNS setup at all,
+          which is why it shipped first - but that domain carries no SPF or
+          DKIM tying it to rumeaudesign.co, so spam filters treat it as
+          unauthenticated bulk mail. The first real enquiry landed in spam,
+          and a missed enquiry defeats the entire point of a notification.
+
+          The fix is a verified sending domain, which needs DNS records only
+          Chris can add. That makes the switchover a hazard if this address is
+          hard-coded: Resend REFUSES to send from a domain it has not verified,
+          so shipping `enquiries@rumeaudesign.co` even minutes before
+          verification completes turns every notification into a silent
+          failure - and this block is deliberately best-effort, so nothing
+          surfaces.
+
+          An env var removes the timing problem entirely. This code is correct
+          before and after; Chris flips CONTACT_FROM_EMAIL once Resend reports
+          the domain verified, and can flip it straight back if anything is
+          wrong with the DNS, without a deploy either way.
+        */
+        from: env.CONTACT_FROM_EMAIL?.trim() || 'Rumeau Design Co site <onboarding@resend.dev>',
         to: env.CONTACT_NOTIFY_EMAIL,
+        /*
+          Reply goes to the enquirer, not to the sending address.
+
+          Without this, hitting Reply on a notification answers
+          onboarding@resend.dev - a shared address belonging to Resend, which
+          means a reply meant for a prospective client goes nowhere at all and
+          looks, from Chris's side, like it was sent. The enquirer never hears
+          back and has no way to know why.
+        */
+        reply_to: data.email,
         subject: `New enquiry: ${data.name}${data.company ? ` (${data.company})` : ''}`,
         text: [
           `${data.name} <${data.email}>${data.company ? ` — ${data.company}` : ''}`,
@@ -360,7 +392,23 @@ export const onRequestPost = async ({ request, env }: Context): Promise<Response
           `Found via: ${data.foundVia}`,
           `Phone: ${data.phone}`,
           '',
-          'Full record at https://rumeaudesign.co/admin/enquiries',
+          /*
+            No link here, deliberately.
+
+            This used to end "Full record at
+            https://rumeaudesign.co/admin/enquiries", which 404s - I wrote it
+            planning an admin page and then decided not to build one, and the
+            line shipped pointing at nothing. Chris found it in a real
+            notification.
+
+            Every field the visitor submitted is already above, so this email
+            IS the full record - there is nothing a link would add. The
+            durable copy is the D1 row, reachable from the Cloudflare
+            dashboard; no URL is written here because a dead link in every
+            notification is worse than no link, and the only honest
+            alternative would be a dashboard URL that embeds the account id.
+          */
+          'Reply to this email to answer them directly.',
         ].join('\n'),
       }),
     });

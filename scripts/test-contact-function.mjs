@@ -371,5 +371,93 @@ const post = (fields, headers = {}) => {
   check('GET on this endpoint is rejected with 405', res.status === 405)
 }
 
+/*
+  --- the notification's From and Reply-To --------------------------------------
+
+  The first real enquiry's notification landed in SPAM. Not a bug in this code:
+  it sends from Resend's shared onboarding@resend.dev, which carries no SPF or
+  DKIM tying it to rumeaudesign.co, so filters treat it as unauthenticated bulk
+  mail. Fixing that needs a verified sending domain, which needs DNS records
+  only Chris can add.
+
+  Hard-coding the new address would have made the switchover dangerous, since
+  Resend REFUSES to send from an unverified domain: shipping
+  enquiries@rumeaudesign.co even minutes early turns every notification into a
+  silent failure, and this whole block is best-effort by design so nothing
+  surfaces. Hence a variable with the working address as its fallback - correct
+  before verification and after, with the switch under Chris's control.
+*/
+{
+  const fetchMock = mockFetch({
+    'turnstile/v0/siteverify': [jsonRes(200, {success: true})],
+    'api.resend.com': [jsonRes(200, {id: 'email5'})],
+  })
+  globalThis.fetch = fetchMock
+  await onRequestPost({request: post(VALID_FIELDS), env: {...ENV, DB: mockDb()}})
+
+  const email = JSON.parse(fetchMock.calls.find((c) => c.url.includes('resend')).init.body)
+  check(
+    'with CONTACT_FROM_EMAIL unset, it falls back to a working sender',
+    email.from.includes('onboarding@resend.dev'),
+    email.from,
+  )
+  /*
+    Reply-To is the enquirer. Without it, hitting Reply on a notification
+    answers Resend's shared address - so a reply meant for a prospective
+    client goes nowhere, while looking sent from Chris's side.
+  */
+  check('Reply-To is the enquirer, not the sending address', email.reply_to === VALID_FIELDS.email, email.reply_to)
+
+  /*
+    No dead links in the notification. This shipped pointing at
+    /admin/enquiries - a page that was planned and never built - and Chris
+    found the 404 in a real enquiry email. Cheap to assert, and the kind of
+    thing that gets re-added the next time an admin page is imagined.
+  */
+  check('the email contains no /admin/ link', !/\/admin\//.test(email.text), email.text.split('\n').at(-1))
+  check('every submitted field is in the body, so no link is needed', 
+    [VALID_FIELDS.name, VALID_FIELDS.email, VALID_FIELDS.goals, VALID_FIELDS.phone].every((v) => email.text.includes(v)))
+}
+
+{
+  const fetchMock = mockFetch({
+    'turnstile/v0/siteverify': [jsonRes(200, {success: true})],
+    'api.resend.com': [jsonRes(200, {id: 'email6'})],
+  })
+  globalThis.fetch = fetchMock
+  await onRequestPost({
+    request: post(VALID_FIELDS),
+    // Trailing whitespace on purpose: this value gets pasted into a dashboard,
+    // and a stray newline on the Turnstile secret already cost an afternoon
+    // once. An address with a newline in it is rejected outright by Resend.
+    env: {...ENV, DB: mockDb(), CONTACT_FROM_EMAIL: '  Rumeau Design Co <enquiries@rumeaudesign.co>\n'},
+  })
+
+  const email = JSON.parse(fetchMock.calls.find((c) => c.url.includes('resend')).init.body)
+  check(
+    'a configured sender is used instead of the fallback',
+    email.from === 'Rumeau Design Co <enquiries@rumeaudesign.co>',
+    JSON.stringify(email.from),
+  )
+}
+
+// An empty-string env var is what a cleared dashboard field leaves behind, and
+// it must fall back rather than send from nothing.
+{
+  const fetchMock = mockFetch({
+    'turnstile/v0/siteverify': [jsonRes(200, {success: true})],
+    'api.resend.com': [jsonRes(200, {id: 'email7'})],
+  })
+  globalThis.fetch = fetchMock
+  await onRequestPost({request: post(VALID_FIELDS), env: {...ENV, DB: mockDb(), CONTACT_FROM_EMAIL: '   '}})
+
+  const email = JSON.parse(fetchMock.calls.find((c) => c.url.includes('resend')).init.body)
+  check(
+    'a blank CONTACT_FROM_EMAIL falls back rather than sending from nothing',
+    email.from.includes('onboarding@resend.dev'),
+    JSON.stringify(email.from),
+  )
+}
+
 console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll checks passed.')
 process.exit(failures ? 1 : 0)

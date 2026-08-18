@@ -1,15 +1,24 @@
 /*
   One-off diagnostic, not a kept test: drives a real Chromium against
   https://rumeaudesign.co/contact, walks the form to step 4, and dumps the
-  actual computed geometry of the budget slider - because Chris reported the
-  numbers still overlapping the track AFTER check-contact-live.mjs confirmed
-  the fixed CSS rule text is present in the shipped stylesheet.
+  actual computed geometry around the budget slider.
 
-  That gap matters: confirming the RULE TEXT is present is not the same as
-  confirming it WINS the cascade and produces non-overlapping layout. This
-  renders the real page with a real browser and measures the real boxes,
-  which is the only way to tell "the fix isn't live" apart from "the fix is
-  live and is not what I thought it was."
+  Two rounds so far, two different overlaps:
+
+    round 1  numbers overlapped the TRACK - a margin-top on the label row
+             was collapsing through .budget-slider's top edge instead of
+             creating space inside it.
+    round 2  fixing that (display:flow-root) pushed the numbers below the
+             track, straight into the "Not sure yet" checkbox underneath -
+             .budget-slider still declared a fixed height sized for the
+             track/thumbs alone, so it never grew to contain the label row
+             now properly inside it.
+
+  Both were real, both were confirmed live on the real page by this script,
+  and neither was visible from reading the CSS alone - "the rule text is
+  correct" is not the same claim as "the rendered boxes don't collide",
+  which is why this checks THREE gaps rather than trusting the fix by
+  inspection: track-to-labels, and now labels-to-the-next-field too.
 
   Run from GitHub Actions (needs `npm install playwright && npx playwright
   install chromium` first - this repo's own sandbox cannot reach the public
@@ -60,30 +69,29 @@ const box = async (sel) => {
 };
 
 console.log('\n.budget-slider            ', JSON.stringify(await box('.budget-slider')));
+console.log('.budget-slider__handles   ', JSON.stringify(await box('.budget-slider__handles')));
 console.log('.budget-slider__track     ', JSON.stringify(await box('.budget-slider__track')));
 console.log('.budget-slider__labels    ', JSON.stringify(await box('.budget-slider__labels')));
-console.log(
-  '.budget-slider__value--low',
-  JSON.stringify(await box('.budget-slider__value--low')),
-);
-
-// The actual cascade-winning rule, straight from the browser rather than
-// grepped from a stylesheet - this is what tells "present in the file" apart
-// from "present and winning."
-const winningRule = await page.evaluate(() => {
-  const el = document.querySelector('.budget-slider__labels');
-  const cs = getComputedStyle(el);
-  return { marginTop: cs.marginTop };
-});
-console.log('\ngetComputedStyle(.budget-slider__labels).marginTop =', winningRule.marginTop);
+console.log('.contact-form__checkbox   ', JSON.stringify(await box('.contact-form__checkbox')));
 
 await page.screenshot({ path: 'budget-slider-live.png', clip: { x: 0, y: 0, width: 900, height: 900 } });
 
-// Overlap check: does the labels row's top edge sit above the track's bottom edge?
+// Two gaps, because both have collided before: track-vs-labels (round 1) and
+// labels-vs-the-checkbox-underneath (round 2).
 const trackBox = await box('.budget-slider__track');
 const labelsBox = await box('.budget-slider__labels');
-const overlap = labelsBox.rect.y < trackBox.rect.y + trackBox.rect.height;
-console.log(`\nOVERLAP: ${overlap ? 'YES - labels row starts above the track\'s bottom edge' : 'no - labels row is fully below the track'}`);
+const checkboxBox = await box('.contact-form__checkbox');
 
+const trackOverlap = labelsBox.rect.y < trackBox.rect.y + trackBox.rect.height;
+const checkboxOverlap = checkboxBox && labelsBox.rect.y + labelsBox.rect.height > checkboxBox.rect.y;
+
+console.log(
+  `\nOVERLAP (track/labels):    ${trackOverlap ? 'YES - labels row starts above the track\'s bottom edge' : 'no'}`,
+);
+console.log(
+  `OVERLAP (labels/checkbox): ${checkboxOverlap ? 'YES - the "Not sure yet" checkbox starts above the labels row\'s bottom edge' : 'no'}`,
+);
+
+const failed = trackOverlap || checkboxOverlap;
 await browser.close();
-process.exit(overlap ? 1 : 0);
+process.exit(failed ? 1 : 0);

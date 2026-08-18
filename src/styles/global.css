@@ -2914,24 +2914,35 @@ body {
   contactForm.ts's initBudgetSlider for the capping logic that keeps the two
   from crossing).
 */
+/*
+  Two THIRD attempts at this bug lived here before this structure. Both
+  patched the symptom without fixing the actual problem: .budget-slider held
+  the track/thumbs (position:absolute, needing a fixed-height box to anchor
+  to) AND the label row (a real in-flow block needing its own space) as
+  competing tenants of the same box. Fix #1 (a margin-top on the label row)
+  computed the right value but did nothing, because that margin collapsed
+  straight through .budget-slider's top edge - a lone in-flow child's margin
+  does that when the parent has no border/padding to stop it. Fix #2
+  (display:flow-root on .budget-slider) stopped the collapse, which pushed
+  the numbers below the track - and directly into the "Not sure yet"
+  checkbox underneath, because .budget-slider still declared a fixed
+  height: 2.5rem sized for the handles ALONE, so the box never grew to
+  actually contain the label row now inside it.
+
+  The structural fix: give the track/thumbs their OWN wrapper
+  (.budget-slider__handles, directly below) sized 2.5rem for them, and let
+  .budget-slider itself be a plain block with two ordinary in-flow siblings -
+  that wrapper, then the label row - stacking exactly the way any other pair
+  of stacked elements does. No collapsing edge case, no fixed height fighting
+  real content, nothing to patch around.
+*/
 .budget-slider {
-  position: relative;
-  /*
-    Establishes its own block formatting context. Without this, the label
-    row's margin-top below (calc(2.5rem + var(--space-2))) COLLAPSES straight
-    through this box's top edge instead of creating space inside it - the
-    classic case where a block's only in-flow child has a top margin and the
-    block has no border or padding to stop it collapsing with the parent's
-    own margin. flow-root was the actual fix for the line-through-the-numbers
-    bug; the first attempt computed the right margin value but it was never
-    taking effect, confirmed by a live getComputedStyle() dump showing
-    marginTop: 56px alongside a bounding box that hadn't moved at all.
-    flow-root over overflow:hidden because nothing here should risk clipping
-    the focus outline on the range thumbs.
-  */
-  display: flow-root;
-  height: 2.5rem;
   margin-bottom: var(--space-2);
+}
+
+.budget-slider__handles {
+  position: relative;
+  height: 2.5rem;
 }
 
 .budget-slider__track {
@@ -3011,24 +3022,13 @@ body {
   display: flex;
   justify-content: space-between;
   /*
-    2.5rem, not var(--space-2) alone, and here is why the line used to cut
-    through the numbers.
-
-    The track and both <input type="range"> thumbs are position:absolute,
-    which takes them out of normal flow - so despite .budget-slider declaring
-    height: 2.5rem to give THEM room, that height does nothing for an in-flow
-    sibling. This label row is the only child left in flow, and a block's
-    first in-flow child starts at the top of its parent's content box
-    regardless of the parent's declared height. So it rendered flush with the
-    TOP of that 2.5rem box - exactly where the track sits, vertically
-    centered at 50% - and the navy line ran straight through the current
-    value.
-
-    This margin has to clear that whole 2.5rem itself before adding the
-    actual visual gap, matching .budget-slider's own height above rather than
-    a value chosen independently of it.
+    A plain, ordinary margin-top: .budget-slider__handles above is a real
+    in-flow sibling now, sized for the track/thumbs on its own, so this only
+    has to add the visual gap after it - not fight a fixed height or a
+    collapsed margin the way the two earlier attempts had to. See the comment
+    on .budget-slider above for why that took two wrong fixes to get right.
   */
-  margin-top: calc(2.5rem + var(--space-2));
+  margin-top: var(--space-2);
   font-size: 0.875rem;
 }
 

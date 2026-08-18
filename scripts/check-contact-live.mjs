@@ -51,26 +51,22 @@ ok(
   !page.body.includes('This form takes about a minute. I read every one myself'),
 )
 
-// The stylesheet holding the slider fix. Astro fingerprints the filename, so
-// it has to be discovered from the page rather than guessed.
 const cssHrefs = [...page.body.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map(
   (m) => m[1],
 )
 ok('the page links at least one stylesheet', cssHrefs.length > 0, `${cssHrefs.length} found`)
 
-let sliderFixPresent = false
-for (const href of cssHrefs) {
-  const url = href.startsWith('http') ? href : `${origin}${href}`
-  const css = await get(url)
-  if (css.body.includes('.budget-slider__labels') && css.body.includes('calc(2.5rem')) {
-    sliderFixPresent = true
-    break
-  }
-}
-ok(
-  'the budget-slider label fix (margin-top: calc(2.5rem + ...)) is in the shipped CSS',
-  sliderFixPresent,
-)
+/*
+  NOT a check for the slider fix's CSS text. There used to be one here -
+  grepping the shipped stylesheet for `.budget-slider__labels` and a specific
+  margin value - and it passed while the fix was still visibly broken on the
+  real page, because the rule text was present and correct and STILL lost to
+  CSS margin collapsing. "The right CSS shipped" and "the boxes don't
+  overlap" are different claims; only a real rendered measurement proves the
+  second one. See scripts/debug-budget-slider-live.mjs, which does that with
+  Playwright - run it by hand after any slider change rather than trusting a
+  grep here again.
+*/
 
 console.log(`\n${'='.repeat(74)}`)
 console.log(

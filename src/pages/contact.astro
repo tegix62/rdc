@@ -212,29 +212,39 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as string |
             data-max="6000"
             data-step="250"
           >
-            <div class="budget-slider__track">
-              <div class="budget-slider__range"></div>
+            {/*
+              The track and both thumbs live in their OWN wrapper now,
+              separate from the label row below - see the comment on
+              .budget-slider__handles in global.css for why. Reading and
+              writing these elements is unaffected: initBudgetSlider in
+              contactForm.ts finds them all with root.querySelector, which
+              searches every descendant regardless of nesting depth.
+            */}
+            <div class="budget-slider__handles">
+              <div class="budget-slider__track">
+                <div class="budget-slider__range"></div>
+              </div>
+              <input
+                type="range"
+                class="budget-slider__input budget-slider__input--low"
+                name="budgetMin"
+                min="1500"
+                max="6000"
+                step="250"
+                value="1500"
+                aria-label="Budget, low end"
+              />
+              <input
+                type="range"
+                class="budget-slider__input budget-slider__input--high"
+                name="budgetMax"
+                min="1500"
+                max="6000"
+                step="250"
+                value="3000"
+                aria-label="Budget, high end"
+              />
             </div>
-            <input
-              type="range"
-              class="budget-slider__input budget-slider__input--low"
-              name="budgetMin"
-              min="1500"
-              max="6000"
-              step="250"
-              value="1500"
-              aria-label="Budget, low end"
-            />
-            <input
-              type="range"
-              class="budget-slider__input budget-slider__input--high"
-              name="budgetMax"
-              min="1500"
-              max="6000"
-              step="250"
-              value="3000"
-              aria-label="Budget, high end"
-            />
             <div class="budget-slider__labels">
               <output class="budget-slider__value budget-slider__value--low">$1,500</output>
               <span class="budget-slider__bound">$1,500</span>

@@ -1,0 +1,40 @@
+name: Load image license draft
+
+# /image-license-info has shown the "content coming soon" placeholder since
+# migration. See scripts/load-image-license-info.mjs - unlike
+# load-privacy-policy.mjs, this ALWAYS writes to a draft, never the published
+# page, because Chris has not read this text yet.
+
+on:
+  workflow_dispatch:
+    inputs:
+      load:
+        description: 'Write the draft into Studio (off = print it, change nothing)'
+        type: boolean
+        default: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          LOAD: ${{ inputs.load && 'yes' || 'no' }}
+        run: |
+          set -o pipefail
+          node scripts/load-image-license-info.mjs 2>&1 | tee license.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo '## Image license draft'
+            echo ''
+            echo '```'
+            cat license.txt 2>/dev/null || echo '(did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

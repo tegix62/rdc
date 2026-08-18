@@ -408,6 +408,14 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
       <div class="wrap site-footer__bottom">
         <p>&copy; {new Date().getFullYear()} {LEGAL_NAME}. All rights reserved.</p>
         <a href="/privacy-policy">Privacy Policy</a>
+        {/*
+          Nothing linked here before this - the page existed only at its
+          direct URL, which is exactly how it showed up as an orphan in
+          scripts/audit-a11y-seo.mjs (0 inbound links). The comment on the
+          img-protection CSS above calls this page "the real protection"
+          behind that deterrent; a page nothing points to protects nothing.
+        */}
+        <a href="/image-license-info">Image License</a>
       </div>
     </footer>
     <style is:global>

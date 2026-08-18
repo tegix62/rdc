@@ -1,0 +1,41 @@
+name: Check /contact fixes are actually live
+
+# Fetches the real rumeaudesign.co/contact response and its shipped
+# stylesheet and greps for the specific strings the 18 August 2026 fixes
+# depend on - not just that a deploy succeeded, but that a real visitor's
+# browser receives the restored intro line and the budget-slider CSS fix.
+# See scripts/check-contact-live.mjs for why this exists as a separate check
+# from deploy-production.yml's own "Verify what is live" step.
+#
+# Read-only. GETs only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Site to check'
+        type: string
+        default: 'https://rumeaudesign.co'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check
+        run: |
+          set -o pipefail
+          node scripts/check-contact-live.mjs "${{ inputs.url }}" 2>&1 | tee contact-live.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "## /contact live check"
+            echo ""
+            echo '```'
+            cat contact-live.txt 2>/dev/null || echo '(the check did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

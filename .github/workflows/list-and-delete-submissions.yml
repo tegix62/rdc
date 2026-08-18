@@ -1,0 +1,40 @@
+name: List / delete Sanity submission documents
+
+# The contact form used to write enquiries to Sanity's `submission` type in
+# the public-read production dataset, before it moved to D1. A real test
+# submission with a real phone number is still sitting there. See
+# scripts/list-and-delete-submissions.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Actually delete every submission found (off = list only)'
+        type: boolean
+        default: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          APPLY: ${{ inputs.apply && 'yes' || 'no' }}
+        run: |
+          set -o pipefail
+          node scripts/list-and-delete-submissions.mjs 2>&1 | tee submissions.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo '## Sanity submission documents'
+            echo ''
+            echo '```'
+            cat submissions.txt 2>/dev/null || echo '(did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

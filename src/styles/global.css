@@ -2996,7 +2996,25 @@ body {
 .budget-slider__labels {
   display: flex;
   justify-content: space-between;
-  margin-top: var(--space-2);
+  /*
+    2.5rem, not var(--space-2) alone, and here is why the line used to cut
+    through the numbers.
+
+    The track and both <input type="range"> thumbs are position:absolute,
+    which takes them out of normal flow - so despite .budget-slider declaring
+    height: 2.5rem to give THEM room, that height does nothing for an in-flow
+    sibling. This label row is the only child left in flow, and a block's
+    first in-flow child starts at the top of its parent's content box
+    regardless of the parent's declared height. So it rendered flush with the
+    TOP of that 2.5rem box - exactly where the track sits, vertically
+    centered at 50% - and the navy line ran straight through the current
+    value.
+
+    This margin has to clear that whole 2.5rem itself before adding the
+    actual visual gap, matching .budget-slider's own height above rather than
+    a value chosen independently of it.
+  */
+  margin-top: calc(2.5rem + var(--space-2));
   font-size: 0.875rem;
 }
 

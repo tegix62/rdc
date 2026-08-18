@@ -62,8 +62,8 @@ export default defineType({
       rows: 2,
       group: 'top',
       description:
-        'Defaults to "This form takes about a minute. I read every one myself - ' +
-        'there is no team, no CRM, just me."',
+        'Defaults to "This 1-minute form is designed to help understand your ' +
+        'business, and its compatibility for logo and brand design."',
     }),
 
     // --- Step 1 ------------------------------------------------------------

@@ -5,7 +5,8 @@ import Img from '../components/Img.astro';
 import Sections from '../components/Sections.astro';
 import WorkGrid from '../components/WorkGrid.astro';
 import { getPage, getSiteSettings, getFeaturedWork } from '../lib/queries';
-import { backgroundUrl, hotspotPosition } from '../lib/image';
+import { backgroundUrl, hotspotPosition, imageUrl, buildSrcSet, originalUrl, isPassThrough, cappedWidth, hasAsset } from '../lib/image';
+import { isAnimatedSource } from '../lib/animated';
 
 const page = await getPage('home');
 const settings = await getSiteSettings();
@@ -77,41 +78,54 @@ const closerSuffix = settings?.closerSuffix || ' and built to perform on fabric.
 const finalCtaHeading = settings?.finalCtaHeading || 'DTC Brands and Apparel Companies:';
 
 /*
-  backgroundUrl, not urlFor: this asked for w=1800 from an animated 800x800
-  source and came back at 10,704 KB - on its own 98% of this page's weight and
-  the heaviest file on the site. A CSS background bypasses Img.astro, so it got
-  neither the width clamp nor the pass-through that keep animated sources out
-  of the re-encode pipeline. See backgroundUrl in lib/image.ts.
+  The hero image, as a real <img> instead of a CSS background-image.
+
+  A background-image is invisible to the browser's preload scanner: the browser
+  cannot discover the URL until it has parsed the stylesheet and computed styles
+  for this element, which is the "LCP request discovery" finding PageSpeed flags.
+  It also ships at a single size regardless of viewport width, which is the
+  "Image delivery" finding. An <img> with srcset/sizes and fetchpriority="high"
+  fixes both, plus the LCP breakdown, in one change.
+
+  The navy gradient overlay that was part of the background-image stack is now a
+  ::before pseudo-element in the CSS, sitting between the image and the text.
 */
-const heroBg = await backgroundUrl(settings?.heroBackground, 1800);
+const heroSource = settings?.heroBackground;
+const heroHasAsset = hasAsset(heroSource);
+let heroSrc = '';
+let heroSrcset: string | undefined;
+const heroPosition = hotspotPosition(heroSource);
 
-/*
-  The hotspot, for a CSS background.
-
-  A background-image is cropped by the BROWSER via background-size: cover, and
-  the stylesheet hardcoded `background-position: center` - so the hotspot set in
-  Studio had no effect on the single most prominent image on the site. It works
-  on tiles, on case study heroes and on social cards, and silently did nothing
-  here, which is the worst version: the control appears to exist.
-
-  Same conversion Img.astro uses for object-position, from the same function, so
-  the two cannot disagree. Undefined when no hotspot is set, and the stylesheet
-  falls back to `center` - which is what it did before, so nothing moves for an
-  image nobody has set a hotspot on.
-*/
-const heroPosition = hotspotPosition(settings?.heroBackground);
-const heroStyle = heroBg
-  ? [`--hero-bg-image: url(${heroBg})`, heroPosition && `--hero-bg-position: ${heroPosition}`]
-      .filter(Boolean)
-      .join('; ')
-  : undefined;
+if (heroHasAsset) {
+  const animated = await isAnimatedSource(heroSource);
+  const passThrough = isPassThrough(heroSource, animated);
+  if (passThrough) {
+    heroSrc = originalUrl(heroSource) ?? '';
+  } else {
+    heroSrc = imageUrl(heroSource)?.width(cappedWidth(heroSource, 1800)).url() ?? '';
+    heroSrcset = buildSrcSet(heroSource, 1800);
+  }
+}
 
 const proofBg = await backgroundUrl(settings?.proofBandBackground, 500);
 const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined;
 ---
 
 <Layout title={page?.title ?? 'Rumeau Design Co'} description={pageDescription(page, 'Hand-drawn brand identity, lettering and merch design for heritage apparel brands and musicians. The studio of Chris Rumeau, New Jersey.')}>
-  <section class="statement" style={heroStyle}>
+  <section class="statement">
+    {heroHasAsset && (
+      <img
+        class="statement__bg"
+        src={heroSrc}
+        srcset={heroSrcset}
+        sizes={heroSrcset ? '100vw' : undefined}
+        alt=""
+        loading="eager"
+        fetchpriority="high"
+        decoding="async"
+        style={heroPosition ? `object-position: ${heroPosition}` : undefined}
+      />
+    )}
     <div class="statement__line" aria-hidden="true"></div>
     {/*
       Three words, three lines - always, not just at the width where they

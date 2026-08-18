@@ -582,10 +582,11 @@ main {
   background: var(--color-gray-light);
 }
 
-/* Homepage: statement / hero - full-bleed dark navy section with the
-   real site's background image (an animated WebP of Hug a Mug's Pisces
-   shirt design being printed) behind a navy gradient overlay. True
-   edge-to-edge of the viewport, not just .wrap's side padding. */
+/* Homepage: statement / hero - full-bleed dark navy section. The hero
+   image is a real <img> (not a CSS background-image) so the browser's
+   preload scanner can discover it and srcset can serve a size-appropriate
+   file. The navy overlay is a ::before pseudo-element between the image
+   and the text. */
 .statement {
   position: relative;
   width: 100vw;
@@ -594,21 +595,35 @@ main {
   padding: 2.5rem var(--space-3);
   text-align: center;
   background-color: var(--color-navy);
-  background-image: linear-gradient(
-      to bottom,
-      rgba(0, 40, 133, 0.76),
-      rgba(0, 40, 133, 0.76)
-    ),
-    var(--hero-bg-image, none);
-  background-size: cover;
-  /*
-    The hotspot set in Studio, when there is one. `center` was hardcoded here,
-    which meant the browser cropped this image from the middle regardless of what
-    Chris marked - on the one image where it matters most, since this band is
-    full-bleed and its source is only 800px wide. See hotspotPosition() in
-    lib/image.ts, and index.astro where the variable is set.
-  */
-  background-position: var(--hero-bg-position, center);
+  overflow: hidden;
+}
+
+.statement__bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.statement::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 40, 133, 0.76),
+    rgba(0, 40, 133, 0.76)
+  );
+  z-index: 1;
+}
+
+.statement__line,
+.statement__heading,
+.statement__sub {
+  position: relative;
+  z-index: 2;
 }
 
 @media (max-width: 40rem) {

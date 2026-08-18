@@ -189,7 +189,17 @@ for (const phrase of [
   // the facts that replaced it and must not silently go missing the same way.
   'Resend',
   'Turnstile',
-  'no name, no email',
+  /*
+    'no name, no email' guarded the step-tracking paragraph
+    ("no name, no email, no identifier of any kind is attached to these
+    numbers"). That feature is gone - see the deploy-storm fix in
+    functions/api/form-progress.ts - and the paragraph describing it was
+    removed from the policy for the same reason the three above were added:
+    the text has to match what the site actually does. This is the
+    "future edit removes a fact" case the comment above warns about,
+    caught exactly as intended - the phrase is deliberately absent now,
+    not accidentally.
+  */
 ]) {
   check(`the output still contains ${JSON.stringify(phrase)}`, all.includes(phrase), true)
 }

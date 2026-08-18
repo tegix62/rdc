@@ -22,7 +22,14 @@ import { chromium } from 'playwright';
 const url = process.argv[2] ?? 'https://rumeaudesign.co/contact';
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 900, height: 1000 } });
-await page.goto(url, { waitUntil: 'networkidle' });
+/*
+  domcontentloaded, not networkidle: the Turnstile widget on this page keeps
+  a connection open indefinitely (it polls / holds a socket for its
+  challenge), so "networkidle" never fires and the first run of this script
+  timed out at 30s waiting for a quiet network that was never coming.
+*/
+await page.goto(url, { waitUntil: 'domcontentloaded' });
+await page.waitForSelector('#contact-form', { state: 'visible' });
 
 // Step 1
 await page.fill('input[name="name"]', 'Diagnostic Check');

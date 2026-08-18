@@ -150,19 +150,20 @@ jobs:
       # not, silently.
       - run: node scripts/test-pixel-geofence.mjs
 
-      # make-css-non-blocking.mjs's regex-based rewrite of Astro's stylesheet
-      # link - the PageSpeed "render-blocking requests" fix. Wrong here means
-      # either the render-blocking tag survives untouched (no fix) or a page
-      # loses its stylesheet outright, and neither shows up by reading the
-      # source, only by rendering the page.
-      - run: node scripts/test-make-css-non-blocking.mjs
-
       - run: npm run build
 
-      # Confirms the rewrite above actually ran against the real build
-      # output, not just the unit test's synthetic HTML - see that script's
-      # header comment for why the build script itself can silently drop it.
-      - run: node scripts/test-non-blocking-css-applied.mjs
+      # The stylesheet must load BLOCKING. That reads like a performance bug
+      # and is deliberately the opposite: deferring it was tried on
+      # 18 August 2026 (preload + onload rel-swap, to clear PageSpeed's
+      # "render-blocking requests" finding) and it took Cumulative Layout
+      # Shift on the live homepage to 1.001 - "poor" starts at 0.25. The page
+      # painted in browser default styles, then 75 KiB gzip of CSS landed and
+      # moved every element on it. CLS is a Core Web Vital that feeds ranking;
+      # render-blocking is an advisory diagnostic that does not. See the
+      # comment block in astro.config.mjs for the full reasoning and the one
+      # condition under which deferring becomes correct (inlined critical CSS
+      # FIRST, per template).
+      - run: node scripts/test-css-blocking.mjs
 
       # test-meta proves the composition functions are right; it cannot prove the
       # templates call them. Those are different failures, and the second is the

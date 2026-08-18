@@ -64,4 +64,35 @@ export default defineConfig({
   extractor, per-template) and is worth building only if a real Lighthouse
   trace shows the full stylesheet is actually costing meaningful render time
   on a real deploy - not assumed from the file size alone.
+
+  ---
+
+  TRIED AND REVERTED, 18 AUGUST 2026: deferring WITHOUT the critical-CSS step.
+
+  A real PageSpeed run did arrive, flagging this exact file as render-blocking
+  for ~1,410 ms, so the "middle ground" above got attempted - but only its
+  second half. The built <link> was rewritten post-build to
+  `rel="preload" as="style"` with an onload handler swapping rel back, plus a
+  <noscript> fallback. No critical CSS was extracted or inlined first.
+
+  It deployed and worked mechanically. The next PageSpeed run measured
+  Cumulative Layout Shift 1.001 on the homepage; "poor" begins at 0.25.
+
+  That outcome is inherent to the technique when the whole stylesheet is
+  deferred, not a defect in the implementation. Nothing styles the first
+  paint, so the page renders in browser default styles - then global.css
+  arrives and the nav, the type scale, and every layout container resolve at
+  once, moving essentially the entire viewport.
+
+  The trade was backwards. CLS is a Core Web Vital and feeds ranking.
+  "Render-blocking requests" is an advisory diagnostic that does not, and its
+  estimated saving models a cold-cache single-page visit - the frame this
+  whole comment block already explains is the wrong one for this site.
+
+  So the conclusion is unchanged and now has evidence behind it: the
+  stylesheet loads blocking. The ONLY route to deferring it is to inline
+  above-the-fold CSS per template FIRST, so first paint is already correct
+  and the deferred remainder is invisible. scripts/test-css-blocking.mjs
+  fails the build if the link stops being a plain blocking one, so this has
+  to be a deliberate decision rather than something that creeps back.
 */

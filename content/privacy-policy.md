@@ -46,12 +46,17 @@ We do not add you to a mailing list, and we do not pass it to anyone else.
 
 ### The Meta pixel
 
-This site loads Meta's tracking pixel on every page. It runs because we
-advertise on Facebook and Instagram and it tells us which ads lead to people
-actually visiting.
+This site loads Meta's tracking pixel on every page, for most visitors. It
+runs because we advertise on Facebook and Instagram and it tells us which
+ads lead to people actually visiting.
 
-It loads as soon as the page does, whether or not you have a Facebook or
-Instagram account, and it tells Meta:
+**If you are browsing from the EU, the UK, or elsewhere in the EEA, it does
+not load at all.** Those places require asking before a cookie like this
+one is set, not just explaining it afterward - so for you, none of the
+rest of this section applies, and no cookie described below is ever set.
+
+For everyone else, it loads as soon as the page does, whether or not you
+have a Facebook or Instagram account, and it tells Meta:
 
 - your IP address,
 - which page you are on and when,

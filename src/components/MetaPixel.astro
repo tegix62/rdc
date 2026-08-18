@@ -29,13 +29,21 @@
   the two cannot drift into the policy claiming something the site stopped doing,
   or worse, not mentioning something it started.
 
-  NOT A CONSENT BANNER
+  NOT A CONSENT BANNER - GEOFENCED INSTEAD
 
-  This fires on load. For visitors in the EU or UK, doing that without prior
-  consent is not compliant, and a banner is a bigger piece of work than a script
-  tag - it needs to block the pixel until a choice is made, remember the choice,
-  and offer a way to change it. If the site starts drawing meaningful EU traffic
-  that becomes a real gap, and it is written down here rather than discovered.
+  This still fires on load with no banner. What changed: functions/_middleware.ts
+  now strips BOTH tags below, entirely, before the response reaches a visitor
+  in the EU, UK, or EEA - see src/lib/pixelGeofence.ts for exactly which
+  countries and why. That closes the actual legal gap (no non-essential
+  tracking cookie is set without consent, for the regions that require it)
+  without building a full consent banner, at the cost of losing ad-attribution
+  data for that traffic. A banner is still the more complete answer if the site
+  ever draws meaningful EU/UK traffic worth measuring - this is the cheaper fix
+  for the traffic split this studio actually has.
+
+  `data-meta-pixel` on both tags below is not decorative: it is what the
+  middleware selects on. Renaming or removing it silently turns the geofence
+  off - the pixel would keep firing everywhere, with nothing failing loudly.
 
   `is:inline` on both tags: Astro must not bundle or rewrite Meta's snippet, and
   the noscript pixel has to reach the browser exactly as written.
@@ -91,7 +99,7 @@ if (pixelId && IS_PREVIEW) {
 
 {enabled && (
   <>
-    <script is:inline define:vars={{ pixelId }}>
+    <script is:inline data-meta-pixel="true" define:vars={{ pixelId }}>
       !(function (f, b, e, v, n, t, s) {
         if (f.fbq) return;
         n = f.fbq = function () {
@@ -113,6 +121,7 @@ if (pixelId && IS_PREVIEW) {
     </script>
     <noscript>
       <img
+        data-meta-pixel="true"
         height="1"
         width="1"
         style="display:none"

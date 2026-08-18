@@ -142,6 +142,14 @@ jobs:
       # unauthenticated deploy trigger however small the write looks.
       - run: node scripts/test-no-public-cms-writes.mjs
 
+      # The country-matching decision behind the Meta Pixel geofence -
+      # functions/_middleware.ts. HTMLRewriter and request.cf are real
+      # Cloudflare Workers runtime globals this sandbox cannot exercise, so
+      # this is the part that CAN be proven: a mistyped or missing country
+      # code would mean the pixel keeps firing somewhere it legally should
+      # not, silently.
+      - run: node scripts/test-pixel-geofence.mjs
+
       - run: npm run build
 
       # test-meta proves the composition functions are right; it cannot prove the

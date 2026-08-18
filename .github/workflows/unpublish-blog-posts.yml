@@ -1,0 +1,53 @@
+name: List / unpublish blog posts
+
+# Always lists every published blog post with a body preview, so it is
+# possible to tell "actually written" from "auto-assembled" without opening
+# Studio. If `apply` is ticked, also moves the given slugs to draft - see
+# scripts/unpublish-blog-posts.mjs for why that is a move, not a delete.
+
+on:
+  workflow_dispatch:
+    inputs:
+      slugs:
+        description: 'Comma-separated slugs to unpublish (only used if Apply is ticked)'
+        type: string
+        default: 'professional-design,my-first-logo'
+      apply:
+        description: 'Actually move the above slugs to draft (off = list only)'
+        type: boolean
+        default: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: List every published post
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+        run: |
+          set -o pipefail
+          node scripts/list-blog-posts.mjs 2>&1 | tee blog-posts.txt
+
+      - name: Unpublish
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          SLUGS: ${{ inputs.slugs }}
+          APPLY: ${{ inputs.apply && 'yes' || 'no' }}
+        run: |
+          set -o pipefail
+          node scripts/unpublish-blog-posts.mjs 2>&1 | tee -a blog-posts.txt
+
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo '## Blog posts'
+            echo ''
+            echo '```'
+            cat blog-posts.txt 2>/dev/null || echo '(did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

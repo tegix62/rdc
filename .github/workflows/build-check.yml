@@ -150,7 +150,19 @@ jobs:
       # not, silently.
       - run: node scripts/test-pixel-geofence.mjs
 
+      # make-css-non-blocking.mjs's regex-based rewrite of Astro's stylesheet
+      # link - the PageSpeed "render-blocking requests" fix. Wrong here means
+      # either the render-blocking tag survives untouched (no fix) or a page
+      # loses its stylesheet outright, and neither shows up by reading the
+      # source, only by rendering the page.
+      - run: node scripts/test-make-css-non-blocking.mjs
+
       - run: npm run build
+
+      # Confirms the rewrite above actually ran against the real build
+      # output, not just the unit test's synthetic HTML - see that script's
+      # header comment for why the build script itself can silently drop it.
+      - run: node scripts/test-non-blocking-css-applied.mjs
 
       # test-meta proves the composition functions are right; it cannot prove the
       # templates call them. Those are different failures, and the second is the

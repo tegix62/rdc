@@ -26,7 +26,9 @@ if (!TOKEN) {
   process.exit(1)
 }
 
-const query = `*[_type == "submission" && !(_id in path("drafts.**"))]`
+// Drafts included too - a real phone number sitting in an unpublished draft
+// is still worth knowing about, even though it is not exposed by public read.
+const query = `*[_type == "submission"]`
 const res = await fetch(
   `https://${PROJECT_ID}.api.sanity.io/v2024-01-01/data/query/${DATASET}?query=${encodeURIComponent(query)}`,
   {headers: {Authorization: `Bearer ${TOKEN}`}},

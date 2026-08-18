@@ -2916,6 +2916,20 @@ body {
 */
 .budget-slider {
   position: relative;
+  /*
+    Establishes its own block formatting context. Without this, the label
+    row's margin-top below (calc(2.5rem + var(--space-2))) COLLAPSES straight
+    through this box's top edge instead of creating space inside it - the
+    classic case where a block's only in-flow child has a top margin and the
+    block has no border or padding to stop it collapsing with the parent's
+    own margin. flow-root was the actual fix for the line-through-the-numbers
+    bug; the first attempt computed the right margin value but it was never
+    taking effect, confirmed by a live getComputedStyle() dump showing
+    marginTop: 56px alongside a bounding box that hadn't moved at all.
+    flow-root over overflow:hidden because nothing here should risk clipping
+    the focus outline on the range thumbs.
+  */
+  display: flow-root;
   height: 2.5rem;
   margin-bottom: var(--space-2);
 }

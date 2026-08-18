@@ -73,16 +73,32 @@ let withAlt = 0
 for (const file of pages) {
   const html = readFileSync(file, 'utf8')
   const route = routeOf(file)
-  for (const tag of html.match(/<img\b[^>]*>/gi) ?? []) {
+  /*
+    <script> content stripped before scanning. This is what the 42 figure
+    actually was, on 18 August 2026: /portfolio's single "missing" entry was
+    the literal text "<img>" sitting inside an INLINE COMPONENT'S OWN SOURCE
+    COMMENT (InkMode.astro, explaining why it swaps a src instead of adding a
+    second hidden image), embedded verbatim in a <script> block because
+    Astro strips {/* */} template comments but does not touch a plain JS
+    comment inside a script tag. The regex below cannot tell "this is markup"
+    from "this is four characters inside a string of JavaScript", so nothing
+    inside a script can be markup as far as this audit is concerned.
+  */
+  const markup = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+  for (const tag of markup.match(/<img\b[^>]*>/gi) ?? []) {
     /*
-      Both quoting styles. The first version of this only matched alt="…", and
-      reported 42 missing on a site where every emitter demonstrably writes an
-      alt - Img.astro, portableText.ts and Video.astro all do. A checker that
-      confidently reports a defect the code cannot produce is worse than no
-      checker, so it now accepts single quotes too and PRINTS THE TAG on a
-      miss, which is the only way to tell a real gap from a parsing artefact.
+      Both quoting styles, AND the valueless form. The first version of this
+      only matched alt="…", and reported 42 missing on a site where every
+      emitter demonstrably writes an alt - Img.astro, portableText.ts and
+      Video.astro all do. Accepting single quotes too did not move the count,
+      because the real cause was never the quote style: Astro renders a
+      dynamic attribute whose value is an empty string as a bare, valueless
+      `alt` - not `alt=""` - so EVERY image with no alt TEXT (which Img.astro
+      deliberately treats as decorative, same as an explicit alt="") was
+      being counted as though the attribute were absent altogether. Confirmed
+      by printing the actual built HTML: `... alt loading="lazy" ...`.
     */
-    const alt = tag.match(/\salt\s*=\s*("([^"]*)"|'([^']*)')/i)
+    const alt = tag.match(/\salt(?:\s*=\s*("([^"]*)"|'([^']*)'))?(?=[\s/>])/i)
     if (!alt) {
       const src = tag.match(/\ssrc\s*=\s*("([^"]*)"|'([^']*)')/i)
       missingAlt.push({
@@ -118,7 +134,11 @@ const skips = []
 for (const file of pages) {
   const html = readFileSync(file, 'utf8')
   const route = routeOf(file)
-  const levels = [...(html.match(/<h([1-6])\b/gi) ?? [])].map((h) => Number(h.slice(2)))
+  // Same <script>-stripping as the alt-text pass above, for the same reason:
+  // a component's own source comment mentioning a heading tag by name is
+  // JavaScript text, not part of the document outline.
+  const markup = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+  const levels = [...(markup.match(/<h([1-6])\b/gi) ?? [])].map((h) => Number(h.slice(2)))
   let previous = 0
   for (const level of levels) {
     // Going DOWN any number of levels is fine (h4 back to h2 closes a section).

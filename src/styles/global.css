@@ -1883,7 +1883,10 @@ main {
   }
 }
 
-.work-section__text h3 {
+/* h2, not h3: the heading itself moved up a level to fix a document-outline
+   skip (see Sections.astro) - this selector just has to keep matching it. The
+   visual size didn't move; that's the t-h3 class on the element now. */
+.work-section__text h2 {
   margin-bottom: var(--space-2);
 }
 
@@ -1944,7 +1947,8 @@ main {
   margin: 0 auto;
 }
 
-.work-section--text h3 {
+/* h2, not h3 - same fix, same reasoning as .work-section__text h2 above. */
+.work-section--text h2 {
   margin-bottom: var(--space-2);
 }
 

@@ -79,8 +79,8 @@ for (const file of pages) {
     the literal text "<img>" sitting inside an INLINE COMPONENT'S OWN SOURCE
     COMMENT (InkMode.astro, explaining why it swaps a src instead of adding a
     second hidden image), embedded verbatim in a <script> block because
-    Astro strips {/* */} template comments but does not touch a plain JS
-    comment inside a script tag. The regex below cannot tell "this is markup"
+    Astro strips its own curly-brace template comments but does not touch a
+    plain JS comment inside a script tag. The regex below cannot tell "this is markup"
     from "this is four characters inside a string of JavaScript", so nothing
     inside a script can be markup as far as this audit is concerned.
   */

@@ -193,22 +193,33 @@ a {
   border: 0;
 }
 
-/* Site nav - matches the real Webflow navbar: full-bleed white bar,
-   5% side padding, thin navy bottom border, collapsing to a hamburger
-   below 991px (the real site's Relume navbar breakpoint). */
+/* Site nav - full-bleed white bar, thin navy bottom border, collapsing to a
+   hamburger below 991px (the real site's Relume navbar breakpoint). */
 .site-nav {
   position: relative;
   background: var(--color-white);
   border-bottom: 2px solid var(--color-navy);
 }
 
+/*
+  max-width + margin auto + the SAME padding as .wrap, not a flat 5% - the bar
+  itself stays full-bleed (that's .site-nav above), but its content now sits in
+  the identical column .wrap uses for every other page element. Before this,
+  the wordmark's left edge was 5% of the viewport width while the page content
+  below it sat at a FIXED --space-3 in from a max-width column centered in
+  the remaining space - two different formulas that only ever coincided at one
+  specific viewport width and visibly drifted apart everywhere else, which is
+  what "align the nav wordmark to the content grid" was asking to fix.
+*/
 .site-nav__inner {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
   align-items: center;
   min-height: 4.5rem;
-  padding: 0 5%;
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 0 var(--space-3);
 }
 
 .site-nav__links a {
@@ -277,7 +288,9 @@ a {
 @media (max-width: 62rem) {
   .site-nav__inner {
     min-height: 4rem;
-    padding: 0.75rem 5%;
+    /* Horizontal padding stays var(--space-3), matching .wrap - only the
+       vertical padding changes here for the shorter collapsed bar. */
+    padding: 0.75rem var(--space-3);
   }
 
   .site-nav__toggle {
@@ -2417,6 +2430,14 @@ body {
 
   .wrap {
     padding: 0 var(--space-2);
+  }
+
+  /* Same horizontal padding as .wrap above, same reasoning as the nav
+     comment near .site-nav__inner's base rule - vertical padding restated
+     rather than using padding-left/right, so it stays deterministic instead
+     of depending on what the 62rem rule happened to set. */
+  .site-nav__inner {
+    padding: 0.75rem var(--space-2);
   }
 
   main {

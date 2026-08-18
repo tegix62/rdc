@@ -1,0 +1,29 @@
+name: Debug - budget slider on the live site
+
+# One-off diagnostic, not a permanent check. See
+# scripts/debug-budget-slider-live.mjs for why this exists: check-live output
+# confirmed the fixed CSS rule TEXT ships in the stylesheet, but Chris still
+# saw the numbers overlapping the track on the real page, so this renders the
+# real page with a real browser and measures the real boxes instead of
+# grepping source.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/debug-budget-slider-live.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: budget-slider-live
+          path: budget-slider-live.png
+          if-no-files-found: ignore

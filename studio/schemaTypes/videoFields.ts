@@ -59,6 +59,13 @@ export const videoBehaviourFields = [
       'works on uploaded files.',
   }),
   defineField({
+    name: 'videoMuted',
+    title: 'Mute audio',
+    type: 'boolean',
+    initialValue: false,
+    description: 'Strip audio from playback — good for social clips in a grid.',
+  }),
+  defineField({
     name: 'videoSrc',
     title: 'Video file',
     type: 'url',

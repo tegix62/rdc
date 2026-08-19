@@ -93,15 +93,25 @@ export function getBlogPost(slug: string) {
   );
 }
 
-export function getRelatedWork(category: string | undefined, limit = 4) {
-  if (!category) return Promise.resolve([]);
+export async function getRelatedWork(category: string | undefined, limit = 4) {
+  if (category) {
+    const matched = await sanityClient.fetch(
+      `*[_type == "caseStudy" && pageType == "Case Study" && category == $category
+         && (defined(thumbnail) || defined(mainImage))]
+        | order(title asc)[0...$limit]{
+          title, slug, thumbnail, mainImage
+        }`,
+      { category, limit },
+    );
+    if (matched.length) return matched;
+  }
   return sanityClient.fetch(
-    `*[_type == "caseStudy" && pageType == "Case Study" && category == $category
+    `*[_type == "caseStudy" && pageType == "Case Study"
        && (defined(thumbnail) || defined(mainImage))]
       | order(title asc)[0...$limit]{
         title, slug, thumbnail, mainImage
       }`,
-    { category, limit },
+    { limit },
   );
 }
 

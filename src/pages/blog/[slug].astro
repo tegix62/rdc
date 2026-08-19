@@ -76,16 +76,9 @@ const time = readingTime(post.body);
     )}
   </article>
 
-  <section class="blog-cta">
-    <p class="blog-cta__text">Like what you see? Let's make something together.</p>
-    <a class="button" href={CONTACT_URL}>Let's Work</a>
-  </section>
-
-  <EmailCapture source={`blog/${slug}`} />
-
   {relatedWork.length > 0 && (
     <section class="blog-related">
-      <h2>Related work</h2>
+      <h2>{post.category ? `${post.category} work` : 'See the work'}</h2>
       <div class="grid">
         {relatedWork.map((item: any) => (
           <a class="card" href={`/work/${item.slug.current}`}>
@@ -105,6 +98,11 @@ const time = readingTime(post.body);
       </div>
     </section>
   )}
+
+  <section class="blog-cta">
+    <p class="blog-cta__text">Like what you see? Let's make something together.</p>
+    <a class="button" href={CONTACT_URL}>Let's Work</a>
+  </section>
 
   {morePosts.length > 0 && (
     <section class="more-posts">
@@ -133,7 +131,10 @@ const time = readingTime(post.body);
           </a>
         ))}
       </div>
-      <a class="blog-back" href="/blog">&larr; All posts</a>
     </section>
   )}
+
+  <EmailCapture source={`blog/${slug}`} />
+
+  <a class="blog-back" href="/blog">&larr; All posts</a>
 </Layout>

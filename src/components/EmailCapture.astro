@@ -24,7 +24,7 @@ const { source = 'blog', class: className } = Astro.props;
 </form>
 
 <script>
-  document.addEventListener('astro:page-load', () => {
+  document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll<HTMLFormElement>('[data-subscribe-form]').forEach((form) => {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();

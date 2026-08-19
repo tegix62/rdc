@@ -496,7 +496,7 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
         navToggle?.focus();
       });
 
-      document.addEventListener('astro:page-load', bindNav);
+      document.addEventListener('DOMContentLoaded', bindNav);
     </script>
     <script is:inline>
       if ('serviceWorker' in navigator && !navigator.serviceWorker.controller) {

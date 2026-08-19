@@ -175,7 +175,7 @@ const PAPERS = [
     };
 
     // The button is below this script in the document, so wait for it.
-    document.addEventListener('astro:page-load', () => {
+    document.addEventListener('DOMContentLoaded', () => {
       const toggle = document.getElementById('ink-toggle');
       if (!toggle) return;
 

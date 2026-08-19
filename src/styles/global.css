@@ -68,6 +68,7 @@ h1, h2, h3, h4, h5, h6,
   font-weight: 700;
   color: var(--color-navy);
   margin: 0;
+  text-wrap: balance;
 }
 
 h1,
@@ -517,6 +518,9 @@ a {
 .blog-article .prose {
   font-size: 1.0625rem;
   line-height: 1.75;
+  font-variant-ligatures: common-ligatures contextual;
+  font-variant-numeric: oldstyle-nums;
+  font-kerning: normal;
 }
 
 .blog-article .prose > p:first-child {
@@ -664,6 +668,9 @@ main {
 
 .prose p {
   margin: var(--space-2) 0;
+  text-wrap: pretty;
+  hyphens: auto;
+  hanging-punctuation: first last;
 }
 
 /*
@@ -684,6 +691,11 @@ main {
 */
 .prose :is(p, li, blockquote, h2, h3, h4) {
   max-width: 62ch;
+}
+
+.prose :is(li, blockquote) {
+  text-wrap: pretty;
+  hyphens: auto;
 }
 
 .prose ul {

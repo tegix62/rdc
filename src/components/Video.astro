@@ -121,7 +121,17 @@ const youTubeId = embed?.includes('youtube.com/embed/')
 */
 const fallbackPoster = youTubeId ? `https://i.ytimg.com/vi/${youTubeId}/sddefault.jpg` : null;
 const posterUrl = imageUrl(poster)?.width(width).url() ?? null;
-const hasPoster = Boolean(poster || posterUrl);
+/*
+  posterUrl, not the raw poster object. An image field can save its
+  crop/hotspot settings with no file attached (the "shell" problem - see
+  Img.astro), and such a shell is truthy while producing no URL. Measured
+  live on Two Point Oh: hasPoster judged by the object chose preload="none",
+  the <video> got no poster attribute because there was nothing to render,
+  and the result was a grey box that no amount of preload fixing could
+  reach. The poster the element can actually show is the only one that
+  counts.
+*/
+const hasPoster = Boolean(posterUrl);
 ---
 
 {selfHosted && posterPlay ? (

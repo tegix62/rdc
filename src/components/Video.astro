@@ -352,6 +352,36 @@ const hasPoster = Boolean(posterUrl);
       }
     }, { threshold: 0.25 });
     for (const v of document.querySelectorAll('video[autoplay]')) inView.observe(v);
+
+    /*
+      Last-resort unlock for profiles that refuse even muted scripted play.
+
+      Measured: real branded Chrome 151 under a clean policy plays these
+      clips from the observer alone, yet one same-version profile with no
+      enterprise policies, no extensions (incognito) and no energy saver
+      refused every scripted play() until the page saw a real gesture -
+      after which the same call succeeded. Whatever local setting causes
+      that, the first gesture of ANY kind is enough, so the first
+      pointerdown/keydown/touch/wheel anywhere retries the visible clips
+      and the listeners remove themselves. Browsers that autoplay normally
+      never reach this with anything left to start.
+
+      The gesture's own target is skipped: if that first gesture is the
+      Play pill on one of these clips, starting it here would make the
+      click handler read it as already playing and pause it - the visitor
+      would press Play and see the clip stop.
+    */
+    const unlock = (e: Event) => {
+      for (const v of document.querySelectorAll<HTMLVideoElement>('video[autoplay]')) {
+        if (e.target instanceof Node && v.parentElement?.contains(e.target)) continue;
+        const r = v.getBoundingClientRect();
+        const visible = r.bottom > 0 && r.top < innerHeight;
+        if (visible && v.paused && !v.dataset.userPaused) v.play().catch(() => {});
+      }
+    };
+    for (const evt of ['pointerdown', 'keydown', 'touchstart', 'wheel']) {
+      document.addEventListener(evt, unlock, { once: true, passive: true, capture: true });
+    }
   }
 
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {

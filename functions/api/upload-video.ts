@@ -62,7 +62,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     httpMetadata: { contentType: file.type || 'video/mp4' },
   });
 
-  const base = (env.VIDEO_PUBLIC_URL || '').replace(/\/$/, '');
+  let base = (env.VIDEO_PUBLIC_URL || '').replace(/\/$/, '');
+  if (base && !base.startsWith('http')) base = `https://${base}`;
   const url = `${base}/${key}`;
 
   return Response.json({ url }, { headers: cors });

@@ -65,6 +65,7 @@ const {
 const mp4 = file?.asset?.url ?? null;
 const webmUrl = webm?.asset?.url ?? null;
 const directUrl = typeof Astro.props.videoSrc === 'string' ? Astro.props.videoSrc : null;
+const directType = directUrl?.endsWith('.webm') ? 'video/webm' : directUrl?.endsWith('.mov') ? 'video/quicktime' : directUrl ? 'video/mp4' : null;
 const selfHosted = Boolean(mp4 || webmUrl || directUrl);
 const autoplay = selfHosted && playback === 'autoplay';
 const posterPlay = playback === 'poster';
@@ -142,9 +143,9 @@ const hasPoster = Boolean(poster || posterUrl);
       preload="none"
       aria-label={title}
     >
+      {directUrl && <source src={directUrl} type={directType!} />}
       {webmUrl && <source src={webmUrl} type="video/webm" />}
       {mp4 && <source src={mp4} type="video/mp4" />}
-      {directUrl && <source src={directUrl} />}
     </video>
     <button type="button" class="video__back" data-video-back hidden aria-label="Back to poster">
       <span class="video__back-icon" aria-hidden="true">&times;</span>
@@ -164,9 +165,9 @@ const hasPoster = Boolean(poster || posterUrl);
       preload={autoplay ? 'auto' : hasPoster ? 'none' : 'metadata'}
       aria-label={title}
     >
+      {directUrl && <source src={directUrl} type={directType!} />}
       {webmUrl && <source src={webmUrl} type="video/webm" />}
       {mp4 && <source src={mp4} type="video/mp4" />}
-      {directUrl && <source src={directUrl} />}
     </video>
 
     {autoplay && (
@@ -285,6 +286,14 @@ const hasPoster = Boolean(poster || posterUrl);
     things should not be handed a looping video that started on its own. The
     poster stays, and the pause button becomes the way to start it.
   */
+  // Chrome throttles concurrent metadata loads. Nudge any posterless video
+  // that hasn't loaded its first frame after a short delay.
+  setTimeout(() => {
+    for (const v of document.querySelectorAll<HTMLVideoElement>('video[preload="metadata"]')) {
+      if (v.readyState === 0) v.load();
+    }
+  }, 1500);
+
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     for (const v of document.querySelectorAll('video[autoplay]')) {
       if (v instanceof HTMLVideoElement) {

@@ -10,7 +10,6 @@ import { hasAsset, imageUrl, socialCardDimensions, socialCardUrl } from '../lib/
 import VisualEditing from '../components/VisualEditing.astro';
 import MetaPixel from '../components/MetaPixel.astro';
 import { buildGraph, serialise, type SiteContext } from '../lib/structuredData';
-import { ViewTransitions } from 'astro:transitions';
 import { stripStega as clean } from '../lib/stega';
 import {
   bareTitle,
@@ -339,7 +338,6 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
       costs and the consent question it does not answer.
     */}
     <MetaPixel id={settings?.metaPixelId} />
-    <ViewTransitions />
   </head>
   <body>
     {/*

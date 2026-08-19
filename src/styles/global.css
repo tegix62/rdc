@@ -2921,10 +2921,18 @@ body {
   cursor: pointer;
 }
 
+.video__poster-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
 .video__poster-wrap img {
   display: block;
   width: 100%;
   height: auto;
+  pointer-events: none;
 }
 
 .video__play--corner {
@@ -2934,6 +2942,7 @@ body {
   top: auto;
   left: auto;
   transform: none;
+  z-index: 2;
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 50%;

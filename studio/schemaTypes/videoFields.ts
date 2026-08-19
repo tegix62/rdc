@@ -18,14 +18,15 @@ import {imageSpec} from './imageFields'
   script, and /style-guide with three embeds pulled 1,921 KB. So an embed now
   loads only when someone asks for it - a poster and a play button until then.
 
-  UPLOADED HERE - for short silent loops. The Hug a Mug hero is thirty seconds
+  SELF-HOSTED - for short silent loops. The Hug a Mug hero is thirty seconds
   with no audio, which is the ideal case: a small file, no player JavaScript at
   all, and it can autoplay. Browsers only permit autoplay on muted video, so a
   self-hosted autoplay clip is silent by definition - which is fine, because
   the ones that want autoplay are the ones that have nothing to hear.
 
-  Both live on the same block. Fill in a URL or upload a file; the upload wins
-  if both are set, and the renderer decides everything else from there.
+  The video file URL field (Cloudflare R2, any CDN) is the primary way to add
+  self-hosted video. Sanity's uploader stalls on anything but the smallest
+  files, so the upload fields are kept as a fallback only.
 */
 export const videoBehaviourFields = [
   defineField(imageSpec({
@@ -58,30 +59,28 @@ export const videoBehaviourFields = [
   }),
   defineField({
     name: 'videoSrc',
-    title: 'Direct video link (R2 / CDN)',
+    title: 'Video file URL',
     type: 'url',
     description:
-      'Paste a direct link to a hosted video file (Cloudflare R2, any CDN). ' +
-      'Works exactly like an upload — same playback modes, same poster. Use ' +
-      'this when the Sanity uploader is slow or the file is large. If both ' +
-      'this and an upload are set, the upload wins.',
+      'Paste a link to your video file (Cloudflare R2, any CDN). ' +
+      'This is the fastest and most reliable way to add video.',
   }),
   defineField({
     name: 'videoFile',
-    title: 'Or upload an MP4',
+    title: 'Or upload via Sanity (MP4) — slow for large files',
     type: 'file',
     options: {accept: '.mp4,.mov,.m4v,video/mp4,video/quicktime'},
     description:
-      'For short silent loops. Use the direct link field above if uploads ' +
-      'are slow.',
+      'Uploads through Sanity, which can stall on larger files. ' +
+      'Prefer the URL field above.',
   }),
   defineField({
     name: 'videoWebm',
-    title: 'Or upload a WebM (smaller)',
+    title: 'Or upload via Sanity (WebM)',
     type: 'file',
     options: {accept: '.webm,video/webm'},
     description:
-      'Same clip as WebM — usually smaller than MP4. Browsers pick whichever ' +
-      'they support.',
+      'Same clip as WebM — usually smaller than MP4. Also uploads ' +
+      'through Sanity. Prefer the URL field above.',
   }),
 ]

@@ -325,23 +325,19 @@ export default defineType({
       group: 'page',
       hidden: onlyOnCaseStudies,
       description:
-        'The layout blocks that make up this page. Media Row takes two to four ' +
-        'items across and each one is independently an image or a video, so ' +
-        'three animated GIFs, two videos side by side, or a video next to a ' +
-        'mockup are all the same block. Media + Text is the same idea with copy ' +
-        'beside it. This replaces the Legacy tab - use this for anything new.',
+        'The layout blocks that make up this page. Full Image for a hero shot, ' +
+        'Media Row for two to four images/videos across, Media + Text for ' +
+        'media beside copy, Text for a heading and paragraph, and the specialty ' +
+        'blocks for stats, achievements, and video heroes.',
       of: [
         {type: 'fullImageSection'},
-        {type: 'twoUpSection'},
-        {type: 'threeUpSection'},
-        {type: 'imageTextSection'},
-        {type: 'videoSection'},
-        {type: 'statCalloutSection'},
-        {type: 'textSection'},
-        {type: 'achievementsSection'},
-        {type: 'videoHeroSection'},
         {type: 'mediaRowSection'},
         {type: 'mediaTextSection'},
+        {type: 'videoSection'},
+        {type: 'textSection'},
+        {type: 'statCalloutSection'},
+        {type: 'achievementsSection'},
+        {type: 'videoHeroSection'},
       ],
     }),
 

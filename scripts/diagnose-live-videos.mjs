@@ -1,21 +1,21 @@
 /*
-  One-off diagnostic, not a kept test: drives a real Chromium against the
+  One-off diagnostic, not a kept test: drives a REAL browser against the
   live case study pages and reports what every <video> element is actually
-  doing - because three rounds of "should work" fixes (preload=auto, a
-  currentTime nudge, an autoplay retry) have shipped and Chris still sees
-  grey boxes and autoplay videos that do not play.
+  doing.
 
-  For each video it dumps:
-    - the served markup (which reveals whether the latest build is even live:
-      data-force-muted and preload="auto" only exist in the newest commits)
-    - the live playback state after settling: readyState, networkState,
-      paused, currentSrc, duration, videoWidth/Height, error
-    - a direct probe of each source URL from Node: HTTP status, content-type,
-      accept-ranges, content-length - the difference between "Chrome chose
-      not to load it" and "the URL never answers".
+  Round 2 lesson: headless test Chromium waves autoplay through, so the
+  first version of this script "confirmed" autoplay while Chris's desktop
+  Chrome refused it. This version runs headed (under xvfb) and prefers the
+  branded Chrome channel, so the real autoplay policy applies - and when
+  play() is refused it captures Chrome's actual rejection instead of
+  swallowing it the way the site code (correctly) does.
+
+  It also behaves like a visitor: snapshot on load, then scroll each
+  autoplay video into view and snapshot again, because the site now starts
+  and stops autoplay from an IntersectionObserver.
 
   Run from GitHub Actions (this repo's own sandbox cannot reach the public
-  internet).
+  internet). Needs xvfb-run for the headed browser.
 
   Usage: node scripts/diagnose-live-videos.mjs [url ...]
 */
@@ -25,72 +25,85 @@ const urls = process.argv.slice(2).length
   ? process.argv.slice(2)
   : ['https://rumeaudesign.co/work/dumpstat', 'https://rumeaudesign.co/work/two-point-oh'];
 
-const probe = async (src) => {
+const launch = async () => {
   try {
-    // GET with a range, not HEAD: R2/CDNs can answer HEAD differently from
-    // the range GETs the <video> element actually issues.
-    const res = await fetch(src, { headers: { Range: 'bytes=0-1023' } });
-    return {
-      status: res.status,
-      contentType: res.headers.get('content-type'),
-      acceptRanges: res.headers.get('accept-ranges'),
-      contentRange: res.headers.get('content-range'),
-      contentLength: res.headers.get('content-length'),
-    };
-  } catch (e) {
-    return { error: String(e) };
+    const b = await chromium.launch({ channel: 'chrome', headless: false });
+    console.log('browser: branded Chrome, headed');
+    return b;
+  } catch {
+    const b = await chromium.launch({ headless: false });
+    console.log('browser: bundled Chromium, headed (branded Chrome unavailable)');
+    return b;
   }
 };
 
-const browser = await chromium.launch();
-
-for (const url of urls) {
-  console.log(`\n===================== ${url} =====================`);
-  const page = await browser.newPage({ viewport: { width: 1280, height: 2000 } });
-  const response = await page.goto(url, { waitUntil: 'domcontentloaded' });
-  console.log(`HTTP ${response?.status()}  title: ${await page.title()}`);
-
-  // Give preload, the decode nudge, and the autoplay retry time to act -
-  // the retry fires at 500ms, so 5s is generous.
-  await page.waitForTimeout(5000);
-
-  const videos = await page.evaluate(() =>
+const snapshot = (page) =>
+  page.evaluate(() =>
     [...document.querySelectorAll('video')].map((v) => ({
-      outerHTMLStart: v.outerHTML.slice(0, 400),
-      sources: [...v.querySelectorAll('source')].map((s) => ({ src: s.src, type: s.type })),
-      currentSrc: v.currentSrc,
+      src: (v.currentSrc || '').split('/').pop(),
       readyState: v.readyState,
-      networkState: v.networkState,
       paused: v.paused,
       muted: v.muted,
-      hasAutoplayAttr: v.hasAttribute('autoplay'),
-      preload: v.preload,
-      duration: v.duration,
-      videoWidth: v.videoWidth,
-      videoHeight: v.videoHeight,
-      error: v.error ? { code: v.error.code, message: v.error.message } : null,
-      hidden: v.hidden,
+      autoplayAttr: v.hasAttribute('autoplay'),
+      inViewport: (() => {
+        const r = v.getBoundingClientRect();
+        return r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth;
+      })(),
+      time: v.currentTime,
     })),
   );
 
-  if (!videos.length) {
-    console.log('NO <video> elements found on this page.');
-    const links = await page.evaluate(() =>
-      [...document.querySelectorAll('a[href*="/work/"]')].map((a) => a.getAttribute('href')),
-    );
-    console.log('work links seen on page:', JSON.stringify([...new Set(links)]));
+const browser = await launch();
+
+for (const url of urls) {
+  console.log(`\n===================== ${url} =====================`);
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  page.on('console', (m) => console.log(`  [page console] ${m.type()}: ${m.text()}`));
+  const response = await page.goto(url, { waitUntil: 'domcontentloaded' });
+  console.log(`HTTP ${response?.status()}  title: ${await page.title()}`);
+
+  await page.waitForTimeout(2500);
+  console.log('\n-- on load (900px viewport, no scrolling) --');
+  console.log(JSON.stringify(await snapshot(page), null, 1));
+
+  // Scroll like a visitor: bring the first autoplay video into view.
+  const scrolled = await page.evaluate(() => {
+    const v = document.querySelector('video[autoplay]');
+    if (!v) return false;
+    v.scrollIntoView({ block: 'center' });
+    return true;
+  });
+  if (scrolled) {
+    await page.waitForTimeout(2500);
+    console.log('\n-- after scrolling an autoplay video into view --');
+    console.log(JSON.stringify(await snapshot(page), null, 1));
+  } else {
+    console.log('\n(no autoplay videos on this page - skipping the scroll pass)');
   }
 
-  for (const [i, v] of videos.entries()) {
-    console.log(`\n--- video[${i}] ---`);
-    console.log(v.outerHTMLStart);
-    const { outerHTMLStart, sources, ...state } = v;
-    console.log('state:', JSON.stringify(state, null, 2));
-    for (const s of sources) {
-      console.log(`source ${s.src} (type="${s.type}")`);
-      console.log('  probe:', JSON.stringify(await probe(s.src)));
+  // The decisive measurement: call play() the way the site's observer does,
+  // but KEEP the rejection. NotAllowedError means the autoplay policy said
+  // no and names why-shaped territory; anything else is a different bug.
+  const attempts = await page.evaluate(async () => {
+    const out = [];
+    for (const v of document.querySelectorAll('video[autoplay]')) {
+      try {
+        await v.play();
+        out.push({ src: (v.currentSrc || '').split('/').pop(), played: true, muted: v.muted });
+      } catch (e) {
+        out.push({
+          src: (v.currentSrc || '').split('/').pop(),
+          played: false,
+          muted: v.muted,
+          errorName: e.name,
+          errorMessage: String(e.message).slice(0, 300),
+        });
+      }
     }
-  }
+    return out;
+  });
+  console.log('\n-- explicit play() attempts --');
+  console.log(JSON.stringify(attempts, null, 1));
 
   const shot = `videos-${new URL(url).pathname.replace(/\W+/g, '-')}.png`;
   await page.screenshot({ path: shot, fullPage: true });

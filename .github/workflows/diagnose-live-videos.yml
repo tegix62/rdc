@@ -19,7 +19,11 @@ jobs:
           node-version: 22
       - run: npm install playwright
       - run: npx playwright install --with-deps chromium
-      - run: node scripts/diagnose-live-videos.mjs
+      # xvfb, because the script runs HEADED on purpose: headless test
+      # Chromium waves autoplay through, which is how round 1 "confirmed"
+      # autoplay that real desktop Chrome refuses. Headed under a virtual
+      # display applies the real policy.
+      - run: xvfb-run --auto-servernum node scripts/diagnose-live-videos.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

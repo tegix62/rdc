@@ -13,12 +13,12 @@ const page = await getPage('portfolio');
 const allItems = await getAllGridItems();
 
 /*
-  Weighted grid: the first screenful should be the work people can click
-  through to, not orphan auxiliary marks.
+  Weighted grid: parent projects occupy the first screenful, then their
+  child pieces, then everything else.
 
-  Tier 1 — Case Studies (own page) + Grid Items linked to a Case Study
-  Tier 2 — Grid Items with a parent that is NOT a Case Study
-  Tier 3 — Grid Items with no parent at all
+  Tier 1 — Case Studies (the projects themselves, each with its own page)
+  Tier 2 — Grid Items whose parent is a Case Study (clickable child pieces)
+  Tier 3 — Everything else (orphan pieces, items with non-project parents)
 
   Each tier is shuffled internally so the grid feels curated but not fixed.
 */
@@ -30,17 +30,14 @@ function shuffle<T>(arr: T[]): T[] {
   return arr;
 }
 
-function tier(item: any): number {
-  if (cleanKey(item.pageType) === 'Case Study') return 1;
-  if (item.parentSlug && cleanKey(item.parentType) === 'Case Study') return 1;
-  if (item.parentSlug) return 2;
-  return 3;
-}
-
-const tier1 = shuffle(allItems.filter((i: any) => tier(i) === 1));
-const tier2 = shuffle(allItems.filter((i: any) => tier(i) === 2));
-const tier3 = shuffle(allItems.filter((i: any) => tier(i) === 3));
-const items = [...tier1, ...tier2, ...tier3];
+const projects = shuffle(allItems.filter((i: any) => cleanKey(i.pageType) === 'Case Study'));
+const linked = shuffle(allItems.filter((i: any) =>
+  cleanKey(i.pageType) !== 'Case Study' && i.parentSlug && cleanKey(i.parentType) === 'Case Study',
+));
+const rest = shuffle(allItems.filter((i: any) =>
+  cleanKey(i.pageType) !== 'Case Study' && !(i.parentSlug && cleanKey(i.parentType) === 'Case Study'),
+));
+const items = [...projects, ...linked, ...rest];
 
 /*
   Maps a grid item's category to a filter class. Typography and Illustration

@@ -19,6 +19,19 @@ export default defineType({
     }),
     defineField({name: 'author', type: 'string'}),
     defineField({name: 'publishedAt', title: 'Date published', type: 'datetime'}),
+    defineField({
+      name: 'category',
+      title: 'Category',
+      type: 'string',
+      options: {
+        list: [
+          {title: 'Brand Identity', value: 'brand-identity'},
+          {title: 'Lettering', value: 'lettering'},
+          {title: 'Process', value: 'process'},
+          {title: 'Merch & Apparel', value: 'merch-apparel'},
+        ],
+      },
+    }),
     /*
       Two images, and the difference is which page they appear on - which is now
       what they are called. "Main Image" and "Thumbnail Image" were near enough

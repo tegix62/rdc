@@ -2,12 +2,13 @@
 import Layout from '../../layouts/Layout.astro';
 import Img from '../../components/Img.astro';
 import { sanityClient } from '../../lib/sanity';
-import { getBlogPost } from '../../lib/queries';
+import { getBlogPost, getOtherBlogPosts } from '../../lib/queries';
 import { socialCardUrl } from '../../lib/image';
 import { renderPortableText } from '../../lib/portableText';
 import { blogPostNode } from '../../lib/structuredData';
 import { dateAttr, formatDate } from '../../lib/date';
 import { blogPostDescription } from '../../lib/meta';
+import { readingTime } from '../../lib/readingTime';
 
 export async function getStaticPaths() {
   const slugs = await sanityClient.fetch(`*[_type == "blogPost"].slug.current`);
@@ -20,9 +21,17 @@ if (!post) {
   throw new Error(`Blog post not found for slug: ${slug}`);
 }
 
-// socialCardUrl holds the 1200x630 shape and the forced JPEG - see lib/image.ts.
 const ogImage =
   socialCardUrl(post.mainImage) ?? socialCardUrl(post.thumbnailImage) ?? undefined;
+
+const morePosts = await getOtherBlogPosts(slug!);
+
+const CATEGORY_LABELS: Record<string, string> = {
+  'brand-identity': 'Brand Identity',
+  'lettering': 'Lettering',
+  'process': 'Process',
+  'merch-apparel': 'Merch & Apparel',
+};
 ---
 
 <Layout
@@ -34,18 +43,18 @@ const ogImage =
 >
   <article>
     <h1>{post.title}</h1>
-    {/*
-      formatDate/dateAttr rather than toLocaleDateString: the build machine's
-      locale was deciding the format, and a post published late in the UTC day
-      printed the day before. See lib/date.ts.
-    */}
     <p class="card__meta">
       {post.author}
       {post.author && formatDate(post.publishedAt) && ' · '}
       {formatDate(post.publishedAt) && (
         <time datetime={dateAttr(post.publishedAt)}>{formatDate(post.publishedAt)}</time>
       )}
+      {(post.author || formatDate(post.publishedAt)) && readingTime(post.body) && ' · '}
+      {readingTime(post.body)}
     </p>
+    {post.category && CATEGORY_LABELS[post.category] && (
+      <p class="card__category">{CATEGORY_LABELS[post.category]}</p>
+    )}
     {post.mainImage && (
       <Img image={post.mainImage} alt={post.title} field="mainImage" width={1600} sizes="100vw" loading="eager" fetchpriority="high" />
     )}
@@ -53,4 +62,35 @@ const ogImage =
       <div class="prose" set:html={renderPortableText(post.body)} />
     )}
   </article>
+
+  {morePosts.length > 0 && (
+    <section class="more-posts">
+      <h2>More posts</h2>
+      <div class="grid grid--prose">
+        {morePosts.map((p: any) => (
+          <a class="card" href={`/blog/${p.slug.current}`}>
+            {(p.thumbnailImage || p.mainImage) && (
+              <Img
+                image={p.thumbnailImage || p.mainImage}
+                field={p.thumbnailImage ? 'thumbnailImage' : 'mainImage'}
+                alt={p.title}
+                width={600}
+                height={400}
+                sizes="(max-width: 40rem) 100vw, (max-width: 60rem) 50vw, 33vw"
+              />
+            )}
+            <p class="card__title">{p.title}</p>
+            <p class="card__meta">
+              {formatDate(p.publishedAt) && (
+                <time datetime={dateAttr(p.publishedAt)}>{formatDate(p.publishedAt)}</time>
+              )}
+              {formatDate(p.publishedAt) && readingTime(p.body) && ' · '}
+              {readingTime(p.body)}
+            </p>
+          </a>
+        ))}
+      </div>
+      <a class="blog-back" href="/blog">&larr; All posts</a>
+    </section>
+  )}
 </Layout>

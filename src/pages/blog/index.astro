@@ -4,24 +4,24 @@ import { pageDescription } from '../../lib/meta';
 import Img from '../../components/Img.astro';
 import { getPage, getBlogPosts } from '../../lib/queries';
 import { dateAttr, formatDate } from '../../lib/date';
+import { readingTime } from '../../lib/readingTime';
 
 const page = await getPage('blog');
 const posts = await getBlogPosts();
+
+const CATEGORY_LABELS: Record<string, string> = {
+  'brand-identity': 'Brand Identity',
+  'lettering': 'Lettering',
+  'process': 'Process',
+  'merch-apparel': 'Merch & Apparel',
+};
 ---
 
 <Layout title={page?.title ?? 'Blog'} description={pageDescription(page, 'Notes on brand identity, hand lettering and merch design, and the process behind the work.')}>
-  {/*
-    `heading` was ignored here, so the visible <h1> was whatever `title` said -
-    the field whose job is the browser tab and the search result. They are
-    separate fields precisely so a page can be "Notes" on the page and
-    "Notes on brand identity work" in a search result, and every other page in
-    the project already reads it.
-  */}
   <h1>{page?.heading ?? page?.title ?? 'Blog'}</h1>
-  {/*
-    grid--prose, not the bare .grid: these cards carry an excerpt, and at the
-    shared 15rem column the excerpts measured 31-37 characters. See global.css.
-  */}
+  <p class="blog-intro">
+    {page?.description || 'Notes on heritage brand identity, hand lettering, merch design, and the process behind the work at Rumeau Design Co.'}
+  </p>
   <div class="grid grid--prose">
     {posts.map((post: any) => (
       <a class="card" href={`/blog/${post.slug.current}`}>
@@ -36,10 +36,15 @@ const posts = await getBlogPosts();
           />
         )}
         <p class="card__title">{post.title}</p>
-        {formatDate(post.publishedAt) && (
-          <p class="card__meta">
+        <p class="card__meta">
+          {formatDate(post.publishedAt) && (
             <time datetime={dateAttr(post.publishedAt)}>{formatDate(post.publishedAt)}</time>
-          </p>
+          )}
+          {formatDate(post.publishedAt) && readingTime(post.body) && ' · '}
+          {readingTime(post.body)}
+        </p>
+        {post.category && CATEGORY_LABELS[post.category] && (
+          <p class="card__category">{CATEGORY_LABELS[post.category]}</p>
         )}
         {post.excerpt && <p class="card__meta">{post.excerpt}</p>}
       </a>

@@ -79,7 +79,10 @@ export function getMerchItems() {
 
 export function getBlogPosts() {
   return sanityClient.fetch(
-    `*[_type == "blogPost"] | order(publishedAt desc)`,
+    `*[_type == "blogPost"] | order(publishedAt desc){
+      ...,
+      "body": body[]{_type, children[]{text}}
+    }`,
   );
 }
 
@@ -87,6 +90,17 @@ export function getBlogPost(slug: string) {
   return sanityClient.fetch(
     `*[_type == "blogPost" && slug.current == $slug][0]`,
     { slug },
+  );
+}
+
+export function getOtherBlogPosts(excludeSlug: string, limit = 3) {
+  return sanityClient.fetch(
+    `*[_type == "blogPost" && slug.current != $slug]
+      | order(publishedAt desc)[0...$limit]{
+        title, slug, thumbnailImage, mainImage, publishedAt, excerpt, category,
+        "body": body[]{_type, children[]{text}}
+      }`,
+    { slug: excludeSlug, limit },
   );
 }
 

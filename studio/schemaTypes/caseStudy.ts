@@ -338,6 +338,9 @@ export default defineType({
         {type: 'statCalloutSection'},
         {type: 'achievementsSection'},
         {type: 'videoHeroSection'},
+        {type: 'twoUpSection', title: 'Two Images (use Media Row)'},
+        {type: 'threeUpSection', title: 'Three Images (use Media Row)'},
+        {type: 'imageTextSection', title: 'Image + Text (use Media + Text)'},
       ],
     }),
 

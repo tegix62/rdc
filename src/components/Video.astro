@@ -166,7 +166,7 @@ const hasPoster = Boolean(poster || posterUrl);
       playsinline={autoplay || undefined}
       controls={!autoplay || undefined}
       controlslist="nodownload"
-      preload={autoplay ? 'auto' : hasPoster ? 'none' : 'metadata'}
+      preload={autoplay || !hasPoster ? 'auto' : 'none'}
       aria-label={title}
     >
       {directUrl && <source src={directUrl} type={directType!} />}
@@ -290,14 +290,6 @@ const hasPoster = Boolean(poster || posterUrl);
     things should not be handed a looping video that started on its own. The
     poster stays, and the pause button becomes the way to start it.
   */
-  // Chrome throttles concurrent metadata loads. Nudge any posterless video
-  // that hasn't loaded its first frame after a short delay.
-  setTimeout(() => {
-    for (const v of document.querySelectorAll<HTMLVideoElement>('video[preload="metadata"]')) {
-      if (v.readyState === 0) v.load();
-    }
-  }, 1500);
-
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     for (const v of document.querySelectorAll('video[autoplay]')) {
       if (v instanceof HTMLVideoElement) {

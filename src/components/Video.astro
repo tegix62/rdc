@@ -294,10 +294,14 @@ const hasPoster = Boolean(posterUrl);
       const video = pause.parentElement?.querySelector('video');
       if (!(video instanceof HTMLVideoElement)) return;
       if (video.paused) {
+        delete video.dataset.userPaused;
         video.play();
         pause.setAttribute('aria-pressed', 'false');
         pause.querySelector('.video__pause-label')!.textContent = 'Pause';
       } else {
+        // Remembered so the viewport observer below does not restart a clip
+        // the visitor explicitly stopped the moment it scrolls back into view.
+        video.dataset.userPaused = '1';
         video.pause();
         pause.setAttribute('aria-pressed', 'true');
         pause.querySelector('.video__pause-label')!.textContent = 'Play';
@@ -320,14 +324,34 @@ const hasPoster = Boolean(posterUrl);
     }
   }
 
-  // Chrome can defer autoplay when multiple videos compete for bandwidth.
-  // Retry play() on any autoplay video still paused after a short delay.
+  /*
+    Autoplay follows the viewport instead of trusting the attribute.
+
+    Two reasons. Reliability: Chrome defers the autoplay attribute when
+    several videos compete on one page, so a clip can sit frozen even though
+    it is allowed to play - calling play() whenever it enters view covers
+    every such deferral, not just the one a fixed timer happens to catch.
+    And economy: a looping clip nobody can see is pure bandwidth, so leaving
+    the viewport pauses it and coming back resumes it - the observer fires
+    with the current state on observe(), so clips already on screen start
+    immediately.
+
+    A clip the visitor stopped with the pause button stays stopped
+    (data-user-paused, set by the handler above).
+  */
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    setTimeout(() => {
-      for (const v of document.querySelectorAll<HTMLVideoElement>('video[autoplay]')) {
-        if (v.paused) v.play().catch(() => {});
+    const inView = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        const v = entry.target;
+        if (!(v instanceof HTMLVideoElement)) continue;
+        if (entry.isIntersecting) {
+          if (v.paused && !v.dataset.userPaused) v.play().catch(() => {});
+        } else if (!v.paused) {
+          v.pause();
+        }
       }
-    }, 500);
+    }, { threshold: 0.25 });
+    for (const v of document.querySelectorAll('video[autoplay]')) inView.observe(v);
   }
 
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {

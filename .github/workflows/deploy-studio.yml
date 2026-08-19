@@ -40,6 +40,8 @@ jobs:
           # preview (see sanity.config.ts); override with the PREVIEW_SITE_URL
           # repository variable if that address ever changes.
           SANITY_STUDIO_PREVIEW_URL: ${{ vars.PREVIEW_SITE_URL }}
+          SANITY_STUDIO_UPLOAD_URL: ${{ vars.SANITY_STUDIO_UPLOAD_URL }}
+          SANITY_STUDIO_UPLOAD_TOKEN: ${{ secrets.SANITY_STUDIO_UPLOAD_TOKEN }}
       # `sanity deploy` can exit 0 even when it failed internally (e.g. a
       # token without the deployStudio grant), so verify the studio is
       # actually reachable before calling this step green.

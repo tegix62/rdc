@@ -1,5 +1,6 @@
 import {defineField} from 'sanity'
 import {imageSpec} from './imageFields'
+import {VideoUpload} from '../components/VideoUpload'
 
 /*
   Shared fields for every place on the site that shows a video.
@@ -59,11 +60,12 @@ export const videoBehaviourFields = [
   }),
   defineField({
     name: 'videoSrc',
-    title: 'Video file URL',
+    title: 'Video file',
     type: 'url',
+    components: {input: VideoUpload},
     description:
-      'Paste a link to your video file (Cloudflare R2, any CDN). ' +
-      'This is the fastest and most reliable way to add video.',
+      'Drop a video or paste a URL. Uploads go straight to R2 — ' +
+      'no Sanity upload stalls.',
   }),
   defineField({
     name: 'videoFile',

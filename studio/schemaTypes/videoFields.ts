@@ -70,7 +70,7 @@ export const videoBehaviourFields = [
     name: 'videoFile',
     title: 'Or upload an MP4',
     type: 'file',
-    options: {accept: 'video/mp4,video/quicktime'},
+    options: {accept: '.mp4,.mov,.m4v,video/mp4,video/quicktime'},
     description:
       'For short silent loops. Use the direct link field above if uploads ' +
       'are slow.',
@@ -79,7 +79,7 @@ export const videoBehaviourFields = [
     name: 'videoWebm',
     title: 'Or upload a WebM (smaller)',
     type: 'file',
-    options: {accept: 'video/webm'},
+    options: {accept: '.webm,video/webm'},
     description:
       'Same clip as WebM — usually smaller than MP4. Browsers pick whichever ' +
       'they support.',

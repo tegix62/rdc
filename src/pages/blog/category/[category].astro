@@ -1,0 +1,131 @@
+---
+/*
+  Category index pages: /blog/category/brand-identity, etc.
+
+  These are the long-tail SEO pages. Someone searching "heritage brand
+  identity design process" is more likely to land on a page titled
+  "Brand Identity — Rumeau Design Co Blog" than on the generic /blog
+  index, because the category page matches the query more closely.
+
+  Each page aggregates posts with that category and shows related case
+  studies, so a visitor arriving from search sees both the writing and
+  the work in one place.
+*/
+import Layout from '../../../layouts/Layout.astro';
+import Img from '../../../components/Img.astro';
+import EmailCapture from '../../../components/EmailCapture.astro';
+import { sanityClient } from '../../../lib/sanity';
+import { dateAttr, formatDate } from '../../../lib/date';
+import { readingTime } from '../../../lib/readingTime';
+import { getRelatedWork } from '../../../lib/queries';
+
+const CATEGORIES: Record<string, { title: string; description: string }> = {
+  'Brand Identity': {
+    title: 'Brand Identity',
+    description: 'Notes on building visual identities — from first sketch to final delivery. Logo design, brand systems, and the thinking behind the marks.',
+  },
+  'Merch & Apparel': {
+    title: 'Merch & Apparel',
+    description: 'Designing for fabric, not just screens. Merch runs, apparel lines, and the production details that make printed work hold up.',
+  },
+  'Typography': {
+    title: 'Typography',
+    description: 'Hand lettering, type design, and vintage typography research. The craft behind the characters.',
+  },
+  'Illustration': {
+    title: 'Illustration',
+    description: 'Hand-drawn work — from spot illustrations to full compositions. Process, tools, and finished pieces.',
+  },
+  'Process': {
+    title: 'Process',
+    description: 'How the work gets made. Studio workflow, client collaboration, and lessons from real projects.',
+  },
+};
+
+export async function getStaticPaths() {
+  return Object.keys(CATEGORIES).map((cat) => ({
+    params: { category: cat.toLowerCase().replace(/\s*&\s*/g, '-').replace(/\s+/g, '-') },
+    props: { categoryName: cat },
+  }));
+}
+
+const { categoryName } = Astro.props;
+const meta = CATEGORIES[categoryName];
+const slug = Astro.params.category;
+
+const posts = await sanityClient.fetch(
+  `*[_type == "blogPost" && category == $category]
+    | order(publishedAt desc){
+      title, slug, thumbnailImage, mainImage, publishedAt, excerpt,
+      "body": body[]{_type, children[]{text}}
+    }`,
+  { category: categoryName },
+);
+
+const relatedWork = await getRelatedWork(categoryName, 4);
+---
+
+<Layout
+  title={`${meta.title} — Blog`}
+  description={meta.description}
+>
+  <h1>{meta.title}</h1>
+  <p class="blog-intro">{meta.description}</p>
+
+  {posts.length > 0 ? (
+    <div class="grid grid--prose">
+      {posts.map((post: any) => (
+        <a class="card" href={`/blog/${post.slug.current}`}>
+          {(post.thumbnailImage || post.mainImage) && (
+            <Img
+              image={post.thumbnailImage || post.mainImage}
+              field={post.thumbnailImage ? 'thumbnailImage' : 'mainImage'}
+              alt={post.title}
+              width={600}
+              height={400}
+              sizes="(max-width: 40rem) 100vw, (max-width: 60rem) 50vw, 33vw"
+            />
+          )}
+          <p class="card__title">{post.title}</p>
+          <p class="card__meta">
+            {formatDate(post.publishedAt) && (
+              <time datetime={dateAttr(post.publishedAt)}>{formatDate(post.publishedAt)}</time>
+            )}
+            {formatDate(post.publishedAt) && readingTime(post.body) && ' · '}
+            {readingTime(post.body)}
+          </p>
+          {post.excerpt && <p class="card__meta">{post.excerpt}</p>}
+        </a>
+      ))}
+    </div>
+  ) : (
+    <p>No posts in this category yet. <a href="/blog">See all posts.</a></p>
+  )}
+
+  {relatedWork.length > 0 && (
+    <section class="blog-related">
+      <h2>{meta.title} work</h2>
+      <div class="grid">
+        {relatedWork.map((item: any) => (
+          <a class="card" href={`/work/${item.slug.current}`}>
+            {(item.thumbnail || item.mainImage) && (
+              <Img
+                image={item.thumbnail || item.mainImage}
+                field={item.thumbnail ? 'thumbnail' : 'mainImage'}
+                alt={item.title}
+                width={600}
+                height={400}
+                sizes="(max-width: 40rem) 100vw, (max-width: 60rem) 50vw, 25vw"
+              />
+            )}
+            <p class="card__title">{item.title}</p>
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <EmailCapture source={`blog/category/${slug}`} />
+
+  <a class="blog-back" href="/blog">&larr; All posts</a>
+</Layout>

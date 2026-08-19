@@ -1,0 +1,64 @@
+---
+interface Props {
+  source?: string;
+  class?: string;
+}
+const { source = 'blog', class: className } = Astro.props;
+---
+
+<form class={`email-capture ${className ?? ''}`.trim()} data-subscribe-form>
+  <p class="email-capture__heading">Get notified when I post</p>
+  <div class="email-capture__row">
+    <input
+      type="email"
+      name="email"
+      placeholder="your@email.com"
+      required
+      autocomplete="email"
+      class="email-capture__input"
+    />
+    <input type="hidden" name="source" value={source} />
+    <button type="submit" class="button email-capture__button">Subscribe</button>
+  </div>
+  <p class="email-capture__status" data-subscribe-status hidden></p>
+</form>
+
+<script>
+  document.querySelectorAll<HTMLFormElement>('[data-subscribe-form]').forEach((form) => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const status = form.querySelector<HTMLElement>('[data-subscribe-status]');
+      const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+      const input = form.querySelector<HTMLInputElement>('input[type="email"]');
+      if (!status || !button || !input) return;
+
+      button.disabled = true;
+      status.hidden = true;
+
+      const data = Object.fromEntries(new FormData(form));
+
+      try {
+        const res = await fetch('/api/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(data),
+        });
+        const json = await res.json();
+        if (res.ok) {
+          status.textContent = "You're in — I'll let you know when something new goes up.";
+          status.className = 'email-capture__status email-capture__status--ok';
+          input.value = '';
+        } else {
+          status.textContent = json.message || 'Something went wrong.';
+          status.className = 'email-capture__status email-capture__status--error';
+        }
+      } catch {
+        status.textContent = 'Could not connect. Please try again.';
+        status.className = 'email-capture__status email-capture__status--error';
+      }
+
+      status.hidden = false;
+      button.disabled = false;
+    });
+  });
+</script>

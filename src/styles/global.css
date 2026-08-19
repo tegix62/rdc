@@ -582,6 +582,63 @@ a {
   text-decoration: underline;
 }
 
+.email-capture {
+  background: var(--color-gray-light);
+  border-radius: 6px;
+  padding: var(--space-3) var(--space-3);
+  margin: var(--space-4) 0;
+  max-width: 32rem;
+}
+
+.email-capture__heading {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--color-navy);
+  margin: 0 0 var(--space-1);
+}
+
+.email-capture__row {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.email-capture__input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+}
+
+.email-capture__input:focus {
+  outline: 2px solid var(--color-navy);
+  outline-offset: 1px;
+}
+
+.email-capture__button {
+  white-space: nowrap;
+}
+
+.email-capture__status {
+  font-size: 0.875rem;
+  margin: var(--space-1) 0 0;
+}
+
+.email-capture__status--ok {
+  color: #1a7a3a;
+}
+
+.email-capture__status--error {
+  color: #b91c1c;
+}
+
+@media (max-width: 30rem) {
+  .email-capture__row {
+    flex-direction: column;
+  }
+}
+
 /*
   DEAD RULE, kept only to be labelled as one.
 

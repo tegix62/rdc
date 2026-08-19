@@ -238,8 +238,29 @@ export function caseStudyNode(
     )
     .filter(Boolean);
 
+  /*
+    VisualArtwork is the most specific Schema.org type for design projects.
+    It tells Google this page is a portfolio piece rather than a generic
+    article, which is the difference between showing up in "brand designer"
+    searches as a practitioner and showing up as someone who wrote about
+    brand design.
+
+    keywords bridges the gap between the Studio category ("Brand Identity")
+    and the terms people actually search ("brand identity design", "logo
+    design"). These are stated as structured data rather than stuffed into
+    meta keywords, which crawlers have ignored since 2009.
+  */
+  const CATEGORY_KEYWORDS: Record<string, string[]> = {
+    'Brand Identity': ['brand identity design', 'logo design', 'visual identity'],
+    'Merch & Apparel': ['merch design', 'apparel design', 'clothing brand design'],
+    'Typography': ['custom lettering', 'hand lettering', 'typographic design'],
+    'Illustration': ['illustration', 'hand-drawn illustration', 'custom illustration'],
+    'Photography': ['brand photography', 'product photography'],
+  };
+  const keywords = category ? CATEGORY_KEYWORDS[category] : undefined;
+
   const work = compact({
-    '@type': 'CreativeWork',
+    '@type': 'VisualArtwork',
     '@id': `${canonical}#work`,
     name: clean(study.title),
     headline: clean(study.headline),
@@ -247,9 +268,10 @@ export function caseStudyNode(
     url: canonical,
     image: licensableImage(ctx.image, origin, clean(study.title)),
     creator: {'@id': orgId},
-    // Named on the page as the client, so it is the subject of the work.
     about: client ? {'@type': 'Organization', name: client} : undefined,
     genre: category,
+    artform: category,
+    keywords: keywords?.join(', '),
     contributor: contributors.length ? contributors : undefined,
     mainEntityOfPage: {'@id': `${canonical}#webpage`},
   });

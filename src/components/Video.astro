@@ -38,7 +38,7 @@ interface Props {
      `field` prop on Img.astro. A warning naming only the document sends someone
      to the wrong one of its six image fields. */
   posterField?: string;
-  playback?: 'click' | 'autoplay' | null;
+  playback?: 'click' | 'autoplay' | 'poster' | null;
   /** Used for the accessible name, and as the iframe title. */
   title?: string;
   /** Largest width this is rendered at, for sizing the poster. */
@@ -62,10 +62,9 @@ const {
 
 const mp4 = file?.asset?.url ?? null;
 const webmUrl = webm?.asset?.url ?? null;
-// An upload wins over a URL: if both are filled in, the file is the more
-// deliberate choice and the one that can autoplay.
 const selfHosted = Boolean(mp4 || webmUrl);
 const autoplay = selfHosted && playback === 'autoplay';
+const posterPlay = playback === 'poster';
 
 /*
   embedUrl now guarantees string-or-null, so this is belt and braces rather than
@@ -117,7 +116,32 @@ const fallbackPoster = youTubeId ? `https://i.ytimg.com/vi/${youTubeId}/sddefaul
 const posterUrl = imageUrl(poster)?.width(width).url() ?? null;
 ---
 
-{selfHosted ? (
+{selfHosted && posterPlay ? (
+  <div class:list={['video', 'video--self', 'video--poster-play', className]} data-poster-play>
+    <div class="video__poster-wrap">
+      {poster ? (
+        <Img image={poster} alt="" field={posterField ?? 'video poster'} width={width} sizes={sizes} />
+      ) : posterUrl ? (
+        <img src={posterUrl} alt="" loading="lazy" />
+      ) : (
+        <span class="video__facade-blank" aria-hidden="true"></span>
+      )}
+      <button type="button" class="video__play video__play--corner" aria-label={`Play ${title}`}>
+        <span class="video__play-tri" aria-hidden="true"></span>
+      </button>
+    </div>
+    <video
+      class="video__el"
+      hidden
+      controls
+      preload="none"
+      aria-label={title}
+    >
+      {webmUrl && <source src={webmUrl} type="video/webm" />}
+      {mp4 && <source src={mp4} type="video/mp4" />}
+    </video>
+  </div>
+) : selfHosted ? (
   <div class:list={['video', 'video--self', className]}>
     <video
       class="video__el"
@@ -130,26 +154,31 @@ const posterUrl = imageUrl(poster)?.width(width).url() ?? null;
       preload={autoplay ? 'auto' : 'none'}
       aria-label={title}
     >
-      {/* WebM first: browsers take the first source they can play, and it is
-          usually the smaller of the two. */}
       {webmUrl && <source src={webmUrl} type="video/webm" />}
       {mp4 && <source src={mp4} type="video/mp4" />}
     </video>
 
     {autoplay && (
-      /*
-        The one control an autoplaying loop gets. Deliberately not a full player
-        bar: this is decorative motion, and the only thing anyone reasonably
-        wants is to make it stop. Hidden from the accessibility tree would be
-        wrong - a moving image someone cannot pause is a genuine accessibility
-        failure, and WCAG asks for exactly this - so it is a real button with a
-        real label.
-      */
       <button type="button" class="video__pause" data-video-pause aria-pressed="false">
         <span class="video__pause-icon" aria-hidden="true"></span>
         <span class="video__pause-label">Pause</span>
       </button>
     )}
+  </div>
+) : embed && posterPlay ? (
+  <div class:list={['video', 'video--embed', 'video--poster-play', className]} data-video-embed={embed} data-video-title={title}>
+    <button type="button" class="video__facade" aria-label={`Play ${title}`}>
+      {poster ? (
+        <Img image={poster} alt="" field={posterField ?? 'video poster'} width={width} sizes={sizes} />
+      ) : fallbackPoster ? (
+        <img src={fallbackPoster} alt="" loading="lazy" width="640" height="480" />
+      ) : (
+        <span class="video__facade-blank" aria-hidden="true"></span>
+      )}
+      <span class="video__play video__play--corner" aria-hidden="true">
+        <span class="video__play-tri" aria-hidden="true"></span>
+      </span>
+    </button>
   </div>
 ) : embed ? (
   <div class:list={['video', 'video--embed', className]} data-video-embed={embed} data-video-title={title}>
@@ -157,8 +186,6 @@ const posterUrl = imageUrl(poster)?.width(width).url() ?? null;
       {poster ? (
         <Img image={poster} alt="" field={posterField ?? 'video poster'} width={width} sizes={sizes} />
       ) : fallbackPoster ? (
-        /* Not through Img: this is a third-party URL, not a Sanity asset, so
-           there is no reference to derive dimensions or a srcset from. */
         <img src={fallbackPoster} alt="" loading="lazy" width="640" height="480" />
       ) : (
         <span class="video__facade-blank" aria-hidden="true"></span>
@@ -177,6 +204,21 @@ const posterUrl = imageUrl(poster)?.width(width).url() ?? null;
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement | null;
     if (!target) return;
+
+    // --- poster-play: reveal the hidden video on click --------------------
+    const cornerBtn = target.closest<HTMLElement>('[data-poster-play] .video__play--corner');
+    if (cornerBtn) {
+      const container = cornerBtn.closest<HTMLElement>('[data-poster-play]');
+      if (!container) return;
+      const wrap = container.querySelector<HTMLElement>('.video__poster-wrap');
+      const video = container.querySelector<HTMLVideoElement>('video');
+      if (wrap && video) {
+        wrap.hidden = true;
+        video.hidden = false;
+        video.play();
+      }
+      return;
+    }
 
     // --- embed facade: build the iframe on first click ---------------------
     const facade = target.closest<HTMLElement>('.video__facade');

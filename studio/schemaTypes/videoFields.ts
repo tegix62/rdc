@@ -28,45 +28,13 @@ import {imageSpec} from './imageFields'
   if both are set, and the renderer decides everything else from there.
 */
 export const videoBehaviourFields = [
-  defineField({
-    name: 'videoFile',
-    title: 'Upload a video (MP4)',
-    type: 'file',
-    options: {accept: 'video/mp4,video/quicktime'},
-    description:
-      'For SHORT silent loops only - a few seconds to a minute. Uploading a ' +
-      'long video here means every visitor downloads the whole thing at one ' +
-      'fixed quality, so anything long or with sound belongs on YouTube or ' +
-      'Vimeo instead, pasted into the URL field. Strip the audio track before ' +
-      'uploading: it makes the file smaller and guarantees autoplay is never ' +
-      'blocked.',
-  }),
-  defineField({
-    name: 'videoWebm',
-    title: 'Upload a WebM version (optional)',
-    type: 'file',
-    options: {accept: 'video/webm'},
-    description:
-      'Optional and worth it. WebM is usually noticeably smaller than the same ' +
-      'clip as MP4, and browsers take whichever they support first - so this is ' +
-      'served where possible and the MP4 covers everything else.',
-  }),
-  /*
-    Through imageSpec like every other image, which it was not before: a poster
-    is a real image download - on a YouTube facade it is the ONLY thing fetched
-    until someone presses play - and it had no compression toggle, so a
-    hand-prepared poster was re-encoded with no way to opt out. Img.astro reads
-    that flag, so wiring it here is all it took.
-  */
   defineField(imageSpec({
     name: 'videoPoster',
     title: 'Poster image - the still shown before playing',
     description:
       'The still shown before the video plays. For a YouTube link this is what ' +
-      'the visitor sees and clicks, so it matters: leave it empty and the site ' +
-      "falls back to YouTube's own thumbnail, which is rarely the frame you " +
-      'would have chosen. Vimeo has no public thumbnail, so a poster is worth ' +
-      'setting there.',
+      'the visitor sees and clicks. For "poster with corner play" this IS the ' +
+      'visual until someone taps play, so use a strong image here.',
   })),
   defineField({
     name: 'videoPlayback',
@@ -74,16 +42,37 @@ export const videoBehaviourFields = [
     type: 'string',
     options: {
       list: [
-        {title: 'Click to play', value: 'click'},
+        {title: 'Click to play (centered button)', value: 'click'},
+        {title: 'Poster with corner play button', value: 'poster'},
         {title: 'Autoplay, silent, looping', value: 'autoplay'},
       ],
       layout: 'radio',
     },
     initialValue: 'click',
     description:
-      'Autoplay only works on an uploaded file, and only silently - that is a ' +
-      'browser rule, not a setting here. It plays with no controls and no ' +
-      'hover chrome, with one small pause button. A YouTube or Vimeo link is ' +
-      'always click to play.',
+      '"Click to play" shows a centered play button over the poster. ' +
+      '"Poster with corner play" treats the poster as the main visual with a ' +
+      'small play button in the corner - good for logomarks that reveal a ' +
+      'timelapse. "Autoplay" loops silently with no controls. Autoplay only ' +
+      'works on uploaded files.',
+  }),
+  defineField({
+    name: 'videoFile',
+    title: 'Upload a video (MP4)',
+    type: 'file',
+    options: {accept: 'video/mp4,video/quicktime'},
+    description:
+      'For short silent loops - a few seconds to a minute. Anything long or ' +
+      'with sound belongs on YouTube/Vimeo in the URL field instead.',
+  }),
+  defineField({
+    name: 'videoWebm',
+    title: 'WebM version (optional, smaller)',
+    type: 'file',
+    options: {accept: 'video/webm'},
+    description:
+      'Same clip as WebM. Usually noticeably smaller than MP4. Browsers pick ' +
+      'whichever they support, so this is served where possible and MP4 covers ' +
+      'the rest.',
   }),
 ]

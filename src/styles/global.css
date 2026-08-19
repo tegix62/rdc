@@ -2855,6 +2855,64 @@ body {
   background: rgba(0, 0, 0, 0.75);
 }
 
+.video--poster-play {
+  position: relative;
+}
+
+.video__poster-wrap {
+  position: relative;
+}
+
+.video__poster-wrap img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.video__play--corner {
+  position: absolute;
+  bottom: 0.75rem;
+  right: 0.75rem;
+  top: auto;
+  left: auto;
+  transform: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 40, 133, 0.6);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.video__play--corner:hover,
+.video__play--corner:focus-visible {
+  opacity: 1;
+  background: rgba(0, 40, 133, 0.85);
+}
+
+.video__play-tri {
+  display: block;
+  width: 0;
+  height: 0;
+  margin-left: 2px;
+  border-style: solid;
+  border-width: 0.4rem 0 0.4rem 0.65rem;
+  border-color: transparent transparent transparent var(--color-white);
+}
+
+@media (pointer: coarse) {
+  .video__play--corner {
+    opacity: 0.85;
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+}
+
 /*
   The single control an autoplaying loop gets.
 

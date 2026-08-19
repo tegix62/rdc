@@ -287,20 +287,20 @@ export const mediaVideo = defineType({
   title: 'Video',
   type: 'object',
   fields: [
+    ...videoBehaviourFields,
     defineField({
       name: 'url',
       title: 'Video URL (YouTube or Vimeo)',
       type: 'url',
       description:
-        'Leave empty if you are uploading a file below instead. One or the ' +
-        'other is needed; an upload wins if both are filled in.',
+        'For long or sound-on videos only. Leave empty when uploading a file ' +
+        'above. An upload wins if both are filled in.',
     }),
     defineField({
       name: 'caption',
       type: 'string',
       description: 'Optional line under this item.',
     }),
-    ...videoBehaviourFields,
   ],
   preview: {
     select: {title: 'caption', subtitle: 'url'},

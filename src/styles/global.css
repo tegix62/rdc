@@ -1467,6 +1467,11 @@ main {
   object-fit: cover;
 }
 
+.pf-item--focus .pf-item__frame {
+  outline: 2px solid var(--color-navy);
+  outline-offset: -2px;
+}
+
 .pf-item__img {
   display: block;
   width: 100%;
@@ -3411,5 +3416,93 @@ body {
       opacity: 1;
       transform: none;
     }
+  }
+}
+
+@media print {
+  nav,
+  footer,
+  .site-nav,
+  .site-footer,
+  .email-capture,
+  .blog-cta,
+  .pw-gate,
+  .work-related,
+  .more-posts,
+  .blog-related,
+  video,
+  iframe {
+    display: none !important;
+  }
+
+  body {
+    color: #000;
+    background: #fff;
+    font-size: 11pt;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4, h5, h6,
+  .t-h1, .t-h2, .t-h3, .t-h4, .t-h5 {
+    color: #000;
+    break-after: avoid;
+  }
+
+  h1 { font-size: 22pt; }
+  h2 { font-size: 16pt; }
+  h3 { font-size: 13pt; }
+
+  img {
+    max-width: 100% !important;
+    break-inside: avoid;
+  }
+
+  .full-bleed {
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .work-band {
+    background: transparent !important;
+    color: #000 !important;
+  }
+
+  .work-band,
+  .work-band__inner {
+    --work-accent-fg: #000;
+  }
+
+  a {
+    color: #000;
+    text-decoration: underline;
+  }
+
+  .prose a::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    word-break: break-all;
+  }
+
+  .prose a[href^="/"]::after {
+    content: " (rumeaudesign.co" attr(href) ")";
+  }
+
+  .prose a[href^="#"]::after {
+    content: none;
+  }
+
+  @page {
+    margin: 2cm 1.8cm;
+  }
+
+  p, li, blockquote {
+    orphans: 3;
+    widows: 3;
+  }
+
+  pre, blockquote, figure, img {
+    break-inside: avoid;
   }
 }

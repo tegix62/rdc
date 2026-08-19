@@ -202,6 +202,17 @@ export default defineType({
       them.
     */
     defineField({
+      name: 'accessPassword',
+      title: 'Password Protection',
+      type: 'string',
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+      description:
+        'Set a password to gate this case study. Visitors see a prompt before ' +
+        'the content. Leave empty for a public page. This is a casual gate ' +
+        'for NDA work, not encryption.',
+    }),
+    defineField({
       name: 'heroVideo',
       title: 'Video at the top of the page (replaces Main Image)',
       type: 'url',

@@ -75,6 +75,7 @@ const ogImage =
   socialCardUrl(caseStudy.mainImage) ?? socialCardUrl(caseStudy.thumbnail) ?? undefined;
 const ogVideo =
   fileUrl(caseStudy.heroVideoWebm) ?? fileUrl(caseStudy.heroVideoFile) ?? undefined;
+const gated = !!caseStudy.accessPassword;
 ---
 
 <Layout
@@ -265,4 +266,125 @@ const ogVideo =
       </div>
     </section>
   )}
+
+  {gated && (
+    <div class="pw-gate" id="pw-gate">
+      <div class="pw-gate__card">
+        <p class="pw-gate__heading">This project is under NDA.</p>
+        <p class="pw-gate__body">Enter the password to view the case study.</p>
+        <form class="pw-gate__form" id="pw-form">
+          <input
+            class="pw-gate__input"
+            type="password"
+            id="pw-input"
+            placeholder="Password"
+            autocomplete="off"
+            required
+          />
+          <button class="pw-gate__btn" type="submit">View</button>
+        </form>
+        <p class="pw-gate__error" id="pw-error" hidden>Wrong password.</p>
+      </div>
+    </div>
+  )}
 </Layout>
+
+{gated && (
+  <style>
+    .pw-gate {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-white);
+    }
+
+    .pw-gate__card {
+      text-align: center;
+      max-width: 22rem;
+      padding: var(--space-4);
+    }
+
+    .pw-gate__heading {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 1.5rem;
+      color: var(--color-navy);
+      margin: 0;
+    }
+
+    .pw-gate__body {
+      color: var(--color-gray);
+      font-size: 0.9375rem;
+      margin-top: var(--space-1);
+    }
+
+    .pw-gate__form {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: var(--space-3);
+    }
+
+    .pw-gate__input {
+      flex: 1;
+      font-family: var(--font-body);
+      font-size: 0.9375rem;
+      padding: 0.625rem 0.875rem;
+      border: 1.5px solid var(--color-border);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .pw-gate__input:focus {
+      border-color: var(--color-navy);
+    }
+
+    .pw-gate__btn {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      background: var(--color-navy);
+      color: var(--color-white);
+      border: none;
+      padding: 0.625rem 1.5rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .pw-gate__btn:hover {
+      background: var(--color-navy-dark);
+    }
+
+    .pw-gate__error {
+      color: #c0392b;
+      font-size: 0.8125rem;
+      margin-top: var(--space-1);
+    }
+  </style>
+
+  <script is:inline define:vars={{ expected: caseStudy.accessPassword, slug }}>
+    (function () {
+      var key = 'pw-ok:' + slug;
+      if (sessionStorage.getItem(key) === '1') {
+        document.getElementById('pw-gate').remove();
+        return;
+      }
+      document.getElementById('pw-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var val = document.getElementById('pw-input').value;
+        if (val === expected) {
+          sessionStorage.setItem(key, '1');
+          document.getElementById('pw-gate').remove();
+        } else {
+          document.getElementById('pw-error').hidden = false;
+          document.getElementById('pw-input').value = '';
+          document.getElementById('pw-input').focus();
+        }
+      });
+    })();
+  </script>
+)}

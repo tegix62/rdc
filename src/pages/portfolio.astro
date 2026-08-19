@@ -10,7 +10,37 @@ import { getPage, getAllGridItems } from '../lib/queries';
 import { cleanKey, treatmentOf, tileHref, heroHeight, HERO_RATIO_PORTFOLIO } from '../lib/tiles';
 
 const page = await getPage('portfolio');
-const items = await getAllGridItems();
+const allItems = await getAllGridItems();
+
+/*
+  Weighted grid: the first screenful should be the work people can click
+  through to, not orphan auxiliary marks.
+
+  Tier 1 — Case Studies (own page) + Grid Items linked to a Case Study
+  Tier 2 — Grid Items with a parent that is NOT a Case Study
+  Tier 3 — Grid Items with no parent at all
+
+  Each tier is shuffled internally so the grid feels curated but not fixed.
+*/
+function shuffle<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function tier(item: any): number {
+  if (cleanKey(item.pageType) === 'Case Study') return 1;
+  if (item.parentSlug && cleanKey(item.parentType) === 'Case Study') return 1;
+  if (item.parentSlug) return 2;
+  return 3;
+}
+
+const tier1 = shuffle(allItems.filter((i: any) => tier(i) === 1));
+const tier2 = shuffle(allItems.filter((i: any) => tier(i) === 2));
+const tier3 = shuffle(allItems.filter((i: any) => tier(i) === 3));
+const items = [...tier1, ...tier2, ...tier3];
 
 /*
   Maps a grid item's category to a filter class. Typography and Illustration

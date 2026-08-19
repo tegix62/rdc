@@ -3,6 +3,7 @@ import {structureTool} from 'sanity/structure'
 import {presentationTool} from 'sanity/presentation'
 import {visionTool} from '@sanity/vision'
 import {schemaTypes} from './schemaTypes'
+import structure from './structure'
 
 // Which site the Presentation tab loads in its preview panel.
 //
@@ -28,7 +29,7 @@ export default defineConfig({
   dataset: 'production',
 
   plugins: [
-    structureTool(),
+    structureTool({structure}),
     presentationTool({
       previewUrl: {
         initial: PREVIEW_URL,

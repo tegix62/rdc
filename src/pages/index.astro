@@ -95,14 +95,22 @@ let heroSrc = '';
 let heroSrcset: string | undefined;
 const heroPosition = hotspotPosition(heroSource);
 
+let heroAnimatedSrc: string | undefined;
+
 if (heroHasAsset) {
   const animated = await isAnimatedSource(heroSource);
-  const passThrough = isPassThrough(heroSource, animated);
-  if (passThrough) {
-    heroSrc = originalUrl(heroSource) ?? '';
-  } else {
+  if (animated) {
+    heroAnimatedSrc = originalUrl(heroSource) ?? undefined;
     heroSrc = imageUrl(heroSource)?.width(cappedWidth(heroSource, 1800)).url() ?? '';
     heroSrcset = buildSrcSet(heroSource, 1800);
+  } else {
+    const passThrough = isPassThrough(heroSource);
+    if (passThrough) {
+      heroSrc = originalUrl(heroSource) ?? '';
+    } else {
+      heroSrc = imageUrl(heroSource)?.width(cappedWidth(heroSource, 1800)).url() ?? '';
+      heroSrcset = buildSrcSet(heroSource, 1800);
+    }
   }
 }
 
@@ -126,6 +134,7 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
     ) : heroHasAsset ? (
       <img
         class="statement__bg"
+        id="hero-bg"
         src={heroSrc}
         srcset={heroSrcset}
         sizes={heroSrcset ? '100vw' : undefined}
@@ -133,6 +142,7 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
         loading="eager"
         fetchpriority="high"
         decoding="async"
+        data-animated={heroAnimatedSrc || undefined}
         style={heroPosition ? `object-position: ${heroPosition}` : undefined}
       />
     ) : null}
@@ -261,3 +271,19 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
     </div>
   </section>
 </Layout>
+
+<script is:inline>
+  document.addEventListener('DOMContentLoaded', function () {
+    var hero = document.getElementById('hero-bg');
+    if (!hero) return;
+    var animSrc = hero.getAttribute('data-animated');
+    if (!animSrc) return;
+    var img = new Image();
+    img.onload = function () {
+      hero.removeAttribute('srcset');
+      hero.removeAttribute('sizes');
+      hero.src = animSrc;
+    };
+    img.src = animSrc;
+  });
+</script>

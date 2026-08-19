@@ -1,90 +1,101 @@
 /*
-  Asserts every built page loads its stylesheet with a plain, BLOCKING
-  <link rel="stylesheet">. That sounds like a performance bug and is
-  deliberately the opposite.
+  Asserts every built page either loads its stylesheet blocking (the
+  original safe default) OR inlines critical CSS and defers the rest (the
+  performance-safe alternative).
 
   WHY THIS GUARD EXISTS
 
-  On 18 August 2026 the stylesheet was made non-blocking to clear PageSpeed's
-  "render-blocking requests" finding (~1,410 ms estimated saving): the link
-  was rewritten post-build into `rel="preload" as="style"` plus an onload
-  handler flipping it back to `rel="stylesheet"`, with a <noscript>
-  fallback. Mechanically it worked - verified live. It was still wrong.
+  On 18 August 2026 the stylesheet was deferred WITHOUT critical CSS
+  inlining. CLS went to 1.001 (poor). The page painted in browser default
+  styles, then 75 KiB gzip of CSS arrived and moved every element.
 
-  PageSpeed's next run measured Cumulative Layout Shift 1.001 on the
-  homepage. "Poor" starts at 0.25. The cause is inherent to the technique,
-  not a bug in it: with no stylesheet applied at first paint the page renders
-  in browser default styles, and when 75 KiB gzip of CSS governing the nav,
-  layout, and fonts arrives ~480 ms later, every element on the page moves
-  at once.
-
-  That is a bad trade in both directions. CLS is a Core Web Vital and feeds
-  search ranking. "Render-blocking requests" is an advisory diagnostic that
-  does not - its "estimated savings" is a model of a single cold-cache page
-  view, and this site's CSS is one fingerprinted file shared byte-for-byte
-  by all 21 pages, so a real visitor pays for it once per session.
-
-  WHEN DEFERRING BECOMES CORRECT
+  WHEN DEFERRING IS CORRECT
 
   Only after above-the-fold CSS is extracted per template and inlined, so
   the first paint is already correct and the deferred remainder changes
-  nothing visible. astro.config.mjs has said that since the original
-  decision. Deferring without that step is the thing this guard blocks.
+  nothing visible. scripts/inline-critical-css.mjs does this with critters
+  as a post-build step.
+
+  WHAT THIS CHECKS
+
+  For each HTML file, exactly one of these must be true:
+
+    A) A plain blocking <link rel="stylesheet"> (the original approach)
+    B) An inline <style> with meaningful critical CSS AND a deferred
+       external stylesheet (the critters approach)
+
+  Deferring without inlining is the thing this guard blocks - that is the
+  path that caused the CLS regression.
 
   Usage: node scripts/test-css-blocking.mjs [dist]
 */
-import {readFileSync, readdirSync, statSync} from 'node:fs'
-import path from 'node:path'
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import path from 'node:path';
 
-const dist = process.argv[2] ?? 'dist'
+const dist = process.argv[2] ?? 'dist';
 
-const htmlFiles = []
+const htmlFiles = [];
 const walk = (dir) => {
   for (const entry of readdirSync(dir)) {
-    const full = path.join(dir, entry)
-    if (statSync(full).isDirectory()) walk(full)
-    else if (entry.endsWith('.html')) htmlFiles.push(full)
+    const full = path.join(dir, entry);
+    if (statSync(full).isDirectory()) walk(full);
+    else if (entry.endsWith('.html')) htmlFiles.push(full);
   }
-}
-walk(dist)
+};
+walk(dist);
 
-let failures = 0
-let blocking = 0
+let failures = 0;
+let blocking = 0;
+let criticalInlined = 0;
+
+// Minimum bytes of inline CSS to count as "meaningful critical CSS". The
+// Layout already has a small is:global <style> block for img drag
+// prevention (~200 bytes). Real critical CSS is thousands of bytes.
+const MIN_CRITICAL_CSS_BYTES = 500;
 
 for (const f of htmlFiles) {
-  const html = readFileSync(f, 'utf8')
+  const html = readFileSync(f, 'utf8');
 
-  /*
-    Any of these means the stylesheet is not applying at first paint. Checked
-    as separate signatures rather than one loose pattern because each is a
-    different way of arriving at the same regression: the preload+swap
-    rewrite, a hand-written media="print" swap, and Astro's own
-    `rel="preload"` output if a future config change starts emitting it.
-  */
-  if (/rel="preload"\s+as="style"/.test(html) || /as="style"\s+rel="preload"/.test(html)) {
-    failures += 1
-    console.log(`FAIL  ${f} preloads its stylesheet instead of loading it blocking`)
-  }
-  if (/<link[^>]+rel="stylesheet"[^>]+media="print"/.test(html)) {
-    failures += 1
-    console.log(`FAIL  ${f} uses the media="print" swap trick on its stylesheet`)
-  }
-  if (/<link[^>]+rel="stylesheet"[^>]+onload=/.test(html)) {
-    failures += 1
-    console.log(`FAIL  ${f} has an onload handler on its stylesheet link`)
-  }
+  // Strip <noscript> blocks - critters puts a fallback <link> inside one,
+  // and that's correct. Only the live, outside-noscript markup matters.
+  const outsideNoscript = html.replace(/<noscript>[\s\S]*?<\/noscript>/g, '');
 
-  // And the tag that SHOULD be there. A page with no stylesheet at all is
-  // the other failure this catches - it renders unstyled with nothing
-  // throwing.
-  const outsideNoscript = html.replace(/<noscript>[\s\S]*?<\/noscript>/g, '')
-  if (/<link rel="stylesheet" href="[^"]+">/.test(outsideNoscript)) blocking += 1
-  else {
-    failures += 1
-    console.log(`FAIL  ${f} has no plain blocking <link rel="stylesheet">`)
+  const hasBlockingLink = /<link rel="stylesheet" href="[^"]+">/.test(outsideNoscript);
+
+  const isDeferred =
+    /rel="preload"\s+as="style"/.test(outsideNoscript) ||
+    /as="style"\s+rel="preload"/.test(outsideNoscript) ||
+    /<link[^>]+rel="stylesheet"[^>]+media="print"/.test(outsideNoscript) ||
+    /<link[^>]+rel="stylesheet"[^>]+onload=/.test(outsideNoscript);
+
+  // Measure inline <style> content, excluding tiny utility blocks.
+  const styleBlocks = [...outsideNoscript.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)];
+  const totalInlineCSS = styleBlocks.reduce((sum, m) => sum + m[1].length, 0);
+  const hasCriticalCSS = totalInlineCSS >= MIN_CRITICAL_CSS_BYTES;
+
+  if (hasBlockingLink && !isDeferred) {
+    // Path A: plain blocking stylesheet. Always fine.
+    blocking++;
+  } else if (isDeferred && hasCriticalCSS) {
+    // Path B: deferred external + inlined critical CSS. The safe upgrade.
+    criticalInlined++;
+  } else if (isDeferred && !hasCriticalCSS) {
+    // Deferred WITHOUT critical CSS - the CLS regression.
+    failures++;
+    console.log(
+      `FAIL  ${f} defers its stylesheet without inlining critical CSS ` +
+        `(${totalInlineCSS} bytes of inline CSS, need >= ${MIN_CRITICAL_CSS_BYTES})`,
+    );
+  } else {
+    // No stylesheet at all.
+    failures++;
+    console.log(`FAIL  ${f} has no stylesheet link`);
   }
 }
 
-console.log(`\n${blocking} of ${htmlFiles.length} page(s) load their stylesheet blocking, as intended`)
-console.log(failures ? `${failures} check(s) FAILED` : 'All checks passed.')
-process.exit(failures ? 1 : 0)
+console.log();
+if (blocking) console.log(`${blocking} page(s) load their stylesheet blocking`);
+if (criticalInlined) console.log(`${criticalInlined} page(s) inline critical CSS and defer the rest`);
+console.log(`${htmlFiles.length} page(s) total`);
+console.log(failures ? `${failures} check(s) FAILED` : 'All checks passed.');
+process.exit(failures ? 1 : 0);

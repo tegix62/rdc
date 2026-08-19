@@ -152,17 +152,11 @@ jobs:
 
       - run: npm run build
 
-      # The stylesheet must load BLOCKING. That reads like a performance bug
-      # and is deliberately the opposite: deferring it was tried on
-      # 18 August 2026 (preload + onload rel-swap, to clear PageSpeed's
-      # "render-blocking requests" finding) and it took Cumulative Layout
-      # Shift on the live homepage to 1.001 - "poor" starts at 0.25. The page
-      # painted in browser default styles, then 75 KiB gzip of CSS landed and
-      # moved every element on it. CLS is a Core Web Vital that feeds ranking;
-      # render-blocking is an advisory diagnostic that does not. See the
-      # comment block in astro.config.mjs for the full reasoning and the one
-      # condition under which deferring becomes correct (inlined critical CSS
-      # FIRST, per template).
+      # Every page must either load its stylesheet blocking OR inline
+      # critical CSS and defer the rest. Deferring without inlining caused
+      # CLS 1.001 on 18 August 2026. The build now runs critters
+      # (scripts/inline-critical-css.mjs) to do the inlining, and this
+      # guard verifies the result.
       - run: node scripts/test-css-blocking.mjs
 
       # test-meta proves the composition functions are right; it cannot prove the

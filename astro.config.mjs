@@ -31,68 +31,31 @@ export default defineConfig({
 });
 
 /*
-  DECIDED: the CSS bundle stays external and cached. It is not inlined.
+  CSS STRATEGY: critical CSS inlined, full bundle deferred.
 
-  This was an open question ("inline for a better PageSpeed score, or leave
-  it cached?") with no numbers behind it. The numbers, from a real build on
-  18 August 2026 (scripts/debug-css-size.mjs):
+  The full stylesheet (~218 KiB raw / ~75 KiB gzip) is shared by all 21
+  pages. It was kept external and blocking until a real PageSpeed run
+  measured 1,390 ms of render-blocking time on it.
 
-    - One shared stylesheet, ~218 KiB raw / ~75 KiB gzipped.
-    - All 21 pages on the site link that exact same file.
+  HISTORY
 
-  Inlining would put ~75 KiB of gzip-equivalent weight into the <head> of
-  EVERY page, EVERY time, with no caching possible - HTML is not cached the
-  way a fingerprinted CSS file is. Kept external, a visitor pays for it
-  ONCE across an entire session; every page after the first is a cache hit
-  and costs nothing. Inlining pays that cost again on every navigation.
+  First attempt (18 August 2026): deferred the stylesheet WITHOUT inlining
+  critical CSS first. CLS went to 1.001 (poor) because first paint was
+  unstyled. Reverted the same day.
 
-  That trade only makes sense if visitors overwhelmingly land on one page and
-  leave - and this site's own copy actively works against that: internal
-  linking, a Portfolio grid meant to be browsed tile to tile, case studies
-  that link to related work. Optimizing the CSS strategy for a single-page
-  visit while the rest of the site is built for a multi-page one would be
-  fixing the wrong metric.
+  Current approach: scripts/inline-critical-css.mjs runs critters after
+  `astro build`. For each page, critters reads the HTML, finds which CSS
+  rules its elements use, inlines them in a <style> in the <head>, and
+  changes the external <link> to media="print" + onload so it loads without
+  blocking paint. First paint is already correct from the inline styles, so
+  the deferred sheet changes nothing visible and CLS stays at zero.
 
-  PageSpeed Insights audits one URL in isolation, which is exactly the frame
-  where inlining looks like a win and multi-page caching is invisible to the
-  score. Real visitors are not one URL in isolation.
+  The full external stylesheet is still cached (fingerprinted, immutable,
+  shared across all pages). Multi-page visitors pay for it once. The inline
+  critical CSS is a few KB per page — the cost of a styled first paint on a
+  cold single-page visit.
 
-  The textbook middle ground - extract just the above-the-fold CSS per
-  template and inline ONLY that, deferring the rest - is the right answer
-  IF the render-blocking cost of this specific file turns out to matter in
-  practice. It needs tooling this repo does not have yet (a critical-CSS
-  extractor, per-template) and is worth building only if a real Lighthouse
-  trace shows the full stylesheet is actually costing meaningful render time
-  on a real deploy - not assumed from the file size alone.
-
-  ---
-
-  TRIED AND REVERTED, 18 AUGUST 2026: deferring WITHOUT the critical-CSS step.
-
-  A real PageSpeed run did arrive, flagging this exact file as render-blocking
-  for ~1,410 ms, so the "middle ground" above got attempted - but only its
-  second half. The built <link> was rewritten post-build to
-  `rel="preload" as="style"` with an onload handler swapping rel back, plus a
-  <noscript> fallback. No critical CSS was extracted or inlined first.
-
-  It deployed and worked mechanically. The next PageSpeed run measured
-  Cumulative Layout Shift 1.001 on the homepage; "poor" begins at 0.25.
-
-  That outcome is inherent to the technique when the whole stylesheet is
-  deferred, not a defect in the implementation. Nothing styles the first
-  paint, so the page renders in browser default styles - then global.css
-  arrives and the nav, the type scale, and every layout container resolve at
-  once, moving essentially the entire viewport.
-
-  The trade was backwards. CLS is a Core Web Vital and feeds ranking.
-  "Render-blocking requests" is an advisory diagnostic that does not, and its
-  estimated saving models a cold-cache single-page visit - the frame this
-  whole comment block already explains is the wrong one for this site.
-
-  So the conclusion is unchanged and now has evidence behind it: the
-  stylesheet loads blocking. The ONLY route to deferring it is to inline
-  above-the-fold CSS per template FIRST, so first paint is already correct
-  and the deferred remainder is invisible. scripts/test-css-blocking.mjs
-  fails the build if the link stops being a plain blocking one, so this has
-  to be a deliberate decision rather than something that creeps back.
+  scripts/test-css-blocking.mjs accepts either pattern: plain blocking
+  stylesheet OR inlined critical CSS + deferred external sheet. Deferring
+  WITHOUT inlining is the one thing the guard blocks.
 */

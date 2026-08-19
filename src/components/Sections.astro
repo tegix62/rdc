@@ -78,13 +78,14 @@ const { sections } = Astro.props;
         </div>
       );
     case 'videoSection':
-      return section.url || section.videoFile || section.videoWebm ? (
+      return section.url || section.videoFile || section.videoWebm || section.videoSrc ? (
         <div class="work-section work-section--video">
           <div class="work-video-frame">
             <Video
               url={section.url}
               file={section.videoFile}
               webm={section.videoWebm}
+              videoSrc={section.videoSrc}
               poster={section.videoPoster}
                 posterField={`${section._type} → videoPoster`}
               playback={section.videoPlayback}
@@ -137,12 +138,13 @@ const { sections } = Astro.props;
     case 'videoHeroSection':
       return (
         <div class="work-section work-section--video-hero">
-          {(section.url || section.videoFile || section.videoWebm) && (
+          {(section.url || section.videoFile || section.videoWebm || section.videoSrc) && (
             <div class="work-video-hero__bg">
               <Video
                 url={section.url}
                 file={section.videoFile}
                 webm={section.videoWebm}
+                videoSrc={section.videoSrc}
                 poster={section.videoPoster}
                 posterField={`${section._type} → videoPoster`}
                 playback={section.videoPlayback}
@@ -168,7 +170,7 @@ const { sections } = Astro.props;
     case 'mediaRowSection': {
       const items = (section.items ?? []).filter(
         (i: any) =>
-          (i._type === 'mediaVideo' && (i.url || i.videoFile || i.videoWebm)) ||
+          (i._type === 'mediaVideo' && (i.url || i.videoFile || i.videoWebm || i.videoSrc)) ||
           (i._type === 'mediaImage' && i.image),
       );
       if (items.length === 0) return null;
@@ -188,6 +190,7 @@ const { sections } = Astro.props;
                       url={item.url}
                       file={item.videoFile}
                       webm={item.videoWebm}
+                      videoSrc={item.videoSrc}
                       poster={item.videoPoster}
                       posterField={`mediaRowSection → items[${i}].videoPoster`}
                       playback={item.videoPlayback}
@@ -225,12 +228,13 @@ const { sections } = Astro.props;
             section.mediaPosition === 'Right' && 'is-reversed',
           ]}
         >
-          {section.videoUrl || section.videoFile || section.videoWebm ? (
+          {section.videoUrl || section.videoFile || section.videoWebm || section.videoSrc ? (
             <div class="work-video-frame">
               <Video
                 url={section.videoUrl}
                 file={section.videoFile}
                 webm={section.videoWebm}
+                videoSrc={section.videoSrc}
                 poster={section.videoPoster}
                 posterField={`${section._type} → videoPoster`}
                 playback={section.videoPlayback}

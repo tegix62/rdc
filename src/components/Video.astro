@@ -33,6 +33,8 @@ interface Props {
   file?: {asset?: {url?: string}} | null;
   /** Uploaded WebM. Offered before the MP4, being usually smaller. */
   webm?: {asset?: {url?: string}} | null;
+  /** Direct URL to a hosted video file (R2, CDN). */
+  videoSrc?: string | null;
   poster?: any;
   /* Which Studio field the poster came from, for build warnings only - see the
      `field` prop on Img.astro. A warning naming only the document sends someone
@@ -62,7 +64,8 @@ const {
 
 const mp4 = file?.asset?.url ?? null;
 const webmUrl = webm?.asset?.url ?? null;
-const selfHosted = Boolean(mp4 || webmUrl);
+const directUrl = typeof Astro.props.videoSrc === 'string' ? Astro.props.videoSrc : null;
+const selfHosted = Boolean(mp4 || webmUrl || directUrl);
 const autoplay = selfHosted && playback === 'autoplay';
 const posterPlay = playback === 'poster';
 
@@ -118,7 +121,7 @@ const posterUrl = imageUrl(poster)?.width(width).url() ?? null;
 
 {selfHosted && posterPlay ? (
   <div class:list={['video', 'video--self', 'video--poster-play', className]} data-poster-play>
-    <div class="video__poster-wrap">
+    <button type="button" class="video__poster-wrap" aria-label={`Play ${title}`}>
       {poster ? (
         <Img image={poster} alt="" field={posterField ?? 'video poster'} width={width} sizes={sizes} />
       ) : posterUrl ? (
@@ -126,10 +129,10 @@ const posterUrl = imageUrl(poster)?.width(width).url() ?? null;
       ) : (
         <span class="video__facade-blank" aria-hidden="true"></span>
       )}
-      <button type="button" class="video__play video__play--corner" aria-label={`Play ${title}`}>
+      <span class="video__play video__play--corner" aria-hidden="true">
         <span class="video__play-tri" aria-hidden="true"></span>
-      </button>
-    </div>
+      </span>
+    </button>
     <video
       class="video__el"
       hidden
@@ -139,6 +142,7 @@ const posterUrl = imageUrl(poster)?.width(width).url() ?? null;
     >
       {webmUrl && <source src={webmUrl} type="video/webm" />}
       {mp4 && <source src={mp4} type="video/mp4" />}
+      {directUrl && <source src={directUrl} />}
     </video>
   </div>
 ) : selfHosted ? (
@@ -156,6 +160,7 @@ const posterUrl = imageUrl(poster)?.width(width).url() ?? null;
     >
       {webmUrl && <source src={webmUrl} type="video/webm" />}
       {mp4 && <source src={mp4} type="video/mp4" />}
+      {directUrl && <source src={directUrl} />}
     </video>
 
     {autoplay && (
@@ -206,14 +211,13 @@ const posterUrl = imageUrl(poster)?.width(width).url() ?? null;
     if (!target) return;
 
     // --- poster-play: reveal the hidden video on click --------------------
-    const cornerBtn = target.closest<HTMLElement>('[data-poster-play] .video__play--corner');
-    if (cornerBtn) {
-      const container = cornerBtn.closest<HTMLElement>('[data-poster-play]');
+    const posterWrap = target.closest<HTMLElement>('[data-poster-play] .video__poster-wrap');
+    if (posterWrap) {
+      const container = posterWrap.closest<HTMLElement>('[data-poster-play]');
       if (!container) return;
-      const wrap = container.querySelector<HTMLElement>('.video__poster-wrap');
       const video = container.querySelector<HTMLVideoElement>('video');
-      if (wrap && video) {
-        wrap.hidden = true;
+      if (video) {
+        posterWrap.hidden = true;
         video.hidden = false;
         video.play();
       }

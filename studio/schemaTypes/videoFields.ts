@@ -57,22 +57,31 @@ export const videoBehaviourFields = [
       'works on uploaded files.',
   }),
   defineField({
+    name: 'videoSrc',
+    title: 'Direct video link (R2 / CDN)',
+    type: 'url',
+    description:
+      'Paste a direct link to a hosted video file (Cloudflare R2, any CDN). ' +
+      'Works exactly like an upload — same playback modes, same poster. Use ' +
+      'this when the Sanity uploader is slow or the file is large. If both ' +
+      'this and an upload are set, the upload wins.',
+  }),
+  defineField({
     name: 'videoFile',
-    title: 'Upload a video (MP4)',
+    title: 'Or upload an MP4',
     type: 'file',
     options: {accept: 'video/mp4,video/quicktime'},
     description:
-      'For short silent loops - a few seconds to a minute. Anything long or ' +
-      'with sound belongs on YouTube/Vimeo in the URL field instead.',
+      'For short silent loops. Use the direct link field above if uploads ' +
+      'are slow.',
   }),
   defineField({
     name: 'videoWebm',
-    title: 'WebM version (optional, smaller)',
+    title: 'Or upload a WebM (smaller)',
     type: 'file',
     options: {accept: 'video/webm'},
     description:
-      'Same clip as WebM. Usually noticeably smaller than MP4. Browsers pick ' +
-      'whichever they support, so this is served where possible and MP4 covers ' +
-      'the rest.',
+      'Same clip as WebM — usually smaller than MP4. Browsers pick whichever ' +
+      'they support.',
   }),
 ]

@@ -2855,8 +2855,57 @@ body {
   background: rgba(0, 0, 0, 0.75);
 }
 
+.work-video-frame:has(.video--poster-play) {
+  aspect-ratio: unset;
+}
+
 .video--poster-play {
   position: relative;
+  height: auto;
+}
+
+.video--poster-play .video__el {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  background: var(--color-black);
+}
+
+.video__back {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 1.125rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.video--poster-play:hover .video__back:not([hidden]) {
+  opacity: 0.7;
+}
+
+.video__back:hover,
+.video__back:focus-visible {
+  opacity: 1 !important;
+  background: rgba(0, 0, 0, 0.75);
+}
+
+@media (pointer: coarse) {
+  .video__back:not([hidden]) {
+    opacity: 0.6;
+  }
 }
 
 .video__poster-wrap {

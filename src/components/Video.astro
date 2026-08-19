@@ -137,6 +137,7 @@ const posterUrl = imageUrl(poster)?.width(width).url() ?? null;
       class="video__el"
       hidden
       controls
+      controlslist="nodownload"
       preload="none"
       aria-label={title}
     >
@@ -144,6 +145,9 @@ const posterUrl = imageUrl(poster)?.width(width).url() ?? null;
       {mp4 && <source src={mp4} type="video/mp4" />}
       {directUrl && <source src={directUrl} />}
     </video>
+    <button type="button" class="video__back" data-video-back hidden aria-label="Back to poster">
+      <span class="video__back-icon" aria-hidden="true">&times;</span>
+    </button>
   </div>
 ) : selfHosted ? (
   <div class:list={['video', 'video--self', className]}>
@@ -155,6 +159,7 @@ const posterUrl = imageUrl(poster)?.width(width).url() ?? null;
       muted={autoplay || undefined}
       playsinline={autoplay || undefined}
       controls={!autoplay || undefined}
+      controlslist="nodownload"
       preload={autoplay ? 'auto' : 'none'}
       aria-label={title}
     >
@@ -216,11 +221,26 @@ const posterUrl = imageUrl(poster)?.width(width).url() ?? null;
       const container = posterWrap.closest<HTMLElement>('[data-poster-play]');
       if (!container) return;
       const video = container.querySelector<HTMLVideoElement>('video');
+      const back = container.querySelector<HTMLElement>('[data-video-back]');
       if (video) {
         posterWrap.hidden = true;
         video.hidden = false;
+        if (back) back.hidden = false;
         video.play();
       }
+      return;
+    }
+
+    // --- poster-play: back to poster --------------------------------------
+    const backBtn = target.closest<HTMLElement>('[data-video-back]');
+    if (backBtn) {
+      const container = backBtn.closest<HTMLElement>('[data-poster-play]');
+      if (!container) return;
+      const video = container.querySelector<HTMLVideoElement>('video');
+      const wrap = container.querySelector<HTMLElement>('.video__poster-wrap');
+      if (video) { video.pause(); video.hidden = true; }
+      if (wrap) wrap.hidden = false;
+      backBtn.hidden = true;
       return;
     }
 

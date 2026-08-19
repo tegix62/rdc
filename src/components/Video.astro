@@ -144,6 +144,7 @@ const hasPoster = Boolean(poster || posterUrl);
       controls
       controlslist="nodownload"
       muted={forceMuted || undefined}
+      data-force-muted={forceMuted || undefined}
       preload="none"
       aria-label={title}
     >
@@ -163,6 +164,7 @@ const hasPoster = Boolean(poster || posterUrl);
       autoplay={autoplay || undefined}
       loop={autoplay || undefined}
       muted={autoplay || forceMuted || undefined}
+      data-force-muted={forceMuted || undefined}
       playsinline={autoplay || undefined}
       controls={!autoplay || undefined}
       controlslist="nodownload"
@@ -217,6 +219,14 @@ const hasPoster = Boolean(poster || posterUrl);
     page share one listener - and so videos added later by any other script are
     covered without re-binding.
   */
+  // Hard-mute: re-mute immediately if someone tries to unmute a force-muted video.
+  document.addEventListener('volumechange', (e) => {
+    const v = e.target;
+    if (v instanceof HTMLVideoElement && v.dataset.forceMuted !== undefined && !v.muted) {
+      v.muted = true;
+    }
+  }, true);
+
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement | null;
     if (!target) return;

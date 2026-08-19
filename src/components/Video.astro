@@ -290,6 +290,16 @@ const hasPoster = Boolean(poster || posterUrl);
     things should not be handed a looping video that started on its own. The
     poster stays, and the pause button becomes the way to start it.
   */
+  // Force the browser to decode a first frame for posterless videos.
+  // Chrome ignores preload="auto" when there are several videos on one
+  // page; setting currentTime makes it seek and decode regardless.
+  for (const v of document.querySelectorAll<HTMLVideoElement>('video[preload="auto"]:not([autoplay])')) {
+    if (v.readyState < 2) {
+      v.addEventListener('loadeddata', () => { v.currentTime = 0.001; }, { once: true });
+      v.load();
+    }
+  }
+
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     for (const v of document.querySelectorAll('video[autoplay]')) {
       if (v instanceof HTMLVideoElement) {

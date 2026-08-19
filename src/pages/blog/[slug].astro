@@ -2,8 +2,8 @@
 import Layout from '../../layouts/Layout.astro';
 import Img from '../../components/Img.astro';
 import { sanityClient } from '../../lib/sanity';
-import { getBlogPost, getOtherBlogPosts } from '../../lib/queries';
-import { socialCardUrl } from '../../lib/image';
+import { getBlogPost, getOtherBlogPosts, getRelatedWork, getSiteSettings } from '../../lib/queries';
+import { socialCardUrl, fileUrl } from '../../lib/image';
 import { renderPortableText } from '../../lib/portableText';
 import { blogPostNode } from '../../lib/structuredData';
 import { dateAttr, formatDate } from '../../lib/date';
@@ -21,17 +21,16 @@ if (!post) {
   throw new Error(`Blog post not found for slug: ${slug}`);
 }
 
+const settings = await getSiteSettings();
+const CONTACT_URL = settings?.contactUrl || '/contact';
+
 const ogImage =
   socialCardUrl(post.mainImage) ?? socialCardUrl(post.thumbnailImage) ?? undefined;
 
 const morePosts = await getOtherBlogPosts(slug!);
-
-const CATEGORY_LABELS: Record<string, string> = {
-  'brand-identity': 'Brand Identity',
-  'lettering': 'Lettering',
-  'process': 'Process',
-  'merch-apparel': 'Merch & Apparel',
-};
+const relatedWork = await getRelatedWork(post.category);
+const audioUrl = fileUrl(post.audioNarration);
+const time = readingTime(post.body);
 ---
 
 <Layout
@@ -41,27 +40,68 @@ const CATEGORY_LABELS: Record<string, string> = {
   ogImage={ogImage}
   jsonLd={(ctx) => blogPostNode(ctx, post)}
 >
-  <article>
-    <h1>{post.title}</h1>
-    <p class="card__meta">
-      {post.author}
-      {post.author && formatDate(post.publishedAt) && ' · '}
-      {formatDate(post.publishedAt) && (
-        <time datetime={dateAttr(post.publishedAt)}>{formatDate(post.publishedAt)}</time>
+  <article class="blog-article">
+    <header class="blog-header">
+      {post.category && (
+        <p class="blog-category">{post.category}</p>
       )}
-      {(post.author || formatDate(post.publishedAt)) && readingTime(post.body) && ' · '}
-      {readingTime(post.body)}
-    </p>
-    {post.category && CATEGORY_LABELS[post.category] && (
-      <p class="card__category">{CATEGORY_LABELS[post.category]}</p>
+      <h1>{post.title}</h1>
+      <p class="blog-byline">
+        {post.author}
+        {post.author && formatDate(post.publishedAt) && ' · '}
+        {formatDate(post.publishedAt) && (
+          <time datetime={dateAttr(post.publishedAt)}>{formatDate(post.publishedAt)}</time>
+        )}
+        {(post.author || formatDate(post.publishedAt)) && time && ' · '}
+        {time}
+      </p>
+    </header>
+
+    {audioUrl && (
+      <div class="blog-audio">
+        <p class="blog-audio__label">Listen to this post</p>
+        <audio controls preload="metadata" src={audioUrl}>
+          Your browser does not support the audio element.
+        </audio>
+      </div>
     )}
+
     {post.mainImage && (
-      <Img image={post.mainImage} alt={post.title} field="mainImage" width={1600} sizes="100vw" loading="eager" fetchpriority="high" />
+      <Img class="blog-hero-img" image={post.mainImage} alt={post.title} field="mainImage" width={1600} sizes="100vw" loading="eager" fetchpriority="high" />
     )}
+
     {post.body?.length > 0 && (
       <div class="prose" set:html={renderPortableText(post.body)} />
     )}
   </article>
+
+  <section class="blog-cta">
+    <p class="blog-cta__text">Like what you see? Let's make something together.</p>
+    <a class="button" href={CONTACT_URL}>Let's Work</a>
+  </section>
+
+  {relatedWork.length > 0 && (
+    <section class="blog-related">
+      <h2>Related work</h2>
+      <div class="grid">
+        {relatedWork.map((item: any) => (
+          <a class="card" href={`/work/${item.slug.current}`}>
+            {(item.thumbnail || item.mainImage) && (
+              <Img
+                image={item.thumbnail || item.mainImage}
+                field={item.thumbnail ? 'thumbnail' : 'mainImage'}
+                alt={item.title}
+                width={600}
+                height={400}
+                sizes="(max-width: 40rem) 100vw, (max-width: 60rem) 50vw, 25vw"
+              />
+            )}
+            <p class="card__title">{item.title}</p>
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
 
   {morePosts.length > 0 && (
     <section class="more-posts">

@@ -93,6 +93,18 @@ export function getBlogPost(slug: string) {
   );
 }
 
+export function getRelatedWork(category: string | undefined, limit = 4) {
+  if (!category) return Promise.resolve([]);
+  return sanityClient.fetch(
+    `*[_type == "caseStudy" && pageType == "Case Study" && category == $category
+       && (defined(thumbnail) || defined(mainImage))]
+      | order(title asc)[0...$limit]{
+        title, slug, thumbnail, mainImage
+      }`,
+    { category, limit },
+  );
+}
+
 export function getOtherBlogPosts(excludeSlug: string, limit = 3) {
   return sanityClient.fetch(
     `*[_type == "blogPost" && slug.current != $slug]

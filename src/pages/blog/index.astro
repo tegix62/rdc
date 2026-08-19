@@ -8,13 +8,6 @@ import { readingTime } from '../../lib/readingTime';
 
 const page = await getPage('blog');
 const posts = await getBlogPosts();
-
-const CATEGORY_LABELS: Record<string, string> = {
-  'brand-identity': 'Brand Identity',
-  'lettering': 'Lettering',
-  'process': 'Process',
-  'merch-apparel': 'Merch & Apparel',
-};
 ---
 
 <Layout title={page?.title ?? 'Blog'} description={pageDescription(page, 'Notes on brand identity, hand lettering and merch design, and the process behind the work.')}>
@@ -43,8 +36,8 @@ const CATEGORY_LABELS: Record<string, string> = {
           {formatDate(post.publishedAt) && readingTime(post.body) && ' · '}
           {readingTime(post.body)}
         </p>
-        {post.category && CATEGORY_LABELS[post.category] && (
-          <p class="card__category">{CATEGORY_LABELS[post.category]}</p>
+        {post.category && (
+          <p class="card__category">{post.category}</p>
         )}
         {post.excerpt && <p class="card__meta">{post.excerpt}</p>}
       </a>

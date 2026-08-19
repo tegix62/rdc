@@ -1,6 +1,8 @@
 import {defineField, defineType} from 'sanity'
 import {imageSpec} from './imageFields'
 
+const CATEGORIES = ['Brand Identity', 'Merch & Apparel', 'Typography', 'Illustration', 'Process']
+
 export default defineType({
   name: 'blogPost',
   title: 'Blog Post',
@@ -23,14 +25,10 @@ export default defineType({
       name: 'category',
       title: 'Category',
       type: 'string',
-      options: {
-        list: [
-          {title: 'Brand Identity', value: 'brand-identity'},
-          {title: 'Lettering', value: 'lettering'},
-          {title: 'Process', value: 'process'},
-          {title: 'Merch & Apparel', value: 'merch-apparel'},
-        ],
-      },
+      description:
+        'Matches the project categories. Posts with a category show related ' +
+        'work from that category at the bottom.',
+      options: {list: CATEGORIES},
     }),
     /*
       Two images, and the difference is which page they appear on - which is now
@@ -64,6 +62,15 @@ export default defineType({
       description:
         'What Google and a shared link display. Falls back to the excerpt ' +
         'above when empty, so only fill this in when the two should differ.',
+    }),
+    defineField({
+      name: 'audioNarration',
+      title: 'Audio narration - your voice reading the post',
+      type: 'file',
+      options: {accept: 'audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/ogg'},
+      description:
+        'Upload an MP3 or M4A of you reading this post. Shows a player at ' +
+        'the top so visitors can listen instead of read.',
     }),
     defineField({
       name: 'body',

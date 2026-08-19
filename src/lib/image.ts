@@ -81,6 +81,23 @@ export function originalUrl(source: any): string | null {
   return `https://cdn.sanity.io/images/${projectId}/${dataset}/${assetId}-${dimensions}.${ext}`;
 }
 
+/*
+  The URL for a Sanity file asset (video, PDF, etc. — anything stored as
+  `{_type: 'file', asset: {_ref: 'file-<id>-<ext>'}}` rather than an image).
+
+  Built from the reference rather than via the image URL builder, which
+  only handles images and would throw on a file ref.
+*/
+export function fileUrl(source: any): string | null {
+  const ref: string | undefined = source?.asset?._ref ?? source?._ref;
+  if (typeof ref !== 'string') return null;
+  const match = ref.match(/^file-([a-zA-Z0-9_-]+)-([a-z0-9]+)$/i);
+  if (!match) return null;
+  const [, assetId, ext] = match;
+  const {projectId, dataset} = sanityClient.config();
+  return `https://cdn.sanity.io/files/${projectId}/${dataset}/${assetId}.${ext}`;
+}
+
 /** The asset's file extension, from its reference. */
 export function sourceExtension(source: any): string | null {
   const ref: string | undefined = source?.asset?._ref ?? source?._ref;

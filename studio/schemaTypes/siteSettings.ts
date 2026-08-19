@@ -195,14 +195,26 @@ export default defineType({
     }),
 
     // --- Homepage ----------------------------------------------------------
+    defineField({
+      name: 'heroVideo',
+      title: 'Hero video - replaces the background image when set',
+      type: 'file',
+      group: 'homepage',
+      options: {accept: 'video/webm,video/mp4'},
+      description:
+        'A looping background video behind the RUMEAU DESIGN COMPANY type. ' +
+        'WebM is preferred (smaller files, better quality). Autoplays muted ' +
+        'and loops. The image below becomes the poster frame shown while the ' +
+        'video loads. Clear this to fall back to the image.',
+    }),
     imageSpec({
       name: 'heroBackground',
-      title: 'Hero background - behind the big RUMEAU DESIGN COMPANY type',
+      title: 'Hero background / video poster - behind the big type',
       group: 'homepage',
       description:
-        'Full-bleed, with a navy wash over it. Heaviest file on the site by a ' +
-        'wide margin at the moment - if this is animated, keep an eye on its ' +
-        'size, because a pass-through image ships whole to every phone.',
+        'Full-bleed, with a navy wash over it. When a hero video is set, this ' +
+        'is the poster frame shown while the video loads. Without a video, this ' +
+        'is the background itself.',
     }),
     /*
       The homepage work grid.

@@ -164,7 +164,14 @@ console.log(
 const critters = new Critters({
   path: dist,
   preload: 'media',
-  inlineFonts: true,
+  // NOT inlining @font-face rules. Gothic A1 has hundreds of unicode-range
+  // subsets (Korean, Cyrillic, Greek...) that this English site never
+  // downloads, but critters can't tell which ranges matter — it inlines them
+  // all, adding ~40 KiB of dead declarations to every page. The Latin font
+  // files are already preloaded via <link rel="preload"> below, so the
+  // browser fetches them immediately; the @font-face rules in the deferred
+  // stylesheet map font-family names to those cached files when they arrive.
+  inlineFonts: false,
   compress: true,
   logLevel: 'info',
 });

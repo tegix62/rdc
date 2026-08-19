@@ -5,7 +5,7 @@ import Img from '../components/Img.astro';
 import Sections from '../components/Sections.astro';
 import WorkGrid from '../components/WorkGrid.astro';
 import { getPage, getSiteSettings, getFeaturedWork } from '../lib/queries';
-import { backgroundUrl, hotspotPosition, imageUrl, buildSrcSet, originalUrl, isPassThrough, cappedWidth, hasAsset } from '../lib/image';
+import { backgroundUrl, hotspotPosition, imageUrl, buildSrcSet, originalUrl, isPassThrough, cappedWidth, hasAsset, fileUrl } from '../lib/image';
 import { isAnimatedSource } from '../lib/animated';
 
 const page = await getPage('home');
@@ -78,18 +78,17 @@ const closerSuffix = settings?.closerSuffix || ' and built to perform on fabric.
 const finalCtaHeading = settings?.finalCtaHeading || 'DTC Brands and Apparel Companies:';
 
 /*
-  The hero image, as a real <img> instead of a CSS background-image.
+  The hero background: a video when one is uploaded, an image otherwise.
 
-  A background-image is invisible to the browser's preload scanner: the browser
-  cannot discover the URL until it has parsed the stylesheet and computed styles
-  for this element, which is the "LCP request discovery" finding PageSpeed flags.
-  It also ships at a single size regardless of viewport width, which is the
-  "Image delivery" finding. An <img> with srcset/sizes and fetchpriority="high"
-  fixes both, plus the LCP breakdown, in one change.
+  Video is better for the animated content Chris uses here: WebM is an order
+  of magnitude smaller than an animated WebP/GIF at the same quality, and it
+  streams — the browser starts painting frames before the file finishes,
+  where an animated image must download completely first.
 
-  The navy gradient overlay that was part of the background-image stack is now a
-  ::before pseudo-element in the CSS, sitting between the image and the text.
+  The image doubles as the video's poster frame (shown while the video
+  loads), so both fields complement each other rather than competing.
 */
+const heroVideoUrl = fileUrl(settings?.heroVideo);
 const heroSource = settings?.heroBackground;
 const heroHasAsset = hasAsset(heroSource);
 let heroSrc = '';
@@ -113,7 +112,18 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
 
 <Layout title={page?.title ?? 'Rumeau Design Co'} description={pageDescription(page, 'Hand-drawn brand identity, lettering and merch design for heritage apparel brands and musicians. The studio of Chris Rumeau, New Jersey.')}>
   <section class="statement">
-    {heroHasAsset && (
+    {heroVideoUrl ? (
+      <video
+        class="statement__bg"
+        src={heroVideoUrl}
+        poster={heroSrc || undefined}
+        autoplay
+        muted
+        loop
+        playsinline
+        style={heroPosition ? `object-position: ${heroPosition}` : undefined}
+      />
+    ) : heroHasAsset ? (
       <img
         class="statement__bg"
         src={heroSrc}
@@ -125,7 +135,7 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
         decoding="async"
         style={heroPosition ? `object-position: ${heroPosition}` : undefined}
       />
-    )}
+    ) : null}
     <div class="statement__line" aria-hidden="true"></div>
     {/*
       Three words, three lines - always, not just at the width where they

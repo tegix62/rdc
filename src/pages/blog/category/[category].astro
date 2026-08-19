@@ -19,38 +19,37 @@ import { dateAttr, formatDate } from '../../../lib/date';
 import { readingTime } from '../../../lib/readingTime';
 import { getRelatedWork } from '../../../lib/queries';
 
-const CATEGORIES: Record<string, { title: string; description: string }> = {
-  'Brand Identity': {
-    title: 'Brand Identity',
-    description: 'Notes on building visual identities — from first sketch to final delivery. Logo design, brand systems, and the thinking behind the marks.',
-  },
-  'Merch & Apparel': {
-    title: 'Merch & Apparel',
-    description: 'Designing for fabric, not just screens. Merch runs, apparel lines, and the production details that make printed work hold up.',
-  },
-  'Typography': {
-    title: 'Typography',
-    description: 'Hand lettering, type design, and vintage typography research. The craft behind the characters.',
-  },
-  'Illustration': {
-    title: 'Illustration',
-    description: 'Hand-drawn work — from spot illustrations to full compositions. Process, tools, and finished pieces.',
-  },
-  'Process': {
-    title: 'Process',
-    description: 'How the work gets made. Studio workflow, client collaboration, and lessons from real projects.',
-  },
-};
-
 export async function getStaticPaths() {
-  return Object.keys(CATEGORIES).map((cat) => ({
+  const categories: Record<string, { title: string; description: string }> = {
+    'Brand Identity': {
+      title: 'Brand Identity',
+      description: 'Notes on building visual identities — from first sketch to final delivery. Logo design, brand systems, and the thinking behind the marks.',
+    },
+    'Merch & Apparel': {
+      title: 'Merch & Apparel',
+      description: 'Designing for fabric, not just screens. Merch runs, apparel lines, and the production details that make printed work hold up.',
+    },
+    'Typography': {
+      title: 'Typography',
+      description: 'Hand lettering, type design, and vintage typography research. The craft behind the characters.',
+    },
+    'Illustration': {
+      title: 'Illustration',
+      description: 'Hand-drawn work — from spot illustrations to full compositions. Process, tools, and finished pieces.',
+    },
+    'Process': {
+      title: 'Process',
+      description: 'How the work gets made. Studio workflow, client collaboration, and lessons from real projects.',
+    },
+  };
+
+  return Object.keys(categories).map((cat) => ({
     params: { category: cat.toLowerCase().replace(/\s*&\s*/g, '-').replace(/\s+/g, '-') },
-    props: { categoryName: cat },
+    props: { categoryName: cat, meta: categories[cat] },
   }));
 }
 
-const { categoryName } = Astro.props;
-const meta = CATEGORIES[categoryName];
+const { categoryName, meta } = Astro.props;
 const slug = Astro.params.category;
 
 const posts = await sanityClient.fetch(

@@ -249,6 +249,7 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
     <meta name="description" content={description} />
     <title>{fullTitle}</title>
     <link rel="canonical" href={canonical} />
+    <link rel="alternate" type="application/rss+xml" title={SITE_NAME} href="/rss.xml" />
     {/*
       A robots meta on every page, not just the hidden ones.
 

@@ -10,6 +10,7 @@ import { hasAsset, imageUrl, socialCardDimensions, socialCardUrl } from '../lib/
 import VisualEditing from '../components/VisualEditing.astro';
 import MetaPixel from '../components/MetaPixel.astro';
 import { buildGraph, serialise, type SiteContext } from '../lib/structuredData';
+import { ClientRouter } from 'astro:transitions/ClientRouter';
 import { stripStega as clean } from '../lib/stega';
 import {
   bareTitle,
@@ -30,6 +31,8 @@ interface Props {
    * when the image is of something the title doesn't name.
    */
   ogImageAlt?: string;
+  /** Absolute URL to a video for og:video social previews. */
+  ogVideo?: string;
   /** 'article' for blog posts and case studies. */
   ogType?: 'website' | 'article';
   /**
@@ -56,6 +59,7 @@ const {
   description = 'Rumeau Design Co',
   ogImage,
   ogImageAlt,
+  ogVideo,
   ogType = 'website',
   noindex = false,
   jsonLd,
@@ -286,7 +290,8 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
       That reads as deliberate, but it is a design call - swap it to #ffffff for
       the seamless version.
     */}
-    <meta name="theme-color" content="#002885" />
+    <meta name="theme-color" content="#002885" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)" />
 
     {/* Webflow emitted these per page; without them a shared link previews
         as a bare URL with no title, description or image. */}
@@ -306,6 +311,12 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
             <meta property="og:image:height" content={String(socialImageSize.height)} />
           </>
         )}
+      </>
+    )}
+    {ogVideo && (
+      <>
+        <meta property="og:video" content={ogVideo} />
+        <meta property="og:video:type" content={ogVideo.endsWith('.webm') ? 'video/webm' : 'video/mp4'} />
       </>
     )}
     <meta name="twitter:card" content={socialImage ? 'summary_large_image' : 'summary'} />
@@ -329,6 +340,7 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
       costs and the consent question it does not answer.
     */}
     <MetaPixel id={settings?.metaPixelId} />
+    <ClientRouter />
   </head>
   <body>
     {/*
@@ -462,35 +474,37 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
     </style>
     <VisualEditing />
     <script>
-      const navToggle = document.querySelector<HTMLButtonElement>('#site-nav-toggle');
-      const navLinks = document.querySelector<HTMLElement>('#site-nav-links');
+      function bindNav() {
+        const navToggle = document.querySelector<HTMLButtonElement>('#site-nav-toggle');
+        const navLinks = document.querySelector<HTMLElement>('#site-nav-links');
+        if (!navToggle || !navLinks) return;
 
-      const setNavOpen = (open: boolean) => {
-        navLinks?.classList.toggle('is-open', open);
-        navToggle?.setAttribute('aria-expanded', String(open));
-      };
+        const setNavOpen = (open: boolean) => {
+          navLinks.classList.toggle('is-open', open);
+          navToggle.setAttribute('aria-expanded', String(open));
+        };
 
-      navToggle?.addEventListener('click', () => {
-        setNavOpen(!navLinks?.classList.contains('is-open'));
-      });
+        navToggle.addEventListener('click', () => {
+          setNavOpen(!navLinks.classList.contains('is-open'));
+        });
+      }
 
-      /*
-        Escape closes the menu, and focus goes back to the button that opened
-        it. Opening it was the only thing this menu could do: there was no key
-        to dismiss it, and the only way back out was to find the toggle again
-        by tabbing through every link - which on mobile means the menu is a
-        one-way door.
-
-        Focus is NOT moved into the menu on open. The links are the toggle's
-        next siblings in the DOM, so Tab already lands on them; forcing focus
-        would only take away the choice of tabbing straight past.
-      */
       document.addEventListener('keydown', (event) => {
         if (event.key !== 'Escape') return;
+        const navLinks = document.querySelector<HTMLElement>('#site-nav-links');
+        const navToggle = document.querySelector<HTMLButtonElement>('#site-nav-toggle');
         if (!navLinks?.classList.contains('is-open')) return;
-        setNavOpen(false);
+        navLinks.classList.remove('is-open');
+        navToggle?.setAttribute('aria-expanded', 'false');
         navToggle?.focus();
       });
+
+      document.addEventListener('astro:page-load', bindNav);
+    </script>
+    <script is:inline>
+      if ('serviceWorker' in navigator && !navigator.serviceWorker.controller) {
+        navigator.serviceWorker.register('/sw.js');
+      }
     </script>
     <script>
       // Ported from the Webflow site: blocks right-click save and

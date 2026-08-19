@@ -27,6 +27,30 @@
   --content-width: 72rem;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-navy: #4d8aff;
+    --color-navy-dark: #3a6fd4;
+    --color-white: #121212;
+    --color-gray-light: #1e1e1e;
+    --color-gray: #a0a0a0;
+    --color-border: #2a2a2a;
+    --color-ink: #e8e8e8;
+    --color-black: #ffffff;
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-navy: #4d8aff;
+  --color-navy-dark: #3a6fd4;
+  --color-white: #121212;
+  --color-gray-light: #1e1e1e;
+  --color-gray: #a0a0a0;
+  --color-border: #2a2a2a;
+  --color-ink: #e8e8e8;
+  --color-black: #ffffff;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -334,6 +358,18 @@ a {
 .site-footer__brand img {
   height: 48px;
   width: auto;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .site-nav__brand img,
+  :root:not([data-theme="light"]) .site-footer__brand img {
+    filter: invert(1) brightness(2);
+  }
+}
+
+:root[data-theme="dark"] .site-nav__brand img,
+:root[data-theme="dark"] .site-footer__brand img {
+  filter: invert(1) brightness(2);
 }
 
 /* Optional line of copy from siteSettings.footerText. Capped near 45
@@ -3349,4 +3385,28 @@ body {
 .contact-form__signature {
   color: var(--color-gray);
   margin-top: var(--space-3);
+}
+
+@supports (animation-timeline: view()) {
+  .card,
+  .blog-related,
+  .more-posts,
+  .blog-cta,
+  .email-capture,
+  .blog-article .prose {
+    animation: reveal linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 30%;
+  }
+
+  @keyframes reveal {
+    from {
+      opacity: 0;
+      transform: translateY(1.5rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }

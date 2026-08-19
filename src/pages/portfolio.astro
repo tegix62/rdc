@@ -253,7 +253,7 @@ if (emptyFilters.length > 0) {
   declare const Isotope: any;
   declare const imagesLoaded: any;
 
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('astro:page-load', () => {
     const grid = document.querySelector<HTMLElement>('#pf-grid');
     if (!grid) return;
 

@@ -4,7 +4,7 @@ import Img from '../../components/Img.astro';
 import Sections from '../../components/Sections.astro';
 import { sanityClient } from '../../lib/sanity';
 import { getCaseStudy, getGridItems, getOtherCaseStudies } from '../../lib/queries';
-import { socialCardUrl } from '../../lib/image';
+import { socialCardUrl, fileUrl } from '../../lib/image';
 import { embedUrl } from '../../lib/video';
 import { renderPortableText } from '../../lib/portableText';
 import Video from '../../components/Video.astro';
@@ -73,6 +73,8 @@ const description = caseStudyDescription(caseStudy);
 // duplicated chains, one of which would eventually have drifted.
 const ogImage =
   socialCardUrl(caseStudy.mainImage) ?? socialCardUrl(caseStudy.thumbnail) ?? undefined;
+const ogVideo =
+  fileUrl(caseStudy.heroVideoWebm) ?? fileUrl(caseStudy.heroVideoFile) ?? undefined;
 ---
 
 <Layout
@@ -80,6 +82,7 @@ const ogImage =
   description={description}
   ogType="article"
   ogImage={ogImage}
+  ogVideo={ogVideo}
   jsonLd={(ctx) => caseStudyNode(ctx, caseStudy)}
 >
   {/*

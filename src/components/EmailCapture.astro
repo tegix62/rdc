@@ -24,6 +24,7 @@ const { source = 'blog', class: className } = Astro.props;
 </form>
 
 <script>
+  document.addEventListener('astro:page-load', () => {
   document.querySelectorAll<HTMLFormElement>('[data-subscribe-form]').forEach((form) => {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -60,5 +61,6 @@ const { source = 'blog', class: className } = Astro.props;
       status.hidden = false;
       button.disabled = false;
     });
+  });
   });
 </script>

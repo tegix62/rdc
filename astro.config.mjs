@@ -2,6 +2,10 @@ import { defineConfig } from 'astro/config';
 
 export default defineConfig({
   site: 'https://rumeaudesign.co',
+  prefetch: {
+    defaultStrategy: 'hover',
+    prefetchAll: true,
+  },
   vite: {
     build: {
       /*

@@ -20,21 +20,42 @@
   Usage: node scripts/diagnose-live-videos.mjs [url ...]
 */
 import { chromium } from 'playwright';
+import { execSync } from 'node:child_process';
 
 const urls = process.argv.slice(2).length
   ? process.argv.slice(2)
   : ['https://rumeaudesign.co/work/dumpstat', 'https://rumeaudesign.co/work/two-point-oh'];
 
+/*
+  Round 3 lesson: Playwright quietly launches Chromium with
+  --autoplay-policy=no-user-gesture-required, so round 2's "headed, real
+  policy" run was still lenient - it measured Playwright's policy, not
+  Chrome's. ignoreDefaultArgs strips that flag (a no-op if a Playwright
+  version doesn't set it), and the command line is printed from /proc so
+  the log PROVES which policy actually applied instead of asserting it.
+*/
+const STRIP = ['--autoplay-policy=no-user-gesture-required'];
+
 const launch = async () => {
+  let b;
   try {
-    const b = await chromium.launch({ channel: 'chrome', headless: false });
-    console.log('browser: branded Chrome, headed');
-    return b;
+    b = await chromium.launch({ channel: 'chrome', headless: false, ignoreDefaultArgs: STRIP });
+    console.log('browser: branded Chrome, headed, autoplay-policy flag stripped');
   } catch {
-    const b = await chromium.launch({ headless: false });
-    console.log('browser: bundled Chromium, headed (branded Chrome unavailable)');
-    return b;
+    b = await chromium.launch({ headless: false, ignoreDefaultArgs: STRIP });
+    console.log('browser: bundled Chromium, headed, autoplay-policy flag stripped');
   }
+  try {
+    const cmd = execSync(
+      "ps ax -o command | grep -E '(chrome|chromium)' | grep -v grep | head -1",
+      { encoding: 'utf8' },
+    );
+    console.log(`launched command line:\n  ${cmd.trim()}`);
+    console.log(`autoplay flag present: ${cmd.includes('autoplay-policy') ? 'YES - STILL LENIENT' : 'no - real policy applies'}`);
+  } catch {
+    console.log('(could not read the browser command line)');
+  }
+  return b;
 };
 
 const snapshot = (page) =>

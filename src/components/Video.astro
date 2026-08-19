@@ -310,6 +310,16 @@ const hasPoster = Boolean(poster || posterUrl);
     }
   }
 
+  // Chrome can defer autoplay when multiple videos compete for bandwidth.
+  // Retry play() on any autoplay video still paused after a short delay.
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    setTimeout(() => {
+      for (const v of document.querySelectorAll<HTMLVideoElement>('video[autoplay]')) {
+        if (v.paused) v.play().catch(() => {});
+      }
+    }, 500);
+  }
+
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     for (const v of document.querySelectorAll('video[autoplay]')) {
       if (v instanceof HTMLVideoElement) {

@@ -1,0 +1,28 @@
+name: Diagnose - live video playback
+
+# One-off diagnostic, not a permanent check. See
+# scripts/diagnose-live-videos.mjs: three "should work" video fixes shipped
+# and Chris still sees grey boxes and non-playing autoplay clips, so this
+# renders the real pages in a real browser and reports what each <video>
+# element is actually doing instead of reasoning from source.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/diagnose-live-videos.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-videos
+          path: videos-*.png
+          if-no-files-found: ignore

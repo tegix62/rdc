@@ -5,25 +5,14 @@ import { getSiteSettings } from '../lib/queries';
 const settings = await getSiteSettings();
 const CONTACT_URL = settings?.contactUrl || '/contact';
 
-/*
-  A 404 is where every old Webflow URL that public/_redirects does not cover
-  lands, and this page was two sentences and no way forward. The old site used
-  /case-studies/<slug> and /post/<slug>; anything shared or bookmarked before
-  the move that is not in the redirect map arrives here, so this is the page
-  that has to recover the visit rather than end it.
-
-  The nav is only four links and does not include Blog, Collage or Merchfolio,
-  so those are listed here explicitly - this is the one page where a visitor is
-  definitely looking for something and definitely has not found it.
-*/
 const routes = [
-  { href: '/portfolio', label: 'Portfolio', note: 'Every project and piece, filterable' },
-  { href: '/', label: 'Home', note: 'Start from the top' },
-  { href: '/about', label: 'About', note: 'How the work gets made' },
-  { href: '/video', label: 'Video', note: 'Motion and film work' },
-  { href: '/merchfolio', label: 'Merch', note: 'Apparel and merchandise' },
-  { href: '/collage', label: 'Collage', note: 'Collage and cut-paper work' },
-  { href: '/blog', label: 'Blog', note: 'Notes and process' },
+  { href: '/portfolio', label: 'Portfolio' },
+  { href: '/', label: 'Home' },
+  { href: '/about', label: 'About' },
+  { href: '/video', label: 'Video' },
+  { href: '/merchfolio', label: 'Merch' },
+  { href: '/collage', label: 'Collage' },
+  { href: '/blog', label: 'Blog' },
 ];
 ---
 
@@ -31,66 +20,88 @@ const routes = [
   title="Page Not Found"
   description="That page doesn't exist. Here's the way back to the work."
 >
-  <h1>Page not found</h1>
-  <p class="not-found__lede">
-    That link is broken or the page has moved. If you followed it from
-    somewhere, the URL structure changed when this site was rebuilt - the work
-    is all still here.
-  </p>
+  <div class="not-found">
+    <p class="not-found__code">404</p>
+    <h1 class="not-found__heading">Nothing here.</h1>
+    <p class="not-found__body">
+      That page has moved or never existed. The work is all still here&mdash;pick a lane.
+    </p>
 
-  <ul class="not-found__routes">
-    {routes.map((route) => (
-      <li>
-        <a href={route.href}>{route.label}</a>
-        <span>{route.note}</span>
-      </li>
-    ))}
-  </ul>
+    <nav class="not-found__nav" aria-label="Site pages">
+      {routes.map((route) => (
+        <a class="not-found__link" href={route.href}>{route.label}</a>
+      ))}
+    </nav>
 
-  <p>
-    Still can't find it? <a href={CONTACT_URL}>Get in touch</a> and tell me what
-    you were looking for.
-  </p>
+    <p class="not-found__fallback">
+      Or just <a href={CONTACT_URL}>tell me what you were looking for</a>.
+    </p>
+  </div>
 </Layout>
 
 <style>
-  .not-found__lede {
-    max-width: 36em;
+  .not-found {
+    text-align: center;
+    padding: var(--space-6) 0;
+    max-width: 36rem;
+    margin: 0 auto;
   }
 
-  /* A definition-style list rather than a bare row of links: a visitor who has
-     just hit a dead end does not know what "Merchfolio" is, and the point of
-     this page is to be the fastest possible route back to the work. */
-  .not-found__routes {
-    list-style: none;
-    margin: var(--space-4) 0;
-    padding: 0;
-    display: grid;
-    gap: var(--space-2);
-    grid-template-columns: repeat(auto-fill, minmax(min(18rem, 100%), 1fr));
-  }
-
-  .not-found__routes li {
-    display: flex;
-    flex-direction: column;
-    gap: 0.125rem;
-    padding-bottom: var(--space-2);
-    border-bottom: 1px solid var(--color-border);
-  }
-
-  .not-found__routes a {
+  .not-found__code {
     font-family: var(--font-heading);
     font-weight: 700;
-    font-size: 1.125rem;
-    text-decoration: none;
+    font-size: clamp(6rem, 20vw, 12rem);
+    line-height: 1;
+    color: var(--color-navy);
+    margin: 0;
+    letter-spacing: -0.04em;
+    opacity: 0.12;
   }
 
-  .not-found__routes a:hover {
-    text-decoration: underline;
+  .not-found__heading {
+    font-size: clamp(2rem, 5vw, 3rem);
+    margin-top: -0.5em;
   }
 
-  .not-found__routes span {
-    font-size: 0.875rem;
+  .not-found__body {
     color: var(--color-gray);
+    font-size: 1.0625rem;
+    margin-top: var(--space-1);
+  }
+
+  .not-found__nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: var(--space-4);
+  }
+
+  .not-found__link {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    color: var(--color-navy);
+    border: 1.5px solid var(--color-navy);
+    padding: 0.5rem 1.25rem;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .not-found__link:hover {
+    background: var(--color-navy);
+    color: var(--color-white);
+  }
+
+  .not-found__fallback {
+    margin-top: var(--space-4);
+    font-size: 0.9375rem;
+    color: var(--color-gray);
+  }
+
+  .not-found__fallback a {
+    color: var(--color-navy);
   }
 </style>

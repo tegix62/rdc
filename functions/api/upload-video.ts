@@ -56,7 +56,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   const ext = file.name.split('.').pop()?.toLowerCase() || 'mp4';
-  const key = `v/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
+  const stem = file.name.replace(/\.[^.]+$/, '');
+  const slug = stem.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80);
+  const key = `v/${slug || 'video'}-${Date.now().toString(36)}.${ext}`;
 
   await env.VIDEO_BUCKET.put(key, file.stream(), {
     httpMetadata: { contentType: file.type || 'video/mp4' },

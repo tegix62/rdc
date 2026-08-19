@@ -2162,8 +2162,11 @@ main {
 .work-video-frame {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9;
   background: var(--color-black);
+}
+
+.work-video-frame:has(.video--embed) {
+  aspect-ratio: 16 / 9;
 }
 
 .work-video-frame iframe {
@@ -2775,6 +2778,10 @@ body {
   height: 100%;
 }
 
+.video--self {
+  height: auto;
+}
+
 .video__el,
 .video iframe {
   display: block;
@@ -2782,6 +2789,11 @@ body {
   height: 100%;
   border: 0;
   object-fit: cover;
+}
+
+.video--self .video__el {
+  height: auto;
+  object-fit: contain;
 }
 
 /*
@@ -2855,20 +2867,8 @@ body {
   background: rgba(0, 0, 0, 0.75);
 }
 
-.work-video-frame:has(.video--poster-play) {
-  aspect-ratio: unset;
-}
-
 .video--poster-play {
   position: relative;
-  height: auto;
-}
-
-.video--poster-play .video__el {
-  width: 100%;
-  height: auto;
-  object-fit: contain;
-  background: var(--color-black);
 }
 
 .video__back {

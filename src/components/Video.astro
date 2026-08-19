@@ -117,6 +117,7 @@ const youTubeId = embed?.includes('youtube.com/embed/')
 */
 const fallbackPoster = youTubeId ? `https://i.ytimg.com/vi/${youTubeId}/sddefault.jpg` : null;
 const posterUrl = imageUrl(poster)?.width(width).url() ?? null;
+const hasPoster = Boolean(poster || posterUrl);
 ---
 
 {selfHosted && posterPlay ? (
@@ -160,7 +161,7 @@ const posterUrl = imageUrl(poster)?.width(width).url() ?? null;
       playsinline={autoplay || undefined}
       controls={!autoplay || undefined}
       controlslist="nodownload"
-      preload={autoplay ? 'auto' : 'none'}
+      preload={autoplay ? 'auto' : hasPoster ? 'none' : 'metadata'}
       aria-label={title}
     >
       {webmUrl && <source src={webmUrl} type="video/webm" />}

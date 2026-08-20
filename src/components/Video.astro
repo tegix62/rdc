@@ -249,6 +249,8 @@ const hasPoster = Boolean(posterUrl);
       const video = container.querySelector<HTMLVideoElement>('video');
       const back = container.querySelector<HTMLElement>('[data-video-back]');
       if (video) {
+        container.style.height = container.offsetHeight + 'px';
+        container.dataset.playing = '';
         posterWrap.hidden = true;
         video.hidden = false;
         if (back) back.hidden = false;
@@ -266,6 +268,8 @@ const hasPoster = Boolean(posterUrl);
       const wrap = container.querySelector<HTMLElement>('.video__poster-wrap');
       if (video) { video.pause(); video.hidden = true; }
       if (wrap) wrap.hidden = false;
+      container.style.height = '';
+      delete container.dataset.playing;
       backBtn.hidden = true;
       return;
     }

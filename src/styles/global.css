@@ -2171,6 +2171,9 @@ main {
 
 .work-video-frame:has(.video--embed) {
   aspect-ratio: 16 / 9;
+  max-height: 65vh;
+  max-width: min(100%, calc(65vh * 16 / 9));
+  margin-inline: auto;
 }
 
 .work-video-frame iframe {
@@ -2800,7 +2803,7 @@ body {
   object-fit: contain;
 }
 .video--self .video__el:not([autoplay]) {
-  max-height: 80vh;
+  max-height: 65vh;
 }
 
 /*

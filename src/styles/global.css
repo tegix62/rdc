@@ -2795,6 +2795,9 @@ body {
   height: auto;
   object-fit: contain;
 }
+.video--self .video__el:not([autoplay]) {
+  max-height: 80vh;
+}
 
 /*
   The embed facade. A button, so it is keyboard reachable and announced as a
@@ -2940,6 +2943,8 @@ body {
   display: block;
   width: 100%;
   height: auto;
+  max-height: 80vh;
+  object-fit: contain;
   pointer-events: none;
 }
 

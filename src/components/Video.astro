@@ -249,7 +249,7 @@ const hasPoster = Boolean(posterUrl);
       const video = container.querySelector<HTMLVideoElement>('video');
       const back = container.querySelector<HTMLElement>('[data-video-back]');
       if (video) {
-        container.style.height = container.offsetHeight + 'px';
+        container.style.height = Math.min(container.offsetHeight, window.innerHeight * 0.8) + 'px';
         container.dataset.playing = '';
         posterWrap.hidden = true;
         video.hidden = false;

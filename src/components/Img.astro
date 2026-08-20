@@ -283,7 +283,7 @@ if (cropped && passThrough && intrinsic) {
 const askWidth = cappedWidth(image, width);
 const willStretch = !!intrinsic && intrinsic.width < width;
 let builtSrc = imageUrl(image)?.width(askWidth) ?? null;
-if (builtSrc && willStretch) builtSrc = builtSrc.quality(92).sharpen(15);
+if (builtSrc && willStretch) builtSrc = builtSrc.quality(95).sharpen(20);
 if (builtSrc && cropped) builtSrc = builtSrc.height(Math.round((askWidth * height!) / width)).fit('crop');
 
 const src = original ?? builtSrc?.url() ?? '';

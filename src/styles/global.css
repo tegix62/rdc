@@ -1875,11 +1875,15 @@ main {
 */
 .work-hero {
   margin-top: 0;
+  background: var(--color-ink);
 }
 
 .work-hero img {
+  display: block;
   width: 100%;
+  max-width: 1600px;
   max-height: 80vh;
+  margin-inline: auto;
   object-fit: cover;
 }
 

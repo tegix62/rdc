@@ -1960,6 +1960,9 @@ main {
 @media (max-width: 40rem) {
   .work-identity__mark img {
     max-height: 4.5rem;
+    /* Sharing a row with the title now, so a wide mark must not squeeze it
+       into a column of one word per line. */
+    max-width: 30vw;
   }
 }
 
@@ -1988,6 +1991,7 @@ main {
 .work-identity__credits {
   flex-shrink: 0;
 }
+
 
 .work-identity__credits p {
   margin: 0.15rem 0;
@@ -2030,18 +2034,68 @@ main {
     padding: 0 var(--space-2);
   }
 
-  /* One column on phones: the mark and credits sit under the text rather
-     than beside it, and everything shares the same left edge. */
+  /*
+    On phones the client's mark moves UP beside the title.
+
+    It lives in __aside with the credits because on desktop that is exactly
+    what it is - a right-hand column. Stacking that column on a phone put
+    the mark below the summary paragraph, a long way from the name it
+    belongs to, which is what this fixes.
+
+    display:contents dissolves both wrappers into the single grid, so the
+    title and the mark can share a row while each stays in the markup where
+    it makes sense. No duplicated element, and nothing reordered for a
+    screen reader - the reading order is still title, summary, mark,
+    credits.
+
+    Only __head and __mark are placed explicitly. Everything else
+    auto-places from row 2 downwards, so the layout does not care which of
+    the optional fields - kicker, summary, stat, credits, principal type -
+    a given case study actually has.
+  */
   .work-identity__inner {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-4);
+    grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+    column-gap: var(--space-3);
+    row-gap: var(--space-3);
   }
 
+  .work-identity__main,
   .work-identity__aside {
-    align-items: flex-start;
-    text-align: left;
-    gap: var(--space-3);
+    display: contents;
   }
+
+  .work-identity__head {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .work-identity__mark {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    /* Centred on the title block rather than top-aligned: a title that
+       wraps to two lines would otherwise leave the mark hanging off the
+       first one. */
+    align-self: center;
+  }
+
+  .work-identity__summary,
+  .work-identity__stat,
+  .work-identity__credits {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+
+  /*
+    The grid's row-gap owns the vertical rhythm now. These margins were
+    internal to __main while it was a single grid item; as siblings they
+    add to the gap instead, spacing the column out twice.
+  */
+  .work-identity__summary,
+  .work-identity__stat {
+    margin-top: 0;
+  }
+
 
   .work-identity__summary {
     max-width: none;
@@ -2692,9 +2746,20 @@ body {
   filter: none;
 }
 
-/* The credit line, which is a quieter thing than the role credits above it. */
+/*
+  The credit line, which is a quieter thing than the role credits above it -
+  but it IS a credit, which is what the note on it in [slug].astro says, so
+  the separation wants to be a paragraph break rather than a section break.
+
+  The value is NEGATIVE because this margin lands on top of the container's
+  own gap rather than replacing it: the aside is a flex column with a 2rem
+  gap, so a +1rem margin here put the two blocks 48px apart and they read as
+  unrelated. Measured after: 16px on desktop, 8px on the phone grid, both
+  from this one rule - no media query, because subtracting from whichever
+  gap is in force lands right at both sizes.
+*/
 .work-identity__type {
-  margin-top: var(--space-2);
+  margin-top: calc(var(--space-2) - var(--space-4));
 }
 
 /* The link treatment that used to live here now covers the whole navy band -

@@ -124,8 +124,16 @@ const gated = !!caseStudy.accessPassword;
   <section class="work-identity full-bleed">
     <div class="work-identity__inner">
       <div class="work-identity__main">
-        {caseStudy.subtitle && <p class="work-identity__kicker">{caseStudy.subtitle}</p>}
-        <h1>{caseStudy.headline ?? caseStudy.title}</h1>
+        {/*
+          Kicker and title wrapped as one block so the phone layout can put
+          the client's mark beside THEM specifically - see the
+          display:contents note in global.css. Layout-neutral on desktop,
+          where __main is an ordinary block either way.
+        */}
+        <div class="work-identity__head">
+          {caseStudy.subtitle && <p class="work-identity__kicker">{caseStudy.subtitle}</p>}
+          <h1>{caseStudy.headline ?? caseStudy.title}</h1>
+        </div>
         {(caseStudy.summary || caseStudy.oneLineSummary) && (
           <p class="work-identity__summary">{caseStudy.summary ?? caseStudy.oneLineSummary}</p>
         )}

@@ -59,6 +59,28 @@ export const videoBehaviourFields = [
       'works on uploaded files.',
   }),
   defineField({
+    name: 'videoPosterBackground',
+    title: 'Poster background',
+    type: 'string',
+    hidden: ({parent}: any) => parent?.videoPlayback !== 'poster',
+    options: {
+      list: [
+        {title: 'None - image at its own size', value: 'none'},
+        {title: 'Black, padded', value: 'black'},
+        {title: 'White, padded', value: 'white'},
+      ],
+      layout: 'radio',
+    },
+    initialValue: 'none',
+    description:
+      'For a tightly-trimmed logomark that would look bare sitting directly ' +
+      'on the page. Pads the poster inside a solid block, so a small mark ' +
+      'reads as a deliberate presentation rather than a cropped asset — the ' +
+      'padded block is still the whole clickable target. The video keeps the ' +
+      'same background behind it once playing, as letterboxing, so nothing ' +
+      'flashes when it starts. Only used by "Poster with corner play button".',
+  }),
+  defineField({
     name: 'videoMuted',
     title: 'Mute audio',
     type: 'boolean',

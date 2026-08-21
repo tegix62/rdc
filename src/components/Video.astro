@@ -41,6 +41,15 @@ interface Props {
      to the wrong one of its six image fields. */
   posterField?: string;
   playback?: 'click' | 'autoplay' | 'poster' | null;
+  /*
+    A trimmed logomark shown at its own size (see `.video__poster-wrap img`'s
+    width:auto) sits bare against the page - there is no frame telling a
+    visitor the small mark IS the whole poster, not a broken image. This pads
+    it inside a solid block instead. Only meaningful in 'poster' playback:
+    'click' and 'autoplay' have no separate poster element to pad - 'click'
+    is the browser's own <video poster> attribute, which owns its own box.
+  */
+  posterBackground?: 'none' | 'black' | 'white' | null;
   /** Strip audio from playback. */
   muted?: boolean | null;
   /** Used for the accessible name, and as the iframe title. */
@@ -58,6 +67,7 @@ const {
   poster,
   posterField,
   playback = 'click',
+  posterBackground,
   title = 'Video',
   width = 1600,
   sizes = '100vw',
@@ -72,6 +82,11 @@ const forceMuted = Boolean(Astro.props.muted);
 const selfHosted = Boolean(mp4 || webmUrl || directUrl);
 const autoplay = selfHosted && playback === 'autoplay';
 const posterPlay = playback === 'poster';
+// Only 'none' does nothing, and only 'poster' playback has a poster element
+// to apply it to - see the prop's own comment for why 'click' can't use it.
+const posterBg = posterPlay && posterBackground && posterBackground !== 'none'
+  ? posterBackground
+  : undefined;
 
 /*
   embedUrl now guarantees string-or-null, so this is belt and braces rather than
@@ -135,7 +150,7 @@ const hasPoster = Boolean(posterUrl);
 ---
 
 {selfHosted && posterPlay ? (
-  <div class:list={['video', 'video--self', 'video--poster-play', className]} data-poster-play>
+  <div class:list={['video', 'video--self', 'video--poster-play', className]} data-poster-play data-poster-bg={posterBg}>
     <button type="button" class="video__poster-wrap" aria-label={`Play ${title}`}>
       {poster ? (
         <Img image={poster} alt="" field={posterField ?? 'video poster'} width={width} sizes={sizes} />
@@ -261,7 +276,7 @@ const hasPoster = Boolean(posterUrl);
           : raw.endsWith('vh') ? (window.innerHeight * n) / 100
           : n;
         /*
-          Locked to the POSTER's rendered box, width included.
+          Locked to the WRAP's own rendered box, not the <img> inside it.
 
           Height alone stops the page jumping but leaves the container full
           width, and the video below - absolutely positioned to inset:0 - then
@@ -269,8 +284,14 @@ const hasPoster = Boolean(posterUrl);
           invisible-cap trap described on .video--self .video__el in
           global.css: the picture shrinks, the box does not. Pinning both axes
           makes the player occupy exactly the footprint the poster had.
+
+          The wrap, not the img specifically: with no poster background set
+          the two are the same box (the button is width:fit-content around
+          nothing but the image), but with one set the button carries padding
+          the img rect would miss - locking to the smaller img box would snap
+          the video down to it the instant it starts playing.
         */
-        const box = (posterWrap.querySelector('img') ?? posterWrap).getBoundingClientRect();
+        const box = posterWrap.getBoundingClientRect();
         container.style.width = Math.round(box.width) + 'px';
         container.style.height = Math.round(Math.min(box.height, cap)) + 'px';
         container.style.marginInline = 'auto';

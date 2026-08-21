@@ -3047,6 +3047,27 @@ body {
   object-fit: contain;
 }
 
+/*
+  Continuity for the padded poster once the video starts.
+
+  Only when BOTH data-poster-bg and data-playing are present - never for
+  data-poster-bg alone, which would paint this full-width flex container
+  black/white behind the padded button rather than around just the image.
+  It's safe on [data-playing] specifically because the click handler in
+  Video.astro resizes THIS element's width/height inline, to the wrap's own
+  measured box, before setting data-playing - so by the time this rule can
+  match, the container already IS that box, with nothing left over to paint.
+
+  object-fit:contain above means a video whose aspect differs from that box
+  leaves visible bars. Without this the bars would be whatever sits behind
+  the frame (page background, or another rule's black); with it they are the
+  same colour the poster was presented in, so nothing changes underneath the
+  visitor at the moment of the click besides the poster itself.
+*/
+[data-poster-play][data-poster-bg][data-playing] {
+  background: var(--poster-bg);
+}
+
 .video__back {
   position: absolute;
   top: 0.5rem;
@@ -3112,6 +3133,29 @@ body {
   height: auto;
   max-height: var(--video-fit);
   pointer-events: none;
+}
+
+/*
+  Poster background: presents a tightly-trimmed logomark inside a solid
+  padded block instead of letting it sit bare on the page - set per video in
+  Studio (videoPosterBackground), 'poster' playback only.
+
+  The colour is set on [data-poster-play] itself, not a level down, so ONE
+  declaration can drive both places it is needed: the wrap (below) reads it
+  for the still image, and the [data-playing] rule further down reads the
+  same variable for the video's letterboxing, with nothing to keep in sync
+  between the two.
+
+  Padding lives on .video__poster-wrap alone. The wrap is width:fit-content,
+  so padding grows its own box rather than the box of something bigger - the
+  clickable button becomes exactly image-plus-padding, never wider than that.
+*/
+[data-poster-bg='black'] { --poster-bg: #000; }
+[data-poster-bg='white'] { --poster-bg: #fff; }
+
+[data-poster-bg] .video__poster-wrap {
+  padding: var(--space-4);
+  background: var(--poster-bg);
 }
 
 .video__play--corner {

@@ -2186,6 +2186,18 @@ main {
   margin-inline: auto;
 }
 
+/*
+  A self-hosted video sizes itself now (see .video--self .video__el), so the
+  frame must hug it rather than standing a full-width black band behind a
+  narrower picture - which is exactly what the black side bars were. An embed
+  is the opposite case and keeps the block above: an iframe cannot be measured,
+  so its frame has to impose the 16:9 box and the black is the letterbox.
+*/
+.work-video-frame:has(.video--self) {
+  width: fit-content;
+  margin-inline: auto;
+}
+
 .work-video-frame iframe {
   position: absolute;
   inset: 0;

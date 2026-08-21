@@ -1964,6 +1964,40 @@ main {
        into a column of one word per line. */
     max-width: 30vw;
   }
+
+  /*
+    The title shrinks when it is sharing its row with a mark - and ONLY
+    then, via :has(). A mark-less title keeps the full 3.5rem: this is a
+    layout accommodation, not a new rule for mobile titles in general.
+
+    MEASURED, not guessed. Putting the mark beside the title took the
+    title's column from 334px down to 226px (the mark plus the column gap),
+    and at 3.5rem in the real Inter Tight bold, two of the six live case
+    studies wrapped to a second line where they used to be one - "Chateau
+    Seven" and "Two Point Oh" - which is what looked broken and left a tall
+    empty-feeling gap before the summary. The other four already wrapped at
+    the OLD full-width column, so they are not a regression here.
+
+    2rem was chosen by sweeping real render output in that 226px column
+    with the actual Inter Tight Variable font file, not the system font a
+    quick check would substitute: "Chateau Seven" is the tightest of the
+    six and first goes single-line at 2.0625rem. 2rem clears that with a
+    margin, rather than sitting on the exact pixel where it started
+    passing - which would be one font hinting difference from breaking
+    again. Titles longer than these six may still wrap at 2rem, same as
+    they always could at 3.5rem; nothing here promises every title fits
+    one line, only that the SAME titles that fit before still do.
+
+    Trade-off worth knowing: 2rem sits below h3 (2.5rem), so a page's own
+    title is now smaller than a section heading further down the same
+    page, on this one path. Revisit if that reads as backwards in practice
+    - the alternative is loosening the mark (a lower max-width/max-height
+    above) rather than the type.
+  */
+  .work-identity__inner:has(.work-identity__mark) .work-identity__head h1 {
+    font-size: 2rem;
+    line-height: 1.15;
+  }
 }
 
 .work-identity__summary {

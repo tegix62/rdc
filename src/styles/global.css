@@ -3153,8 +3153,31 @@ body {
 [data-poster-bg='black'] { --poster-bg: #000; }
 [data-poster-bg='white'] { --poster-bg: #fff; }
 
+/*
+  The padding SCALES rather than sitting at one fixed step.
+
+  A flat 2rem is two different designs depending on where it lands: generous
+  around a mark on a 390px phone, and a thin rim around the same mark inside
+  a full-width block on a 1500px display - which is what made the desktop
+  presentation look tighter than the phone one. Tying it to the viewport
+  keeps the ratio of mark to negative space closer to constant, which is the
+  thing that actually reads as cohesive.
+
+  clamp floor is the previous 2rem, so phones are unchanged - the complaint
+  was about desktop, and horizontal space is the scarce thing on a phone
+  (border-box means this padding eats into the mark's own width, not out
+  past it). The 4.5rem ceiling stops very wide displays turning the block
+  into a mostly-empty field.
+
+  One knob, deliberately: change this single value to retune every padded
+  poster on the site.
+*/
+[data-poster-bg] {
+  --poster-pad: clamp(2rem, 5vw, 4.5rem);
+}
+
 [data-poster-bg] .video__poster-wrap {
-  padding: var(--space-4);
+  padding: var(--poster-pad);
   background: var(--poster-bg);
 }
 

@@ -95,22 +95,32 @@ let heroSrc = '';
 let heroSrcset: string | undefined;
 const heroPosition = hotspotPosition(heroSource);
 
-let heroAnimatedSrc: string | undefined;
+/*
+  An animated source is pass-through, exactly as everywhere else.
 
+  This branch used to do the opposite: it asked the CDN for a TRANSFORMED
+  still to show first, and then a script swapped in the original animation.
+  Both files therefore landed on every visitor - and transforming an
+  animation re-encodes it rather than flattening it, which is the inflation
+  isPassThrough exists to avoid (see lib/image.ts: one 867 KB GIF came back
+  at 4,602 KB).
+
+  Measured on the live homepage by PageSpeed: the transformed "still" was
+  1,125.8 KiB and the animation it was standing in for was 510.0 KiB. So the
+  placeholder cost more than twice the thing it was a placeholder FOR, and
+  being larger it also arrived later - there was no moment at which it was
+  the faster picture. 1,636 KiB spent to show 510 KiB.
+
+  isPassThrough(source, animated) already folds both cases together, which is
+  what Img.astro calls, so the special case collapses into the normal path.
+*/
 if (heroHasAsset) {
   const animated = await isAnimatedSource(heroSource);
-  if (animated) {
-    heroAnimatedSrc = originalUrl(heroSource) ?? undefined;
+  if (isPassThrough(heroSource, animated)) {
+    heroSrc = originalUrl(heroSource) ?? '';
+  } else {
     heroSrc = imageUrl(heroSource)?.width(cappedWidth(heroSource, 1800)).url() ?? '';
     heroSrcset = buildSrcSet(heroSource, 1800);
-  } else {
-    const passThrough = isPassThrough(heroSource);
-    if (passThrough) {
-      heroSrc = originalUrl(heroSource) ?? '';
-    } else {
-      heroSrc = imageUrl(heroSource)?.width(cappedWidth(heroSource, 1800)).url() ?? '';
-      heroSrcset = buildSrcSet(heroSource, 1800);
-    }
   }
 }
 
@@ -134,7 +144,6 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
     ) : heroHasAsset ? (
       <img
         class="statement__bg"
-        id="hero-bg"
         src={heroSrc}
         srcset={heroSrcset}
         sizes={heroSrcset ? '100vw' : undefined}
@@ -142,7 +151,6 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
         loading="eager"
         fetchpriority="high"
         decoding="async"
-        data-animated={heroAnimatedSrc || undefined}
         style={heroPosition ? `object-position: ${heroPosition}` : undefined}
       />
     ) : null}
@@ -272,18 +280,3 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
   </section>
 </Layout>
 
-<script is:inline>
-  document.addEventListener('DOMContentLoaded', function () {
-    var hero = document.getElementById('hero-bg');
-    if (!hero) return;
-    var animSrc = hero.getAttribute('data-animated');
-    if (!animSrc) return;
-    var img = new Image();
-    img.onload = function () {
-      hero.removeAttribute('srcset');
-      hero.removeAttribute('sizes');
-      hero.src = animSrc;
-    };
-    img.src = animSrc;
-  });
-</script>

@@ -249,7 +249,18 @@ const hasPoster = Boolean(posterUrl);
       const video = container.querySelector<HTMLVideoElement>('video');
       const back = container.querySelector<HTMLElement>('[data-video-back]');
       if (video) {
-        container.style.height = Math.min(container.offsetHeight, window.innerHeight * 0.65) + 'px';
+        /*
+          The same cap the stylesheet uses (--video-fit), read rather than
+          repeated: a hardcoded 0.65 here would silently disagree with the CSS
+          the first time that token is tuned.
+        */
+        const raw = getComputedStyle(document.documentElement)
+          .getPropertyValue('--video-fit').trim();
+        const n = parseFloat(raw);
+        const cap = !n ? window.innerHeight * 0.65
+          : raw.endsWith('vh') ? (window.innerHeight * n) / 100
+          : n;
+        container.style.height = Math.min(container.offsetHeight, cap) + 'px';
         container.dataset.playing = '';
         posterWrap.hidden = true;
         video.hidden = false;

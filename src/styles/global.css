@@ -25,6 +25,16 @@
   --space-6: 4rem;
 
   --content-width: 72rem;
+
+  /*
+    The tallest a video block may be. Every video container caps against this,
+    so "videos are too big on a laptop" is one number here rather than a
+    literal repeated in four rules that then drift apart.
+
+    65vh, not 100vh: a video that exactly fills the viewport reads as a
+    takeover and leaves no hint that the page continues below it.
+  */
+  --video-fit: 65vh;
 }
 
 *, *::before, *::after {
@@ -2171,8 +2181,8 @@ main {
 
 .work-video-frame:has(.video--embed) {
   aspect-ratio: 16 / 9;
-  max-height: 65vh;
-  max-width: min(100%, calc(65vh * 16 / 9));
+  max-height: var(--video-fit);
+  max-width: min(100%, calc(var(--video-fit) * 16 / 9));
   margin-inline: auto;
 }
 
@@ -2255,9 +2265,20 @@ main {
   }
 }
 
+/*
+  A 16:9 block at full width is 1080px tall on a 1920px screen - taller than
+  the viewport it sits in. The ratio is kept (so nothing crops and the page
+  reserves the right box before the video loads) and the whole block is capped
+  by HEIGHT instead, with max-width doing the arithmetic that keeps 16:9 at
+  that height. Centred, because a capped block in a full-width slot would
+  otherwise sit left.
+*/
 .work-section--video-hero {
   position: relative;
   aspect-ratio: 16 / 9;
+  max-height: var(--video-fit);
+  max-width: min(100%, calc(var(--video-fit) * 16 / 9));
+  margin-inline: auto;
   background: var(--color-black);
   display: flex;
   align-items: center;
@@ -2803,7 +2824,7 @@ body {
   object-fit: contain;
 }
 .video--self .video__el:not([autoplay]) {
-  max-height: 65vh;
+  max-height: var(--video-fit);
 }
 
 /*
@@ -2955,7 +2976,7 @@ body {
   width: auto;
   max-width: 100%;
   height: auto;
-  max-height: 65vh;
+  max-height: var(--video-fit);
   pointer-events: none;
 }
 

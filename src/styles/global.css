@@ -2823,8 +2823,31 @@ body {
   height: auto;
   object-fit: contain;
 }
+
+/*
+  width:auto is the whole fix, and it is not interchangeable with a height cap.
+
+  A <video> is a replaced element, so `width: 100%` (inherited from .video__el
+  above) makes the BOX span the container and `object-fit: contain` then
+  letterboxes the picture inside it. Capping max-height alone therefore shrinks
+  the picture while leaving a full-width box behind - and since the frame's
+  background is black, the letterboxing is invisible and the block still eats
+  the viewport. Four height-only caps shipped before this and none of them
+  looked like they did anything, for exactly that reason.
+
+  With width:auto the element takes its own intrinsic size instead, so
+  max-height genuinely shrinks the BOX and max-width:100% keeps it inside a
+  narrow column. margin-inline centres what is now a shrunk block.
+
+  Scoped off [autoplay]: those are the full-bleed looping heroes, which are
+  meant to fill their frame and crop.
+*/
 .video--self .video__el:not([autoplay]) {
+  width: auto;
+  max-width: 100%;
+  height: auto;
   max-height: var(--video-fit);
+  margin-inline: auto;
 }
 
 /*

@@ -260,7 +260,20 @@ const hasPoster = Boolean(posterUrl);
         const cap = !n ? window.innerHeight * 0.65
           : raw.endsWith('vh') ? (window.innerHeight * n) / 100
           : n;
-        container.style.height = Math.min(container.offsetHeight, cap) + 'px';
+        /*
+          Locked to the POSTER's rendered box, width included.
+
+          Height alone stops the page jumping but leaves the container full
+          width, and the video below - absolutely positioned to inset:0 - then
+          letterboxes inside that against a black frame. That is the same
+          invisible-cap trap described on .video--self .video__el in
+          global.css: the picture shrinks, the box does not. Pinning both axes
+          makes the player occupy exactly the footprint the poster had.
+        */
+        const box = (posterWrap.querySelector('img') ?? posterWrap).getBoundingClientRect();
+        container.style.width = Math.round(box.width) + 'px';
+        container.style.height = Math.round(Math.min(box.height, cap)) + 'px';
+        container.style.marginInline = 'auto';
         container.dataset.playing = '';
         posterWrap.hidden = true;
         video.hidden = false;
@@ -279,7 +292,11 @@ const hasPoster = Boolean(posterUrl);
       const wrap = container.querySelector<HTMLElement>('.video__poster-wrap');
       if (video) { video.pause(); video.hidden = true; }
       if (wrap) wrap.hidden = false;
+      // Every axis the play handler pinned, or the container keeps the
+      // player's footprint once the poster is back.
+      container.style.width = '';
       container.style.height = '';
+      container.style.marginInline = '';
       delete container.dataset.playing;
       backBtn.hidden = true;
       return;

@@ -124,6 +124,29 @@ if (heroHasAsset) {
   }
 }
 
+/*
+  The video's poster is a different job from the <img> above, and must not
+  reuse heroSrc.
+
+  A poster is painted as a STILL. Handing it the animated original would
+  download an entire animation to show one frame of it - and the poster is
+  the LCP element, so that lands squarely on the critical path, which is the
+  whole thing the video was meant to fix.
+
+  Transforming an animated source normally re-encodes it (the inflation
+  isPassThrough exists to avoid). Asking for jpg cannot: JPEG has no
+  animation, so the CDN is forced to flatten to a single frame. That makes
+  it the one transform that returns an animated source SMALLER rather than
+  larger - a still frame instead of a re-encoded loop.
+
+  q70 because this is behind text and swapped out for the video within a
+  second or two; it is the fastest paint that still looks right, not an
+  image anyone studies.
+*/
+const heroPoster = heroVideoUrl && heroHasAsset
+  ? (imageUrl(heroSource)?.width(1600).format('jpg').quality(70).url() ?? undefined)
+  : undefined;
+
 const proofBg = await backgroundUrl(settings?.proofBandBackground, 500);
 const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined;
 ---
@@ -134,11 +157,12 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
       <video
         class="statement__bg"
         src={heroVideoUrl}
-        poster={heroSrc || undefined}
+        poster={heroPoster}
         autoplay
         muted
         loop
         playsinline
+        preload="auto"
         style={heroPosition ? `object-position: ${heroPosition}` : undefined}
       />
     ) : heroHasAsset ? (
@@ -154,6 +178,26 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
         style={heroPosition ? `object-position: ${heroPosition}` : undefined}
       />
     ) : null}
+    {/*
+      Reduced motion, honoured for this hero too.
+
+      Video.astro's script covers every clip IT renders, but this hero is
+      written inline here, so that observer never sees it - and an
+      autoplaying full-screen background is the last thing that should
+      ignore the setting. Placed immediately after the element and inline,
+      so it runs as the page is parsed rather than on DOMContentLoaded,
+      after a second of motion the visitor asked not to see.
+
+      The poster stays, which is the same fallback Video.astro documents.
+      No-op when the hero is an image, and roughly 120 bytes.
+    */}
+    <script is:inline>
+      (function () {
+        if (!matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        var v = document.querySelector('video.statement__bg');
+        if (v) { v.autoplay = false; v.pause(); }
+      })();
+    </script>
     <div class="statement__line" aria-hidden="true"></div>
     {/*
       Three words, three lines - always, not just at the width where they

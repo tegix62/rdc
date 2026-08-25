@@ -4008,6 +4008,81 @@ body {
 }
 
 /*
+  Plates: the supporting pieces, deliberately smaller and denser than the
+  works above.
+
+  The size difference IS the argument. On the Portfolio grid a photo of one
+  hoodie renders at the same scale as the project it came from, so the eye
+  reads thirteen projects and forty peers. Here the hierarchy is visible
+  before a single caption is read.
+*/
+.catalog__head--plates {
+  margin-top: var(--space-6);
+  border-top: var(--rule);
+}
+
+.catalog__plates {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.catalog__plate-item {
+  margin: 0;
+  padding: var(--catalog-gap);
+  border-bottom: var(--rule);
+  border-left: var(--rule);
+}
+
+/* The first in each row has the page edge to its left already. */
+.catalog__plate-item:nth-child(4n + 1) {
+  border-left: none;
+}
+
+.catalog__plate-item img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.catalog__plate-cap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin-top: var(--space-2);
+  font-family: var(--font-heading);
+  font-size: 0.6875rem;
+  line-height: 1.4;
+}
+
+.catalog__plate-parent {
+  color: var(--color-gray);
+}
+
+@media (max-width: 60rem) {
+  .catalog__plates {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .catalog__plate-item:nth-child(4n + 1) {
+    border-left: var(--rule);
+  }
+  .catalog__plate-item:nth-child(3n + 1) {
+    border-left: none;
+  }
+}
+
+@media (max-width: 40rem) {
+  .catalog__plates {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .catalog__plate-item:nth-child(3n + 1) {
+    border-left: var(--rule);
+  }
+  .catalog__plate-item:nth-child(2n + 1) {
+    border-left: none;
+  }
+}
+
+/*
   One column on a phone. The between-columns rule has nothing left to
   separate, so it is removed rather than left drawing a line down one edge.
 */

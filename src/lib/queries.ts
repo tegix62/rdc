@@ -199,16 +199,49 @@ export function getAllGridItems() {
   thumbnail.
 */
 const CATALOG = `
-  _id, title, slug, category, assetType, client,
+  _id, title, slug, pageType, category, assetType, client,
   thumbnail, mainImage, oneLineSummary, summary,
-  "parentTitle": parentBrand->title
+  "parentTitle": parentBrand->title,
+  "parentSlug": parentBrand->slug.current,
+  "parentType": parentBrand->pageType
 `;
 
+/*
+  The catalogued WORKS: the projects themselves, each getting a full citation.
+
+  order(title asc), deliberately, where the Portfolio grid shuffles each tier
+  on every build. A shuffle is right for a wall - it keeps the page feeling
+  alive and no tile is promised a position. It is wrong for a catalog, where
+  the number beside a work is a handle you can say out loud, and a handle
+  that changes every deploy is not a handle.
+*/
 export function getCatalogItems() {
   return sanityClient.fetch(
     `*[_type == "caseStudy" && pageType == "Case Study"
        && (defined(thumbnail) || defined(mainImage))]{${CATALOG}}
      | order(title asc)`,
+  );
+}
+
+/*
+  The PLATES: everything that is not itself a project - the individual pieces
+  a project is made of, plus the orphans.
+
+  Same content as tiers 2 and 3 of the Portfolio grid, presented as supporting
+  material rather than as equals. That distinction is the whole argument of
+  the catalog view: a photograph of one hoodie is evidence for the Adelante
+  project, not a thirteenth peer of it.
+
+  Ordered by parent so the plates cluster under the work they belong to. The
+  coalesce pushes parentless orphans to the end rather than letting a null
+  sort them to the front, which would open the section with the loosest
+  material on the site.
+*/
+export function getCatalogPlates() {
+  return sanityClient.fetch(
+    `*[_type == "caseStudy" && pageType == "Grid Item"
+       && (defined(thumbnail) || defined(mainImage))]{${CATALOG}}
+     | order(coalesce(parentBrand->title, "zzzz") asc, title asc)`,
   );
 }
 

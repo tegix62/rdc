@@ -7,9 +7,6 @@
 import Img from './Img.astro';
 import { renderPortableText } from '../lib/portableText';
 import Video from './Video.astro';
-// Reads pixel dimensions out of the Sanity asset reference, so a plate's
-// shape is known at build time with no extra request. See fullImageSection.
-import { imageDimensions } from '../lib/image';
 
 interface Props {
   sections: any[];
@@ -25,30 +22,32 @@ const { sections } = Astro.props;
     case 'fullImageSection': {
       if (!section.image) return null;
       /*
-        Whether this plate is capped to the viewport height.
+        Capped to the viewport height unless explicitly told otherwise.
 
-        'auto' resolves from the image's own shape, which is known at build
-        time - Sanity encodes the pixel dimensions in the asset reference, so
-        imageDimensions() reads them without fetching anything.
+        This used to branch on the image's shape - cap wide ones, let tall
+        ones run - and that was wrong twice over. Measured at 1512x900 with
+        the cap on:
 
-        The rule: a WIDE image can be full-bleed and still be seen whole, so
-        it is capped. A TALL one cannot do both - capping its height shrinks
-        it to a narrow strip with the accent band showing all around it,
-        measured at 28% of page width on a real portrait plate - so it fills
-        the width and is scrolled instead.
+          2.4:1  100% of page width      1:1    51%
+          16:9    90%                    3:4    38%
+          4:3     67%                    1:1.78 28%
 
-        Squares count as tall (the ratio test is > 1, not >= 1): a square
-        capped to 85vh is still far narrower than the page, which is the
-        failure this exists to avoid.
+        A square caps to half the page, which is a plate, not the stamp the
+        rule was built to avoid. Only genuinely tall images get narrow, and
+        the earlier "floating in red" symptom was mostly a separate bug -
+        width:auto applied to column images - not this cap at all.
+
+        Meanwhile the uncapped branch had no upper bound whatsoever: a square
+        at full bleed renders as tall as the viewport is wide, which on a
+        desktop is roughly three screens of one picture.
+
+        So the cap is simply the default, and it is what makes the rule a
+        rule: no plate is ever taller than the screen. 'fill' remains as a
+        deliberate opt-out for a plate worth scrolling. Anything still
+        holding the old 'auto' value gets capped, which is now the sane
+        reading of it.
       */
-      const dims = imageDimensions(section.image);
-      const fit =
-        section.plateFit === 'fit' ? true
-        : section.plateFit === 'fill' ? false
-        : dims ? dims.width > dims.height
-        // No dimensions means a malformed reference. Fill rather than cap:
-        // an uncapped image is too big, a wrongly capped one is a stamp.
-        : false;
+      const fit = section.plateFit !== 'fill';
       return (
         <div class="work-section work-section--full" data-plate-fit={fit ? '' : undefined}>
           {/* No alt prop: it comes from the image's own field in Sanity now.

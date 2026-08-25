@@ -23,19 +23,18 @@ export const fullImageSection = defineType({
       type: 'string',
       options: {
         list: [
-          {title: 'Automatic - fit wide images, fill with tall ones', value: 'auto'},
-          {title: 'Always fit the whole image on screen', value: 'fit'},
-          {title: 'Always fill the width, even if it runs tall', value: 'fill'},
+          {title: 'Fit the whole image on screen', value: 'fit'},
+          {title: 'Fill the width, even if it runs taller than the screen', value: 'fill'},
         ],
         layout: 'radio',
       },
-      initialValue: 'auto',
+      initialValue: 'fit',
       description:
-        'A wide image can span the screen AND be seen whole, so it is capped ' +
-        'at 85% of the screen height. A tall one cannot do both - capping its ' +
-        'height would shrink it to a narrow strip - so it fills the width and ' +
-        'is scrolled instead. Automatic decides from the image’s own shape ' +
-        'and is right almost always; the other two are for when it is not.',
+        'Fit keeps the image under 85% of the screen height, so it is taken ' +
+        'in at once - a wide image still spans the full width, a tall one ' +
+        'sits narrower. Fill is the opt-out for a plate worth scrolling ' +
+        'through, like a large detailed drawing; be aware a square image at ' +
+        'full width runs about three screens tall on a desktop.',
     }),
   ],
   preview: {

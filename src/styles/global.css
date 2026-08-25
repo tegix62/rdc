@@ -2288,18 +2288,21 @@ main {
 }
 
 /*
-  The same guarantee for every other section image. These sit in columns, so
-  they rarely reach the cap - but a tall portrait in a two-up could, and one
-  image that has to be scrolled breaks the rhythm the rule above establishes.
-  width:auto keeps it centred in its column instead of stretched to fill one.
+  DELIBERATELY NOT height-capping the other section images, and not giving
+  them width:auto.
+
+  A previous version of this did both, on the theory that the plate rule
+  should apply everywhere. Measured against the real DumpStat page it was
+  clearly wrong: width:auto stops an image at its intrinsic size, so every
+  source narrower than its column shrank away from the column edges and left
+  the accent band showing around it. The page went from a set of images to a
+  set of stamps floating in red.
+
+  These images sit in columns that are already a fraction of the page, so
+  they were never the thing at risk of filling a screen. They keep the base
+  width:100% and fill their column, as before. The plate rule stays where it
+  earns its keep - on the full-bleed section above.
 */
-.work-section:not(.work-section--full) img {
-  width: auto;
-  max-width: 100%;
-  height: auto;
-  max-height: var(--plate-fit);
-  margin-inline: auto;
-}
 
 .work-section--two-up {
   display: grid;

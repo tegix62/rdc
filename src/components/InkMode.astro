@@ -38,6 +38,29 @@
   put in front of a client. Restoring the picker is a matter of rendering these
   as swatches again - nothing else has to change.
 */
+interface Props {
+  /*
+    Where to go when the switch turns ON, and when it turns OFF.
+
+    The archive view of the portfolio is not a restyle of the grid, it is a
+    different document - /catalog, which carries citations the grid never
+    fetches. So on the Portfolio page the switch navigates there rather than
+    trying to rearrange tiles Isotope has absolutely positioned, and on the
+    catalog it navigates back.
+
+    Direction matters, which is why these are two props rather than one URL.
+    On /portfolio only turning ON should move you; on /catalog only turning
+    OFF should. A single prop would send someone who lands on the catalog
+    with archive already off back to a page they did not ask for.
+
+    Both optional: everywhere else the switch is just a switch.
+  */
+  navigateOn?: string;
+  navigateOff?: string;
+}
+
+const {navigateOn, navigateOff} = Astro.props;
+
 const PAPERS = [
   /*
     Press is the archive: plain white stock, black ink, no colour cast. Chris
@@ -86,7 +109,7 @@ const PAPERS = [
 </button>
 
 {/* Inline and un-bundled so it runs before the first paint. */}
-<script is:inline define:vars={{ PAPERS }}>
+<script is:inline define:vars={{ PAPERS, navigateOn, navigateOff }}>
   (() => {
     const root = document.documentElement;
     const KEY = 'rdc-ink';
@@ -193,9 +216,25 @@ const PAPERS = [
 
       toggle.addEventListener('click', () => {
         state.on = !state.on;
+
+        /*
+          Save BEFORE navigating, and navigate before touching the DOM.
+
+          The destination reads this same localStorage key in its own
+          pre-paint script, so the new page comes up already in archive view
+          with no flash of the colour version. Repainting this page first
+          would only be a restyle the visitor sees for one frame on their way
+          out of it.
+        */
+        save();
+        const dest = state.on ? navigateOn : navigateOff;
+        if (dest) {
+          window.location.href = dest;
+          return;
+        }
+
         apply(state);
         swapArchive(state.on);
-        save();
         sync();
         announce(state.on);
       });

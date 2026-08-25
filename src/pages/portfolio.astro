@@ -136,8 +136,12 @@ if (emptyFilters.length > 0) {
         Last, and on a wide screen pushed to the far right - away from the
         filters, because it is not one. See InkMode.astro.
       */}
+      {/*
+        Turning archive on leaves this page for /catalog, which is the archive
+        view of the same work - see the note on InkMode's navigate props.
+      */}
       <div class="pf-group pf-group--view" role="group" aria-label="View">
-        <InkMode />
+        <InkMode navigateOn="/catalog" />
       </div>
     </div>
 

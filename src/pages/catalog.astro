@@ -1,0 +1,92 @@
+---
+/*
+  An alternate presentation of the work, in the form of a museum catalog:
+  a plate, then a citation block, ruled off from its neighbours.
+
+  WHY THIS EXISTS ALONGSIDE /portfolio RATHER THAN REPLACING IT
+
+  The Portfolio grid is a wall of tiles, and a wall says "there is a lot of
+  it" - volume. A catalog says "each of these is a work, and here is what it
+  is" - depth. Both are true about the same set of files; they are different
+  arguments about it.
+
+  So this is deliberately not wired into the nav yet. It is a proposal to
+  look at next to the thing it might replace, which is the only honest way
+  to compare two arrangements of identical content.
+
+  Case studies only - see getCatalogItems(). The citation block is the whole
+  idea here, and a derivative tile has nothing to put in it.
+*/
+import Layout from '../layouts/Layout.astro';
+import Img from '../components/Img.astro';
+import {getPage, getCatalogItems} from '../lib/queries';
+import {pageDescription} from '../lib/meta';
+
+const page = await getPage('portfolio');
+const items = await getCatalogItems();
+
+/*
+  The reference layout numbers its columns ("Group 01", "Group 02"). Here the
+  number is the catalog number, which is the more useful version of the same
+  gesture: it gives every work a stable handle you can say out loud.
+*/
+const numbered = items.map((item: any, i: number) => ({
+  ...item,
+  no: String(i + 1).padStart(2, '0'),
+}));
+---
+
+<Layout
+  title="Catalog"
+  description={pageDescription(page, 'A catalog of brand identity, lettering and merch design work by Chris Rumeau.')}
+  noindex
+>
+  <div class="catalog">
+    <header class="catalog__head">
+      <p class="catalog__head-label">Catalog</p>
+      <p class="catalog__head-count">{numbered.length} works</p>
+    </header>
+
+    <div class="catalog__grid">
+      {numbered.map((item: any) => (
+        <article class="catalog__entry">
+          <a class="catalog__plate" href={`/work/${item.slug?.current}`}>
+            <Img
+              image={item.mainImage ?? item.thumbnail}
+              field="catalog plate"
+              alt={item.title}
+              width={1200}
+              sizes="(max-width: 48rem) 100vw, 50vw"
+            />
+          </a>
+
+          <div class="catalog__meta">
+            <p class="catalog__no">{item.no}</p>
+            <div class="catalog__fields">
+              {/*
+                Client and title on one line, title in italic - the citation
+                convention the reference is using (author, then work). Falls
+                back to the title alone when there is no client, rather than
+                printing a stray comma.
+              */}
+              <p class="catalog__cite">
+                {item.client && <span>{item.client}, </span>}
+                <em>{item.title}</em>
+              </p>
+              {(item.assetType || item.category) && (
+                <p class="catalog__line">{item.assetType ?? item.category}</p>
+              )}
+              {item.parentTitle && <p class="catalog__line">{item.parentTitle}</p>}
+
+              {(item.oneLineSummary || item.summary) && (
+                <p class="catalog__desc">{item.oneLineSummary ?? item.summary}</p>
+              )}
+
+              <a class="catalog__view" href={`/work/${item.slug?.current}`}>[View..]</a>
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+</Layout>

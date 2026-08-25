@@ -184,6 +184,35 @@ export function getAllGridItems() {
 }
 
 /*
+  The catalog view (/catalog), an alternate presentation of the same work as
+  the Portfolio grid.
+
+  A separate projection rather than more fields on TILE: TILE is fetched for
+  the homepage and Portfolio on every build, and a catalog entry needs the
+  prose - client, summary - that a tile has no use for. Widening TILE would
+  put that text into two pages that never render it.
+
+  Deliberately CASE STUDIES ONLY, which is the difference from the Portfolio
+  grid. A catalog entry is a plate plus a description plus a citation, and a
+  derivative tile - a photo of one hoodie - has nothing to put in those
+  lines. Few things each worth a paragraph, rather than many things worth a
+  thumbnail.
+*/
+const CATALOG = `
+  _id, title, slug, category, assetType, client,
+  thumbnail, mainImage, oneLineSummary, summary,
+  "parentTitle": parentBrand->title
+`;
+
+export function getCatalogItems() {
+  return sanityClient.fetch(
+    `*[_type == "caseStudy" && pageType == "Case Study"
+       && (defined(thumbnail) || defined(mainImage))]{${CATALOG}}
+     | order(title asc)`,
+  );
+}
+
+/*
   The homepage work grid.
 
   Curated first: whatever is in Site Settings → Homepage Work Grid, in that

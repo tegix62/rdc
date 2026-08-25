@@ -3877,3 +3877,152 @@ body {
     break-inside: avoid;
   }
 }
+
+/* ==========================================================================
+   Catalog (/catalog) - the work as a museum catalog rather than a tile wall.
+   See the note at the top of src/pages/catalog.astro for why both exist.
+   ========================================================================== */
+
+/*
+  The hairline is the whole design. What separates a catalog from a grid is
+  not the picture sizes, it is that every entry is RULED OFF - the rules make
+  each plate a numbered specimen instead of one more thing on a wall.
+
+  Kept as a token so the weight can be tuned in one place: hairlines are the
+  detail most likely to look wrong once it meets real images at real sizes.
+*/
+.catalog {
+  --rule: 1px solid rgba(0, 0, 0, 0.28);
+  --catalog-gap: var(--space-3);
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 0 var(--space-3) var(--space-6);
+}
+
+.catalog__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: var(--space-2) 0;
+  border-bottom: var(--rule);
+}
+
+.catalog__head-label,
+.catalog__head-count {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+.catalog__head-count {
+  color: var(--color-gray);
+}
+
+/*
+  Two columns, with the rule between them drawn by the entries themselves
+  (border-left on the second of each pair) rather than by a background trick,
+  so it stops exactly where the content stops instead of running past the
+  last row.
+*/
+.catalog__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.catalog__entry {
+  display: flex;
+  flex-direction: column;
+  border-bottom: var(--rule);
+  padding: var(--catalog-gap);
+}
+
+.catalog__entry:nth-child(2n) {
+  border-left: var(--rule);
+}
+
+.catalog__plate {
+  display: block;
+  /* The plate is a window, not a crop: a catalog reproduces the work at its
+     own proportions, so nothing here forces a ratio. */
+  margin-bottom: var(--catalog-gap);
+}
+
+.catalog__plate img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/*
+  Number in the left column, citation in the right - the reference's
+  label/value split. `auto` rather than a fixed width so a three-digit
+  catalog number does not wrap when the work grows past 99.
+*/
+.catalog__meta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  border-top: var(--rule);
+  padding-top: var(--catalog-gap);
+  margin-top: auto;
+}
+
+.catalog__no,
+.catalog__cite,
+.catalog__line,
+.catalog__desc,
+.catalog__view {
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.catalog__no {
+  color: var(--color-gray);
+  font-variant-numeric: tabular-nums;
+}
+
+.catalog__cite em {
+  font-style: italic;
+}
+
+.catalog__line {
+  color: var(--color-gray);
+}
+
+/* The blank line between citation and description, which is what makes the
+   stack read as two blocks rather than five loose lines. */
+.catalog__desc {
+  margin-top: var(--space-2);
+  max-width: 42ch;
+}
+
+.catalog__view {
+  display: inline-block;
+  margin-top: var(--space-2);
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/*
+  One column on a phone. The between-columns rule has nothing left to
+  separate, so it is removed rather than left drawing a line down one edge.
+*/
+@media (max-width: 48rem) {
+  .catalog__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .catalog__entry:nth-child(2n) {
+    border-left: none;
+  }
+}
+
+/* Print mode already inverts the palette; the rules have to follow or they
+   vanish into the dark ground. */
+:root[data-ink] .catalog {
+  --rule: 1px solid rgba(255, 255, 255, 0.35);
+}

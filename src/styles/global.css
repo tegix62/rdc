@@ -2279,12 +2279,27 @@ main {
   margin-right: calc(50% - 50vw);
 }
 
+/*
+  The default: fill the bleed. A tall plate stays commanding and is scrolled.
+*/
 .work-section--full img {
+  width: 100%;
+  height: auto;
+  margin-inline: auto;
+}
+
+/*
+  Capped only when the plate can afford it - set by Sections.astro from the
+  image's real shape, or overridden per section in Studio.
+
+  width:auto is what makes the cap keep the aspect ratio: it lets whichever
+  constraint binds first do the sizing, so a wide plate spans the viewport
+  and stops at 85vh rather than being squashed or cropped to get there.
+*/
+.work-section--full[data-plate-fit] img {
   width: auto;
   max-width: 100vw;
-  height: auto;
   max-height: var(--plate-fit);
-  margin-inline: auto;
 }
 
 /*

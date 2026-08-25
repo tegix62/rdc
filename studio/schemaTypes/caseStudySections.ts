@@ -15,7 +15,29 @@ export const fullImageSection = defineType({
   name: 'fullImageSection',
   title: 'Full Image',
   type: 'object',
-  fields: [image('image', 'Image')],
+  fields: [
+    image('image', 'Image'),
+    defineField({
+      name: 'plateFit',
+      title: 'Size',
+      type: 'string',
+      options: {
+        list: [
+          {title: 'Automatic - fit wide images, fill with tall ones', value: 'auto'},
+          {title: 'Always fit the whole image on screen', value: 'fit'},
+          {title: 'Always fill the width, even if it runs tall', value: 'fill'},
+        ],
+        layout: 'radio',
+      },
+      initialValue: 'auto',
+      description:
+        'A wide image can span the screen AND be seen whole, so it is capped ' +
+        'at 85% of the screen height. A tall one cannot do both - capping its ' +
+        'height would shrink it to a narrow strip - so it fills the width and ' +
+        'is scrolled instead. Automatic decides from the image’s own shape ' +
+        'and is right almost always; the other two are for when it is not.',
+    }),
+  ],
   preview: {
     select: {media: 'image'},
     prepare: ({media}) => ({title: 'Full Image', media}),

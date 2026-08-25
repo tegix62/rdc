@@ -7,6 +7,9 @@
 import Img from './Img.astro';
 import { renderPortableText } from '../lib/portableText';
 import Video from './Video.astro';
+// Reads pixel dimensions out of the Sanity asset reference, so a plate's
+// shape is known at build time with no extra request. See fullImageSection.
+import { imageDimensions } from '../lib/image';
 
 interface Props {
   sections: any[];
@@ -19,15 +22,42 @@ const { sections } = Astro.props;
 
 {sections?.map((section: any) => {
   switch (section._type) {
-    case 'fullImageSection':
-      return section.image ? (
-        <div class="work-section work-section--full">
+    case 'fullImageSection': {
+      if (!section.image) return null;
+      /*
+        Whether this plate is capped to the viewport height.
+
+        'auto' resolves from the image's own shape, which is known at build
+        time - Sanity encodes the pixel dimensions in the asset reference, so
+        imageDimensions() reads them without fetching anything.
+
+        The rule: a WIDE image can be full-bleed and still be seen whole, so
+        it is capped. A TALL one cannot do both - capping its height shrinks
+        it to a narrow strip with the accent band showing all around it,
+        measured at 28% of page width on a real portrait plate - so it fills
+        the width and is scrolled instead.
+
+        Squares count as tall (the ratio test is > 1, not >= 1): a square
+        capped to 85vh is still far narrower than the page, which is the
+        failure this exists to avoid.
+      */
+      const dims = imageDimensions(section.image);
+      const fit =
+        section.plateFit === 'fit' ? true
+        : section.plateFit === 'fill' ? false
+        : dims ? dims.width > dims.height
+        // No dimensions means a malformed reference. Fill rather than cap:
+        // an uncapped image is too big, a wrongly capped one is a stamp.
+        : false;
+      return (
+        <div class="work-section work-section--full" data-plate-fit={fit ? '' : undefined}>
           {/* No alt prop: it comes from the image's own field in Sanity now.
               This used to read section.alt, which was never in the schema, so
               every full-width image shipped with an empty alt. */}
           <Img image={section.image} field={`${section._type} → image`} width={2000} sizes="100vw" />
         </div>
-      ) : null;
+      );
+    }
     case 'twoUpSection':
       return (
         <div class="work-section work-section--two-up">

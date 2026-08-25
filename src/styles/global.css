@@ -35,6 +35,24 @@
     takeover and leaves no hint that the page continues below it.
   */
   --video-fit: 65vh;
+
+  /*
+    The plate rule: no single image may be taller than this, so a plate is
+    always seen WHOLE rather than scrolled through.
+
+    This is the principle behind the catalog reference. Its plates read as
+    composed objects because each one is a complete thing you take in at
+    once - not because of any particular size. An image taller than the
+    viewport stops being a plate and becomes a wall you walk along, and
+    every decision inside it (the crop, the margin, where the mark sits) is
+    lost, because they are only legible in relation to the whole.
+
+    85vh, not 100vh: a plate that exactly fills the screen gives no signal
+    that the page continues, and the caption that explains it would sit off
+    screen. The remaining sliver is what keeps the plate and its annotation
+    in the same glance, which is the other half of what the reference does.
+  */
+  --plate-fit: 85vh;
 }
 
 *, *::before, *::after {
@@ -2231,6 +2249,56 @@ main {
 .work-section img {
   width: 100%;
   display: block;
+}
+
+/*
+  The full-image section, which until now was full in name only.
+
+  It renders at width={2000} with sizes="100vw", but it had NO css at all, so
+  it inherited width:100% inside .work-band__inner - max-width 72rem, minus
+  padding. It has been capping at roughly 1104px, which also made the sizes
+  attribute a lie: browsers were picking a 2000px candidate for a slot barely
+  half that wide. Making it genuinely full-bleed fixes the layout and the
+  wasted bytes in the same move.
+
+  Bounded on BOTH axes - full-bleed width, --plate-fit height - and width:auto
+  is what lets the shorter constraint win. A wide plate spans the viewport; a
+  tall one stops at 85vh and centres, rather than running off the bottom of
+  the screen.
+
+  Nothing is cropped. object-fit:cover would keep every plate edge-to-edge at
+  the cost of cutting into the work, and on a page whose subject IS the work
+  that is the wrong trade - the reference reproduces its plates whole for the
+  same reason. The consequence to know: on a very wide display a landscape
+  plate stops short of the edges once its height caps. That is the principle
+  doing its job, not a bug.
+*/
+.work-section--full {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+
+.work-section--full img {
+  width: auto;
+  max-width: 100vw;
+  height: auto;
+  max-height: var(--plate-fit);
+  margin-inline: auto;
+}
+
+/*
+  The same guarantee for every other section image. These sit in columns, so
+  they rarely reach the cap - but a tall portrait in a two-up could, and one
+  image that has to be scrolled breaks the rhythm the rule above establishes.
+  width:auto keeps it centred in its column instead of stretched to fill one.
+*/
+.work-section:not(.work-section--full) img {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: var(--plate-fit);
+  margin-inline: auto;
 }
 
 .work-section--two-up {

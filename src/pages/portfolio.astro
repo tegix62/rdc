@@ -292,7 +292,23 @@ if (emptyFilters.length > 0) {
     sizer.className = 'pf-sizer';
     grid.insertBefore(sizer, grid.firstChild);
 
-    let cols = window.innerWidth < 768 ? 3 : 6;
+    /*
+      The responsive default, in ONE place.
+
+      This lived as `window.innerWidth < 768 ? 3 : 6` in two spots - the
+      initial count and the keyboard arrow step - which is two chances to
+      disagree about how wide a row is. The arrow keys were already reading a
+      hardcoded 3 while the grid could be showing something else entirely
+      after a zoom.
+    */
+    const MOBILE_COLS = 4;
+    const DESKTOP_COLS = 6;
+    const defaultCols = () => (window.innerWidth < 768 ? MOBILE_COLS : DESKTOP_COLS);
+
+    let cols = defaultCols();
+    // Once the visitor uses +/- the count is theirs, and a resize must not
+    // quietly take it back off them.
+    let zoomed = false;
 
     function setColWidth() {
       grid!.style.setProperty('--pf-col-w', 100 / cols + '%');
@@ -326,6 +342,54 @@ if (emptyFilters.length > 0) {
     */
     imagesLoaded(grid).on('always', () => iso.layout());
 
+    /*
+      Re-layout when coming BACK to this page, which is the mobile bug where
+      the grid returned as a single stacked column and stayed wrong until you
+      touched a filter.
+
+      Everything here hangs off DOMContentLoaded, and that does not fire on a
+      back/forward restore - the page comes out of the browser's cache with
+      the DOM as it was, including Isotope's absolutely-positioned tiles, but
+      with none of this code re-running. If anything about the viewport
+      changed in between - a rotation, the mobile URL bar collapsing or
+      expanding - those pixel positions are now wrong and nothing recomputes
+      them. Touching a filter called iso.layout() as a side effect, which is
+      why interacting appeared to "reset" it.
+
+      The listener is registered in here so it closes over `iso`, and the
+      closure survives in the cache along with the page.
+
+      Scroll position comes back with the restore, and the tile order is
+      fixed at build time, so re-laying out puts every tile back exactly
+      where it was - which is what keeps a tile you clicked in the same place
+      when you return to it.
+    */
+    window.addEventListener('pageshow', (e) => {
+      if (!(e as PageTransitionEvent).persisted) return;
+      if (!zoomed) cols = defaultCols();
+      setColWidth();
+      iso.layout();
+    });
+
+    /*
+      And on resize, which had no handler at all - so crossing the mobile
+      breakpoint, or simply rotating, left the tiles at positions measured
+      for the old width. Debounced because resize fires continuously and each
+      layout moves every tile.
+    */
+    let resizeTimer: number;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        const next = defaultCols();
+        if (!zoomed && next !== cols) {
+          cols = next;
+          setColWidth();
+        }
+        iso.layout();
+      }, 150);
+    });
+
     document.querySelectorAll<HTMLElement>('.pf-btn[data-filter]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const filterVal = btn.dataset.filter!;
@@ -358,6 +422,9 @@ if (emptyFilters.length > 0) {
     document.querySelector('#pf-shuffle')?.addEventListener('click', () => iso.shuffle());
 
     function updateCols() {
+      // From here on the count is the visitor's, so a later resize leaves it
+      // alone instead of snapping back to the responsive default.
+      zoomed = true;
       setColWidth();
       iso.layout();
     }
@@ -422,7 +489,10 @@ if (emptyFilters.length > 0) {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) return;
       const items = visibleItems();
       if (!items.length) return;
-      const c = window.innerWidth < 768 ? 3 : cols;
+      // `cols` is already the live count - responsive by default, and the
+      // visitor's own once they have zoomed. The old literal here meant Down
+      // stepped 3 tiles on a phone no matter how many were actually in a row.
+      const c = cols;
       if (e.key === 'ArrowRight') { e.preventDefault(); setCursor(cursor + 1); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); setCursor(cursor - 1); }
       else if (e.key === 'ArrowDown') { e.preventDefault(); setCursor(cursor + c); }

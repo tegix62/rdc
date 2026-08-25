@@ -3,7 +3,6 @@ import Layout from '../layouts/Layout.astro';
 import { pageDescription } from '../lib/meta';
 import Img from '../components/Img.astro';
 import Sections from '../components/Sections.astro';
-import InkMode from '../components/InkMode.astro';
 import { getPage, getAllGridItems } from '../lib/queries';
 // Shared with the homepage's miniature grid, so the two cannot disagree about
 // what counts as a logomark or how wide a hero tile is. See lib/tiles.ts.
@@ -133,16 +132,24 @@ if (emptyFilters.length > 0) {
       </div>
 
       {/*
-        Last, and on a wide screen pushed to the far right - away from the
-        filters, because it is not one. See InkMode.astro.
+        The Archive switch is SHELVED, not deleted - the same treatment the
+        riso paper stocks already get inside InkMode.astro.
+
+        Two half-formed ideas had ended up stacked on each other: a
+        black-and-white print treatment, and a catalog arrangement of the same
+        work. Tying the second to the first meant neither could be judged on
+        its own. So the ink treatment goes dormant and the catalog stays a
+        page in its own right.
+
+        Everything behind it survives untouched: InkMode.astro, the ink CSS,
+        the authored archiveMark alternates, and the inkmodechange listener
+        further down this file. Bringing it back is re-adding these lines.
+
+        Removing the component also removes its inline script, which is the
+        only thing that applies data-ink - so a visitor whose localStorage
+        still says archive-on quietly returns to colour rather than being
+        stranded in a mode with no switch left to turn it off.
       */}
-      {/*
-        Turning archive on leaves this page for /catalog, which is the archive
-        view of the same work - see the note on InkMode's navigate props.
-      */}
-      <div class="pf-group pf-group--view" role="group" aria-label="View">
-        <InkMode navigateOn="/catalog" />
-      </div>
     </div>
 
     {/*
@@ -374,20 +381,36 @@ if (emptyFilters.length > 0) {
     /*
       And on resize, which had no handler at all - so crossing the mobile
       breakpoint, or simply rotating, left the tiles at positions measured
-      for the old width. Debounced because resize fires continuously and each
-      layout moves every tile.
+      for the old width.
+
+      Throttled to one animation frame rather than debounced on a timer.
+
+      A trailing debounce was the wrong shape for what actually triggers this.
+      Rotating a phone, or the mobile URL bar collapsing, is a single discrete
+      event - waiting out a timer after it just adds lag to the one case that
+      matters, and there is nothing to collapse. Dragging a desktop window is
+      the opposite: resize fires up to once a frame, and relaying out 66 tiles
+      that often is real jank.
+
+      requestAnimationFrame answers both. A rotation relays out on the very
+      next frame, which is as instant as the browser can paint. A drag can
+      never queue more work than one layout per frame, because the flag
+      refuses to schedule a second while one is pending - so it is naturally
+      capped at whatever the machine can actually keep up with.
     */
-    let resizeTimer: number;
+    let resizePending = false;
     window.addEventListener('resize', () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = window.setTimeout(() => {
+      if (resizePending) return;
+      resizePending = true;
+      requestAnimationFrame(() => {
+        resizePending = false;
         const next = defaultCols();
         if (!zoomed && next !== cols) {
           cols = next;
           setColWidth();
         }
         iso.layout();
-      }, 150);
+      });
     });
 
     document.querySelectorAll<HTMLElement>('.pf-btn[data-filter]').forEach((btn) => {

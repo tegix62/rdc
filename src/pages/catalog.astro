@@ -19,7 +19,6 @@
 */
 import Layout from '../layouts/Layout.astro';
 import Img from '../components/Img.astro';
-import InkMode from '../components/InkMode.astro';
 import {getPage, getCatalogItems, getCatalogPlates} from '../lib/queries';
 import {pageDescription} from '../lib/meta';
 // Shared with the Portfolio grid and the homepage, so the three cannot
@@ -49,15 +48,11 @@ const numbered = items.map((item: any, i: number) => ({
 >
   <div class="catalog">
     {/*
-      The same switch that brought you here, so the way back is where the way
-      in was. Turning it OFF returns to the grid; turning it on does nothing
-      navigational, because you are already in the view it selects.
+      The Archive switch that used to sit here is shelved with the rest of ink
+      mode - see the note on the portfolio grid. This page stands on its own
+      as a catalog rather than as the on-state of a toggle, so there is
+      nothing left for the bar to hold.
     */}
-    <div class="catalog__bar">
-      <p class="catalog__bar-label">Archive view</p>
-      <InkMode navigateOff="/portfolio" />
-    </div>
-
     <header class="catalog__head">
       <p class="catalog__head-label">Works</p>
       <p class="catalog__head-count">{numbered.length} catalogued</p>

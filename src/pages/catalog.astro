@@ -10,15 +10,18 @@
   is" - depth. Both are true about the same set of files; they are different
   arguments about it.
 
-  So this is deliberately not wired into the nav yet. It is a proposal to
-  look at next to the thing it might replace, which is the only honest way
-  to compare two arrangements of identical content.
+  Reached by the Archive switch on the Portfolio page, which is a link
+  rather than a stored mode: these are two pages, so which view you are in is
+  answered by which URL you are on. Still noindex - the same work under two
+  URLs is exactly what a canonical exists to prevent, and the grid is the one
+  that should rank.
 
   Case studies only - see getCatalogItems(). The citation block is the whole
   idea here, and a derivative tile has nothing to put in it.
 */
 import Layout from '../layouts/Layout.astro';
 import Img from '../components/Img.astro';
+import ViewSwitch from '../components/ViewSwitch.astro';
 import {getPage, getCatalogItems, getCatalogPlates} from '../lib/queries';
 import {pageDescription} from '../lib/meta';
 // Shared with the Portfolio grid and the homepage, so the three cannot
@@ -48,11 +51,15 @@ const numbered = items.map((item: any, i: number) => ({
 >
   <div class="catalog">
     {/*
-      The Archive switch that used to sit here is shelved with the rest of ink
-      mode - see the note on the portfolio grid. This page stands on its own
-      as a catalog rather than as the on-state of a toggle, so there is
-      nothing left for the bar to hold.
+      The same switch that brought you here, drawn in its on position, so the
+      way back is where the way in was. `active` is passed rather than stored:
+      being on this page IS the on state, which is why this needed no
+      localStorage once the ink treatment was set aside.
     */}
+    <div class="catalog__bar">
+      <ViewSwitch href="/portfolio" active />
+    </div>
+
     <header class="catalog__head">
       <p class="catalog__head-label">Works</p>
       <p class="catalog__head-count">{numbered.length} catalogued</p>

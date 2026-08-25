@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import { pageDescription } from '../lib/meta';
 import Img from '../components/Img.astro';
+import ViewSwitch from '../components/ViewSwitch.astro';
 import Sections from '../components/Sections.astro';
 import { getPage, getAllGridItems } from '../lib/queries';
 // Shared with the homepage's miniature grid, so the two cannot disagree about
@@ -132,24 +133,28 @@ if (emptyFilters.length > 0) {
       </div>
 
       {/*
-        The Archive switch is SHELVED, not deleted - the same treatment the
-        riso paper stocks already get inside InkMode.astro.
+        Archive: switches to /catalog, the same work arranged as a catalog.
 
-        Two half-formed ideas had ended up stacked on each other: a
-        black-and-white print treatment, and a catalog arrangement of the same
-        work. Tying the second to the first meant neither could be judged on
-        its own. So the ink treatment goes dormant and the catalog stays a
-        page in its own right.
+        Last in the row and pushed to the far right on a wide screen - away
+        from the filters, because it is not one.
 
-        Everything behind it survives untouched: InkMode.astro, the ink CSS,
-        the authored archiveMark alternates, and the inkmodechange listener
-        further down this file. Bringing it back is re-adding these lines.
+        The INK treatment behind this is shelved, not deleted: InkMode.astro,
+        the ink CSS and the authored archiveMark alternates all survive, along
+        with the inkmodechange listener further down this file. Two
+        half-formed ideas had ended up stacked on each other - a
+        black-and-white print treatment, and a catalog arrangement - and
+        neither could be judged while they were tied together. The catalog
+        stands on its own now; the ink treatment can come back on its own
+        terms.
 
-        Removing the component also removes its inline script, which is the
-        only thing that applies data-ink - so a visitor whose localStorage
-        still says archive-on quietly returns to colour rather than being
-        stranded in a mode with no switch left to turn it off.
+        Because InkMode no longer renders, its inline script does not run, and
+        that script is the only thing that applies data-ink - so a visitor
+        whose localStorage still says archive-on quietly returns to colour
+        rather than being stranded in a mode with no switch to leave it.
       */}
+      <div class="pf-group pf-group--view" role="group" aria-label="View">
+        <ViewSwitch href="/catalog" />
+      </div>
     </div>
 
     {/*

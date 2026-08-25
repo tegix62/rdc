@@ -1,0 +1,46 @@
+---
+/*
+  The Archive switch: moves between the Portfolio grid and the Catalog.
+
+  A LINK, not a toggle, and that is the whole design.
+
+  This started as a mode built on InkMode's stateful switch - persisted in
+  localStorage, applied by a pre-paint script, navigating as a side effect.
+  With the ink treatment shelved there is nothing left to persist: the two
+  views are two pages, so "which view am I in" is answered by which URL you
+  are on, and the page already knows that at build time. No storage, no
+  pre-paint script, no chance of the stored flag and the visible page
+  disagreeing.
+
+  Being a real <a> also means it works with JavaScript off, opens in a new tab
+  on middle click, and is announced as a link - which is what it is. The
+  earlier version was a role="switch" button that navigated, which told screen
+  reader users it would flip something on this page and then took them
+  somewhere else.
+
+  It keeps the switch APPEARANCE because that is still the right signal: a
+  track and a thumb reads as a mode rather than as another filter, which is
+  the point that was made when this stopped being a pf-btn. `active` draws the
+  thumb in its on position when the destination view is the one showing.
+*/
+interface Props {
+  /** Where this switch goes. */
+  href: string;
+  /** True when the CURRENT page is the archive view, so the thumb reads on. */
+  active?: boolean;
+  label?: string;
+}
+
+const {href, active = false, label = 'Archive'} = Astro.props;
+---
+
+<a
+  class:list={['view-switch', active && 'is-on']}
+  href={href}
+  aria-label={active ? `${label} view, on. Back to the grid` : `${label} view, off. Switch to it`}
+>
+  <span class="view-switch__track" aria-hidden="true">
+    <span class="view-switch__thumb"></span>
+  </span>
+  <span class="view-switch__label">{label}</span>
+</a>

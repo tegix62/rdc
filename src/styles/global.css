@@ -2191,10 +2191,40 @@ main {
   padding: 0 var(--space-3);
 }
 
+/*
+  Case study sections, ruled and spaced like catalog entries.
+
+  The body used to be a stack of blocks separated by one gap, which reads as
+  a continuous scroll of pictures - each section running into the next with
+  nothing saying where one idea ends. A hairline plus symmetrical air above
+  and below turns each section into a discrete entry, which is the whole
+  device the catalog reference is built on.
+
+  currentColor rather than a fixed grey: this band takes an accent background
+  per project (--work-accent), and a hardcoded rule would be invisible on a
+  dark accent and heavy on a light one. color-mix keeps it proportional to
+  whatever text colour the band resolved to, with a plain currentColor
+  fallback for anything that cannot mix (visible, just stronger).
+
+  The gap above and the padding below are the same value on purpose - a rule
+  sitting off-centre between two sections reads as belonging to one of them.
+*/
+.work-band__inner > .work-section + .work-section {
+  border-top: 1px solid currentColor;
+  border-top-color: color-mix(in srgb, currentColor 20%, transparent);
+  padding-top: var(--space-5);
+}
+
 @media (max-width: 40rem) {
   .work-band__inner {
     padding: 0 var(--space-2);
     gap: var(--space-4);
+  }
+
+  /* Follows the gap down, so the rule stays centred between two sections
+     instead of sitting hard against the one below it. */
+  .work-band__inner > .work-section + .work-section {
+    padding-top: var(--space-4);
   }
 }
 
@@ -2294,10 +2324,18 @@ main {
   border: none;
 }
 
+/*
+  Captions sit close to their plate and stay quiet - the reference sets them
+  small and tight, so the caption reads as an annotation ON the image rather
+  than as a line of body copy that happens to follow it. Matched to the
+  catalog's own caption size so the two views do not disagree.
+*/
 .work-video-caption {
-  margin: var(--space-1) 0 0;
-  font-size: 0.875rem;
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
   color: var(--color-gray);
+  max-width: 42ch;
 }
 
 .work-section--stat-callout {
@@ -3314,9 +3352,12 @@ body {
   min-width: 0;
 }
 
+/* Same treatment as .work-video-caption - a caption is a caption wherever it
+   lands, and these two drifting apart is how a page ends up with two sizes of
+   the same thing. */
 .media-row__item figcaption {
-  margin-top: var(--space-1);
-  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
   line-height: 1.45;
   color: var(--color-gray);
 }

@@ -2404,19 +2404,59 @@ main {
     A row of ordinarily-wide plates never reaches this width, so the cap is
     inert wherever it isn't needed.
   */
-  /*
-    width:100% is load-bearing, not decoration. .work-band__inner is itself a
-    column flex container, and a flex item with auto cross-axis margins does
-    not stretch - it shrink-to-fits. Measured, that took the row to 856px of a
-    1104px band and sized it from the images' intrinsic pixels rather than the
-    ratios. A definite width restores the stretch and leaves the auto margins
-    with only the leftover to centre.
-  */
-  width: 100%;
-  max-width: calc(
+  --row-cap: calc(
     var(--row-ar, 3) * var(--row-max) + (var(--row-n, 3) - 1) * var(--space-3)
   );
-  margin-inline: auto;
+  /*
+    How much room the row is ALLOWED, before the cap has its say. The band's
+    own width by default; wider than the band on a desktop - see the breakout
+    below.
+  */
+  --row-room: 100%;
+  /*
+    A definite width, not `width: 100%` plus `max-width`. Two reasons.
+
+    .work-band__inner is itself a column flex container, and a flex item with
+    auto cross-axis margins does not stretch - it shrink-to-fits. Measured,
+    that took the row to 856px of a 1104px band and sized it from the images'
+    intrinsic pixels rather than the ratios. A definite width restores the
+    stretch.
+
+    And resolving the min() into a variable is what lets the margins centre a
+    row that has BROKEN OUT of the band. Auto margins cannot go negative, so
+    they can centre a row inside its container but never one wider than it.
+    Halving the difference by hand does both: it is zero when --row-room wins
+    (the row fills its room) and positive when the cap wins (centred inside
+    it), and it goes negative exactly when the room is wider than the band.
+  */
+  --row-w: min(var(--row-room), var(--row-cap));
+  width: var(--row-w);
+  margin-left: calc(50% - var(--row-w) / 2);
+  margin-right: calc(50% - var(--row-w) / 2);
+}
+
+/*
+  A row of plates is not prose, and should not be stuck to the prose measure.
+
+  .work-band__inner is 72rem because that is a comfortable line length, and
+  the rows inherited it for no better reason than being inside it - so three
+  flyers sat in 1104px of a 1512px screen with a quarter of the window empty
+  on either side. Full-bleed plates already break out; these are the same kind
+  of object and get the same permission, just stopping short of the edge so
+  the two treatments stay distinguishable.
+
+  100rem is the far end, so a very wide display gets a bigger row rather than
+  an endlessly wider one.
+
+  Only from 64rem up. Below that the rows stack, and 100vw arithmetic on a
+  phone is how a page gets a horizontal scrollbar.
+*/
+@media (min-width: 64rem) {
+  .work-section--two-up,
+  .work-section--three-up,
+  .media-row__items {
+    --row-room: min(100vw - 2 * var(--space-4), 100rem);
+  }
 }
 
 /*
@@ -2428,16 +2468,26 @@ main {
   in, for nothing. Measured against the 1104px band at 900px tall, three 4:5
   flyers want a 452px common height and the first draft of these numbers
   capped them to 384 - a row 944px wide inside a 1104px band, which is the
-  cap solving a problem the row did not have. It now clears that case and
-  still catches the one it exists for: three 1:2 strips want 704px, and get
-  512.
+  cap solving a problem the row did not have.
+
+  THIS IS THE WIDTH KNOB, and there is no other one. In a level row, width
+  and height are the same number: the row is (sum of ratios) x k wide and k
+  tall, so more width is more height, exactly proportionally. Giving the rows
+  more ROOM (above) does nothing on its own if the ceiling stops them at the
+  old size - so these went up with it. Raised again and the rows grow taller
+  as they widen; lowered and they shrink both ways. Nothing here can widen a
+  row without also making it taller, which is not a limitation of the code
+  but of what a level row is.
+
+  Held below --plate-fit deliberately. A full-bleed plate is the largest
+  thing on the page and a row of three supporting pieces should not rival it.
 */
 .work-section--two-up {
-  --row-max: min(64vh, 36rem);
+  --row-max: min(68vh, 44rem);
 }
 
 .work-section--three-up {
-  --row-max: min(56vh, 32rem);
+  --row-max: min(62vh, 40rem);
 }
 
 .work-section__plate,
@@ -2482,7 +2532,11 @@ main {
   .work-section--three-up,
   .media-row__items {
     display: block;
-    max-width: none;
+    /* Undo the whole width/centring calculation, not just the cap: the row is
+       the band's width here, with no breakout to centre. */
+    width: auto;
+    margin-left: 0;
+    margin-right: 0;
   }
 
   .work-section__plate + .work-section__plate,

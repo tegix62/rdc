@@ -64,6 +64,26 @@ function mediaAspect(item: any): number {
 }
 
 /*
+  How tall a row of n plates may get. See --row-max in global.css: a safety
+  valve for ratios that would otherwise run away, not a size, so it is set
+  high enough to stay out of the way in ordinary rows.
+
+  Two plates get a taller ceiling than three, having half the row each rather
+  than a third of it. Both numbers matter: the vh half rules an ordinary
+  laptop, the rem half stops a 2560px monitor from growing a row without
+  limit.
+
+  This lives up here rather than beside its call site because the switch below
+  is inside a template expression, where the compiler reads `<=` as the start
+  of a tag. It cost a build to learn.
+*/
+function rowMaxFor(count: number): string {
+  if (count < 2) return 'min(74vh, 48rem)';
+  if (count === 2) return 'min(68vh, 44rem)';
+  return 'min(62vh, 40rem)';
+}
+
+/*
   What the row as a whole needs, so it can bound its own height.
 
   The common height k works out to (row width - gaps) / (sum of the ratios),
@@ -71,31 +91,13 @@ function mediaAspect(item: any): number {
   1:2 sum to 1.0, so a 1000px row would set them 1000px TALL. Nothing in the
   flex algorithm stops that, because it is solving for width.
 
-  Since the sum is known here, the bound can be expressed as a max-width and
-  left to CSS to apply: capping the row at (sum x max-height + gaps) caps k at
-  max-height exactly. A row of wide plates never reaches that width, so the
-  cap is inert where it isn't needed, and a row of tall ones narrows and
-  centres instead of towering. --row-n is the plate count, which is what
-  turns the gaps into a number.
+  Since the sum is known here, the bound can be handed to CSS as a width:
+  holding the row to (sum x max height + gaps) holds k at max height exactly,
+  because k is linear in the width. A row of wide plates never reaches that
+  width, so the bound is inert where it isn't needed, and a row of tall ones
+  narrows and centres instead of towering. --row-n is the plate count, which
+  is what turns the gaps into a number.
 */
-/*
-  How tall a row of n plates may get. See --row-max in global.css: this is a
-  safety valve for ratios that would otherwise run away, not a size, so it is
-  set high enough to stay out of the way in ordinary rows.
-
-  Two plates get a taller ceiling than three, having half the row each rather
-  than a third of it.
-
-  This lives up here rather than beside its call site because the switch below
-  is inside a template expression, where the compiler reads `<=` as the start
-  of a tag. It cost a build to learn.
-*/
-function rowMaxFor(count: number): string {
-  if (count < 2) return 'min(70vh, 40rem)';
-  if (count === 2) return 'min(64vh, 36rem)';
-  return 'min(56vh, 32rem)';
-}
-
 function rowStyle(images: any[]): string {
   const present = images.filter(Boolean);
   const sum = present.reduce((total, img) => total + aspect(img), 0);
@@ -167,7 +169,12 @@ function rowStyle(images: any[]): string {
             (img: any) =>
               img && (
                 <div class="work-section__plate" style={plateStyle(img)}>
-                  <Img image={img} field={`${section._type} → imageOne/Two/Three`} width={800} sizes="(max-width: 40rem) 100vw, 33vw" />
+                  {/* 1000, not the 800 this used to ask for: a plate in a
+                      broken-out three-up row measures about 460 CSS px on a
+                      1512 screen, which is 920 device pixels at 2x. An 800
+                      ceiling meant the browser's best candidate was one it
+                      had to enlarge. */}
+                  <Img image={img} field={`${section._type} → imageOne/Two/Three`} width={1000} sizes="(max-width: 40rem) 100vw, 33vw" />
                 </div>
               ),
           )}
@@ -303,9 +310,18 @@ function rowStyle(images: any[]): string {
           (i._type === 'mediaImage' && i.image),
       );
       if (items.length === 0) return null;
-      // Narrower slots want smaller files. This is the width each item is
-      // actually rendered at, so the srcset ceiling matches the layout.
-      const slotWidth = Math.round(2000 / items.length);
+      /*
+        Narrower slots want smaller files, so the srcset ceiling follows the
+        item count.
+
+        3000 rather than the 2000 this used to divide, for the same reason
+        three-up went from 800 to 1000: the row now breaks out past the band,
+        so a slot in a three-item row is about 460 CSS px on a 1512 screen -
+        920 device pixels at 2x, above the old 666 ceiling. cappedWidth still
+        clamps every request to the file's own size, so a generous ceiling
+        costs nothing on a source that cannot fill it.
+      */
+      const slotWidth = Math.round(3000 / items.length);
       /*
         A Media Row is a row of plates, so it shares the two-up/three-up
         treatment: one height, widths from each item's own ratio. See the

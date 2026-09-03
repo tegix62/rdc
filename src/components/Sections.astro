@@ -64,6 +64,62 @@ function mediaAspect(item: any): number {
 }
 
 /*
+  The one item that sizes ITSELF, and so must not be given a share of the row.
+
+  Everything else here is solved by ratio: the slot is computed and the picture
+  fills it. A self-hosted video is the other way round - it caps itself at
+  --video-fit and its frame hugs it (.work-video-frame:has(.video--self)),
+  which is what removed the black side bars. Given a computed slot as well, it
+  centres inside one and leaves dead space on BOTH sides of every item.
+  Measured with real clips at 1512x900: three 540x960 videos render 329px wide
+  and sat in 491px slots, so what reads as the gap between them was 24px of
+  actual gap plus 138px of nothing.
+
+  And the ratio cannot be computed for them anyway. Sanity encodes pixel
+  dimensions in an IMAGE's asset reference; a file asset carries none, so a
+  video's shape is unknown until the browser has the file. mediaAspect falls
+  back to the poster and then to 16:9 - and for portrait clips with no poster
+  that fallback is not merely unknown but wrong, and it was sizing the slots.
+
+  `0 1 auto`, not `0 0 auto`: content-sized still has to SHRINK. A landscape
+  clip stops at --video-fit x 16/9, which is 1040px on a 900px-tall screen, and
+  three of those refusing to shrink overflowed the page by 828px - measured,
+  not imagined. Shrinking lets the frame's fit-content follow the space it
+  actually has.
+
+  Written inline rather than left to the :has() rule alone, so a browser
+  without :has() gets the right layout instead of items collapsed to nothing
+  by the flex-basis:0 that the rest of the row needs.
+*/
+function isSelfHostedVideo(item: any): boolean {
+  return (
+    item?._type === 'mediaVideo' &&
+    Boolean(item.videoFile || item.videoWebm || item.videoSrc)
+  );
+}
+
+function mediaItemStyle(item: any): string {
+  if (isSelfHostedVideo(item)) return 'flex:0 1 auto';
+  return `flex-grow:${mediaAspect(item).toFixed(4)}`;
+}
+
+/*
+  The row's own variables, counting only the items that actually take a share.
+
+  A row of nothing but self-hosted videos sums to zero, and a zero sum would
+  make the height cap `0 x max-height + gaps` - 48px - and collapse the row.
+  Such a row needs no cap at all: content-sized items are already bounded by
+  --video-fit, which is the same job. So it is handed its full room instead.
+*/
+function mediaRowStyle(items: any[]): string {
+  const sum = items
+    .filter((item) => !isSelfHostedVideo(item))
+    .reduce((total, item) => total + mediaAspect(item), 0);
+  if (sum === 0) return '--row-cap:var(--row-room)';
+  return `--row-ar:${sum.toFixed(4)};--row-n:${items.length};--row-max:${rowMaxFor(items.length)}`;
+}
+
+/*
   How tall a row of n plates may get. See --row-max in global.css: a safety
   valve for ratios that would otherwise run away, not a size, so it is set
   high enough to stay out of the way in ordinary rows.
@@ -258,12 +314,20 @@ function rowStyle(images: any[]): string {
     case 'achievementsSection':
       return (
         <div class="work-section work-section--achievements">
-          <div class="work-section--achievements__images">
-            {section.imageLeft && (
-              <Img image={section.imageLeft} field={`${section._type} → imageLeft`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
-            )}
-            {section.imageRight && (
-              <Img image={section.imageRight} field={`${section._type} → imageRight`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
+          {/* Two images side by side is a plate row, so it gets the plate row's
+              treatment rather than a third copy of the equal-width columns
+              that were wrong in twoUpSection and in Media Row. */}
+          <div
+            class="work-section--achievements__images"
+            style={rowStyle([section.imageLeft, section.imageRight])}
+          >
+            {[section.imageLeft, section.imageRight].map(
+              (img: any) =>
+                img && (
+                  <div class="work-section__plate" style={plateStyle(img)}>
+                    <Img image={img} field={`${section._type} → imageLeft/Right`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
+                  </div>
+                ),
             )}
           </div>
           {section.items?.length > 0 && <div set:html={renderPortableText(section.items)} />}
@@ -326,20 +390,16 @@ function rowStyle(images: any[]): string {
         A Media Row is a row of plates, so it shares the two-up/three-up
         treatment: one height, widths from each item's own ratio. See the
         long note in global.css for why, and for why the sum of the ratios
-        has to travel with it.
+        has to travel with it - and mediaItemStyle above for the one kind of
+        item that opts out.
       */
-      const rowMax = rowMaxFor(items.length);
-      const rowAr = items.reduce((total: number, item: any) => total + mediaAspect(item), 0);
       return (
         <div class="work-section media-row" style={`--media-count: ${items.length}`}>
           {/* h2 - see the comment on imageTextSection's heading above. */}
           {section.heading && <h2 class="media-row__heading t-h3">{section.heading}</h2>}
-          <div
-            class="media-row__items"
-            style={`--row-ar:${rowAr.toFixed(4)};--row-n:${items.length};--row-max:${rowMax}`}
-          >
+          <div class="media-row__items" style={mediaRowStyle(items)}>
             {items.map((item: any, i: number) => (
-              <figure class="media-row__item" style={`flex-grow:${mediaAspect(item).toFixed(4)}`}>
+              <figure class="media-row__item" style={mediaItemStyle(item)}>
                 {item._type === 'mediaVideo' ? (
                   <div class="work-video-frame">
                     <Video

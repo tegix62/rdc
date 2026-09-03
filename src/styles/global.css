@@ -2387,9 +2387,16 @@ main {
 */
 .work-section--two-up,
 .work-section--three-up,
+.work-section--achievements__images,
 .media-row__items {
   display: flex;
   align-items: flex-start;
+  /*
+    Inert while every item grows - there is no free space to distribute - and
+    load-bearing the moment one does not. See the self-hosted video rule
+    below, where the items are content-sized and would otherwise pack left.
+  */
+  justify-content: center;
   gap: var(--space-3);
   /*
     The one thing the flex algorithm will not do for itself: bound k.
@@ -2409,10 +2416,11 @@ main {
   );
   /*
     How much room the row is ALLOWED, before the cap has its say. The band's
-    own width by default; wider than the band on a desktop - see the breakout
-    below.
+    imagery measure where there is one (--wide-room, set on
+    .work-band__inner), the container's own width anywhere else - these blocks
+    also render on ordinary pages, which have no band to break out of.
   */
-  --row-room: 100%;
+  --row-room: var(--wide-room, 100%);
   /*
     A definite width, not `width: 100%` plus `max-width`. Two reasons.
 
@@ -2436,27 +2444,57 @@ main {
 }
 
 /*
-  A row of plates is not prose, and should not be stuck to the prose measure.
+  Pictures are not prose, and should not be stuck to the prose measure.
 
   .work-band__inner is 72rem because that is a comfortable line length, and
-  the rows inherited it for no better reason than being inside it - so three
-  flyers sat in 1104px of a 1512px screen with a quarter of the window empty
-  on either side. Full-bleed plates already break out; these are the same kind
-  of object and get the same permission, just stopping short of the edge so
-  the two treatments stay distinguishable.
+  everything inside inherited it for no better reason than being in there - so
+  three flyers sat in 1104px of a 1512px screen with a quarter of the window
+  empty on either side. Full-bleed plates already break out; the other picture
+  blocks are the same kind of object and get the same permission, stopping
+  short of the edge so the two treatments stay distinguishable.
 
-  100rem is the far end, so a very wide display gets a bigger row rather than
-  an endlessly wider one.
+  So the band carries THREE measures, and which one a block takes says what
+  kind of block it is:
 
-  Only from 64rem up. Below that the rows stack, and 100vw arithmetic on a
+    72rem              text, and anything that is mostly text
+    --wide-room        pictures: plate rows, image + text, achievements
+    100vw              a single full-bleed plate
+
+  100rem is the far end, so a very wide display gets bigger imagery rather
+  than endlessly wider imagery.
+
+  Only from 64rem up. Below that these blocks stack, and 100vw arithmetic on a
   phone is how a page gets a horizontal scrollbar.
+
+  Declared on the band rather than per block so there is one number to change,
+  and so a block only has to opt in by using it.
 */
 @media (min-width: 64rem) {
-  .work-section--two-up,
-  .work-section--three-up,
-  .media-row__items {
-    --row-room: min(100vw - 2 * var(--space-4), 100rem);
+  .work-band__inner {
+    --wide-room: min(100vw - 2 * var(--space-4), 100rem);
   }
+}
+
+/*
+  Opting in. Centring a block WIDER than its container needs the difference
+  halved by hand, because auto margins cannot go negative - the same
+  arithmetic the rows do with --row-w, without the height cap, since these
+  blocks are not solving for a common height.
+*/
+.work-band__inner > .work-section--image-text {
+  width: var(--wide-room, 100%);
+  margin-left: calc(50% - var(--wide-room, 100%) / 2);
+  margin-right: calc(50% - var(--wide-room, 100%) / 2);
+}
+
+/*
+  Image + Text breaks out for the sake of the image half; the text half must
+  not come with it. At the widest room its 1fr column is nearly 800px, which
+  is a 150-character line - so the column keeps the measure the block was
+  getting for free when the whole thing was 72rem wide.
+*/
+.work-section--image-text .work-section__text {
+  max-width: 42rem;
 }
 
 /*
@@ -2505,6 +2543,20 @@ main {
 }
 
 /*
+  A self-hosted video sizes ITSELF, so it takes no share of the row: it sits
+  at its own width with exactly the gap beside it, and the row simply does not
+  use width it has no way to fill. Such rows stay level because every clip is
+  capped by the same --video-fit, not because anything here aligned them.
+
+  Sections.astro writes the same declaration inline and explains the whole
+  reasoning - including why it must still SHRINK. This rule is the same value,
+  kept as a second path so the behaviour does not depend on either one alone.
+*/
+.media-row__item:has(.video--self) {
+  flex: 0 1 auto;
+}
+
+/*
   A caption hangs BELOW the shared height rather than joining it.
 
   Only Media Row has captions, and a figure's height is its media plus its
@@ -2530,6 +2582,7 @@ main {
   */
   .work-section--two-up,
   .work-section--three-up,
+  .work-section--achievements__images,
   .media-row__items {
     display: block;
     /* Undo the whole width/centring calculation, not just the cap: the row is
@@ -2672,10 +2725,13 @@ main {
   margin-bottom: var(--space-2);
 }
 
+/*
+  Two images side by side, which is a plate row - so it shares the two-up
+  rule above rather than keeping the equal-width columns that were wrong
+  there and in Media Row. Only the height ceiling is its own.
+*/
 .work-section--achievements__images {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
+  --row-max: min(68vh, 44rem);
 }
 
 .work-section--achievements ul {
@@ -2688,12 +2744,6 @@ main {
    longest remaining anywhere, and on a real case study rather than a demo. */
 .work-section--achievements :is(li, p) {
   max-width: 62ch;
-}
-
-@media (max-width: 40rem) {
-  .work-section--achievements__images {
-    grid-template-columns: 1fr;
-  }
 }
 
 /*

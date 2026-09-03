@@ -7,6 +7,7 @@
 import Img from './Img.astro';
 import { renderPortableText } from '../lib/portableText';
 import Video from './Video.astro';
+import { imageDimensions } from '../lib/image';
 
 interface Props {
   sections: any[];
@@ -14,6 +15,57 @@ interface Props {
 
 const { sections } = Astro.props;
 
+/*
+  The one number a row of plates needs: each plate's aspect ratio.
+
+  A row laid out as equal-width columns gives every plate the same WIDTH, so
+  its height falls out of its own proportions - three flyers of three shapes
+  end at three different heights, which reads as broken alignment rather than
+  as varied artwork. A gallery wall, a contact sheet and a specimen page all
+  do the opposite: common height, widths that vary honestly.
+
+  Handing each image `flex-grow: <its ratio>` against `flex-basis: 0` is the
+  whole mechanism. Flexbox hands out the row's free space in proportion to
+  grow factors, so plate i gets width k·ratio(i), and its natural height is
+  therefore width/ratio = k - the same k for every plate in the row, exactly,
+  at every viewport width, with no cropping and no distortion. Gaps come off
+  the top and only change k.
+
+  The ratio comes from the asset reference (Sanity encodes pixel dimensions
+  in the _ref), so this costs no request and no layout shift. When it is
+  missing - a stale reference, a hand-written fixture - the fallback is 1,
+  which is the old equal-width behaviour for that plate rather than a
+  collapse.
+*/
+function aspect(image: any): number {
+  const d = imageDimensions(image);
+  return d && d.height > 0 ? d.width / d.height : 1;
+}
+
+function plateStyle(image: any): string {
+  return `flex-grow:${aspect(image).toFixed(4)}`;
+}
+
+/*
+  What the row as a whole needs, so it can bound its own height.
+
+  The common height k works out to (row width - gaps) / (sum of the ratios),
+  which is fine for wide plates and runaway for narrow ones: two portraits at
+  1:2 sum to 1.0, so a 1000px row would set them 1000px TALL. Nothing in the
+  flex algorithm stops that, because it is solving for width.
+
+  Since the sum is known here, the bound can be expressed as a max-width and
+  left to CSS to apply: capping the row at (sum x max-height + gaps) caps k at
+  max-height exactly. A row of wide plates never reaches that width, so the
+  cap is inert where it isn't needed, and a row of tall ones narrows and
+  centres instead of towering. --row-n is the plate count, which is what
+  turns the gaps into a number.
+*/
+function rowStyle(images: any[]): string {
+  const present = images.filter(Boolean);
+  const sum = present.reduce((total, img) => total + aspect(img), 0);
+  return `--row-ar:${sum.toFixed(4)};--row-n:${present.length}`;
+}
 
 ---
 
@@ -59,21 +111,30 @@ const { sections } = Astro.props;
     }
     case 'twoUpSection':
       return (
-        <div class="work-section work-section--two-up">
-          {section.imageLeft && (
-            <Img image={section.imageLeft} field={`${section._type} → imageLeft`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
-          )}
-          {section.imageRight && (
-            <Img image={section.imageRight} field={`${section._type} → imageRight`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
+        <div class="work-section work-section--two-up" style={rowStyle([section.imageLeft, section.imageRight])}>
+          {[section.imageLeft, section.imageRight].map(
+            (img: any) =>
+              img && (
+                <div class="work-section__plate" style={plateStyle(img)}>
+                  <Img image={img} field={`${section._type} → imageLeft/Right`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
+                </div>
+              ),
           )}
         </div>
       );
     case 'threeUpSection':
       return (
-        <div class="work-section work-section--three-up">
+        <div
+          class="work-section work-section--three-up"
+          style={rowStyle([section.imageOne, section.imageTwo, section.imageThree])}
+        >
           {[section.imageOne, section.imageTwo, section.imageThree].map(
             (img: any) =>
-              img && <Img image={img} field={`${section._type} → imageOne/Two/Three`} width={800} sizes="(max-width: 40rem) 100vw, 33vw" />,
+              img && (
+                <div class="work-section__plate" style={plateStyle(img)}>
+                  <Img image={img} field={`${section._type} → imageOne/Two/Three`} width={800} sizes="(max-width: 40rem) 100vw, 33vw" />
+                </div>
+              ),
           )}
         </div>
       );

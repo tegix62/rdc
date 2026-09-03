@@ -47,12 +47,26 @@
     every decision inside it (the crop, the margin, where the mark sits) is
     lost, because they are only legible in relation to the whole.
 
-    85vh, not 100vh: a plate that exactly fills the screen gives no signal
-    that the page continues, and the caption that explains it would sit off
-    screen. The remaining sliver is what keeps the plate and its annotation
-    in the same glance, which is the other half of what the reference does.
+    Not 100vh: a plate that exactly fills the screen gives no signal that the
+    page continues, and the caption that explains it would sit off screen. The
+    remaining margin is what keeps the plate and its annotation in the same
+    glance, which is the other half of what the reference does.
+
+    76vh rather than the 85vh this started at. 85 satisfied the letter of the
+    rule - nothing was taller than the screen - and missed its point, because
+    a plate can only be seen whole if it fits WITH the things that frame it.
+    At 85vh a full-bleed plate landed with the hairline above it off the top
+    and the next rule off the bottom, so it read as a wall you had scrolled
+    into rather than an entry you had arrived at, which is exactly the "too
+    big for the viewport" it was meant to prevent. 76vh leaves roughly a
+    section's worth of air, so the rule above and the beginning of what comes
+    next stay in frame and the plate is bounded by the page.
+
+    This only ever binds on TALL plates. A 16:9 plate at full bleed is about
+    56vh on a laptop and never comes near either number - so what changed is
+    the portrait plates, which were the ones filling the screen.
   */
-  --plate-fit: 85vh;
+  --plate-fit: 76vh;
 }
 
 *, *::before, *::after {
@@ -2212,6 +2226,34 @@ main {
 }
 
 /*
+  A section heading inside the band is an ANNOTATION on the work, not a
+  headline competing with it.
+
+  Every one of these carries .t-h3 - 2.5rem, the site's third display size,
+  chosen when these blocks were the page's own content. In the band they now
+  sit between a hairline rule and a plate, and at 2.5rem the heading is the
+  loudest thing in the entry: the eye lands on the words before the picture
+  they are describing, which inverts what a case study is for.
+
+  The reference sets its entry heads a couple of steps under the plate and
+  lets the rule do the separating - which is also what .section-label already
+  does elsewhere on this site. This is the same move without going all the way
+  to a 0.75rem micro-label: still unmistakably a heading, no longer the
+  subject. Tighter tracking because display letterspacing is drawn for 2.5rem
+  and reads loose at half that.
+
+  Scoped to .work-band__inner so the same blocks used on an ordinary page,
+  where they ARE the content, keep the display size.
+*/
+.work-band__inner .work-section :is(h2, h3).t-h3,
+.work-band__inner .work-section > h2 {
+  font-size: clamp(1.25rem, 1.5vw, 1.5rem);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  margin-bottom: var(--space-2);
+}
+
+/*
   Case study sections, ruled and spaced like catalog entries.
 
   The body used to be a stack of blocks separated by one gap, which reads as
@@ -2321,22 +2363,108 @@ main {
   earns its keep - on the full-bleed section above.
 */
 
-.work-section--two-up {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+/*
+  A row of plates shares ONE HEIGHT, and each plate is as wide as its own
+  proportions make it.
+
+  These were 1fr grid columns with `width: 100%` images, which fixes the wrong
+  dimension: every plate got the same WIDTH, so its height fell out of its own
+  aspect ratio. Three flyers of three shapes therefore ended at three
+  different heights, ragged along the top and the bottom, which reads as
+  broken alignment rather than as varied artwork - and the more the ratios
+  differ, the more it looks like a mistake. A gallery wall, a contact sheet
+  and a type specimen all do the opposite: common height, widths that vary
+  honestly. A wide flyer IS wider.
+
+  THE MECHANISM. Each plate is a flex item with `flex-basis: 0` and a
+  `flex-grow` equal to its own aspect ratio, set inline by Sections.astro from
+  the pixel dimensions Sanity encodes in the asset reference (so it costs no
+  request and causes no layout shift). Flex distributes ALL the free space -
+  basis is zero, so the whole row is free space - in proportion to the grow
+  factors. Plate i therefore gets width k x ratio(i), and its natural height
+  is width / ratio = k: the same k for every plate in the row, exactly, at
+  every viewport width, with no cropping and no distortion. Gaps come off the
+  top and only change k.
+
+  Note this is emergent, not enforced: nothing here says `height`. The row is
+  level because the arithmetic makes it level, which is why it survives
+  resizing, wrapping text, and images that load late.
+*/
+.work-section--two-up,
+.work-section--three-up {
+  display: flex;
+  align-items: flex-start;
   gap: var(--space-3);
+  /*
+    The one thing the flex algorithm will not do for itself: bound k.
+
+    k is (row width - gaps) / (sum of ratios), which runs away when the ratios
+    are small - two 1:2 portraits sum to 1.0, so a 1000px row would set them
+    1000px TALL, taller than the screen and against the same rule the
+    full-bleed plate follows. Capping the row's width at (sum x max height +
+    gaps) caps k at the max height exactly, because k is linear in the width.
+    --row-ar and --row-n are written inline per section.
+
+    A row of ordinarily-wide plates never reaches this width, so the cap is
+    inert wherever it isn't needed.
+  */
+  /*
+    width:100% is load-bearing, not decoration. .work-band__inner is itself a
+    column flex container, and a flex item with auto cross-axis margins does
+    not stretch - it shrink-to-fits. Measured, that took the row to 856px of a
+    1104px band and sized it from the images' intrinsic pixels rather than the
+    ratios. A definite width restores the stretch and leaves the auto margins
+    with only the leftover to centre.
+  */
+  width: 100%;
+  max-width: calc(
+    var(--row-ar, 3) * var(--row-max) + (var(--row-n, 3) - 1) * var(--space-3)
+  );
+  margin-inline: auto;
+}
+
+/*
+  Two plates get a taller ceiling than three, having half the row each rather
+  than a third of it.
+*/
+.work-section--two-up {
+  --row-max: min(56vh, 32rem);
 }
 
 .work-section--three-up {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-3);
+  --row-max: min(44vh, 24rem);
+}
+
+.work-section__plate {
+  flex-basis: 0;
+  /* flex-grow is inline, per plate: its aspect ratio. */
+  min-width: 0;
+}
+
+.work-section__plate img {
+  width: 100%;
+  height: auto;
+  display: block;
 }
 
 @media (max-width: 40rem) {
+  /*
+    One per row on a phone, so there is no shared height to solve for. Back to
+    full width and natural height - a common height across stacked plates
+    would only make the narrow ones small for no gain.
+
+    display:block rather than a flex column on purpose: in a column, basis and
+    grow act on the HEIGHT, and grow is set inline, where this stylesheet
+    could not override it.
+  */
   .work-section--two-up,
   .work-section--three-up {
-    grid-template-columns: 1fr;
+    display: block;
+    max-width: none;
+  }
+
+  .work-section__plate + .work-section__plate {
+    margin-top: var(--space-3);
   }
 }
 

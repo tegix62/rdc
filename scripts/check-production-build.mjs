@@ -44,8 +44,13 @@ const JSON_OUT = arg('json', '')
   Pages that legitimately stay out of the sitemap. /style-guide is an internal
   fixture page, /404 is not a destination, and /image-license-info is unedited
   Webflow boilerplate that was deliberately not carried over as real content.
+
+  /catalog is the archive arrangement of /portfolio - the same work under a
+  second URL. Listing both would be asking Google to choose between two pages
+  of identical content, which is the situation a canonical exists to prevent,
+  and the grid is the one that should rank.
 */
-const NOT_IN_SITEMAP = new Set(['/404', '/style-guide', '/image-license-info'])
+const NOT_IN_SITEMAP = new Set(['/404', '/style-guide', '/image-license-info', '/catalog'])
 
 /*
   Every route that must be in a production sitemap. If a build quietly reverts
@@ -182,11 +187,22 @@ for (const file of htmlFiles) {
     other - test-head.mjs REQUIRES /style-guide to be noindexed and this
     FORBADE it - so a cutover would have deadlocked between them.
 
+    /catalog is the second deliberate exception, and it happened exactly the
+    same way: the page shipped, and the next production deploy - triggered by
+    a Sanity publish, not by the commit that caused it - failed here. Publishes
+    then silently stopped reaching the live site, because the gate correctly
+    refuses to upload and there is nothing else to notice.
+
+    It is legitimately noindex. /catalog is the archive arrangement of the same
+    work as /portfolio, so indexing both asks Google to pick between duplicate
+    pages, and the grid is the one that should win. It is out of sitemap.xml
+    for the same reason - see NOT_IN_SITEMAP above, which it also had to join.
+
     Narrow on purpose. Any other route carrying noindex is still a failure, and
     the count check below still catches the flags-left-on case, because that
-    would noindex all 21 pages rather than this one.
+    would noindex all 21 pages rather than these two.
   */
-  const NOINDEX_ALLOWED = new Set(['/style-guide'])
+  const NOINDEX_ALLOWED = new Set(['/style-guide', '/catalog'])
   if (/<meta[^>]+name=["']robots["'][^>]*noindex/i.test(html) && !NOINDEX_ALLOWED.has(route)) {
     fail('noindex', `${route} tells crawlers not to index it`)
   }

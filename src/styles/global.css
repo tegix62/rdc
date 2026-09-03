@@ -55,11 +55,11 @@
     76vh rather than the 85vh this started at. 85 satisfied the letter of the
     rule - nothing was taller than the screen - and missed its point, because
     a plate can only be seen whole if it fits WITH the things that frame it.
-    At 85vh a full-bleed plate landed with the hairline above it off the top
-    and the next rule off the bottom, so it read as a wall you had scrolled
-    into rather than an entry you had arrived at, which is exactly the "too
-    big for the viewport" it was meant to prevent. 76vh leaves roughly a
-    section's worth of air, so the rule above and the beginning of what comes
+    At 85vh a full-bleed plate filled the window edge to edge with no sign of
+    the section above or below it, so it read as a wall you had scrolled into
+    rather than an entry you had arrived at, which is exactly the "too big for
+    the viewport" it was meant to prevent. 76vh leaves roughly a section's
+    worth of air, so the end of what came before and the start of what comes
     next stay in frame and the plate is bounded by the page.
 
     This only ever binds on TALL plates. A 16:9 plate at full bleed is about
@@ -2230,13 +2230,13 @@ main {
   headline competing with it.
 
   Every one of these carries .t-h3 - 2.5rem, the site's third display size,
-  chosen when these blocks were the page's own content. In the band they now
-  sit between a hairline rule and a plate, and at 2.5rem the heading is the
-  loudest thing in the entry: the eye lands on the words before the picture
-  they are describing, which inverts what a case study is for.
+  chosen when these blocks were the page's own content. In the band they sit
+  directly above the work, and at 2.5rem the heading is the loudest thing in
+  the entry: the eye lands on the words before the picture they are
+  describing, which inverts what a case study is for.
 
   The reference sets its entry heads a couple of steps under the plate and
-  lets the rule do the separating - which is also what .section-label already
+  lets space do the separating - which is also what .section-label already
   does elsewhere on this site. This is the same move without going all the way
   to a 0.75rem micro-label: still unmistakably a heading, no longer the
   subject. Tighter tracking because display letterspacing is drawn for 2.5rem
@@ -2254,26 +2254,22 @@ main {
 }
 
 /*
-  Case study sections, ruled and spaced like catalog entries.
+  Case study sections, separated by air alone.
 
-  The body used to be a stack of blocks separated by one gap, which reads as
-  a continuous scroll of pictures - each section running into the next with
-  nothing saying where one idea ends. A hairline plus symmetrical air above
-  and below turns each section into a discrete entry, which is the whole
-  device the catalog reference is built on.
+  There was a hairline here, on the reasoning that the catalog reference
+  builds its entries out of rules. It does - but its rules are drawing a
+  GRID, boxing a plate against its citation and its neighbours, and this band
+  is a single column of full-width blocks where the same line has nothing to
+  bound. It ended up reading as a horizontal scratch across the accent every
+  few screens rather than as structure.
 
-  currentColor rather than a fixed grey: this band takes an accent background
-  per project (--work-accent), and a hardcoded rule would be invisible on a
-  dark accent and heavy on a light one. color-mix keeps it proportional to
-  whatever text colour the band resolved to, with a plain currentColor
-  fallback for anything that cannot mix (visible, just stronger).
-
-  The gap above and the padding below are the same value on purpose - a rule
-  sitting off-centre between two sections reads as belonging to one of them.
+  The air stays, and does the whole job: the gap above plus this padding is
+  the interval that says one idea has ended, which is what the rule was
+  actually being credited for. Kept symmetrical for the same reason it was
+  before - uneven space between two sections makes the interval look like it
+  belongs to one of them.
 */
 .work-band__inner > .work-section + .work-section {
-  border-top: 1px solid currentColor;
-  border-top-color: color-mix(in srgb, currentColor 20%, transparent);
   padding-top: var(--space-5);
 }
 
@@ -2283,8 +2279,7 @@ main {
     gap: var(--space-4);
   }
 
-  /* Follows the gap down, so the rule stays centred between two sections
-     instead of sitting hard against the one below it. */
+  /* Follows the gap down, so the interval stays even on a phone too. */
   .work-band__inner > .work-section + .work-section {
     padding-top: var(--space-4);
   }

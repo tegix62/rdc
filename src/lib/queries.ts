@@ -47,7 +47,7 @@ export function getCaseStudy(slug: string) {
 export function getOtherCaseStudies(excludeId: string) {
   return sanityClient.fetch(
     `*[_type == "caseStudy" && pageType == "Case Study" && _id != $excludeId]{
-      title, slug, thumbnail, mainImage, client
+      title, slug, thumbnail, mainImage, client, archiveMark
     } | order(title asc)[0...4]`,
     { excludeId },
   );
@@ -99,7 +99,7 @@ export async function getRelatedWork(category: string | undefined, limit = 4) {
       `*[_type == "caseStudy" && pageType == "Case Study" && category == $category
          && (defined(thumbnail) || defined(mainImage))]
         | order(title asc)[0...$limit]{
-          title, slug, thumbnail, mainImage
+          title, slug, thumbnail, mainImage, archiveMark
         }`,
       { category, limit },
     );
@@ -109,7 +109,7 @@ export async function getRelatedWork(category: string | undefined, limit = 4) {
     `*[_type == "caseStudy" && pageType == "Case Study"
        && (defined(thumbnail) || defined(mainImage))]
       | order(title asc)[0...$limit]{
-        title, slug, thumbnail, mainImage
+        title, slug, thumbnail, mainImage, archiveMark
       }`,
     { limit },
   );

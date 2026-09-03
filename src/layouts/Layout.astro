@@ -9,6 +9,8 @@ import Img from '../components/Img.astro';
 import { hasAsset, imageUrl, socialCardDimensions, socialCardUrl } from '../lib/image';
 import VisualEditing from '../components/VisualEditing.astro';
 import MetaPixel from '../components/MetaPixel.astro';
+// EXPERIMENT - remove with the <MarkExperiment /> line below.
+import MarkExperiment from '../components/MarkExperiment.astro';
 import { buildGraph, serialise, type SiteContext } from '../lib/structuredData';
 import { stripStega as clean } from '../lib/stega';
 import {
@@ -470,6 +472,9 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
       }
     </style>
     <VisualEditing />
+    {/* EXPERIMENT, off unless ?marks is on the URL - see MarkExperiment.astro.
+        Delete this line and that file to remove it; nothing depends on it. */}
+    <MarkExperiment />
     <script>
       function bindNav() {
         const navToggle = document.querySelector<HTMLButtonElement>('#site-nav-toggle');

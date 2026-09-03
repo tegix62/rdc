@@ -110,6 +110,7 @@ const relatedWork = await getRelatedWork(categoryName, 4);
             {(item.thumbnail || item.mainImage) && (
               <Img
                 image={item.thumbnail || item.mainImage}
+                archive={item.archiveMark}
                 field={item.thumbnail ? 'thumbnail' : 'mainImage'}
                 alt={item.title}
                 width={600}

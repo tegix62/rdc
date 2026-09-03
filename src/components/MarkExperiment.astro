@@ -1,0 +1,155 @@
+---
+/*
+  ============================================================================
+  EXPERIMENT - NOT A DECISION. Delete this file and its one line in
+  Layout.astro to remove it entirely; nothing else depends on it.
+  ============================================================================
+
+  WHAT IT IS
+
+  A way to SEE the related-work cards ("More Work" on a case study, "See the
+  work" on a blog post) drawn with each project's Archive Mark instead of its
+  photographic thumbnail, without shipping that as the site's behaviour.
+
+  OFF for every visitor. It turns on only for whoever adds ?marks to the URL,
+  and stays on for that browser tab so you can click between projects and
+  judge it as a set rather than one page at a time - which is the whole point,
+  since the cards are how you move between projects.
+
+    ?marks      on           /work/two-point-oh?marks
+    ?marks=off  off          or click the badge
+
+  WHY IT COSTS NOTHING WHEN OFF
+
+  Img.astro already emits the mark as data-archive-src rather than as a second
+  <img> - precisely because a hidden image still gets downloaded in most
+  browsers, and nobody should pay for a version of the page they may never
+  ask for. So the marks are addresses in the HTML until this script swaps one
+  in. The script itself bails on its first two lines when the flag is absent.
+
+  WHAT TO LOOK FOR
+
+  The badge reports coverage, because the honest answer to "how would this
+  look" depends on how many marks are actually drawn. A card whose project has
+  no Archive Mark keeps its thumbnail, on purpose - a half-converted grid is
+  the real result of turning this on today, and hiding that would make the
+  experiment flattering rather than useful.
+
+  Marks are set to `contain` inside the same box the thumbnails use, so
+  nothing is cropped and nothing shifts. A trimmed logomark cover-cropped to
+  4:5 would just be wrong, and would tell you nothing about the idea.
+*/
+---
+
+<style is:global>
+  /*
+    Scoped behind the attribute the script sets, so none of this applies
+    unless the experiment is switched on.
+  */
+  [data-mark-experiment] .card[data-mark] img {
+    object-fit: contain;
+    background: transparent;
+    padding: 8%;
+  }
+
+  .mark-badge {
+    position: fixed;
+    left: var(--space-2);
+    bottom: var(--space-2);
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    background: var(--color-white, #fff);
+    color: var(--color-navy, #1a1a1a);
+    font-family: var(--font-heading, inherit);
+    font-size: 0.75rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .mark-badge__count {
+    opacity: 0.6;
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    var KEY = 'rdc-mark-experiment';
+    var param = new URLSearchParams(location.search).get('marks');
+    var on;
+
+    if (param !== null) {
+      on = param !== '0' && param !== 'off' && param !== 'false';
+      try { sessionStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
+    } else {
+      try { on = sessionStorage.getItem(KEY) === '1'; } catch (e) { on = false; }
+    }
+    if (!on) return;
+
+    function run() {
+      document.documentElement.setAttribute('data-mark-experiment', '');
+
+      var cards = document.querySelectorAll(
+        '.work-related .card, .blog-related .card'
+      );
+      if (!cards.length) return;
+
+      var swapped = 0;
+      var missing = [];
+
+      cards.forEach(function (card) {
+        var img = card.querySelector('img');
+        if (!img) return;
+        var src = img.getAttribute('data-archive-src');
+        if (!src) {
+          var t = card.querySelector('.card__title');
+          missing.push(t ? t.textContent.trim() : 'untitled');
+          return;
+        }
+        /*
+          srcset and sizes have to go, or the browser keeps choosing from the
+          candidate list built for the THUMBNAIL and the new src is ignored -
+          srcset wins over src whenever both are present.
+        */
+        img.removeAttribute('srcset');
+        img.removeAttribute('sizes');
+        img.src = src;
+        card.setAttribute('data-mark', '');
+        swapped++;
+      });
+
+      var badge = document.createElement('button');
+      badge.type = 'button';
+      badge.className = 'mark-badge';
+      badge.innerHTML =
+        'Archive marks on <span class="mark-badge__count">' +
+        swapped + '/' + cards.length +
+        (missing.length ? ' · no mark: ' + missing.join(', ') : '') +
+        '</span>';
+      badge.title = 'Click to switch back to thumbnails';
+      badge.addEventListener('click', function () {
+        try { sessionStorage.setItem(KEY, '0'); } catch (e) {}
+        /*
+          The PARAM has to go too, not just the stored flag. A plain reload
+          keeps ?marks in the address bar, the param outranks storage on the
+          way back in, and the badge turns the experiment off and straight
+          back on - which is what it did the first time this was measured.
+        */
+        var url = new URL(location.href);
+        url.searchParams.delete('marks');
+        location.replace(url.toString());
+      });
+      document.body.appendChild(badge);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', run);
+    } else {
+      run();
+    }
+  })();
+</script>

@@ -259,6 +259,7 @@ const gated = !!caseStudy.accessPassword;
               {img && (
                 <Img
                   image={img}
+                  archive={item.archiveMark}
                   alt={item.title}
                   field={item.thumbnail ? 'thumbnail (Tile Image)' : 'mainImage (Main Project Image)'}
                   width={600}

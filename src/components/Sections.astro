@@ -47,6 +47,23 @@ function plateStyle(image: any): string {
 }
 
 /*
+  The same number for a Media Row item, which may be a video rather than an
+  image.
+
+  A video has no dimensions to read at build time, so its poster stands in -
+  the poster IS the shape of the slot until someone presses play. With no
+  poster either, 16:9, which is what an embed resolves to and the least
+  surprising guess for anything else.
+*/
+function mediaAspect(item: any): number {
+  if (item?._type === 'mediaVideo') {
+    const d = imageDimensions(item.videoPoster);
+    return d && d.height > 0 ? d.width / d.height : 16 / 9;
+  }
+  return aspect(item?.image);
+}
+
+/*
   What the row as a whole needs, so it can bound its own height.
 
   The common height k works out to (row width - gaps) / (sum of the ratios),
@@ -271,13 +288,31 @@ function rowStyle(images: any[]): string {
       // Narrower slots want smaller files. This is the width each item is
       // actually rendered at, so the srcset ceiling matches the layout.
       const slotWidth = Math.round(2000 / items.length);
+      /*
+        A Media Row is a row of plates, so it shares the two-up/three-up
+        treatment: one height, widths from each item's own ratio. See the
+        long note in global.css for why, and for why the sum of the ratios
+        has to travel with it.
+
+        The ceiling scales with the count for the same reason two-up gets a
+        taller one than three-up - two items have half the row each to spend,
+        three have a third.
+      */
+      const rowMax =
+        items.length <= 1 ? 'min(70vh, 40rem)'
+        : items.length === 2 ? 'min(64vh, 36rem)'
+        : 'min(56vh, 32rem)';
+      const rowAr = items.reduce((total: number, item: any) => total + mediaAspect(item), 0);
       return (
         <div class="work-section media-row" style={`--media-count: ${items.length}`}>
           {/* h2 - see the comment on imageTextSection's heading above. */}
           {section.heading && <h2 class="media-row__heading t-h3">{section.heading}</h2>}
-          <div class="media-row__items">
+          <div
+            class="media-row__items"
+            style={`--row-ar:${rowAr.toFixed(4)};--row-n:${items.length};--row-max:${rowMax}`}
+          >
             {items.map((item: any, i: number) => (
-              <figure class="media-row__item">
+              <figure class="media-row__item" style={`flex-grow:${mediaAspect(item).toFixed(4)}`}>
                 {item._type === 'mediaVideo' ? (
                   <div class="work-video-frame">
                     <Video

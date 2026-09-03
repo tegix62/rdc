@@ -2386,7 +2386,8 @@ main {
   resizing, wrapping text, and images that load late.
 */
 .work-section--two-up,
-.work-section--three-up {
+.work-section--three-up,
+.media-row__items {
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
@@ -2421,25 +2422,50 @@ main {
 /*
   Two plates get a taller ceiling than three, having half the row each rather
   than a third of it.
+
+  Set high on purpose. This is a SAFETY VALVE, not a size: a ceiling that
+  binds in ordinary cases just makes every row smaller than the band it sits
+  in, for nothing. Measured against the 1104px band at 900px tall, three 4:5
+  flyers want a 452px common height and the first draft of these numbers
+  capped them to 384 - a row 944px wide inside a 1104px band, which is the
+  cap solving a problem the row did not have. It now clears that case and
+  still catches the one it exists for: three 1:2 strips want 704px, and get
+  512.
 */
 .work-section--two-up {
-  --row-max: min(56vh, 32rem);
+  --row-max: min(64vh, 36rem);
 }
 
 .work-section--three-up {
-  --row-max: min(44vh, 24rem);
+  --row-max: min(56vh, 32rem);
 }
 
-.work-section__plate {
+.work-section__plate,
+.media-row__item {
   flex-basis: 0;
   /* flex-grow is inline, per plate: its aspect ratio. */
   min-width: 0;
 }
 
-.work-section__plate img {
+.work-section__plate img,
+.media-row__item img {
   width: 100%;
   height: auto;
   display: block;
+}
+
+/*
+  A caption hangs BELOW the shared height rather than joining it.
+
+  Only Media Row has captions, and a figure's height is its media plus its
+  caption - so two captions of different lengths would put the pictures above
+  them at different heights again, which is the exact bug this is fixing, one
+  level up. flex-start keeps every figure hung from the same top edge, and
+  since the media is level the captions all start on the same line and simply
+  run to different depths.
+*/
+.media-row__item {
+  align-self: flex-start;
 }
 
 @media (max-width: 40rem) {
@@ -2453,12 +2479,14 @@ main {
     could not override it.
   */
   .work-section--two-up,
-  .work-section--three-up {
+  .work-section--three-up,
+  .media-row__items {
     display: block;
     max-width: none;
   }
 
-  .work-section__plate + .work-section__plate {
+  .work-section__plate + .work-section__plate,
+  .media-row__item + .media-row__item {
     margin-top: var(--space-3);
   }
 }
@@ -3548,19 +3576,22 @@ body {
   margin: 0 0 var(--space-3);
 }
 
-.media-row__items {
-  display: grid;
-  grid-template-columns: repeat(var(--media-count, 3), minmax(0, 1fr));
-  gap: var(--space-3);
-  align-items: start;
-}
+/*
+  Layout lives with the other plate rows, up by .work-section--three-up - a
+  Media Row IS one, and having two mechanisms for the same job is how they
+  drift.
 
+  What was here: `repeat(var(--media-count), minmax(0, 1fr))`, equal-width
+  columns. Three flyers of three shapes therefore ended at three different
+  heights, which is what Chris saw on Two Point Oh after the two-up and
+  three-up blocks were fixed and this one was not.
+
+  --media-count is still set, and is still what tells the row how much height
+  it may take (see --row-max in Sections.astro); it no longer counts columns,
+  because the ratios do that now.
+*/
 .media-row__item {
   margin: 0;
-  /* min-width: 0 on a grid child stops a wide iframe forcing the track wider
-     than its share - the same class of overflow that made the site scroll
-     sideways on phones earlier in this port. */
-  min-width: 0;
 }
 
 /* Same treatment as .work-video-caption - a caption is a caption wherever it
@@ -3574,12 +3605,8 @@ body {
 }
 
 /* Three things side by side on a 390px screen is unreadable, whatever the
-   block says. */
-@media (max-width: 40rem) {
-  .media-row__items {
-    grid-template-columns: 1fr;
-  }
-}
+   block says - and the stacking that does that now lives with the other plate
+   rows, since it is the same rule for all of them. Nothing here. */
 
 /*
   Tap targets.

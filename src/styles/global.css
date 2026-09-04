@@ -67,6 +67,13 @@
     the portrait plates, which were the ones filling the screen.
   */
   --plate-fit: 76vh;
+
+  /*
+    The same idea for the image in an Image + Text section, and lower, because
+    that image shares its row with a column of text: 76vh of picture beside a
+    paragraph is a section you cannot take in either.
+  */
+  --image-text-fit: min(68vh, 38rem);
 }
 
 *, *::before, *::after {
@@ -2641,21 +2648,50 @@ main {
 }
 
 /*
-  DELIBERATELY NOT height-capping the other section images, and not giving
-  them width:auto.
+  STILL NOT giving these images width:auto.
 
-  A previous version of this did both, on the theory that the plate rule
-  should apply everywhere. Measured against the real DumpStat page it was
-  clearly wrong: width:auto stops an image at its intrinsic size, so every
-  source narrower than its column shrank away from the column edges and left
-  the accent band showing around it. The page went from a set of images to a
-  set of stamps floating in red.
+  A previous version did, on the theory that the plate rule should apply
+  everywhere. Measured against the real DumpStat page it was clearly wrong:
+  width:auto stops an image at its intrinsic size, so every source narrower
+  than its column shrank away from the column edges and left the accent band
+  showing around it. The page went from a set of images to a set of stamps
+  floating in red. They keep width:100% and fill their column.
 
-  These images sit in columns that are already a fraction of the page, so
-  they were never the thing at risk of filling a screen. They keep the base
-  width:100% and fill their column, as before. The plate rule stays where it
-  earns its keep - on the full-bleed section above.
+  BUT THE OTHER HALF OF THAT REASONING EXPIRED. It said these images "sit in
+  columns that are already a fraction of the page, so they were never the
+  thing at risk of filling a screen". That was true while the band was 72rem
+  and an Image + Text column was about 540px. Breaking those sections out to
+  --wide-room made the column roughly 700px, and a portrait image at 700px
+  wide is over 900px tall - taller than a laptop viewport. Chris hit exactly
+  that on a Surface Pro, whose 3:2 screen is short for its width.
+
+  So there IS a cap now, and it is expressed as a max-WIDTH rather than a
+  max-height. Height is what needs bounding, but capping height directly
+  against a definite width squashes the picture, and freeing the width with
+  width:auto brings the stamps back. Since width = height x ratio, capping
+  the width at (cap x ratio) caps the height at the cap exactly - with the
+  ratio preserved, and with width:100% still filling any column narrower than
+  that. --ar comes from Sections.astro.
+
+  margin-inline:auto centres the image in its track once the cap bites,
+  rather than leaving it hard against one edge of a column it no longer
+  fills.
 */
+/*
+  Not on a phone. There the section is one column at the full width of the
+  band, the image is not sharing a row with anything, and the height is
+  scrolled past rather than competing for the screen. Capping there only
+  inset the image from edges it was correctly filling - measured, a very tall
+  image went from 358px wide to 319px for no gain. 40.0625rem is 641px, the
+  first width the phone rules stop applying at.
+*/
+@media (min-width: 40.0625rem) {
+  .work-section--image-text > img {
+    max-width: calc(var(--image-text-fit) * var(--ar, 3));
+    margin-inline: auto;
+  }
+}
+
 
 /*
   A row of plates shares ONE HEIGHT, and each plate is as wide as its own

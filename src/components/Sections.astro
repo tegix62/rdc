@@ -53,6 +53,18 @@ function aspect(image: any): number {
   CSS the number instead and letting it decide what to do with it is what lets
   the phone layout size these by height rather than by share.
 */
+/*
+  The image's ratio, handed to CSS so it can cap the HEIGHT of an Image + Text
+  image without taking away the width:100% that keeps it filling its column.
+
+  See --image-text-fit in global.css for why the cap has to be expressed as a
+  max-WIDTH, and why width:auto is the wrong tool here.
+*/
+function ratioStyle(image: any): string | undefined {
+  if (!image) return undefined;
+  return `--ar:${aspect(image).toFixed(4)}`;
+}
+
 function plateStyle(image: any): string {
   return `--ar:${aspect(image).toFixed(4)}`;
 }
@@ -356,6 +368,7 @@ function rowStyle(images: any[]): string {
             'work-section--image-text',
             section.imagePosition === 'Right' && 'is-reversed',
           ]}
+          style={ratioStyle(section.image)}
         >
           {section.image && (
             <Img image={section.image} field={`${section._type} → image`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
@@ -574,6 +587,7 @@ function rowStyle(images: any[]): string {
             'work-section--image-text',
             section.mediaPosition === 'Right' && 'is-reversed',
           ]}
+          style={ratioStyle(section.image)}
         >
           {section.videoUrl || section.videoFile || section.videoWebm || section.videoSrc ? (
             <div class="work-video-frame">

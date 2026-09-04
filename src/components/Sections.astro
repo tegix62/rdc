@@ -397,7 +397,19 @@ function rowStyle(images: any[]): string {
         <div class="work-section media-row" style={`--media-count: ${items.length}`}>
           {/* h2 - see the comment on imageTextSection's heading above. */}
           {section.heading && <h2 class="media-row__heading t-h3">{section.heading}</h2>}
-          <div class="media-row__items" style={mediaRowStyle(items)}>
+          <div
+            class:list={[
+              'media-row__items',
+              /*
+                Only a row carrying a self-hosted video stacks on a phone -
+                see the note in global.css. Decided here rather than with
+                :has() in CSS so the fallback for a browser without :has() is
+                not three unusable 110px video players.
+              */
+              items.some(isSelfHostedVideo) && 'media-row__items--stack-phone',
+            ]}
+            style={mediaRowStyle(items)}
+          >
             {items.map((item: any, i: number) => (
               <figure class="media-row__item" style={mediaItemStyle(item)}>
                 {item._type === 'mediaVideo' ? (

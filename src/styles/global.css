@@ -2626,20 +2626,54 @@ main {
     grow act on the HEIGHT, and grow is set inline, where this stylesheet
     could not override it.
   */
+  /*
+    A ROW STAYS A ROW ON A PHONE.
+
+    These used to go to one plate per row, on the ordinary reasoning that
+    phones stack. It is the wrong reasoning for this particular block, because
+    a two-up or three-up is not an accident of available width - it is an
+    authored grouping. Three flyers together say "these are a set"; the same
+    three at full width, a screen apart, say nothing except that there are
+    three of them, and turn one glance into three scrolls. On a case study
+    with several of these that is most of the page's length, spent unsaying
+    what the layout was for.
+
+    They shrink instead. The justified-row arithmetic doesn't care how wide
+    the row is - it solves for a common height at any width - so the plates
+    just get smaller and stay level. Small is the correct trade here: a
+    grouping you can take in beats a plate you can measure. The Portfolio grid
+    and More Work already carry three columns on a phone for the same reason.
+
+    Only the width/centring calculation is undone, since there is no breakout
+    to centre at this size.
+  */
   .work-section--two-up,
   .work-section--three-up,
   .work-section--achievements__images,
   .media-row__items {
-    display: block;
-    /* Undo the whole width/centring calculation, not just the cap: the row is
-       the band's width here, with no breakout to centre. */
     width: auto;
     margin-left: 0;
     margin-right: 0;
+    /* Tighter than the desktop gap: at 390px, three --space-3 gutters spend
+       12% of the screen on nothing. Gives each plate back about 15px. */
+    gap: var(--space-1);
   }
 
-  .work-section__plate + .work-section__plate,
-  .media-row__item + .media-row__item {
+  /*
+    Videos are the exception, and stack.
+
+    A self-hosted video is content-sized rather than given a slot, so three of
+    them in a 358px row shrink to about 110px wide - and unlike an image, a
+    video carries native controls. A play button, a scrubber and a volume
+    control inside 110px is not a small video, it is an unusable one. The
+    class is written by Sections.astro rather than matched with :has(), so
+    this does not depend on :has() support to avoid shipping that.
+  */
+  .media-row__items--stack-phone {
+    display: block;
+  }
+
+  .media-row__items--stack-phone .media-row__item + .media-row__item {
     margin-top: var(--space-3);
   }
 }

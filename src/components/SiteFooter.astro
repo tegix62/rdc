@@ -96,26 +96,54 @@ const idFor = (name: string) => 'site-index-' + categorySlug(name).replace(/[^a-
       )}
     </a>
     {footerText && <p class="site-footer__blurb">{footerText}</p>}
+  </div>
 
-    <div class="site-footer__col">
-      <p class="site-footer__heading">Follow</p>
-      {socialLinks && socialLinks.length > 0 ? (
-        socialLinks.map((s: any) =>
+  {/*
+    The tray: everywhere to go NEXT, on one line across the footer.
+
+    This was two stacked columns headed "Follow" and "Contact", which on a
+    phone became a vertical list one item tall - a wordmark, the word FOLLOW,
+    Instagram, the word CONTACT, a button, each on its own line down the
+    screen. The two things a visitor is most likely to want were also the two
+    things spread thinnest.
+
+    A row instead, spanning the width: destinations on the left, the contact
+    button on the right, wrapping to two lines on a phone rather than eight.
+
+    The headings go with it. "Follow" above a link that says Instagram, and
+    "Contact" above a button that says Get in Touch, are labels for things
+    that already name themselves - and they were two more of the uppercase
+    tracked eyebrows the label pass was about.
+
+    DOM order is visual order at every width, deliberately. Putting the button
+    first in the markup and moving it right with `order` or `row-reverse`
+    would leave a keyboard tabbing through the footer in an order that does
+    not match what is on the screen.
+  */}
+  <div class="wrap site-footer__tray">
+    {socialLinks && socialLinks.length > 0 ? (
+      <ul class="site-footer__social">
+        {socialLinks.map((s: any) =>
           s.url ? (
-            <a class="site-footer__social-link" href={s.url} target="_blank" rel="noopener noreferrer">
-              {s.platform}
-            </a>
+            <li>
+              <a
+                class="site-footer__social-link"
+                href={s.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-primary={s.primary ? '' : undefined}
+              >
+                {s.platform}
+              </a>
+            </li>
           ) : null,
-        )
-      ) : (
-        <p class="site-footer__muted">No social links yet</p>
-      )}
-    </div>
+        )}
+      </ul>
+    ) : (
+      <p class="site-footer__muted">No social links yet</p>
+    )}
 
-    <div class="site-footer__col">
-      <p class="site-footer__heading">Contact</p>
-      <a class="button" href={contactUrl}>Get in Touch</a>
-    </div>
+    <a class="button site-footer__cta" href={contactUrl}>Get in Touch</a>
   </div>
 
   <nav class="wrap site-index" aria-label="Site index">

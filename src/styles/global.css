@@ -373,12 +373,18 @@ a {
   color: var(--color-gray);
 }
 
+/*
+  Brand and blurb only now - the links and the button moved to the tray below.
+  A smaller gap under it because the tray is the same thought continued, not a
+  new section.
+*/
 .site-footer__top {
   display: flex;
   flex-wrap: wrap;
+  align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-3) var(--space-4);
-  padding-bottom: var(--space-4);
+  gap: var(--space-2) var(--space-4);
+  padding-bottom: var(--space-3);
 }
 
 .site-footer__brand img {
@@ -397,19 +403,36 @@ a {
   color: var(--color-gray);
 }
 
-.site-footer__col {
+/*
+  The tray: everywhere to go next, on one line across the footer.
+
+  Was two stacked columns - "Follow" over a link, "Contact" over a button -
+  which on a phone became a vertical list eight lines tall. The two things a
+  visitor is most likely to want were the two spread thinnest. See the note in
+  SiteFooter.astro for why the headings went with it.
+
+  space-between rather than a gap, so the row genuinely spans the footer
+  instead of huddling at the left of it. wrap so a growing list of
+  destinations - TikTok, Pinterest, Are.na, Substack - takes a second line
+  rather than squeezing the button.
+*/
+.site-footer__tray {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  padding-bottom: var(--space-4);
 }
 
-.site-footer__heading {
-  margin: 0 0 var(--space-1);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: var(--label-track);
-  text-transform: uppercase;
-  color: var(--color-navy);
+.site-footer__social {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .site-footer__social-link {
@@ -417,8 +440,24 @@ a {
   text-decoration: none;
 }
 
-.site-footer__social-link:hover {
+.site-footer__social-link:hover,
+.site-footer__social-link:focus-visible {
   color: var(--color-navy);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/*
+  The one marked "main" in Studio. Chris's words: Instagram is his main content
+  machine by FAR, and a row giving eight destinations equal weight says the
+  opposite of that.
+
+  Colour and weight rather than a box, so it reads as the loudest LINK rather
+  than as a second button competing with the one at the other end of the row.
+*/
+.site-footer__social-link[data-primary] {
+  color: var(--color-navy);
+  font-weight: 700;
 }
 
 .site-footer__muted {
@@ -493,6 +532,24 @@ a {
     Two columns on a phone rather than one. These are short lines, and a single
     column would make the index taller than most of the pages it indexes.
   */
+  /*
+    The tray on a phone: destinations wrap across the top, the button takes the
+    full width beneath them. A contact button is the one thing in the footer
+    somebody arrives at with intent, and at 200px wide in the middle of a
+    column it read as an afterthought.
+
+    inline-flex needs the centring said explicitly - width alone leaves the
+    label pinned to the left of a full-width button.
+  */
+  .site-footer__tray {
+    gap: var(--space-2);
+  }
+
+  .site-footer__cta {
+    width: 100%;
+    justify-content: center;
+  }
+
   .site-index {
     grid-template-columns: 1fr 1fr;
     gap: var(--space-2);

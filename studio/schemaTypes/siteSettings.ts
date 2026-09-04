@@ -429,14 +429,39 @@ export default defineType({
       title: 'Social links',
       type: 'array',
       group: 'footer',
+      description:
+        'Shown as a row across the footer, in this order - drag to reorder. ' +
+        'The name is free text, so anything goes: Instagram, TikTok, ' +
+        'Pinterest, Are.na, Substack.',
       of: [
         {
           type: 'object',
           fields: [
             {name: 'platform', title: 'Name shown, e.g. Instagram', type: 'string'},
             {name: 'url', type: 'url'},
+            {
+              /*
+                One link can be marked primary and is drawn in the brand colour
+                while the rest stay quiet. Chris's words: Instagram is his main
+                content machine "by FAR", and a row that gives eight
+                destinations equal weight says the opposite of that.
+
+                Optional, and nothing breaks when no link is marked - the row
+                simply reads evenly, which is the right default for someone who
+                has not decided yet.
+              */
+              name: 'primary',
+              title: 'Main one - drawn stronger than the rest',
+              type: 'boolean',
+              initialValue: false,
+            },
           ],
-          preview: {select: {title: 'platform', subtitle: 'url'}},
+          preview: {
+            select: {title: 'platform', subtitle: 'url', primary: 'primary'},
+            prepare({title, subtitle, primary}: any) {
+              return {title: primary ? `${title} (main)` : title, subtitle}
+            },
+          },
         },
       ],
     }),

@@ -359,8 +359,15 @@ a {
 }
 
 .site-footer {
-  margin-top: var(--space-6);
-  padding-top: var(--space-5);
+  /*
+    Tightened. This was 4rem of margin above and 3rem of padding inside it -
+    7rem of nothing between the page and its footer, set when the footer was
+    four short items and needed the separation to read as a footer at all. It
+    now carries the site's whole index, which is unmistakably a footer without
+    the runway.
+  */
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
   border-top: 1px solid var(--color-border);
   font-size: 0.875rem;
   color: var(--color-gray);
@@ -370,8 +377,8 @@ a {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: var(--space-4);
-  padding-bottom: var(--space-5);
+  gap: var(--space-3) var(--space-4);
+  padding-bottom: var(--space-4);
 }
 
 .site-footer__brand img {
@@ -435,20 +442,25 @@ a {
 .site-index {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-  gap: var(--space-4) var(--space-3);
-  padding: var(--space-5) 0 var(--space-4);
+  /*
+    A row gap wider than the column gap, because the rows are separated by a
+    hairline as well and two devices doing the same job at once reads as a
+    gap someone forgot to close.
+  */
+  gap: var(--space-3) var(--space-3);
+  padding: var(--space-4) 0 var(--space-3);
 }
 
 .site-index__group {
   border-top: 1px solid var(--color-border);
-  padding-top: var(--space-2);
+  padding-top: var(--space-1);
   /* A long project title should wrap rather than force its column wider and
      squeeze every other group. */
   min-width: 0;
 }
 
 .site-index__heading {
-  margin: 0 0 var(--space-1);
+  margin: 0 0 0.25rem;
   font-family: var(--font-heading);
   font-size: 0.8125rem;
   font-weight: 700;
@@ -483,8 +495,8 @@ a {
   */
   .site-index {
     grid-template-columns: 1fr 1fr;
-    gap: var(--space-3) var(--space-2);
-    padding: var(--space-4) 0 var(--space-3);
+    gap: var(--space-2);
+    padding: var(--space-3) 0 var(--space-2);
   }
 }
 

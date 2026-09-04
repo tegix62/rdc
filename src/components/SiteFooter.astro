@@ -12,11 +12,17 @@
     /collage       the collage work           linked from nothing
     /blog          the whole blog             linked only from inside itself
 
-  and the blog's category pages, which SITE-BRIEF calls "the long-tail SEO
-  pages", had no internal links at all - the blog index prints the category as
-  text rather than as a link. A page nothing points to is a page nobody
-  reaches, and search engines treat internal links as a crawl and ranking
-  signal that was sitting at zero.
+  A page nothing points to is a page nobody reaches, and search engines treat
+  internal links as a crawl and ranking signal that was sitting at zero.
+
+  STILL AN ORPHAN, DELIBERATELY FOR NOW: the blog's category pages, which
+  SITE-BRIEF calls "the long-tail SEO pages". They were listed here and Chris
+  pulled them back out - the block read as too much. /blog is still linked
+  above, but the blog index prints each post's category as plain text rather
+  than a link, so there is no path to those pages from anywhere. The cheap fix
+  when it is wanted is to make that text a link on the index; restoring the
+  group here is a few lines, and lib/blogCategories.ts still holds the names
+  and the slug rule.
 
   WHY THE WORK ITSELF IS LISTED, NOT JUST THE SECTIONS
 
@@ -36,7 +42,7 @@
 */
 import Img from './Img.astro';
 import { getFooterWork } from '../lib/queries';
-import { BLOG_CATEGORIES, categorySlug } from '../lib/blogCategories';
+import { categorySlug } from '../lib/blogCategories';
 import { groupWorkByCategory } from '../lib/siteIndex';
 
 interface Props {
@@ -70,11 +76,6 @@ const SECTIONS = [
   preview build. See getFooterWork().
 */
 const workGroups = groupWorkByCategory(await getFooterWork());
-
-const writing = Object.keys(BLOG_CATEGORIES).map((name) => ({
-  name,
-  href: `/blog/category/${categorySlug(name)}`,
-}));
 
 /*
   Ids for aria-labelledby. Deliberately NOT headings: the footer is on every
@@ -138,14 +139,6 @@ const idFor = (name: string) => 'site-index-' + categorySlug(name).replace(/[^a-
       </div>
     ))}
 
-    <div class="site-index__group">
-      <p class="site-index__heading" id="site-index-writing">Writing</p>
-      <ul class="site-index__list" aria-labelledby="site-index-writing">
-        {writing.map((c) => (
-          <li><a href={c.href}>{c.name}</a></li>
-        ))}
-      </ul>
-    </div>
   </nav>
 
   <div class="wrap site-footer__bottom">

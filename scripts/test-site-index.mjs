@@ -10,12 +10,14 @@
     - every project appears exactly once, including one with no category
     - the order does not depend on what Sanity happened to return
     - a category renamed in Studio still shows its work rather than dropping it
-    - the blog category slugs match the routes the category page builds, so
-      the footer cannot start emitting 404s the day one is renamed
+    - the blog category slugs keep the shape the category page's routes are
+      built from, so a rename cannot silently move URLs a search engine has
+      already indexed
 
-  That last one is the reason lib/blogCategories.ts exists at all: the names
-  and the slug rule used to live inside getStaticPaths, and the footer would
-  have needed a second copy.
+  The footer listed those categories briefly and no longer does, but the slug
+  assertions stay: lib/blogCategories.ts is still where the category page gets
+  its routes, and pinning the shape is what makes a rename a visible change
+  rather than a quiet 404.
 
   Pure logic, no network and no build, so it runs in the sandbox where a real
   build cannot reach Sanity.
@@ -131,9 +133,9 @@ eq('an empty list returns nothing', groupWorkByCategory([]), [])
 
 /*
   The category page builds its routes with the same categorySlug() this asserts
-  against, so what is really being pinned here is the SHAPE of those URLs - if
-  the rule changes, the footer's links and the built routes move together, and
-  this catches a change that breaks the URLs a search engine already indexed.
+  against, so what is really being pinned here is the SHAPE of those URLs. A
+  change to the rule moves every category URL at once, and this is what makes
+  that a failing test rather than a quiet 404 on links already indexed.
 */
 eq('slug: two words', categorySlug('Brand Identity'), 'brand-identity')
 eq('slug: an ampersand collapses with its spaces', categorySlug('Merch & Apparel'), 'merch-apparel')

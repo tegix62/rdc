@@ -72,8 +72,31 @@
     The same idea for the image in an Image + Text section, and lower, because
     that image shares its row with a column of text: 76vh of picture beside a
     paragraph is a section you cannot take in either.
+
+    WHY THIS IS NOT 68vh / 38rem, WHICH WAS THE FIRST ANSWER
+
+    That number was set to stop a portrait image running past the screen, and
+    it did - but it was low enough to bind on shapes that were never the
+    problem. Measured across eight ratios and ten viewports with the real
+    sheet, it shrank 24 cases below the width their own column would have
+    given them. The clearest was a SQUARE image on a 1440x870 laptop: capped
+    to 592px when the column allowed 672, so a picture that fit on screen with
+    200px to spare was inset by 80px for nothing.
+
+    A cap is a safety valve, not a size. It should catch the shapes that
+    genuinely overflow and be invisible everywhere else. At 80vh / 46rem a
+    square is limited by its column again - the natural maximum - while 4:5
+    and 3:4 still cap, which is the case that needed catching: uncapped, a 3:4
+    renders 103% of screen height on that same laptop, and 4:5 renders 97%.
+
+    Landscape was never affected either way. 16:9 and 3:2 are column-limited
+    at every width measured, at roughly 43-55% of screen height, so neither
+    number ever touched them.
+
+    The rem half is the one that binds on a large monitor, where 80vh is more
+    picture than a paragraph can sit beside; the vh half binds on a laptop.
   */
-  --image-text-fit: min(68vh, 38rem);
+  --image-text-fit: min(80vh, 46rem);
 }
 
 *, *::before, *::after {

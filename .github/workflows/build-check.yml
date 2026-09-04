@@ -26,6 +26,14 @@ on:
       # `npm run build`'s output - Astro never touches them, Cloudflare deploys
       # them separately - so nothing else in this path list would catch a
       # change here.
+      # The Studio schema. Same omission as scripts/ above, and the same
+      # consequence: this commit reorganises fieldsets across four section
+      # blocks, and without this line the one check that can catch a dangling
+      # fieldset reference would not have run on it. A schema change is
+      # invisible to `npm run build` - the site never loads the schema - so
+      # this path filter is the only thing that puts a schema edit in front of
+      # test-schema-shape.mjs at all.
+      - 'studio/**'
       - 'functions/**'
       # Copied VERBATIM into dist/ by Astro's build - _headers, favicon.svg,
       # the vendor scripts. A change here reaches production exactly as
@@ -96,6 +104,16 @@ jobs:
       # the category page builds, so a rename cannot quietly 404 links that a
       # search engine has already indexed.
       - run: node scripts/test-site-index.mjs
+
+      # The Studio schema's internal references - `fieldset:` and `group:`
+      # names that have to resolve to something the parent declares. This is
+      # the one check `npm run build` structurally cannot make: the site never
+      # loads the schema, so a dangling reference builds and deploys perfectly
+      # and then fails when Chris opens Studio. It has been in the repo since
+      # the fieldset reorganisation and was never wired in here - which meant
+      # the guard for the riskiest kind of edit only ran when someone
+      # remembered to run it by hand.
+      - run: node scripts/test-schema-shape.mjs
 
       # The homepage grid's row arithmetic. Its only symptom when wrong is a
       # homepage that looks slightly ragged, which nobody files a bug for - they

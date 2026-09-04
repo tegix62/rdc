@@ -1,6 +1,6 @@
 import {defineField, defineType} from 'sanity'
 import {imageSpec} from './imageFields'
-import {videoBehaviourFields} from './videoFields'
+import {VIDEO_FIELDSET, videoBehaviourFields, videoFieldsets} from './videoFields'
 
 /*
   Every image in every section block goes through here, so alt text stays up
@@ -103,8 +103,9 @@ export const videoSection = defineType({
       description: 'YouTube or Vimeo URL.',
     }),
     defineField({name: 'caption', type: 'string'}),
-    ...videoBehaviourFields,
+    ...videoBehaviourFields('primary'),
   ],
+  fieldsets: videoFieldsets('primary'),
   preview: {
     select: {subtitle: 'url'},
     prepare: ({subtitle}) => ({title: 'Video', subtitle}),
@@ -194,8 +195,9 @@ export const videoHeroSection = defineType({
       description: 'YouTube or Vimeo URL.',
     }),
     defineField({name: 'heading', type: 'string'}),
-    ...videoBehaviourFields,
+    ...videoBehaviourFields('primary'),
   ],
+  fieldsets: videoFieldsets('primary'),
   preview: {
     select: {title: 'heading', subtitle: 'url'},
     prepare: ({title, subtitle}) => ({title: title || 'Video Hero', subtitle}),
@@ -308,21 +310,28 @@ export const mediaVideo = defineType({
   title: 'Video',
   type: 'object',
   fields: [
-    ...videoBehaviourFields,
+    /*
+      The URL is first now. It used to sit under all seven behaviour fields,
+      under a description that said "leave empty when uploading a file above" -
+      pointing at fields that are now folded away. The two ways to name a video
+      belong next to each other.
+    */
     defineField({
       name: 'url',
       title: 'Video URL (YouTube or Vimeo)',
       type: 'url',
       description:
         'For long or sound-on videos only. Leave empty when uploading a file ' +
-        'above. An upload wins if both are filled in.',
+        'instead. An upload wins if both are filled in.',
     }),
+    ...videoBehaviourFields('primary'),
     defineField({
       name: 'caption',
       type: 'string',
       description: 'Optional line under this item.',
     }),
   ],
+  fieldsets: videoFieldsets('primary'),
   preview: {
     select: {title: 'caption', subtitle: 'url'},
     prepare: ({title, subtitle}) => ({title: title || 'Video', subtitle}),
@@ -339,6 +348,10 @@ export const mediaRowSection = defineType({
       title: 'Items',
       type: 'array',
       of: [{type: 'mediaImage'}, {type: 'mediaVideo'}],
+      // Same reason as the Page Builder array in caseStudy.ts: a Video item is
+      // a URL, a poster with its own alt text, and two collapsed panels. That
+      // is not a popover's worth of form.
+      options: {modal: {type: 'dialog', width: 'auto'}},
       description:
         'Two or three reads best. Four still works. On a phone they stack ' +
         'vertically whatever you choose, because three things side by side on ' +
@@ -375,15 +388,6 @@ export const mediaTextSection = defineType({
   fields: [
     image('image', 'Image'),
     defineField({
-      name: 'videoUrl',
-      title: 'Video URL (optional)',
-      type: 'url',
-      description:
-        'A YouTube or Vimeo link. When set, this plays INSTEAD of the image ' +
-        'above - the image is not shown. Leave empty for an image.',
-    }),
-    ...videoBehaviourFields,
-    defineField({
       name: 'mediaPosition',
       title: 'Media Position',
       type: 'string',
@@ -392,7 +396,24 @@ export const mediaTextSection = defineType({
     }),
     defineField({name: 'heading', type: 'string'}),
     defineField({name: 'text', type: 'text', rows: 4}),
+    /*
+      Everything video, last and folded away - including this URL, which is why
+      it carries the fieldset the shared fields carry. The block's ordinary use
+      is an image beside a paragraph; the video is the exception, and it was
+      sitting between the image and the copy that goes with it.
+    */
+    defineField({
+      name: 'videoUrl',
+      title: 'Video URL (optional)',
+      type: 'url',
+      fieldset: VIDEO_FIELDSET,
+      description:
+        'A YouTube or Vimeo link. When set, this plays INSTEAD of the image ' +
+        'above - the image is not shown. Leave empty for an image.',
+    }),
+    ...videoBehaviourFields('optional'),
   ],
+  fieldsets: videoFieldsets('optional'),
   preview: {
     select: {title: 'heading', media: 'image', subtitle: 'videoUrl'},
     prepare: ({title, media, subtitle}) => ({

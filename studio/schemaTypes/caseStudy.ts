@@ -329,6 +329,20 @@ export default defineType({
         'Media Row for two to four images/videos across, Media + Text for ' +
         'media beside copy, Text for a heading and paragraph, and the specialty ' +
         'blocks for stats, achievements, and video heroes.',
+      /*
+        A block opens in a dialog rather than the default popover.
+
+        These are not small members. Media + Text carries an image with its own
+        alt text and compression panel, a video panel, a position, a heading and
+        a paragraph; Achievements carries two images and a rich-text list. A
+        popover is a bubble sized to the field it is anchored to, so editing one
+        of these meant scrolling a long form inside a small floating box that
+        closes on an outside click. A dialog gets the width, and it stays put.
+
+        `width: 'auto'` rather than a number: the tall blocks want the room, and
+        Text - a heading and a paragraph - does not.
+      */
+      options: {modal: {type: 'dialog', width: 'auto'}},
       of: [
         {type: 'fullImageSection'},
         {type: 'mediaRowSection'},

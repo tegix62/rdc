@@ -2764,15 +2764,40 @@ main {
   */
   .is-strip > .work-section__plate,
   .is-strip > .media-row__item {
-    --strip-h: min(48vh, 19rem);
+    --strip-h: min(50vh, 24rem);
     flex: 0 0 auto;
     scroll-snap-align: start;
   }
 
+  /*
+    Sized by height - and by width where height alone would run away.
+
+    --strip-h is the shelf height and gives every plate in a row the same one.
+    Raised from 19rem now that the strip exists: fitting the row into 390px
+    was what forced plates down to thumbnail size, and once nothing has to
+    fit, the only reason to keep them small is gone. A 4:5 poster goes from
+    243px wide to 307px, which is about 80% of the screen - big enough to
+    read, with the next plate's edge still showing so the row still says it
+    continues.
+
+    THE WIDTH TERM. Height alone is the wrong handle for a wide plate: a 16:9
+    image on the same shelf would be 683px on a 390px screen, so it could
+    never be seen whole - which is the plate rule this site is built on,
+    broken by its own layout. Capping the height at 88vw / ratio caps the
+    WIDTH at 88vw exactly, because width is height x ratio. Expressed on
+    height rather than as max-width because the height here is set, not auto:
+    a max-width against a fixed height squashes the picture instead of
+    scaling it.
+
+    --ar is already on the plate for the desktop row, so the ratio costs
+    nothing to reach. The consequence to know: in a row mixing a panorama
+    with a portrait, the panorama is now shorter than its neighbours rather
+    than wider than the screen. That is the better of the two.
+  */
   .is-strip > .work-section__plate img,
   .is-strip > .media-row__item img {
     width: auto;
-    height: var(--strip-h);
+    height: min(var(--strip-h), calc(88vw / var(--ar, 1)));
     max-width: none;
   }
 
@@ -2797,7 +2822,7 @@ main {
     needs one declaration and no fight with .video--self's own rule.
   */
   .is-strip > .media-row__item--video {
-    --video-fit: min(58vh, 24rem);
+    --video-fit: min(64vh, 30rem);
   }
 
   /*

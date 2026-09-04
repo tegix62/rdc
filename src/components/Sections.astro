@@ -8,6 +8,7 @@ import Img from './Img.astro';
 import { renderPortableText } from '../lib/portableText';
 import Video from './Video.astro';
 import { imageDimensions } from '../lib/image';
+import StripRule from './StripRule.astro';
 
 interface Props {
   sections: any[];
@@ -174,6 +175,71 @@ function rowStyle(images: any[]): string {
 
 ---
 
+{/*
+  Drives every strip's scroll indicator. See StripRule.astro for what it is
+  and why the native scrollbar could not do the job.
+
+  Astro bundles this once for the page rather than per section. It does
+  nothing at all where no strip exists, which is every desktop viewport and
+  every page without a row of three.
+*/}
+<script>
+  const ROWS = '.work-section--three-up.is-strip, .media-row__items.is-strip';
+
+  function wire(row: HTMLElement) {
+    const rule = row.parentElement?.querySelector<HTMLElement>(':scope > .strip-rule');
+    if (!rule) return;
+
+    let queued = false;
+    const measure = () => {
+      queued = false;
+      const travel = row.scrollWidth - row.clientWidth;
+      // Nothing to scroll: a row whose plates fit is an ordinary row, and an
+      // indicator on it would be a control for a thing that cannot move.
+      if (travel <= 1) {
+        rule.classList.remove('is-active');
+        return;
+      }
+      rule.classList.add('is-active');
+      rule.style.setProperty('--strip-f', String(row.clientWidth / row.scrollWidth));
+      rule.style.setProperty('--strip-p', String(row.scrollLeft / travel));
+    };
+
+    /*
+      rAF-throttled rather than debounced: a scroll indicator that arrives
+      after the gesture has finished is worse than none, because it contradicts
+      what the thumb is for. Same treatment the Portfolio grid's resize handler
+      uses.
+    */
+    const schedule = () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(measure);
+    };
+
+    row.addEventListener('scroll', schedule, { passive: true });
+    addEventListener('resize', schedule, { passive: true });
+    /*
+      Images carry width and height so the row's width is known before they
+      arrive, but a late-decoding image can still nudge it, and the strip only
+      exists below 40rem where a re-measure costs nothing.
+    */
+    addEventListener('load', schedule);
+    measure();
+  }
+
+  const start = () => document.querySelectorAll<HTMLElement>(ROWS).forEach(wire);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+  // DOMContentLoaded does not fire on a back/forward restore; pageshow does.
+  addEventListener('pageshow', (e) => {
+    if ((e as PageTransitionEvent).persisted) start();
+  });
+</script>
+
 {sections?.map((section: any) => {
   switch (section._type) {
     case 'fullImageSection': {
@@ -227,13 +293,26 @@ function rowStyle(images: any[]): string {
           )}
         </div>
       );
-    case 'threeUpSection':
+    case 'threeUpSection': {
+      const plates = [section.imageOne, section.imageTwo, section.imageThree].filter(Boolean);
       return (
+        /*
+          The outer div exists so the scroll indicator has somewhere to live.
+          A rule drawn inside the scroller would scroll away with the plates,
+          and one placed after the section would sit between two .work-section
+          siblings and break the `+` selector that spaces them apart.
+
+          .work-section stays on the outer element and the row classes move
+          in: nothing targets the two together, and the row's width maths is
+          unchanged because the wrapper stretches to the same 1104px the row
+          used to occupy.
+        */
+        <div class="work-section">
         <div
-          class="work-section work-section--three-up"
-          style={rowStyle([section.imageOne, section.imageTwo, section.imageThree])}
+          class:list={['work-section--three-up', plates.length > 2 && 'is-strip']}
+          style={rowStyle(plates)}
         >
-          {[section.imageOne, section.imageTwo, section.imageThree].map(
+          {plates.map(
             (img: any) =>
               img && (
                 <div class="work-section__plate" style={plateStyle(img)}>
@@ -247,7 +326,10 @@ function rowStyle(images: any[]): string {
               ),
           )}
         </div>
+        {plates.length > 2 && <StripRule />}
+        </div>
       );
+    }
     case 'imageTextSection':
       return (
         <div
@@ -426,7 +508,7 @@ function rowStyle(images: any[]): string {
                 thing a two-up is for. Three is already a set rather than a
                 pair, and at that count fitting them costs more than it buys.
               */
-              items.length > 2 && 'media-row__items--strip-phone',
+              items.length > 2 && 'is-strip',
             ]}
             style={mediaRowStyle(items)}
           >
@@ -464,6 +546,7 @@ function rowStyle(images: any[]): string {
               </figure>
             ))}
           </div>
+          {items.length > 2 && <StripRule />}
         </div>
       );
     }

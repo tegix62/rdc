@@ -1,0 +1,41 @@
+---
+/*
+  The scroll indicator under a plate strip on a phone.
+
+  WHY IT EXISTS
+
+  A row of three or more plates becomes a sideways strip at phone widths, and
+  the scrollbar is hidden there on purpose - a native bar is noise across a
+  shelf of pictures, and on iOS it is an overlay that only appears mid-gesture
+  anyway, so at rest there was nothing at all saying the row moved. The cut
+  edge of the next plate is a hint; it is not a control, and it says nothing
+  about how much more there is.
+
+  This says both: how much of the row is on screen (the thumb's length) and
+  where you are in it (its position).
+
+  IN THE SITE'S OWN VOCABULARY
+
+  Square, hairline track, solid thumb, no radius - the same construction as
+  the archive switch's track and thumb a few hundred lines up in global.css,
+  which is the only other place this site draws a control as a bar with a
+  block on it.
+
+  currentColor rather than a fixed grey, because a case study band takes the
+  project's accent colour and a hardcoded rule would be invisible on a dark
+  accent and heavy on a light one. Same reasoning the section hairlines used
+  before they were removed.
+
+  aria-hidden: it reports the state of a scroll container the reader can
+  already scroll, and announcing "0.4" to a screen reader is noise. The strip
+  itself is a focusable scroll container, which is what keyboard and assistive
+  navigation actually need.
+
+  Inert until the script measures something to scroll - see Sections.astro. A
+  row whose plates happen to fit shows nothing.
+*/
+---
+
+<div class="strip-rule" aria-hidden="true">
+  <span class="strip-rule__thumb"></span>
+</div>

@@ -2688,8 +2688,7 @@ main {
     Only the width/centring calculation is undone, since there is no breakout
     to centre at this size.
   */
-  .work-section--three-up,
-  .media-row__items--strip-phone {
+  .is-strip {
     /*
       A STRIP THAT SCROLLS SIDEWAYS - for rows of three or more only.
 
@@ -2747,15 +2746,15 @@ main {
     shorter because someone is on a phone with a short screen and the browser
     chrome is showing.
   */
-  .work-section--three-up .work-section__plate,
-  .media-row__items--strip-phone .media-row__item {
+  .is-strip > .work-section__plate,
+  .is-strip > .media-row__item {
     --strip-h: min(48vh, 19rem);
     flex: 0 0 auto;
     scroll-snap-align: start;
   }
 
-  .work-section--three-up .work-section__plate img,
-  .media-row__items--strip-phone .media-row__item img {
+  .is-strip > .work-section__plate img,
+  .is-strip > .media-row__item img {
     width: auto;
     height: var(--strip-h);
     max-width: none;
@@ -2785,6 +2784,65 @@ main {
   .media-row__items--stack-phone .media-row__item + .media-row__item {
     margin-top: var(--space-3);
   }
+
+  /*
+    The scroll indicator. See StripRule.astro for why it exists and
+    Sections.astro for what drives it.
+
+    Square, hairline track, solid thumb, no radius - the archive switch's
+    construction, which is the only other bar-with-a-block on this site.
+    currentColor because a case study band takes the project's accent and a
+    fixed grey would vanish on a dark one.
+
+    It sits OUTSIDE the scroller, so it is the band's content width and lines
+    up with the text above rather than with the full-bleed strip below.
+  */
+  .strip-rule {
+    position: relative;
+    height: 2px;
+    margin-top: var(--space-2);
+    background: color-mix(in srgb, currentColor 18%, transparent);
+    /* Hidden until the script finds something to scroll - a row whose plates
+       fit gets no indicator rather than a full-width one that cannot move. */
+    opacity: 0;
+    transition: opacity 140ms ease;
+  }
+
+  .strip-rule.is-active {
+    opacity: 1;
+  }
+
+  /* Same courtesy the archive switch's thumb gets a few hundred lines up. */
+  @media (prefers-reduced-motion: reduce) {
+    .strip-rule {
+      transition: none;
+    }
+  }
+
+  /*
+    Length is the share of the row on screen; position is how far through it
+    you are. `left` rather than a transform because the travel is exactly
+    (track - thumb), which calc can say directly and a percentage transform
+    cannot without inverting through the thumb's own width.
+  */
+  .strip-rule__thumb {
+    position: absolute;
+    inset-block: 0;
+    left: calc(var(--strip-p, 0) * (100% - var(--strip-f, 1) * 100%));
+    width: calc(var(--strip-f, 1) * 100%);
+    background: currentColor;
+  }
+}
+
+/* Outside the phone query: nothing to indicate when the row is not a strip. */
+.strip-rule {
+  display: none;
+}
+
+@media (max-width: 40rem) {
+  .strip-rule {
+    display: block;
+  }
 }
 
 /*
@@ -2801,13 +2859,11 @@ main {
   in it.
 */
 @media (max-width: 40rem) and (pointer: coarse) {
-  .work-section--three-up,
-  .media-row__items--strip-phone {
+  .is-strip {
     scrollbar-width: none;
   }
 
-  .work-section--three-up::-webkit-scrollbar,
-  .media-row__items--strip-phone::-webkit-scrollbar {
+  .is-strip::-webkit-scrollbar {
     display: none;
   }
 }

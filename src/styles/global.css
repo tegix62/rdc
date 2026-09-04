@@ -693,7 +693,14 @@ a {
   aspect-ratio: 1 / 1;
   object-fit: contain;
   background: transparent;
-  padding: 8%;
+  /*
+    5%, not 8%. The padding is there so a mark does not touch the edges of its
+    box; at 8% it was also shrinking the mark inside a box that already has air
+    of its own, because a wide mark contained in a square leaves the top and
+    bottom empty anyway. Measured at 390px: 10px of padding a side on a 125px
+    box, on a mark already only 49px tall in it.
+  */
+  padding: 5%;
 }
 
 /*
@@ -716,15 +723,32 @@ a {
   mix-blend-mode: normal;
 }
 
+/*
+  Card type, with the gaps stated rather than inherited.
+
+  These are <p> elements and were carrying the browser's default paragraph
+  margin, so the space between a title and its caption was 14px of nothing
+  anybody chose - and the same margin under the caption padded out every card,
+  which on a grid inflates the whole row. Set explicitly and small: a caption
+  belongs to the title above it, and looked at 14px away it belongs to nothing.
+
+  A touch of negative tracking, because Inter Tight at bold sets loose at these
+  sizes next to the display type it sits under - the same reason .t-h1 and the
+  band headings carry it.
+*/
 .card__title {
-  margin-top: var(--space-1);
+  margin: var(--space-1) 0 0;
   font-family: var(--font-heading);
   font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
   color: var(--color-navy);
 }
 
 .card__meta {
+  margin: 0.25rem 0 0;
   font-size: 0.875rem;
+  line-height: 1.35;
   color: var(--color-gray);
 }
 
@@ -3326,8 +3350,13 @@ main {
   font-size: clamp(1.25rem, 3vw, 2rem);
 }
 
+/*
+  4rem above and below was 128px of nothing wrapped around a grid of small
+  cards - set when this was a looser page. 2rem still reads as a separate
+  section, which is all the padding was ever doing.
+*/
 .work-related {
-  padding: var(--space-6) 0;
+  padding: var(--space-4) 0;
 }
 
 @media (max-width: 40rem) {
@@ -3340,9 +3369,9 @@ main {
   }
 
   .work-related .card__title {
-    margin-top: 0.375rem;
+    margin-top: 0.25rem;
     font-size: 0.875rem;
-    line-height: 1.25;
+    line-height: 1.2;
   }
 
   .work-related .card__meta {

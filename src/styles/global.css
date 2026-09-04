@@ -474,6 +474,52 @@ a {
   background: var(--color-gray-light);
 }
 
+/*
+  Archive cards: the related-work grids at the foot of a case study and a blog
+  post, drawn as a sheet of marks rather than a strip of photographs.
+
+  data-mark comes from archiveCard() by way of Img.astro, and only those grids
+  pass it - every other .card on the site is untouched.
+
+  SQUARE, AND NEVER CROPPED. 4:5 is a portrait crop, chosen when these boxes
+  held photographs and were filling them. A mark is not a photograph: cover-
+  cropping one cuts the work off at its own frame, which is the single thing
+  an archive view must not do - measured, Chateau Seven's pegasus lost its
+  hindquarters to the right edge. Once nothing is cropped, 4:5 is just air:
+  a wide mark painted 238x134 inside a 283x354 box, leaving 220px of nothing
+  between it and its own caption. A square is the neutral box for a set of
+  shapes that vary, which is what a sheet of marks is.
+
+  One ratio for every card either way, so the titles keep a common baseline
+  across the row.
+*/
+.card img[data-mark] {
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  background: transparent;
+  padding: 8%;
+}
+
+/*
+  No drawn mark, so the tile that IS there gets the ink pass - see
+  archiveCard() for why that is the common case rather than a shortfall.
+
+  Same treatment print mode gives every image, sharing its two numbers with
+  it, and honouring the same per-image soft/hard/skip set in Studio.
+  It cannot reuse print mode's rule directly: that one is scoped to the whole
+  document being in print mode, and no page here is.
+*/
+.card img[data-mark='inked'] {
+  filter: grayscale(1) brightness(var(--ink-bright)) contrast(var(--ink-contrast));
+  mix-blend-mode: multiply;
+}
+
+/* Has to outrank the rule above, which is why it repeats both selectors. */
+.card img[data-mark='inked'][data-ink-mode='skip'] {
+  filter: none;
+  mix-blend-mode: normal;
+}
+
 .card__title {
   margin-top: var(--space-1);
   font-family: var(--font-heading);
@@ -2979,6 +3025,52 @@ main {
   follows without a parallel stylesheet to keep in sync. The brand navy becomes
   ink; every white surface becomes the paper stock.
 */
+/*
+  The ink pass, as shared NUMBERS.
+
+  Two things apply it - the dormant print mode, and the archive cards in the
+  related-work grids - and they must not drift, because they are meant to be
+  the same treatment. So the two knobs live here and each consumer writes the
+  filter itself.
+
+  IT CANNOT BE SHARED AS ONE --ink-filter PROPERTY, which is what this was
+  first written as. A var() inside a custom property is substituted where that
+  property is DECLARED, not where it is used: --ink-filter would resolve
+  against :root's 260% and inherit down already baked, so an image asking for
+  `soft` would keep the default. Measured - every soft image came back at
+  contrast 260%. The var()s have to sit in the `filter` declaration itself,
+  where they resolve against the element being filtered.
+
+  Inert on their own: these are just numbers until something filters.
+*/
+:root {
+  --ink-contrast: 260%;
+  --ink-bright: 108%;
+}
+
+/* Photographic and low-contrast work loses everything to a hard cut, so these
+   opt down. Set per image in Studio; Img.astro emits the attribute. */
+[data-ink-mode='soft'],
+img[data-ink-mode='soft'] {
+  --ink-contrast: 125%;
+  --ink-bright: 102%;
+}
+
+[data-ink-mode='hard'],
+img[data-ink-mode='hard'] {
+  --ink-contrast: 900%;
+  --ink-bright: 112%;
+}
+
+/*
+  `skip` - left in full colour, for anything the conversion simply ruins.
+
+  Scoped per consumer rather than written once unscoped, because turning a
+  filter OFF has to outrank the rule that turned it on, and both of those are
+  more specific than a bare attribute selector. Unscoped it lost to both and
+  skip silently did nothing - measured, on the cards and in print mode alike.
+*/
+
 :root[data-ink] {
   --color-white: var(--ink-paper);
   --color-navy: var(--ink-ink);
@@ -2990,11 +3082,6 @@ main {
   --color-gray: color-mix(in srgb, var(--ink-ink) 62%, var(--ink-paper));
   --color-gray-light: color-mix(in srgb, var(--ink-ink) 8%, var(--ink-paper));
   --color-border: color-mix(in srgb, var(--ink-ink) 24%, var(--ink-paper));
-
-  /* Defaults, overridable per image. `hard` is a near-1-bit cut; bias shifts
-     where that cut lands. */
-  --ink-contrast: 260%;
-  --ink-bright: 108%;
 
   background: var(--ink-paper);
   color: var(--ink-ink);
@@ -3019,21 +3106,6 @@ main {
   mix-blend-mode: multiply;
 }
 
-/* Photographic and low-contrast work loses everything to a hard cut, so these
-   opt down. Set per image in Studio. */
-:root[data-ink] [data-ink-mode='soft'] img,
-:root[data-ink] img[data-ink-mode='soft'] {
-  --ink-contrast: 125%;
-  --ink-bright: 102%;
-}
-
-:root[data-ink] [data-ink-mode='hard'] img,
-:root[data-ink] img[data-ink-mode='hard'] {
-  --ink-contrast: 900%;
-  --ink-bright: 112%;
-}
-
-/* Left in full colour - for anything the conversion simply ruins. */
 :root[data-ink] [data-ink-mode='skip'] img,
 :root[data-ink] img[data-ink-mode='skip'],
 :root[data-ink] [data-ink-mode='skip'] video {

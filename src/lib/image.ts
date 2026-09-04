@@ -157,6 +157,38 @@ export function hasAsset(source: any): boolean {
 }
 
 /*
+  Which picture a related-work card shows, and how to treat it.
+
+  The "More Work" and "See the work" grids draw each project as an archive
+  card rather than a photographic thumbnail, and there are two ways to get
+  one:
+
+    drawn  the project has an Archive Mark, and that IS the card.
+    inked  it has none, so its ordinary tile gets the ink treatment - the
+           grayscale/contrast/multiply pass in global.css.
+
+  The second is the common case and not a shortfall. An empty Archive Mark
+  field usually means the tile ALREADY IS the mark: Chateau Seven's thumbnail
+  is its logo, so there was never anything to add. An earlier draft of this
+  left those cards in full colour and the result was a half-converted grid -
+  some marks, some photographs - which read as a bug rather than a view.
+  Inking in place is what makes the row one set either way.
+
+  hasAsset rather than a truthiness check, because an image field in Studio
+  can hold crop and hotspot settings with no file attached - a shell that is
+  truthy and unrenderable. Falling through to `inked` is exactly right for
+  one of those.
+
+  Lives here rather than in the three pages that draw these grids: three
+  copies of one rule is how two of them end up out of step, which has already
+  happened twice in this layout.
+*/
+export function archiveCard(item: any): {image: any; mode: 'drawn' | 'inked'} {
+  if (hasAsset(item?.archiveMark)) return {image: item.archiveMark, mode: 'drawn'};
+  return {image: item?.thumbnail || item?.mainImage, mode: 'inked'};
+}
+
+/*
   The Studio hotspot as a CSS position string, e.g. "62.40% 18.75%".
 
   Sanity stores the hotspot as x/y in the range 0-1; both object-position and

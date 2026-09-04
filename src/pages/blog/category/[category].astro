@@ -18,6 +18,7 @@ import { sanityClient } from '../../../lib/sanity';
 import { dateAttr, formatDate } from '../../../lib/date';
 import { readingTime } from '../../../lib/readingTime';
 import { getRelatedWork } from '../../../lib/queries';
+import { archiveCard } from '../../../lib/image';
 
 export async function getStaticPaths() {
   const categories: Record<string, { title: string; description: string }> = {
@@ -105,22 +106,25 @@ const relatedWork = await getRelatedWork(categoryName, 4);
     <section class="blog-related">
       <h2>{meta.title} work</h2>
       <div class="grid">
-        {relatedWork.map((item: any) => (
-          <a class="card" href={`/work/${item.slug.current}`}>
-            {(item.thumbnail || item.mainImage) && (
-              <Img
-                image={item.thumbnail || item.mainImage}
-                archive={item.archiveMark}
-                field={item.thumbnail ? 'thumbnail' : 'mainImage'}
-                alt={item.title}
-                width={600}
-                height={400}
-                sizes="(max-width: 40rem) 100vw, (max-width: 60rem) 50vw, 25vw"
-              />
-            )}
-            <p class="card__title">{item.title}</p>
-          </a>
-        ))}
+        {relatedWork.map((item: any) => {
+          // Same archive card as "More Work" on a case study - see archiveCard().
+          const card = archiveCard(item);
+          return (
+            <a class="card" href={`/work/${item.slug.current}`}>
+              {card.image && (
+                <Img
+                  image={card.image}
+                  markMode={card.mode}
+                  field={card.mode === 'drawn' ? 'archiveMark (Archive Mark)' : 'thumbnail'}
+                  alt={item.title}
+                  width={600}
+                  sizes="(max-width: 40rem) 100vw, (max-width: 60rem) 50vw, 25vw"
+                />
+              )}
+              <p class="card__title">{item.title}</p>
+            </a>
+          );
+        })}
       </div>
     </section>
   )}

@@ -66,6 +66,13 @@ interface Props {
     "there is a problem somewhere in this project" and "turn this off here".
   */
   field?: string;
+  /*
+    Marks this image as an archive card and says which route it took - see
+    archiveCard() in lib/image.ts. Emitted as a data attribute; global.css
+    does the rest (square box, contained, and the ink pass on 'inked').
+    Absent everywhere else, so no other image is affected.
+  */
+  markMode?: 'drawn' | 'inked';
   /** Above-the-fold images should pass "eager". */
   loading?: 'lazy' | 'eager';
   fetchpriority?: 'high' | 'low' | 'auto';
@@ -80,6 +87,7 @@ const {
   height,
   sizes = '100vw',
   field,
+  markMode,
   loading = 'lazy',
   fetchpriority,
   class: className,
@@ -327,6 +335,7 @@ if (manualPassThrough && image?.crop) {
   src={src}
   data-archive-src={archiveSrc ? archiveSrc.url() : undefined}
   data-ink-mode={image?.inkMode && image.inkMode !== 'auto' ? image.inkMode : undefined}
+  data-mark={markMode}
   srcset={srcset}
   sizes={srcset ? sizes : undefined}
   width={ratio.width}

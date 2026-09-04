@@ -4,7 +4,7 @@ import Img from '../../components/Img.astro';
 import Sections from '../../components/Sections.astro';
 import { sanityClient } from '../../lib/sanity';
 import { getCaseStudy, getGridItems, getOtherCaseStudies } from '../../lib/queries';
-import { socialCardUrl, fileUrl } from '../../lib/image';
+import { socialCardUrl, fileUrl, archiveCard } from '../../lib/image';
 import { embedUrl } from '../../lib/video';
 import { renderPortableText } from '../../lib/portableText';
 import Video from '../../components/Video.astro';
@@ -253,17 +253,24 @@ const gated = !!caseStudy.accessPassword;
       <p class="section-label">More Work</p>
       <div class="grid">
         {otherWork.map((item: any) => {
-          const img = item.thumbnail || item.mainImage;
+          /*
+            An archive card, not a thumbnail - the Archive Mark where one is
+            drawn, the tile inked where one is not. See archiveCard().
+
+            No `height`, deliberately: that was a 4:5 crop, and these are now
+            contained whole in a square box, so cropping first would only
+            throw away edges before showing the rest.
+          */
+          const card = archiveCard(item);
           return (
             <a class="card" href={`/work/${item.slug.current}`}>
-              {img && (
+              {card.image && (
                 <Img
-                  image={img}
-                  archive={item.archiveMark}
+                  image={card.image}
+                  markMode={card.mode}
                   alt={item.title}
-                  field={item.thumbnail ? 'thumbnail (Tile Image)' : 'mainImage (Main Project Image)'}
+                  field={card.mode === 'drawn' ? 'archiveMark (Archive Mark)' : 'thumbnail (Tile Image)'}
                   width={600}
-                  height={750}
                   sizes="(max-width: 40rem) 33vw, 25vw"
                 />
               )}

@@ -2610,8 +2610,17 @@ main {
 .work-section__plate,
 .media-row__item {
   flex-basis: 0;
-  /* flex-grow is inline, per plate: its aspect ratio. */
+  /* --ar is written inline per plate: its aspect ratio. Read here rather than
+     set as flex-grow directly, so a media query can take it back - see the
+     note in Sections.astro. */
+  flex-grow: var(--ar, 1);
   min-width: 0;
+}
+
+/* Content-sized, taking no share of the row. Was an inline `flex: 0 1 auto`,
+   which no stylesheet could adjust; a class can be. */
+.media-row__item--video {
+  flex: 0 1 auto;
 }
 
 .work-section__plate img,
@@ -2627,13 +2636,12 @@ main {
   use width it has no way to fill. Such rows stay level because every clip is
   capped by the same --video-fit, not because anything here aligned them.
 
-  Sections.astro writes the same declaration inline and explains the whole
-  reasoning - including why it must still SHRINK. This rule is the same value,
-  kept as a second path so the behaviour does not depend on either one alone.
+  See .media-row__item--video above for the declaration, and
+  isSelfHostedVideo() in Sections.astro for the whole reasoning - including
+  why it must still SHRINK. This kept a :has() copy as a second path; the
+  class made that redundant, and a rule that only duplicates another is a rule
+  that will one day disagree with it.
 */
-.media-row__item:has(.video--self) {
-  flex: 0 1 auto;
-}
 
 /*
   A caption hangs BELOW the shared height rather than joining it.
@@ -2680,16 +2688,77 @@ main {
     Only the width/centring calculation is undone, since there is no breakout
     to centre at this size.
   */
-  .work-section--two-up,
   .work-section--three-up,
-  .work-section--achievements__images,
-  .media-row__items {
+  .media-row__items--strip-phone {
+    /*
+      A STRIP THAT SCROLLS SIDEWAYS - for rows of three or more only.
+
+      Fitting the whole row into 390px kept the grouping and cost the work:
+      three flyers came out 117px wide, which is a thumbnail, not a poster.
+      Sizing by HEIGHT instead and letting the row overflow keeps both - the
+      plates are legible AND still a set, and the cut-off edge of the next one
+      is what says there is more, which a fitted row cannot say.
+
+      The row breaks out to the full viewport so it can run edge to edge:
+      inside the band's padding, a strip would start and end 16px in, which
+      reads as a boxed carousel rather than a shelf continuing past the page.
+      The padding moves onto the strip itself so the first plate still lines
+      up with the text above it, and scroll-padding keeps that alignment when
+      snapping.
+
+      `auto`, not `scroll`: a row whose plates happen to fit stays an ordinary
+      row with no scrollbar and nothing to swipe.
+
+      Snap is `proximity`, not `mandatory` - mandatory fights a flick that was
+      meant to go two plates along.
+    */
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    padding-inline: var(--space-2);
+    gap: var(--space-2);
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: var(--space-2);
+  }
+
+  /*
+    A PAIR STAYS A PAIR. Two-up and Achievements keep the fitted row: a two-up
+    is a comparison, and a strip means never seeing both at once. Measured at
+    390px, a landscape pair sized by height came out 405px wide EACH - wider
+    than the screen, so the second plate was never on it.
+  */
+  .work-section--two-up,
+  .work-section--achievements__images {
     width: auto;
     margin-left: 0;
     margin-right: 0;
-    /* Tighter than the desktop gap: at 390px, three --space-3 gutters spend
-       12% of the screen on nothing. Gives each plate back about 15px. */
     gap: var(--space-1);
+  }
+
+  /*
+    Sized by height, so every plate in the strip is the same height and as
+    wide as its own proportions make it - the same rule the desktop row
+    follows, solved from the other side. flex-grow goes to 0 because there is
+    no share to take; this is the override that the inline flex-grow used to
+    make impossible.
+
+    19rem rather than a vh figure at the small end: a poster should not get
+    shorter because someone is on a phone with a short screen and the browser
+    chrome is showing.
+  */
+  .work-section--three-up .work-section__plate,
+  .media-row__items--strip-phone .media-row__item {
+    --strip-h: min(48vh, 19rem);
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+
+  .work-section--three-up .work-section__plate img,
+  .media-row__items--strip-phone .media-row__item img {
+    width: auto;
+    height: var(--strip-h);
+    max-width: none;
   }
 
   /*
@@ -2704,10 +2773,42 @@ main {
   */
   .media-row__items--stack-phone {
     display: block;
+    /* Undo the strip: a stacked column has nothing to scroll sideways, and a
+       100vw block with negative margins would only push the video off-centre. */
+    width: auto;
+    margin-left: 0;
+    margin-right: 0;
+    padding-inline: 0;
+    overflow-x: visible;
   }
 
   .media-row__items--stack-phone .media-row__item + .media-row__item {
     margin-top: var(--space-3);
+  }
+}
+
+/*
+  The scrollbar is noise on a shelf of pictures - the cut edge of the next
+  plate already says it moves - but only where there is a finger to move it
+  with. On a narrow desktop window that bar is the only thing announcing the
+  strip scrolls at all, and hiding it there would leave the rest of the row
+  looking unreachable. So it goes only for coarse pointers.
+
+  Its own block, deliberately. Folding it into the query above put the plate
+  sizing and the video stacking behind `pointer: coarse` too, and a narrow
+  desktop window silently lost both - measured, plates came back 112px wide
+  with --strip-h unset. A rule that narrows a query has to be the only thing
+  in it.
+*/
+@media (max-width: 40rem) and (pointer: coarse) {
+  .work-section--three-up,
+  .media-row__items--strip-phone {
+    scrollbar-width: none;
+  }
+
+  .work-section--three-up::-webkit-scrollbar,
+  .media-row__items--strip-phone::-webkit-scrollbar {
+    display: none;
   }
 }
 

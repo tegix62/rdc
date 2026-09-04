@@ -42,8 +42,18 @@ function aspect(image: any): number {
   return d && d.height > 0 ? d.width / d.height : 1;
 }
 
+/*
+  The ratio travels as a custom property, not as flex-grow directly.
+
+  It was `flex-grow: 1.7778` written inline, and an inline declaration cannot
+  be overridden by a stylesheet - so no media query could turn the growing
+  off. That already bit once: `flex: 0 0 auto` on a self-hosted video row was
+  silently ignored for exactly this reason and the gaps stayed wrong. Handing
+  CSS the number instead and letting it decide what to do with it is what lets
+  the phone layout size these by height rather than by share.
+*/
 function plateStyle(image: any): string {
-  return `flex-grow:${aspect(image).toFixed(4)}`;
+  return `--ar:${aspect(image).toFixed(4)}`;
 }
 
 /*
@@ -98,9 +108,11 @@ function isSelfHostedVideo(item: any): boolean {
   );
 }
 
-function mediaItemStyle(item: any): string {
-  if (isSelfHostedVideo(item)) return 'flex:0 1 auto';
-  return `flex-grow:${mediaAspect(item).toFixed(4)}`;
+function mediaItemStyle(item: any): string | undefined {
+  // A self-hosted video takes no share of the row and has no ratio to give -
+  // the class below carries that instead, for the same reason as above.
+  if (isSelfHostedVideo(item)) return undefined;
+  return `--ar:${mediaAspect(item).toFixed(4)}`;
 }
 
 /*
@@ -407,11 +419,22 @@ function rowStyle(images: any[]): string {
                 not three unusable 110px video players.
               */
               items.some(isSelfHostedVideo) && 'media-row__items--stack-phone',
+              /*
+                Three or more become a sideways strip on a phone; two stay
+                fitted side by side. A pair is a comparison - putting it into
+                a swipe means never seeing both at once, which is the one
+                thing a two-up is for. Three is already a set rather than a
+                pair, and at that count fitting them costs more than it buys.
+              */
+              items.length > 2 && 'media-row__items--strip-phone',
             ]}
             style={mediaRowStyle(items)}
           >
             {items.map((item: any, i: number) => (
-              <figure class="media-row__item" style={mediaItemStyle(item)}>
+              <figure
+                class:list={['media-row__item', isSelfHostedVideo(item) && 'media-row__item--video']}
+                style={mediaItemStyle(item)}
+              >
                 {item._type === 'mediaVideo' ? (
                   <div class="work-video-frame">
                     <Video

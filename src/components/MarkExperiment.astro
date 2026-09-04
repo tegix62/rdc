@@ -27,17 +27,31 @@
   ask for. So the marks are addresses in the HTML until this script swaps one
   in. The script itself bails on its first two lines when the flag is absent.
 
-  WHAT TO LOOK FOR
+  TWO WAYS A CARD CAN BE AN ARCHIVE CARD
 
-  The badge reports coverage, because the honest answer to "how would this
-  look" depends on how many marks are actually drawn. A card whose project has
-  no Archive Mark keeps its thumbnail, on purpose - a half-converted grid is
-  the real result of turning this on today, and hiding that would make the
-  experiment flattering rather than useful.
+  1. It has an Archive Mark, which is swapped in and set `contain` inside the
+     same box the thumbnail used - so nothing is cropped and nothing shifts. A
+     trimmed logomark cover-cropped to 4:5 would just be wrong, and would tell
+     you nothing about the idea.
 
-  Marks are set to `contain` inside the same box the thumbnails use, so
-  nothing is cropped and nothing shifts. A trimmed logomark cover-cropped to
-  4:5 would just be wrong, and would tell you nothing about the idea.
+  2. It has no Archive Mark, and its existing image gets the ink treatment
+     instead: the same grayscale/brightness/contrast and multiply blend the
+     dormant print mode uses on every image.
+
+  The second case is the point, not a consolation. An empty Archive Mark
+  field usually means the tile ALREADY IS the mark - Chateau Seven's thumbnail
+  is its logo, so there was nothing to add - and an earlier version of this
+  left those cards in full colour, which showed a half-converted grid rather
+  than the idea. Filtering in place is what makes the row read as one set
+  whether or not a separate mark was ever drawn.
+
+  Per-image tuning still applies: Img.astro emits data-ink-mode from Studio,
+  and soft / hard / skip are honoured here the same way print mode honours
+  them.
+
+  The badge still reports the split, because which cards took which route is
+  worth knowing - a card that had to be filtered is a card where a drawn mark
+  might do better.
 */
 ---
 
@@ -46,10 +60,47 @@
     Scoped behind the attribute the script sets, so none of this applies
     unless the experiment is switched on.
   */
-  [data-mark-experiment] .card[data-mark] img {
+  [data-mark-experiment] .card[data-mark='drawn'] img {
     object-fit: contain;
     background: transparent;
     padding: 8%;
+  }
+
+  /*
+    No drawn mark: ink the image that IS there.
+
+    Same declaration as `:root[data-ink] img` - desaturate, push contrast,
+    multiply onto the stock so white goes to paper and dark stays dark. It
+    cannot simply reuse that rule, because that one is scoped to the whole
+    document being in print mode, and turning print mode on to preview four
+    cards would repaint the entire site.
+
+    The three variant values below mirror the ones in the print-mode block.
+    Duplicated on purpose: this file has to delete cleanly on its own, and an
+    experiment that reaches into shipped rules is harder to remove than to
+    keep. If the experiment graduates, these collapse back into one place.
+  */
+  [data-mark-experiment] .card[data-mark='inked'] img {
+    filter: grayscale(1) brightness(var(--ink-bright, 108%))
+      contrast(var(--ink-contrast, 260%));
+    mix-blend-mode: multiply;
+  }
+
+  /* Photographic and low-contrast work loses everything to a hard cut. */
+  [data-mark-experiment] .card[data-mark='inked'] img[data-ink-mode='soft'] {
+    --ink-contrast: 125%;
+    --ink-bright: 102%;
+  }
+
+  [data-mark-experiment] .card[data-mark='inked'] img[data-ink-mode='hard'] {
+    --ink-contrast: 900%;
+    --ink-bright: 112%;
+  }
+
+  /* Left in full colour - for anything the conversion simply ruins. */
+  [data-mark-experiment] .card[data-mark='inked'] img[data-ink-mode='skip'] {
+    filter: none;
+    mix-blend-mode: normal;
   }
 
   .mark-badge {
@@ -98,18 +149,22 @@
       );
       if (!cards.length) return;
 
-      var swapped = 0;
-      var missing = [];
+      var drawn = 0;
+      var inked = [];
 
       cards.forEach(function (card) {
         var img = card.querySelector('img');
         if (!img) return;
         var src = img.getAttribute('data-archive-src');
+
         if (!src) {
+          // No drawn mark: ink whatever is already there. See the CSS above.
+          card.setAttribute('data-mark', 'inked');
           var t = card.querySelector('.card__title');
-          missing.push(t ? t.textContent.trim() : 'untitled');
+          inked.push(t ? t.textContent.trim() : 'untitled');
           return;
         }
+
         /*
           srcset and sizes have to go, or the browser keeps choosing from the
           candidate list built for the THUMBNAIL and the new src is ignored -
@@ -118,8 +173,8 @@
         img.removeAttribute('srcset');
         img.removeAttribute('sizes');
         img.src = src;
-        card.setAttribute('data-mark', '');
-        swapped++;
+        card.setAttribute('data-mark', 'drawn');
+        drawn++;
       });
 
       var badge = document.createElement('button');
@@ -127,8 +182,8 @@
       badge.className = 'mark-badge';
       badge.innerHTML =
         'Archive marks on <span class="mark-badge__count">' +
-        swapped + '/' + cards.length +
-        (missing.length ? ' · no mark: ' + missing.join(', ') : '') +
+        drawn + ' drawn / ' + cards.length +
+        (inked.length ? ' · inked: ' + inked.join(', ') : '') +
         '</span>';
       badge.title = 'Click to switch back to thumbnails';
       badge.addEventListener('click', function () {

@@ -90,6 +90,13 @@ jobs:
       # then it guards nothing. Needs no dist, so it runs before the build.
       - run: node scripts/test-head-selfcheck.mjs
 
+      # The footer's site index. Its failure mode is silent: a project missing
+      # from an index does not look broken, the block is simply a line shorter
+      # and nobody counts. Also pins the blog category slugs against the routes
+      # the category page builds, so a rename cannot quietly 404 links that a
+      # search engine has already indexed.
+      - run: node scripts/test-site-index.mjs
+
       # The homepage grid's row arithmetic. Its only symptom when wrong is a
       # homepage that looks slightly ragged, which nobody files a bug for - they
       # just come away thinking the site is a bit amateur.

@@ -115,6 +115,29 @@ export async function getRelatedWork(category: string | undefined, limit = 4) {
   );
 }
 
+/*
+  Every case study, for the footer index - title, slug and category only.
+
+  Memoised for the whole build. The footer is in the layout, so without this
+  every one of the site's ~30 pages would run the same query again; one promise
+  shared across them all is the same shape lib/animated.ts uses for its per-
+  asset cache.
+
+  `category` and `slug.current` are both on the never-mark list in
+  lib/sanity.ts, so they come back as clean strings - which matters, because
+  one is a grouping key and the other is a URL. That list exists precisely
+  because stega marking `category` once broke the Portfolio filters.
+*/
+let footerWork: Promise<any[]> | null = null;
+
+export function getFooterWork(): Promise<any[]> {
+  footerWork ??= sanityClient.fetch(
+    `*[_type == "caseStudy" && pageType == "Case Study" && defined(slug.current)]
+      | order(title asc){ title, "slug": slug.current, category }`,
+  );
+  return footerWork;
+}
+
 export function getOtherBlogPosts(excludeSlug: string, limit = 3) {
   return sanityClient.fetch(
     `*[_type == "blogPost" && slug.current != $slug]

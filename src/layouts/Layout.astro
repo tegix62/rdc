@@ -9,6 +9,7 @@ import Img from '../components/Img.astro';
 import { hasAsset, imageUrl, socialCardDimensions, socialCardUrl } from '../lib/image';
 import VisualEditing from '../components/VisualEditing.astro';
 import MetaPixel from '../components/MetaPixel.astro';
+import SiteFooter from '../components/SiteFooter.astro';
 import { buildGraph, serialise, type SiteContext } from '../lib/structuredData';
 import { stripStega as clean } from '../lib/stega';
 import {
@@ -383,51 +384,14 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
     <main class="wrap" id="main-content" tabindex="-1">
       <slot />
     </main>
-    <footer class="site-footer">
-      <div class="wrap site-footer__top">
-        <a class="site-footer__brand" href="/">
-          {settings?.logo ? (
-            <Img image={settings.logo} alt={SITE_NAME} field="logo (Wordmark)" width={200} sizes="100px" />
-          ) : (
-            SITE_NAME
-          )}
-        </a>
-        {FOOTER_TEXT && <p class="site-footer__blurb">{FOOTER_TEXT}</p>}
-
-        <div class="site-footer__col">
-          <p class="site-footer__heading">Follow</p>
-          {settings?.socialLinks?.length > 0 ? (
-            settings.socialLinks.map((s: any) =>
-              s.url ? (
-                <a class="site-footer__social-link" href={s.url} target="_blank" rel="noopener noreferrer">
-                  {s.platform}
-                </a>
-              ) : null,
-            )
-          ) : (
-            <p class="site-footer__muted">No social links yet</p>
-          )}
-        </div>
-
-        <div class="site-footer__col">
-          <p class="site-footer__heading">Contact</p>
-          <a class="button" href={CONTACT_URL}>Get in Touch</a>
-        </div>
-      </div>
-
-      <div class="wrap site-footer__bottom">
-        <p>&copy; {new Date().getFullYear()} {LEGAL_NAME}. All rights reserved.</p>
-        <a href="/privacy-policy">Privacy Policy</a>
-        {/*
-          Nothing linked here before this - the page existed only at its
-          direct URL, which is exactly how it showed up as an orphan in
-          scripts/audit-a11y-seo.mjs (0 inbound links). The comment on the
-          img-protection CSS above calls this page "the real protection"
-          behind that deterrent; a page nothing points to protects nothing.
-        */}
-        <a href="/image-license-info">Image License</a>
-      </div>
-    </footer>
+    <SiteFooter
+      siteName={SITE_NAME}
+      legalName={LEGAL_NAME}
+      footerText={FOOTER_TEXT}
+      logo={settings?.logo}
+      socialLinks={settings?.socialLinks}
+      contactUrl={CONTACT_URL}
+    />
     <style is:global>
       /*
         Ported from Webflow: makes casually lifting an image awkward.

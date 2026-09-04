@@ -1,0 +1,163 @@
+---
+/*
+  The site footer, and the site's index.
+
+  WHAT THIS FIXES
+
+  The nav carries three links - Portfolio, About, Video - and the footer
+  carried none. Checked against every route, three page groups were reachable
+  from nowhere on the site:
+
+    /merchfolio    the apparel portfolio      linked from nothing
+    /collage       the collage work           linked from nothing
+    /blog          the whole blog             linked only from inside itself
+
+  and the blog's category pages, which SITE-BRIEF calls "the long-tail SEO
+  pages", had no internal links at all - the blog index prints the category as
+  text rather than as a link. A page nothing points to is a page nobody
+  reaches, and search engines treat internal links as a crawl and ranking
+  signal that was sitting at zero.
+
+  WHY THE WORK ITSELF IS LISTED, NOT JUST THE SECTIONS
+
+  This site's job, in the brief's words, is "presenting well to agencies and
+  brand clients". An agency scanning a portfolio is looking for range and
+  volume, and a footer that lists every project by name answers that in one
+  glance without a click. Grouping them by category makes the same block state
+  what the practice actually does.
+
+  /catalog is deliberately absent. It is an alternate view of /portfolio,
+  reachable from the switch there, and it is noindex and out of the sitemap on
+  purpose - linking a noindex duplicate from all ~30 pages would spend crawl
+  budget to no end.
+
+  No email address here, by decision: the one on the site is plain text on the
+  policy pages and is being harvested. The Contact button is the channel.
+*/
+import Img from './Img.astro';
+import { getFooterWork } from '../lib/queries';
+import { BLOG_CATEGORIES, categorySlug } from '../lib/blogCategories';
+import { groupWorkByCategory } from '../lib/siteIndex';
+
+interface Props {
+  siteName: string;
+  legalName: string;
+  footerText?: string;
+  logo?: any;
+  socialLinks?: any[];
+  contactUrl: string;
+}
+
+const { siteName, legalName, footerText, logo, socialLinks, contactUrl } = Astro.props;
+
+const SECTIONS = [
+  { label: 'Portfolio', href: '/portfolio' },
+  { label: 'Merch', href: '/merchfolio' },
+  { label: 'Collage', href: '/collage' },
+  { label: 'Video', href: '/video' },
+  { label: 'Blog', href: '/blog' },
+  { label: 'About', href: '/about' },
+  { label: 'Contact', href: contactUrl },
+];
+
+/*
+  Projects grouped by category. The grouping itself lives in lib/siteIndex.ts
+  with a test in front of it - nothing on the page ever shows whether a project
+  quietly failed to appear here, the block just looks slightly shorter.
+
+  Both `category` and `slug.current` are on the never-mark list in
+  lib/sanity.ts, so the grouping key and the URL are clean strings even on the
+  preview build. See getFooterWork().
+*/
+const workGroups = groupWorkByCategory(await getFooterWork());
+
+const writing = Object.keys(BLOG_CATEGORIES).map((name) => ({
+  name,
+  href: `/blog/category/${categorySlug(name)}`,
+}));
+
+/*
+  Ids for aria-labelledby. Deliberately NOT headings: the footer is on every
+  page, and seven <h2>s under the real content would make a document outline
+  that claims seven top-level sections per page. A labelled list gives
+  assistive technology the same grouping without inventing structure.
+*/
+const idFor = (name: string) => 'site-index-' + categorySlug(name).replace(/[^a-z0-9-]/g, '');
+---
+
+<footer class="site-footer">
+  <div class="wrap site-footer__top">
+    <a class="site-footer__brand" href="/">
+      {logo ? (
+        <Img image={logo} alt={siteName} field="logo (Wordmark)" width={200} sizes="100px" />
+      ) : (
+        siteName
+      )}
+    </a>
+    {footerText && <p class="site-footer__blurb">{footerText}</p>}
+
+    <div class="site-footer__col">
+      <p class="site-footer__heading">Follow</p>
+      {socialLinks && socialLinks.length > 0 ? (
+        socialLinks.map((s: any) =>
+          s.url ? (
+            <a class="site-footer__social-link" href={s.url} target="_blank" rel="noopener noreferrer">
+              {s.platform}
+            </a>
+          ) : null,
+        )
+      ) : (
+        <p class="site-footer__muted">No social links yet</p>
+      )}
+    </div>
+
+    <div class="site-footer__col">
+      <p class="site-footer__heading">Contact</p>
+      <a class="button" href={contactUrl}>Get in Touch</a>
+    </div>
+  </div>
+
+  <nav class="wrap site-index" aria-label="Site index">
+    <div class="site-index__group">
+      <p class="site-index__heading" id="site-index-sections">Site</p>
+      <ul class="site-index__list" aria-labelledby="site-index-sections">
+        {SECTIONS.map((s) => (
+          <li><a href={s.href}>{s.label}</a></li>
+        ))}
+      </ul>
+    </div>
+
+    {workGroups.map((group) => (
+      <div class="site-index__group">
+        <p class="site-index__heading" id={idFor(group.name)}>{group.name}</p>
+        <ul class="site-index__list" aria-labelledby={idFor(group.name)}>
+          {group.items.map((item) => (
+            <li><a href={`/work/${item.slug}`}>{item.title}</a></li>
+          ))}
+        </ul>
+      </div>
+    ))}
+
+    <div class="site-index__group">
+      <p class="site-index__heading" id="site-index-writing">Writing</p>
+      <ul class="site-index__list" aria-labelledby="site-index-writing">
+        {writing.map((c) => (
+          <li><a href={c.href}>{c.name}</a></li>
+        ))}
+      </ul>
+    </div>
+  </nav>
+
+  <div class="wrap site-footer__bottom">
+    <p>&copy; {new Date().getFullYear()} {legalName}. All rights reserved.</p>
+    <a href="/privacy-policy">Privacy Policy</a>
+    {/*
+      Nothing linked here before this - the page existed only at its direct
+      URL, which is exactly how it showed up as an orphan in
+      scripts/audit-a11y-seo.mjs (0 inbound links). The img-protection CSS in
+      Layout.astro calls this page "the real protection" behind that
+      deterrent; a page nothing points to protects nothing.
+    */}
+    <a href="/image-license-info">Image License</a>
+  </div>
+</footer>

@@ -60,7 +60,40 @@
     Scoped behind the attribute the script sets, so none of this applies
     unless the experiment is switched on.
   */
-  [data-mark-experiment] .card[data-mark='drawn'] img {
+  /*
+    Whole, never cropped - on BOTH routes.
+
+    This started as a rule about swapped-in marks, on the reasoning that a
+    trimmed logomark cover-cropped to 4:5 would be wrong. That reasoning was
+    right and its scope was wrong: an inked tile is a mark too, which is the
+    entire premise of the fallback. Left on `cover`, Chateau Seven's pegasus
+    lost its hindquarters to the right edge of the box and DumpStat lost half
+    its title - a mark cut off by its own frame, which is the one thing an
+    archive view must not do.
+
+    So the box treatment belongs to archive mode rather than to one route.
+    What still differs between the two is only which file is shown and whether
+    the ink filter applies.
+
+    The cost, stated: a wide image contained in a 4:5 box sits smaller than it
+    did filling one. That is the same trade the full-bleed plate rule makes on
+    a case study page - reproduce the work whole, and accept the air around it.
+  */
+  [data-mark-experiment] .card[data-mark] img {
+    /*
+      Square, not the thumbnails' 4:5.
+
+      4:5 is a portrait crop, chosen when these boxes held photographs and
+      were filling them. Once nothing is cropped, that height is just air:
+      measured at 1512, a wide mark paints 238x134 inside a 283x354 frame,
+      leaving 220px of nothing between the mark and its own caption. A square
+      is the neutral box for a set of shapes that vary - which is what a sheet
+      of marks is, and what a logo sheet or a catalogue plate uses.
+
+      Still ONE ratio for every card, so the titles keep a common baseline
+      across the row. One line to change if a different box reads better.
+    */
+    aspect-ratio: 1 / 1;
     object-fit: contain;
     background: transparent;
     padding: 8%;

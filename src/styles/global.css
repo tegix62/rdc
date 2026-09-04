@@ -400,7 +400,7 @@ a {
   margin: 0 0 var(--space-1);
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--label-track);
   text-transform: uppercase;
   color: var(--color-navy);
 }
@@ -538,7 +538,7 @@ a {
   font-family: var(--font-heading);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--label-track);
   color: var(--color-navy);
   background: var(--color-gray-light);
   padding: 0.15em 0.5em;
@@ -565,7 +565,7 @@ a {
   font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--label-track);
   color: var(--color-navy);
   margin: 0 0 var(--space-1);
 }
@@ -593,7 +593,7 @@ a {
   font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--label-track);
   color: var(--color-navy);
   margin: 0 0 0.5rem;
 }
@@ -1303,7 +1303,7 @@ main {
   font-family: var(--font-heading);
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--label-track);
   text-transform: uppercase;
   cursor: pointer;
   transition: background-color 120ms ease, color 120ms ease;
@@ -1359,7 +1359,7 @@ main {
   font-family: var(--font-heading);
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--label-track);
   text-transform: uppercase;
   cursor: pointer;
 }
@@ -1736,7 +1736,7 @@ main {
   font-family: var(--font-heading);
   font-size: 0.75rem;
   line-height: 1.2;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--label-track);
   text-transform: uppercase;
 }
 
@@ -1794,13 +1794,22 @@ main {
   margin-bottom: var(--space-2);
 }
 
+/*
+  This is an h2, and it was dressed as a 12px chrome label.
+
+  "Selected work" is the only thing naming the most important block on the
+  homepage. Uppercase at 0.75rem with 0.12em of tracking made the page's
+  second-level heading smaller and quieter than the body copy beneath it -
+  the outline said heading, the type said footnote. Set as a small heading
+  instead: still modest, no longer disguised.
+*/
 .peek__label {
   margin: 0;
-  font-size: 0.75rem;
+  font-family: var(--font-heading);
+  font-size: 1.125rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-gray);
+  line-height: 1.2;
+  color: var(--color-navy);
 }
 
 .peek__more {
@@ -1891,7 +1900,7 @@ main {
   font-family: var(--font-heading);
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--label-track);
   text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
@@ -1943,12 +1952,21 @@ main {
   margin-right: calc(50% - 50vw);
 }
 
+/*
+  Matched to .peek__label, since both name a grid of work and there is no
+  reason for the homepage's version and the case study's to disagree.
+
+  opacity: 0.5 is gone with the rest. Opacity standing in for a colour is its
+  own small tell - it says nobody chose the grey, they just turned the black
+  down - and it also compounds against whatever sits behind it.
+*/
 .section-label {
   margin: 0 0 var(--space-2);
-  opacity: 0.5;
-  font-size: 0.75rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-family: var(--font-heading);
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-gray);
 }
 
 /* Work / case study page */
@@ -2000,12 +2018,27 @@ main {
   align-items: start;
 }
 
+/*
+  A subtitle, set as a subtitle.
+
+  This was 0.8125rem, uppercase, 0.08em tracked - the eyebrow above the
+  project title, and the thing Chris picked out of the page unprompted as
+  looking machine-made. He was right, and the reason is worth writing down:
+  the line is CONTENT, not a label. It carries a real sentence an editor
+  wrote, and setting a sentence in tracked capitals at 13px says "this is a
+  category tag" about something that is not one - so the reader's eye files it
+  as chrome and skips it.
+
+  The uppercase and the tracking go. Slightly larger too, because at 0.8125rem
+  it was sized to be skimmed past rather than read. Hierarchy still holds
+  without any of that: it sits above a very large h1 and in a quieter colour,
+  which is all a subtitle has ever needed.
+*/
 .work-identity__kicker {
   margin: 0 0 var(--space-2);
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 0.8125rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.9375rem;
+  line-height: 1.4;
 }
 
 .work-identity__main h1 {
@@ -2989,11 +3022,11 @@ main {
   height: auto;
 }
 
+/* Vintage / Minimalist / Collage are words, not tags - so they are set as
+   words. Same reasoning as the kicker above. */
 .aesthetic-range__label {
   font-family: var(--font-heading);
   font-size: 0.8125rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
@@ -3080,6 +3113,21 @@ main {
 :root {
   --ink-contrast: 260%;
   --ink-bright: 108%;
+
+  /*
+    ONE tracking value for every small uppercase label on the site.
+
+    There were seven: 0.04, 0.05, 0.05, 0.08, 0.08, 0.10 and 0.12em, each
+    picked in isolation for a control that looked much like the last one. That
+    spread is the giveaway - not the device itself, which every editorial and
+    Swiss-influenced site uses, but the fact that nobody chose it twice the
+    same way. One value makes it a system; seven makes it a reflex.
+
+    Deliberately kept only on CHROME - filter buttons, the view switch, footer
+    headings, category chips, an audio label. On CONTENT it has been removed
+    outright; see .work-identity__kicker and .peek__label below for why.
+  */
+  --label-track: 0.08em;
 }
 
 /* Photographic and low-contrast work loses everything to a hard cut, so these
@@ -3734,7 +3782,7 @@ body {
   color: #fff;
   font-family: var(--font-heading);
   font-size: 0.6875rem;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--label-track);
   text-transform: uppercase;
   cursor: pointer;
   opacity: 0;

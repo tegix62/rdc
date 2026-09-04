@@ -35,7 +35,15 @@ jobs:
       - run: npm install
       - run: npx sanity deploy --yes
         env:
-          SANITY_AUTH_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          # NOT SANITY_API_TOKEN, which every other workflow here uses. That
+          # one is an Editor token - it reads and writes content, and cannot
+          # deploy a Studio, which is why this job failed from 25 August with
+          # "missing required grant sanity.project.deployStudio". The fix is a
+          # second, narrower token rather than widening that one: seven other
+          # workflows carry SANITY_API_TOKEN, and making it an Administrator
+          # to satisfy this one job would hand all of them permissions they
+          # have no use for.
+          SANITY_AUTH_TOKEN: ${{ secrets.SANITY_DEPLOY_TOKEN }}
           # Which site the Presentation tab previews. Defaults to the deployed
           # preview (see sanity.config.ts); override with the PREVIEW_SITE_URL
           # repository variable if that address ever changes.

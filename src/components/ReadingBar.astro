@@ -1,0 +1,100 @@
+---
+/*
+  How far through the post you are, drawn along the bottom of the window.
+
+  WHAT IT MEASURES, AND WHY THAT IS NOT THE PAGE
+
+  The obvious implementation tracks the document: scrollY over
+  scrollHeight - innerHeight. On this site that would be wrong at both ends. A
+  post is followed by a related-work grid, an email capture, a "more posts"
+  row and a footer that now carries the site's whole index - several screens
+  of things that are not the post. A document-scoped bar would sit at maybe
+  40% when the last sentence has been read, and only fill once the reader has
+  scrolled through everything after it.
+
+  So it measures the <article>: 0 when its top meets the top of the window,
+  100% when its bottom meets the bottom. Reaching the end of the bar and
+  reaching the end of the writing are the same moment, which is the only thing
+  a reading indicator is for.
+
+  It hides when the article is not on screen at all - before it and after it
+  there is nothing to report, and a bar stuck at 100% over the footer is a
+  progress bar for a thing you have finished.
+
+  A SHORT POST HAS NO PROGRESS. When the article fits inside the window there
+  is no scrolling to track, and the arithmetic below would divide by zero. It
+  stays hidden instead of showing a bar that is either always empty or always
+  full.
+
+  STYLE
+
+  Square, hairline track, solid fill, no radius - the same construction as the
+  archive switch and the plate strip's scroll line, which are the other two
+  places this site draws a bar with a fill on it. Nothing new invented for it.
+
+  aria-hidden: it reports the scroll position of a page the reader is already
+  scrolling. Announcing "37%" as it changes would be noise, and there is no
+  control here to operate.
+*/
+---
+
+<div class="read-bar" aria-hidden="true">
+  <span class="read-bar__fill"></span>
+</div>
+
+<script>
+  const bar = document.querySelector<HTMLElement>('.read-bar');
+  const article = document.querySelector<HTMLElement>('.blog-article');
+
+  if (bar && article) {
+    let queued = false;
+
+    const measure = () => {
+      queued = false;
+      const box = article.getBoundingClientRect();
+
+      /*
+        The scroll distance over which the article is being read: from its top
+        meeting the top of the window to its bottom meeting the bottom. Zero or
+        less means the whole article already fits on screen.
+      */
+      const travel = article.offsetHeight - window.innerHeight;
+      const onScreen = box.top < window.innerHeight && box.bottom > 0;
+
+      if (travel <= 0 || !onScreen) {
+        bar.classList.remove('is-reading');
+        return;
+      }
+
+      // box.top is negative once the article's top has passed the top of the
+      // window, which is exactly how far into it the reader has scrolled.
+      const read = Math.min(Math.max(-box.top / travel, 0), 1);
+      bar.classList.add('is-reading');
+      bar.style.setProperty('--read', String(read));
+    };
+
+    /*
+      rAF-throttled rather than debounced, the same as the plate strip's scroll
+      line: a progress bar that arrives after the scroll has stopped is worse
+      than none, because it contradicts the thing it is drawing. The flag
+      refuses to queue a second read while one is pending, so it is naturally
+      capped at one measurement per frame.
+    */
+    const schedule = () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(measure);
+    };
+
+    addEventListener('scroll', schedule, { passive: true });
+    // Rotating a phone or the URL bar collapsing changes innerHeight, which is
+    // half of the arithmetic above.
+    addEventListener('resize', schedule, { passive: true });
+    // A late image can still change the article's height under it.
+    addEventListener('load', schedule);
+    // DOMContentLoaded does not fire on a back/forward restore; pageshow does,
+    // and the scroll position comes back with it.
+    addEventListener('pageshow', schedule);
+    measure();
+  }
+</script>

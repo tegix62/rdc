@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Img from '../../components/Img.astro';
 import EmailCapture from '../../components/EmailCapture.astro';
+import ReadingBar from '../../components/ReadingBar.astro';
 import { sanityClient } from '../../lib/sanity';
 import { getBlogPost, getOtherBlogPosts, getRelatedWork, getSiteSettings } from '../../lib/queries';
 import { socialCardUrl, fileUrl, archiveCard } from '../../lib/image';
@@ -41,6 +42,8 @@ const time = readingTime(post.body);
   ogImage={ogImage}
   jsonLd={(ctx) => blogPostNode(ctx, post)}
 >
+  <ReadingBar />
+
   <article class="blog-article">
     <header class="blog-header">
       {post.category && (

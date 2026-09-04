@@ -358,6 +358,64 @@ a {
   }
 }
 
+/*
+  The reading bar - how far through a post you are, along the bottom of the
+  window. See ReadingBar.astro for what it measures and why that is the
+  <article> rather than the document.
+
+  Square, hairline track, solid fill, no radius: the archive switch and the
+  plate strip's scroll line are the other two bars-with-a-fill on this site,
+  and this is built the same way rather than inventing a third look.
+
+  3px, not 1px. The strip's line sits inside the page with a caption beside
+  it; this one lies along the edge of the window over whatever happens to be
+  behind it, and a hairline there reads as a rendering artefact rather than a
+  deliberate mark.
+
+  env(safe-area-inset-bottom) keeps it clear of the home indicator on a phone.
+  It does still sit behind Safari's bottom toolbar while that is expanded -
+  the toolbar is browser UI over the page, and nothing in the page can move
+  it. It reappears as the toolbar collapses on scroll, which is when the bar
+  has something to say.
+*/
+.read-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: env(safe-area-inset-bottom, 0px);
+  z-index: 40;
+  height: 3px;
+  background: color-mix(in srgb, var(--color-navy) 12%, transparent);
+  /* Hidden until the script finds an article long enough to scroll. A bar for
+     a post that fits on one screen is either always empty or always full. */
+  opacity: 0;
+  transition: opacity 160ms ease;
+  pointer-events: none;
+}
+
+.read-bar.is-reading {
+  opacity: 1;
+}
+
+/*
+  scaleX rather than width: it runs on the compositor, so a fill updated every
+  frame while scrolling costs no layout. transform-origin because the default
+  would grow it from the middle outwards.
+*/
+.read-bar__fill {
+  display: block;
+  height: 100%;
+  background: var(--color-navy);
+  transform: scaleX(var(--read, 0));
+  transform-origin: left center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .read-bar {
+    transition: none;
+  }
+}
+
 .site-footer {
   /*
     Tightened. This was 4rem of margin above and 3rem of padding inside it -

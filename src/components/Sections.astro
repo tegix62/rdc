@@ -124,6 +124,24 @@ function mediaItemStyle(item: any): string | undefined {
   Such a row needs no cap at all: content-sized items are already bounded by
   --video-fit, which is the same job. So it is handed its full room instead.
 */
+/*
+  Which rows become a sideways strip on a phone.
+
+  Three or more of anything: a set rather than a pair, and fitting three into
+  390px costs more than it buys.
+
+  TWO, when either is a self-hosted video. A video needs more room than a
+  picture does, because it carries controls: measured, a pair of portrait
+  clips fitted side by side comes out about 175px wide each, where the same
+  pair in a strip is 216px and neither is squeezed. A pair of PICTURES at
+  175px is simply a smaller picture, which is why the image rule stays at
+  three - the point of a two-up is seeing both at once.
+*/
+function isStripRow(items: any[]): boolean {
+  if (items.length > 2) return true;
+  return items.length > 1 && items.some(isSelfHostedVideo);
+}
+
 function mediaRowStyle(items: any[]): string {
   const sum = items
     .filter((item) => !isSelfHostedVideo(item))
@@ -495,20 +513,13 @@ function rowStyle(images: any[]): string {
             class:list={[
               'media-row__items',
               /*
-                Only a row carrying a self-hosted video stacks on a phone -
-                see the note in global.css. Decided here rather than with
-                :has() in CSS so the fallback for a browser without :has() is
-                not three unusable 110px video players.
-              */
-              items.some(isSelfHostedVideo) && 'media-row__items--stack-phone',
-              /*
                 Three or more become a sideways strip on a phone; two stay
                 fitted side by side. A pair is a comparison - putting it into
                 a swipe means never seeing both at once, which is the one
                 thing a two-up is for. Three is already a set rather than a
                 pair, and at that count fitting them costs more than it buys.
               */
-              items.length > 2 && 'is-strip',
+              isStripRow(items) && 'is-strip',
             ]}
             style={mediaRowStyle(items)}
           >
@@ -546,7 +557,7 @@ function rowStyle(images: any[]): string {
               </figure>
             ))}
           </div>
-          {items.length > 2 && <StripRule />}
+          {isStripRow(items) && <StripRule />}
         </div>
       );
     }

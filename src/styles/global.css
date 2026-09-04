@@ -2777,28 +2777,50 @@ main {
   }
 
   /*
-    Videos are the exception, and stack.
+    Videos ride in the strip like everything else.
 
-    A self-hosted video is content-sized rather than given a slot, so three of
-    them in a 358px row shrink to about 110px wide - and unlike an image, a
-    video carries native controls. A play button, a scrubber and a volume
-    control inside 110px is not a small video, it is an unusable one. The
-    class is written by Sections.astro rather than matched with :has(), so
-    this does not depend on :has() support to avoid shipping that.
+    They used to stack instead, and the reason was sound at the time: a
+    self-hosted video is content-sized rather than given a slot, so three of
+    them squeezed into a 358px row came out about 110px wide, and unlike an
+    image a video carries native controls. A play button, a scrubber and a
+    volume control inside 110px is not a small video, it is an unusable one.
+
+    The strip removes the squeeze entirely - nothing has to fit, so nothing
+    shrinks - which retires the objection rather than answering it. Stacking
+    was also the expensive option: three portrait clips at full width are
+    three near-full screens of scrolling for one idea.
+
+    A taller ceiling than a plate gets, because a video is a control as well
+    as a picture: 24rem puts a 9:16 clip at about 216px wide, near the 243px
+    an adjacent poster gets, which is room for real controls. --video-fit is
+    the existing cap the clip already sizes itself against, so overriding it
+    needs one declaration and no fight with .video--self's own rule.
   */
-  .media-row__items--stack-phone {
-    display: block;
-    /* Undo the strip: a stacked column has nothing to scroll sideways, and a
-       100vw block with negative margins would only push the video off-centre. */
-    width: auto;
-    margin-left: 0;
-    margin-right: 0;
-    padding-inline: 0;
-    overflow-x: visible;
+  .is-strip > .media-row__item--video {
+    --video-fit: min(58vh, 24rem);
   }
 
-  .media-row__items--stack-phone .media-row__item + .media-row__item {
-    margin-top: var(--space-3);
+  /*
+    And a width ceiling, which a plate does not need but a video does.
+
+    --video-fit caps the HEIGHT, and height alone is the wrong handle for a
+    landscape clip: measured, three 16:9 videos at a 24rem ceiling came out
+    683px wide on a 390px screen - 1.75 screens each, so you could never see
+    one whole player, let alone judge it against its neighbours. A portrait
+    clip has the opposite problem and needs the height cap, so both apply and
+    whichever binds first wins.
+
+    The video keeps width:auto and height:auto, so the two ceilings bound a
+    replaced element without distorting it - the ratio is preserved and the
+    frame's fit-content hugs whatever comes out. A 9:16 clip lands at 216x384,
+    a 16:9 at 304x171.
+
+    Specificity is deliberate: .video--self's own rule is (0,3,0) and sits
+    LATER in this file, so a matching-specificity selector here would lose.
+    Going one class deeper wins regardless of order.
+  */
+  .is-strip > .media-row__item--video .video--self .video__el {
+    max-width: 78vw;
   }
 
   /*

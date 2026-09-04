@@ -404,19 +404,80 @@ if (emptyFilters.length > 0) {
       capped at whatever the machine can actually keep up with.
     */
     let resizePending = false;
-    window.addEventListener('resize', () => {
+
+    function remeasure() {
       if (resizePending) return;
       resizePending = true;
       requestAnimationFrame(() => {
         resizePending = false;
+        const gridW = grid!.clientWidth;
+        const sizerW = sizer.offsetWidth;
+        /*
+          Width unchanged means this was Isotope's own doing. Masonry sets the
+          container's HEIGHT when it lays out, so an observer watching the
+          grid hears about every layout it performs - and relaying out in
+          response would be an infinite loop. Only a width tells us anything.
+        */
+        if (gridW === lastGridW && sizerW === lastSizerW) return;
+        lastGridW = gridW;
         const next = defaultCols();
         if (!zoomed && next !== cols) {
           cols = next;
           setColWidth();
         }
+        lastSizerW = sizer.offsetWidth;
         iso.layout();
       });
-    });
+    }
+
+    /*
+      WHY AN OBSERVER RATHER THAN window.resize.
+
+      Chris hit this again: the grid opens as one stacked column and a click
+      on anything fixes it. The stacking is what Isotope does when it measures
+      the sizer as being as wide as the container - one column, every tile at
+      left 0 - and the tiles are still their proper quarter-width afterwards
+      because the CSS that sizes them lands later. That is the exact picture.
+
+      There are at least two ways to arrive there and window.resize catches
+      neither:
+
+        A TAB OPENED IN THE BACKGROUND. DOMContentLoaded fires and this code
+        measures a container the browser has not laid out at the real width
+        yet. Bringing the tab forward does not fire a resize, so nothing ever
+        remeasured - until a filter click called iso.layout() as a side
+        effect, which is precisely the "resets on a click" symptom.
+
+        THE DEFERRED STYLESHEET. inline-critical-css.mjs hands the main
+        stylesheet to the browser as media="print" and flips it to all on
+        load, so first paint is styled from an inline subset. If Isotope
+        measures in the window before the real sheet applies, .pf-sizer and
+        .pf-item have no width rule at all and are full-width blocks. Again
+        no resize event: the viewport never changed, only the styles did.
+
+      A ResizeObserver hears the thing that actually matters in both - the
+      measured width changing - regardless of what caused it. It also still
+      covers rotation, the mobile URL bar, and desktop drags, so it replaces
+      the resize handler rather than joining it; two listeners would just
+      relayout twice for every drag frame.
+
+      The rAF throttle and its reasoning are unchanged: a rotation relays out
+      on the next frame, and a drag can never queue more than one layout per
+      frame because the flag refuses to schedule a second.
+    */
+    let lastGridW = grid.clientWidth;
+    let lastSizerW = sizer.offsetWidth;
+
+    if (typeof ResizeObserver === 'function') {
+      const ro = new ResizeObserver(remeasure);
+      // The grid catches the viewport changing; the sizer catches the column
+      // width changing under it, which is what a late stylesheet does without
+      // touching the grid at all.
+      ro.observe(grid);
+      ro.observe(sizer);
+    } else {
+      window.addEventListener('resize', remeasure);
+    }
 
     document.querySelectorAll<HTMLElement>('.pf-btn[data-filter]').forEach((btn) => {
       btn.addEventListener('click', () => {

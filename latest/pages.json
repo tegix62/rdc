@@ -1,0 +1,5329 @@
+[
+  {
+    "path": "/",
+    "viewport": "desktop",
+    "status": 200,
+    "wallMs": 313,
+    "requests": 40,
+    "totalBytes": 1106381,
+    "bytes": {
+      "document": 0,
+      "font": 288780,
+      "image": 817601,
+      "script": 0,
+      "stylesheet": 0
+    },
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/526812a0f5fce5c119dbe00ac6d27a3177cfcc54-800x800.webp",
+        "bytes": 521264,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/96cf18e91e020373d297bb2c4fa22bf76fe22b70-2000x1372.webp",
+        "bytes": 90898,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/374543938df67e4391bf4041eae344992143bebf-2250x2034.webp?w=500&q=80&auto=format",
+        "bytes": 86345,
+        "status": 200,
+        "passThrough": false,
+        "width": 500
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/8cc16af60b1caf91f9797478c06f38420ee0f280-1445x1241.webp?w=640&q=80&auto=format",
+        "bytes": 28510,
+        "status": 200,
+        "passThrough": false,
+        "width": 640
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/e6b1733d27e60874f886cf6233cf35f985b6bfc5-1920x1440.webp?rect=240%2C0%2C1440%2C1440&w=320&h=320&q=80&fit=crop&auto=format",
+        "bytes": 25084,
+        "status": 200,
+        "passThrough": false,
+        "width": 320
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/6d7320dfe209b94c00cc10b04e9bd20b8f234672-1080x1252.webp?rect=0%2C86%2C1080%2C1080&w=320&h=320&q=80&fit=crop&auto=format",
+        "bytes": 16175,
+        "status": 200,
+        "passThrough": false,
+        "width": 320
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/cf4b645af6520f3f67ebdc310e7f5f9ac6ad1551-2572x1920.webp?rect=326%2C0%2C1920%2C1920&w=320&h=320&q=80&fit=crop&auto=format",
+        "bytes": 11351,
+        "status": 200,
+        "passThrough": false,
+        "width": 320
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/bed972ae2739b258c8bb2d11abef074c38dc6fda-1080x1120.webp?w=220&q=80&auto=format",
+        "bytes": 8328,
+        "status": 200,
+        "passThrough": false,
+        "width": 220
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/b20708a9166c14b2031c8c6eeb33a89edaa11448-259x259.webp?w=220&q=80&auto=format",
+        "bytes": 8292,
+        "status": 200,
+        "passThrough": false,
+        "width": 220
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/c417a3ceb2b2aaff1f3d7a023fa29f39dbbb0412-1000x1000.webp?w=220&q=80&auto=format",
+        "bytes": 7829,
+        "status": 200,
+        "passThrough": false,
+        "width": 220
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7df635ffb6f6a4880748ffe273c5848eecbcf884-1732x2000.webp?w=220&q=80&auto=format",
+        "bytes": 4146,
+        "status": 200,
+        "passThrough": false,
+        "width": 220
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=260&q=80&auto=format",
+        "bytes": 3902,
+        "status": 200,
+        "passThrough": false,
+        "width": 260
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=200&q=80&auto=format",
+        "bytes": 3633,
+        "status": 200,
+        "passThrough": false,
+        "width": 200
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/84790107dd5142b46ce0567eb770ea6079a93e44-1080x1349.webp?w=220&q=80&auto=format",
+        "bytes": 1844,
+        "status": 200,
+        "passThrough": false,
+        "width": 220
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 14,
+    "passThroughBytes": 612162,
+    "duplicates": [],
+    "consoleErrors": [],
+    "domContentLoaded": 108,
+    "load": 311,
+    "lcp": 344,
+    "cls": 0,
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|189|0.78|-7.56",
+        "count": 1
+      },
+      {
+        "spec": "h2|18|1.2|0",
+        "count": 1
+      },
+      {
+        "spec": "h2|28|1.2|0",
+        "count": 1
+      },
+      {
+        "spec": "h3|20|1.2|0",
+        "count": 3
+      },
+      {
+        "spec": "h2|24|1.2|0",
+        "count": 1
+      },
+      {
+        "spec": "h3|24|1.2|0",
+        "count": 1
+      }
+    ],
+    "bodySamples": [],
+    "typeIssues": [],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "63x24",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "45x24",
+        "label": "About"
+      },
+      {
+        "tag": "a",
+        "size": "43x24",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "70x20",
+        "label": "All work →"
+      },
+      {
+        "tag": "a",
+        "size": "66x14",
+        "label": "Instagram​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌"
+      },
+      {
+        "tag": "a",
+        "size": "49x13",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "37x13",
+        "label": "Merch"
+      },
+      {
+        "tag": "a",
+        "size": "42x13",
+        "label": "Collage"
+      },
+      {
+        "tag": "a",
+        "size": "33x13",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "26x13",
+        "label": "Blog"
+      }
+    ],
+    "smallTargetCount": 19,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 0,
+    "facades": 0,
+    "imgCount": 13,
+    "unsizedImages": 1
+  },
+  {
+    "path": "/",
+    "viewport": "mobile",
+    "status": 200,
+    "wallMs": 341,
+    "requests": 40,
+    "totalBytes": 1174207,
+    "bytes": {
+      "document": 0,
+      "script": 0,
+      "stylesheet": 0,
+      "font": 288780,
+      "image": 885427
+    },
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/526812a0f5fce5c119dbe00ac6d27a3177cfcc54-800x800.webp",
+        "bytes": 521264,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/96cf18e91e020373d297bb2c4fa22bf76fe22b70-2000x1372.webp",
+        "bytes": 90898,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/374543938df67e4391bf4041eae344992143bebf-2250x2034.webp?w=500&q=80&auto=format",
+        "bytes": 86345,
+        "status": 200,
+        "passThrough": false,
+        "width": 500
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/e6b1733d27e60874f886cf6233cf35f985b6bfc5-1920x1440.webp?rect=240%2C0%2C1440%2C1440&w=600&h=600&q=80&fit=crop&auto=format",
+        "bytes": 65648,
+        "status": 200,
+        "passThrough": false,
+        "width": 600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/8cc16af60b1caf91f9797478c06f38420ee0f280-1445x1241.webp?w=700&q=80&auto=format",
+        "bytes": 34114,
+        "status": 200,
+        "passThrough": false,
+        "width": 700
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/6d7320dfe209b94c00cc10b04e9bd20b8f234672-1080x1252.webp?rect=0%2C86%2C1080%2C1080&w=600&h=600&q=80&fit=crop&auto=format",
+        "bytes": 28400,
+        "status": 200,
+        "passThrough": false,
+        "width": 600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/cf4b645af6520f3f67ebdc310e7f5f9ac6ad1551-2572x1920.webp?rect=326%2C0%2C1920%2C1920&w=600&h=600&q=80&fit=crop&auto=format",
+        "bytes": 20784,
+        "status": 200,
+        "passThrough": false,
+        "width": 600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/bed972ae2739b258c8bb2d11abef074c38dc6fda-1080x1120.webp?w=220&q=80&auto=format",
+        "bytes": 8328,
+        "status": 200,
+        "passThrough": false,
+        "width": 220
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/b20708a9166c14b2031c8c6eeb33a89edaa11448-259x259.webp?w=220&q=80&auto=format",
+        "bytes": 8292,
+        "status": 200,
+        "passThrough": false,
+        "width": 220
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/c417a3ceb2b2aaff1f3d7a023fa29f39dbbb0412-1000x1000.webp?w=220&q=80&auto=format",
+        "bytes": 7829,
+        "status": 200,
+        "passThrough": false,
+        "width": 220
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7df635ffb6f6a4880748ffe273c5848eecbcf884-1732x2000.webp?w=220&q=80&auto=format",
+        "bytes": 4146,
+        "status": 200,
+        "passThrough": false,
+        "width": 220
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=260&q=80&auto=format",
+        "bytes": 3902,
+        "status": 200,
+        "passThrough": false,
+        "width": 260
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=200&q=80&auto=format",
+        "bytes": 3633,
+        "status": 200,
+        "passThrough": false,
+        "width": 200
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/84790107dd5142b46ce0567eb770ea6079a93e44-1080x1349.webp?w=220&q=80&auto=format",
+        "bytes": 1844,
+        "status": 200,
+        "passThrough": false,
+        "width": 220
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 14,
+    "passThroughBytes": 612162,
+    "duplicates": [],
+    "consoleErrors": [],
+    "domContentLoaded": 133,
+    "load": 336,
+    "lcp": 360,
+    "cls": 0,
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|64.7|0.78|-2.59",
+        "count": 1
+      },
+      {
+        "spec": "h2|18|1.2|0",
+        "count": 1
+      },
+      {
+        "spec": "h2|22|1.2|0",
+        "count": 1
+      },
+      {
+        "spec": "h3|20|1.2|0",
+        "count": 3
+      },
+      {
+        "spec": "h2|24|1.2|0",
+        "count": 1
+      },
+      {
+        "spec": "h3|24|1.2|0",
+        "count": 1
+      }
+    ],
+    "bodySamples": [],
+    "typeIssues": [],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "70x20",
+        "label": "All work →"
+      },
+      {
+        "tag": "a",
+        "size": "39x45",
+        "label": ""
+      },
+      {
+        "tag": "a",
+        "size": "43x45",
+        "label": ""
+      },
+      {
+        "tag": "a",
+        "size": "36x45",
+        "label": ""
+      },
+      {
+        "tag": "a",
+        "size": "49x44",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "37x44",
+        "label": "Merch"
+      },
+      {
+        "tag": "a",
+        "size": "42x44",
+        "label": "Collage"
+      },
+      {
+        "tag": "a",
+        "size": "33x44",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "26x44",
+        "label": "Blog"
+      },
+      {
+        "tag": "a",
+        "size": "35x44",
+        "label": "About"
+      }
+    ],
+    "smallTargetCount": 15,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 0,
+    "facades": 0,
+    "imgCount": 13,
+    "unsizedImages": 1
+  },
+  {
+    "path": "/portfolio",
+    "viewport": "desktop",
+    "status": 200,
+    "wallMs": 436,
+    "requests": 125,
+    "totalBytes": 14363829,
+    "bytes": {
+      "document": 0,
+      "font": 277384,
+      "image": 14086445,
+      "script": 0,
+      "stylesheet": 0
+    },
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/75ab95863646aab988c9dbf92556ee598104f2f6-300x300.webp",
+        "bytes": 1379862,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/75ab95863646aab988c9dbf92556ee598104f2f6-300x300.webp",
+        "bytes": 1379862,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7699f292fa859c7d126fd3aafe76eaf7eb0ac579-400x400.gif",
+        "bytes": 887487,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7699f292fa859c7d126fd3aafe76eaf7eb0ac579-400x400.gif",
+        "bytes": 887487,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/eac1d7b4f8b51c0534691201664d20bada17e6d5-400x400.webp",
+        "bytes": 792616,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/eac1d7b4f8b51c0534691201664d20bada17e6d5-400x400.webp",
+        "bytes": 792616,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/1c932ee4e3d4b3a3f3808bdfd597716bbef89aef-480x600.gif",
+        "bytes": 664313,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7e5b5a8908e617eb9222679575e28e2ca2b28309-200x200.webp",
+        "bytes": 620420,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7e5b5a8908e617eb9222679575e28e2ca2b28309-200x200.webp",
+        "bytes": 620420,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7085489dac55522745c99ce393c861345f7bfb4f-800x1000.gif",
+        "bytes": 540911,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7085489dac55522745c99ce393c861345f7bfb4f-800x1000.gif",
+        "bytes": 540911,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/17e1639c09f6e859b8f6ee7cca95b44d6aff3036-800x800.gif",
+        "bytes": 540735,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/fcb1737c45839da6912fe8c0f9a733ee40585514-1080x1519.webp?w=800&q=80&auto=format",
+        "bytes": 359204,
+        "status": 200,
+        "passThrough": false,
+        "width": 800
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/1026a061f027475ff14ce1268e33aaadb20915e6-825x1148.webp?w=800&q=80&auto=format",
+        "bytes": 297050,
+        "status": 200,
+        "passThrough": false,
+        "width": 800
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7462c14747d2e307d83019703a6f8eac7b6002d0-400x400.webp",
+        "bytes": 226190,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7462c14747d2e307d83019703a6f8eac7b6002d0-400x400.webp",
+        "bytes": 226190,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/329248a1d3eec375b842d0adb19e4a070ebf4a04-2160x2880.jpg?w=800&q=80&auto=format",
+        "bytes": 208739,
+        "status": 200,
+        "passThrough": false,
+        "width": 800
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/62f60519031badb188430b66f38b0a6ac39aa4e8-800x800.gif",
+        "bytes": 193876,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/84932c87f8d266a2d3c30330f2797e46e86308c2-1080x1080.gif",
+        "bytes": 183705,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/84932c87f8d266a2d3c30330f2797e46e86308c2-1080x1080.gif",
+        "bytes": 183705,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/portfolio/",
+        "bytes": 0,
+        "type": "document"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/vendor/imagesloaded-5.0.0.min.js",
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/vendor/isotope-3.0.6.min.js",
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 97,
+    "passThroughBytes": 11479001,
+    "duplicates": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/75ab95863646aab988c9dbf92556ee598104f2f6-300x300.webp",
+        "count": 2,
+        "bytes": 1379862,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7699f292fa859c7d126fd3aafe76eaf7eb0ac579-400x400.gif",
+        "count": 2,
+        "bytes": 887487,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/eac1d7b4f8b51c0534691201664d20bada17e6d5-400x400.webp",
+        "count": 2,
+        "bytes": 792616,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7e5b5a8908e617eb9222679575e28e2ca2b28309-200x200.webp",
+        "count": 2,
+        "bytes": 620420,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7085489dac55522745c99ce393c861345f7bfb4f-800x1000.gif",
+        "count": 2,
+        "bytes": 540911,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7462c14747d2e307d83019703a6f8eac7b6002d0-400x400.webp",
+        "count": 2,
+        "bytes": 226190,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/84932c87f8d266a2d3c30330f2797e46e86308c2-1080x1080.gif",
+        "count": 2,
+        "bytes": 183705,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/14cbc0bbdd797d87f6cef301bc84b0c87a3da94a-1080x1080.gif",
+        "count": 2,
+        "bytes": 165425,
+        "statuses": [
+          200,
+          200
+        ]
+      }
+    ],
+    "consoleErrors": [],
+    "domContentLoaded": 255,
+    "load": 434,
+    "lcp": 480,
+    "cls": 0.5049,
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|56|1.15|0",
+        "count": 1
+      }
+    ],
+    "bodySamples": [],
+    "typeIssues": [],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "63x24",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "45x24",
+        "label": "About"
+      },
+      {
+        "tag": "a",
+        "size": "43x24",
+        "label": "Video"
+      },
+      {
+        "tag": "button",
+        "size": "54x29",
+        "label": "All"
+      },
+      {
+        "tag": "button",
+        "size": "138x29",
+        "label": "Brand Identity"
+      },
+      {
+        "tag": "button",
+        "size": "150x29",
+        "label": "Merch & Apparel"
+      },
+      {
+        "tag": "button",
+        "size": "140x29",
+        "label": "Type/Lettering"
+      },
+      {
+        "tag": "button",
+        "size": "88x29",
+        "label": "Shuffle"
+      },
+      {
+        "tag": "button",
+        "size": "39x29",
+        "label": "−"
+      },
+      {
+        "tag": "button",
+        "size": "39x29",
+        "label": "+"
+      }
+    ],
+    "smallTargetCount": 26,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 0,
+    "facades": 0,
+    "imgCount": 71,
+    "unsizedImages": 0
+  },
+  {
+    "path": "/portfolio",
+    "viewport": "mobile",
+    "status": 200,
+    "wallMs": 565,
+    "requests": 196,
+    "totalBytes": 14039695,
+    "bytes": {
+      "document": 0,
+      "font": 277384,
+      "image": 13762311,
+      "script": 0,
+      "stylesheet": 0
+    },
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/75ab95863646aab988c9dbf92556ee598104f2f6-300x300.webp",
+        "bytes": 1379862,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7699f292fa859c7d126fd3aafe76eaf7eb0ac579-400x400.gif",
+        "bytes": 887487,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/eac1d7b4f8b51c0534691201664d20bada17e6d5-400x400.webp",
+        "bytes": 792616,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/1c932ee4e3d4b3a3f3808bdfd597716bbef89aef-480x600.gif",
+        "bytes": 664313,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7e5b5a8908e617eb9222679575e28e2ca2b28309-200x200.webp",
+        "bytes": 620420,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7085489dac55522745c99ce393c861345f7bfb4f-800x1000.gif",
+        "bytes": 540911,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/17e1639c09f6e859b8f6ee7cca95b44d6aff3036-800x800.gif",
+        "bytes": 540735,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/fcb1737c45839da6912fe8c0f9a733ee40585514-1080x1519.webp?w=800&q=80&auto=format",
+        "bytes": 359204,
+        "status": 200,
+        "passThrough": false,
+        "width": 800
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/345287269b4f0fa71cc67a0f4f92e9ac433b67f5-1080x1519.webp?w=800&q=80&auto=format",
+        "bytes": 343482,
+        "status": 200,
+        "passThrough": false,
+        "width": 800
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/1026a061f027475ff14ce1268e33aaadb20915e6-825x1148.webp?w=800&q=80&auto=format",
+        "bytes": 297050,
+        "status": 200,
+        "passThrough": false,
+        "width": 800
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7462c14747d2e307d83019703a6f8eac7b6002d0-400x400.webp",
+        "bytes": 226190,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/329248a1d3eec375b842d0adb19e4a070ebf4a04-2160x2880.jpg?w=800&q=80&auto=format",
+        "bytes": 208739,
+        "status": 200,
+        "passThrough": false,
+        "width": 800
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/62f60519031badb188430b66f38b0a6ac39aa4e8-800x800.gif",
+        "bytes": 193876,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/84932c87f8d266a2d3c30330f2797e46e86308c2-1080x1080.gif",
+        "bytes": 183705,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/623260c0f06d38e5b4a68fee3998c4494869c033-1080x1080.webp?w=800&q=80&auto=format",
+        "bytes": 177192,
+        "status": 200,
+        "passThrough": false,
+        "width": 800
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/80bbaf84e7714ec96bf3ab1396b728a0fbfdc9a1-1350x1321.webp?w=800&q=80&auto=format",
+        "bytes": 167037,
+        "status": 200,
+        "passThrough": false,
+        "width": 800
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/14cbc0bbdd797d87f6cef301bc84b0c87a3da94a-1080x1080.gif",
+        "bytes": 165425,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/f25faebaa17b9fce19efe8737af151c5c1ba858a-2232x3132.webp?w=800&q=80&auto=format",
+        "bytes": 159301,
+        "status": 200,
+        "passThrough": false,
+        "width": 800
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/26a9abdcdfc3de814a1e9ce0c9e2bebaf688458e-1080x1080.gif",
+        "bytes": 155562,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/b3834b3ffbcf2783a337743475cd2041ff0aceb9-1080x1080.webp?w=800&q=80&auto=format",
+        "bytes": 152837,
+        "status": 200,
+        "passThrough": false,
+        "width": 800
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/portfolio/",
+        "bytes": 0,
+        "type": "document"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/vendor/imagesloaded-5.0.0.min.js",
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/vendor/isotope-3.0.6.min.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 168,
+    "passThroughBytes": 6682385,
+    "duplicates": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/345287269b4f0fa71cc67a0f4f92e9ac433b67f5-1080x1519.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 140623,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/fcb1737c45839da6912fe8c0f9a733ee40585514-1080x1519.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 133789,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/1026a061f027475ff14ce1268e33aaadb20915e6-825x1148.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 130389,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/f25faebaa17b9fce19efe8737af151c5c1ba858a-2232x3132.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 79009,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/623260c0f06d38e5b4a68fee3998c4494869c033-1080x1080.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 74587,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/80bbaf84e7714ec96bf3ab1396b728a0fbfdc9a1-1350x1321.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 73413,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/b3834b3ffbcf2783a337743475cd2041ff0aceb9-1080x1080.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 72749,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/329248a1d3eec375b842d0adb19e4a070ebf4a04-2160x2880.jpg?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 71827,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/3db3cf3924706acd37aff97a674f3ad388c21c20-1000x984.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 58908,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/0571fb503bea3607698e12d9e08260ca2c15e3e3-1000x984.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 57246,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/aa81cf1aaa70d54e029313043d97bba9f703b04a-1000x984.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 51264,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/512828664a6b81cf5b43b537abbe8246ab28dd93-1000x984.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 47804,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/621e990935075c438750f2b60588249ac51b45ee-1000x984.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 43966,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7927118cae936d7f8e826e1cf58e80e61acfcd12-1000x984.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 39208,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/e6b1733d27e60874f886cf6233cf35f985b6bfc5-1920x1440.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 36697,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/846875406fbeb1fba2b3912a57da01ba873be73d-2000x2000.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 31782,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/230ebd088d50706b5f056fa85dd7096bf8c18aeb-1152x693.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 30600,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/3a6ce4b455cf5e6a664d936e221cfd3a2ae68686-1200x750.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 30587,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/708b84ee983730d44c703fbb240fb13b0137d5eb-1080x1080.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 30095,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/a119a1c61ce778a74959e7668da9149f1e2e251d-2000x2000.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 29159,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/e86f5c118f141b107aaafb7e674092d6009acfc5-1080x610.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 28353,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/fd09050ecb39ff4d4161aa711f289c4c32c9b82f-1440x1800.jpg?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 26520,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/6d7320dfe209b94c00cc10b04e9bd20b8f234672-1080x1252.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 25572,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/808df286e1b2284dbb242e3106d9ed9618fad3dc-2868x2126.jpg?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 24566,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/5757d176ae1f77a6c5f7320e8cdc03aef30061ae-1000x1000.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 23582,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/f777821ba34b7d9c756e91b5ff1801b97a38c8ab-1920x2010.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 18848,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/0607929c1c3e25eefd0b07b5d0f7083da7b73b8e-1080x1080.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 18165,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/e1dbe40a2045d75cf6c12078972458488de666a0-2048x1365.jpg?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 18101,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/c84dd364205797cc65d099bc95125fc75a5c4378-750x600.jpg?w=480&sharp=15&q=92&auto=format",
+        "count": 2,
+        "bytes": 17912,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/cf4b645af6520f3f67ebdc310e7f5f9ac6ad1551-2572x1920.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 15930,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/df99114dda87215433a0d664b5c3d165c5254abf-1152x648.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 15365,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/51328a9b58f73488e3b9857c1680f4f3374a78e3-2560x1440.jpg?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 14522,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/fad38a5513cc81cba571e0bbc7f5b83da27ac635-1178x1892.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 14179,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/0d5d4e7c5a13acd9b6165680e6b5037d480297bb-1906x820.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 13101,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/eba73c0d6b0b805c532ab506a7ed30e2dadc7313-746x290.webp?w=480&sharp=15&q=92&auto=format",
+        "count": 2,
+        "bytes": 12524,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/6a6928dad1bf081248b82693f8cd4cf176a2a0bd-468x265.webp?w=468&sharp=15&q=92&auto=format",
+        "count": 2,
+        "bytes": 12464,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/4537bbe0655d2b097dc107f9ea2c688d059505f7-1332x1650.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 11880,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/76f9f6b7b1b1ded31a8982c87aa6e3ed0ee2bb6b-1080x810.jpg?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 11400,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/2ba32baac413b4b86265760d6d4bd10561c7bf9a-1440x1440.jpg?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 10772,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/84de7731348e47c74a38f9c30c1568d794d22d06-458x583.webp?w=458&sharp=15&q=92&auto=format",
+        "count": 2,
+        "bytes": 10638,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/fcb1898eed653e716046cf92bb05b376e3c0ad5a-960x368.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 10217,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/38553383fad4a274da3730d3fff70e6ea1ddd05d-1080x218.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 7688,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/5969cb23d29dc8aa6fcb9cab40367e8fed2443d1-1080x360.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 7172,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/614092cf7707bf31482dc41079b87ed84033a699-1076x369.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 6607,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/fa1d1089f3d2bda04a4f820cc13ee6df8d5ca62e-1920x1314.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 6546,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/463fd3baa042261b692319538c35c8afb3a93599-2500x2500.png?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 6386,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/8057e0eabe14ff363a0c20476642d4fb741c35d9-1732x2000.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 6208,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/cfcc77e01c7f80a5fce085193c80a2bde54511ee-720x260.webp?w=480&sharp=15&q=92&auto=format",
+        "count": 2,
+        "bytes": 5235,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/5ac9707c0cc69a76478253bf7a07075d8a31b12a-2848x1234.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 5087,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/bbf6a7f1a6bdb0a7931efdd0c36c1b049cde1776-1080x346.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 4946,
+        "statuses": [
+          200,
+          200
+        ]
+      }
+    ],
+    "consoleErrors": [],
+    "domContentLoaded": 199,
+    "load": 562,
+    "lcp": 628,
+    "cls": 0,
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|40|1.15|0",
+        "count": 1
+      }
+    ],
+    "bodySamples": [],
+    "typeIssues": [],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "49x44",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "37x44",
+        "label": "Merch"
+      },
+      {
+        "tag": "a",
+        "size": "42x44",
+        "label": "Collage"
+      },
+      {
+        "tag": "a",
+        "size": "33x44",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "26x44",
+        "label": "Blog"
+      },
+      {
+        "tag": "a",
+        "size": "35x44",
+        "label": "About"
+      },
+      {
+        "tag": "a",
+        "size": "46x44",
+        "label": "Contact"
+      },
+      {
+        "tag": "a",
+        "size": "126x44",
+        "label": "Adelante Barbell Club​​​​‌﻿‍﻿​"
+      },
+      {
+        "tag": "a",
+        "size": "86x44",
+        "label": "Chateau Seven​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌"
+      },
+      {
+        "tag": "a",
+        "size": "154x44",
+        "label": "DumpStat, a D&D Podcast​​​​‌﻿‍"
+      }
+    ],
+    "smallTargetCount": 11,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 0,
+    "facades": 0,
+    "imgCount": 71,
+    "unsizedImages": 0
+  },
+  {
+    "path": "/about",
+    "viewport": "desktop",
+    "status": 200,
+    "wallMs": 137,
+    "requests": 29,
+    "totalBytes": 310210,
+    "bytes": {
+      "document": 0,
+      "font": 277384,
+      "image": 32826,
+      "script": 0,
+      "stylesheet": 0
+    },
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/c74769e63b77e501e3b7bd233664d25e36508d80-1900x1900.webp?w=500&q=80&auto=format",
+        "bytes": 25291,
+        "status": 200,
+        "passThrough": false,
+        "width": 500
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=260&q=80&auto=format",
+        "bytes": 3902,
+        "status": 200,
+        "passThrough": false,
+        "width": 260
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=200&q=80&auto=format",
+        "bytes": 3633,
+        "status": 200,
+        "passThrough": false,
+        "width": 200
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/about/",
+        "bytes": 0,
+        "type": "document"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 3,
+    "passThroughBytes": 0,
+    "duplicates": [],
+    "consoleErrors": [],
+    "domContentLoaded": 116,
+    "load": 135,
+    "lcp": 160,
+    "cls": 0.0001,
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|56|1.15|0",
+        "count": 1
+      }
+    ],
+    "bodySamples": [
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 71,
+        "sample": "My name's Chris. Rumeau Design Co (RDC) is my stud"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 71,
+        "sample": "I sketch extensively before anything goes digital."
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 71,
+        "sample": "I studied design academically (Pratt Institute 201"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 71,
+        "sample": "I work best with clients who already have strong t"
+      }
+    ],
+    "typeIssues": [],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "63x24",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "45x24",
+        "label": "About"
+      },
+      {
+        "tag": "a",
+        "size": "43x24",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "66x14",
+        "label": "Instagram​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌"
+      },
+      {
+        "tag": "a",
+        "size": "49x13",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "37x13",
+        "label": "Merch"
+      },
+      {
+        "tag": "a",
+        "size": "42x13",
+        "label": "Collage"
+      },
+      {
+        "tag": "a",
+        "size": "33x13",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "26x13",
+        "label": "Blog"
+      },
+      {
+        "tag": "a",
+        "size": "35x13",
+        "label": "About"
+      }
+    ],
+    "smallTargetCount": 18,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 0,
+    "facades": 0,
+    "imgCount": 3,
+    "unsizedImages": 0
+  },
+  {
+    "path": "/about",
+    "viewport": "mobile",
+    "status": 200,
+    "wallMs": 227,
+    "requests": 29,
+    "totalBytes": 310210,
+    "bytes": {
+      "document": 0,
+      "font": 277384,
+      "image": 32826,
+      "script": 0,
+      "stylesheet": 0
+    },
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/c74769e63b77e501e3b7bd233664d25e36508d80-1900x1900.webp?w=500&q=80&auto=format",
+        "bytes": 25291,
+        "status": 200,
+        "passThrough": false,
+        "width": 500
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=260&q=80&auto=format",
+        "bytes": 3902,
+        "status": 200,
+        "passThrough": false,
+        "width": 260
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=200&q=80&auto=format",
+        "bytes": 3633,
+        "status": 200,
+        "passThrough": false,
+        "width": 200
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/about/",
+        "bytes": 0,
+        "type": "document"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 3,
+    "passThroughBytes": 0,
+    "duplicates": [],
+    "consoleErrors": [],
+    "domContentLoaded": 135,
+    "load": 225,
+    "lcp": 168,
+    "cls": 0,
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|40|1.15|0",
+        "count": 1
+      }
+    ],
+    "bodySamples": [
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 46,
+        "sample": "My name's Chris. Rumeau Design Co (RDC) is my stud"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 46,
+        "sample": "I sketch extensively before anything goes digital."
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 46,
+        "sample": "I studied design academically (Pratt Institute 201"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 46,
+        "sample": "I work best with clients who already have strong t"
+      }
+    ],
+    "typeIssues": [],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "49x44",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "37x44",
+        "label": "Merch"
+      },
+      {
+        "tag": "a",
+        "size": "42x44",
+        "label": "Collage"
+      },
+      {
+        "tag": "a",
+        "size": "33x44",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "26x44",
+        "label": "Blog"
+      },
+      {
+        "tag": "a",
+        "size": "35x44",
+        "label": "About"
+      },
+      {
+        "tag": "a",
+        "size": "46x44",
+        "label": "Contact"
+      },
+      {
+        "tag": "a",
+        "size": "126x44",
+        "label": "Adelante Barbell Club​​​​‌﻿‍﻿​"
+      },
+      {
+        "tag": "a",
+        "size": "86x44",
+        "label": "Chateau Seven​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌"
+      },
+      {
+        "tag": "a",
+        "size": "154x44",
+        "label": "DumpStat, a D&D Podcast​​​​‌﻿‍"
+      }
+    ],
+    "smallTargetCount": 11,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 0,
+    "facades": 0,
+    "imgCount": 3,
+    "unsizedImages": 0
+  },
+  {
+    "path": "/video",
+    "viewport": "desktop",
+    "status": 200,
+    "wallMs": 355,
+    "requests": 29,
+    "totalBytes": 334920,
+    "bytes": {
+      "document": 0,
+      "font": 277384,
+      "image": 57536,
+      "stylesheet": 0,
+      "script": 0
+    },
+    "images": [
+      {
+        "url": "https://i.ytimg.com/vi/nwpBlv14Ybw/sddefault.jpg",
+        "bytes": 50001,
+        "status": 200,
+        "passThrough": false,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=260&q=80&auto=format",
+        "bytes": 3902,
+        "status": 200,
+        "passThrough": false,
+        "width": 260
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=200&q=80&auto=format",
+        "bytes": 3633,
+        "status": 200,
+        "passThrough": false,
+        "width": 200
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/video/",
+        "bytes": 0,
+        "type": "document"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 3,
+    "passThroughBytes": 0,
+    "duplicates": [],
+    "consoleErrors": [],
+    "domContentLoaded": 278,
+    "load": 353,
+    "lcp": 412,
+    "cls": 0,
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|56|1.15|0",
+        "count": 1
+      }
+    ],
+    "bodySamples": [
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 71,
+        "sample": "Pinegrove has played NPR Tiny Desk, Audiotree, Wel"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 71,
+        "sample": "Cool. Just wanted to say that. I'm adding more vid"
+      }
+    ],
+    "typeIssues": [],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "63x24",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "45x24",
+        "label": "About"
+      },
+      {
+        "tag": "a",
+        "size": "43x24",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "107x16",
+        "label": "NPR Tiny Desk​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌"
+      },
+      {
+        "tag": "a",
+        "size": "71x16",
+        "label": "Audiotree​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌"
+      },
+      {
+        "tag": "a",
+        "size": "129x16",
+        "label": "Wellmont Theater​​​​‌﻿‍﻿​‍​‍‌‍"
+      },
+      {
+        "tag": "a",
+        "size": "163x16",
+        "label": "viral Pinegrove Shuffle​​​​‌﻿‍"
+      },
+      {
+        "tag": "a",
+        "size": "143x16",
+        "label": "more video projects​​​​‌﻿‍﻿​‍​"
+      },
+      {
+        "tag": "a",
+        "size": "66x14",
+        "label": "Instagram​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌"
+      },
+      {
+        "tag": "a",
+        "size": "49x13",
+        "label": "Portfolio"
+      }
+    ],
+    "smallTargetCount": 23,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 0,
+    "facades": 1,
+    "imgCount": 3,
+    "unsizedImages": 0
+  },
+  {
+    "path": "/video",
+    "viewport": "mobile",
+    "status": 200,
+    "wallMs": 215,
+    "requests": 29,
+    "totalBytes": 334920,
+    "bytes": {
+      "document": 0,
+      "image": 57536,
+      "font": 277384,
+      "script": 0,
+      "stylesheet": 0
+    },
+    "images": [
+      {
+        "url": "https://i.ytimg.com/vi/nwpBlv14Ybw/sddefault.jpg",
+        "bytes": 50001,
+        "status": 200,
+        "passThrough": false,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=260&q=80&auto=format",
+        "bytes": 3902,
+        "status": 200,
+        "passThrough": false,
+        "width": 260
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=200&q=80&auto=format",
+        "bytes": 3633,
+        "status": 200,
+        "passThrough": false,
+        "width": 200
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/video/",
+        "bytes": 0,
+        "type": "document"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 3,
+    "passThroughBytes": 0,
+    "duplicates": [],
+    "consoleErrors": [],
+    "domContentLoaded": 198,
+    "load": 212,
+    "lcp": 364,
+    "cls": 0,
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|40|1.15|0",
+        "count": 1
+      }
+    ],
+    "bodySamples": [
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 46,
+        "sample": "Pinegrove has played NPR Tiny Desk, Audiotree, Wel"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 46,
+        "sample": "Cool. Just wanted to say that. I'm adding more vid"
+      }
+    ],
+    "typeIssues": [],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "107x16",
+        "label": "NPR Tiny Desk​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌"
+      },
+      {
+        "tag": "a",
+        "size": "71x16",
+        "label": "Audiotree​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌"
+      },
+      {
+        "tag": "a",
+        "size": "129x16",
+        "label": "Wellmont Theater​​​​‌﻿‍﻿​‍​‍‌‍"
+      },
+      {
+        "tag": "a",
+        "size": "163x16",
+        "label": "viral Pinegrove Shuffle​​​​‌﻿‍"
+      },
+      {
+        "tag": "a",
+        "size": "338x40",
+        "label": "more video projects​​​​‌﻿‍﻿​‍​"
+      },
+      {
+        "tag": "a",
+        "size": "49x44",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "37x44",
+        "label": "Merch"
+      },
+      {
+        "tag": "a",
+        "size": "42x44",
+        "label": "Collage"
+      },
+      {
+        "tag": "a",
+        "size": "33x44",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "26x44",
+        "label": "Blog"
+      }
+    ],
+    "smallTargetCount": 16,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 0,
+    "facades": 1,
+    "imgCount": 3,
+    "unsizedImages": 0
+  },
+  {
+    "path": "/collage",
+    "viewport": "desktop",
+    "status": 200,
+    "wallMs": 278,
+    "requests": 34,
+    "totalBytes": 604373,
+    "bytes": {
+      "document": 0,
+      "image": 326989,
+      "script": 0,
+      "font": 277384,
+      "stylesheet": 0
+    },
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/0f404aeac318d7fd9727c8d2e136cd26c6186c5e-2226x2216.jpg?w=480&q=80&auto=format",
+        "bytes": 61893,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/973b6cfc20a0df67c37db18d015cb5312bd24f68-2216x2181.jpg?w=480&q=80&auto=format",
+        "bytes": 60742,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/62bca660f1f21d040fd1fc081e8ca0432d018ff0-2395x2383.jpg?w=480&q=80&auto=format",
+        "bytes": 55961,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/a4643fafbb92b792168c7d49f3ec8e4759489395-2210x2213.jpg?w=480&q=80&auto=format",
+        "bytes": 50993,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/58ed948a2a65c474bf5eff90e9117bfef4d09dd0-2381x2389.jpg?w=480&q=80&auto=format",
+        "bytes": 47730,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/1d50c6ce68a5b5d4e5e53d1bfb16a2071e964555-2395x2392.jpg?w=480&q=80&auto=format",
+        "bytes": 42135,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=260&q=80&auto=format",
+        "bytes": 3902,
+        "status": 200,
+        "passThrough": false,
+        "width": 260
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=200&q=80&auto=format",
+        "bytes": 3633,
+        "status": 200,
+        "passThrough": false,
+        "width": 200
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/collage/",
+        "bytes": 0,
+        "type": "document"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 8,
+    "passThroughBytes": 0,
+    "duplicates": [],
+    "consoleErrors": [],
+    "domContentLoaded": 269,
+    "load": 276,
+    "lcp": 388,
+    "cls": 0,
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|56|1.15|0",
+        "count": 1
+      }
+    ],
+    "bodySamples": [],
+    "typeIssues": [],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "63x24",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "45x24",
+        "label": "About"
+      },
+      {
+        "tag": "a",
+        "size": "43x24",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "66x14",
+        "label": "Instagram​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌"
+      },
+      {
+        "tag": "a",
+        "size": "49x13",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "37x13",
+        "label": "Merch"
+      },
+      {
+        "tag": "a",
+        "size": "42x13",
+        "label": "Collage"
+      },
+      {
+        "tag": "a",
+        "size": "33x13",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "26x13",
+        "label": "Blog"
+      },
+      {
+        "tag": "a",
+        "size": "35x13",
+        "label": "About"
+      }
+    ],
+    "smallTargetCount": 18,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 0,
+    "facades": 0,
+    "imgCount": 8,
+    "unsizedImages": 0
+  },
+  {
+    "path": "/collage",
+    "viewport": "mobile",
+    "status": 200,
+    "wallMs": 147,
+    "requests": 34,
+    "totalBytes": 991895,
+    "bytes": {
+      "document": 0,
+      "image": 714511,
+      "font": 277384,
+      "script": 0,
+      "stylesheet": 0
+    },
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/0f404aeac318d7fd9727c8d2e136cd26c6186c5e-2226x2216.jpg?w=1000&q=80&auto=format",
+        "bytes": 128585,
+        "status": 200,
+        "passThrough": false,
+        "width": 1000
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/973b6cfc20a0df67c37db18d015cb5312bd24f68-2216x2181.jpg?w=1000&q=80&auto=format",
+        "bytes": 120722,
+        "status": 200,
+        "passThrough": false,
+        "width": 1000
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/62bca660f1f21d040fd1fc081e8ca0432d018ff0-2395x2383.jpg?w=1000&q=80&auto=format",
+        "bytes": 117236,
+        "status": 200,
+        "passThrough": false,
+        "width": 1000
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/a4643fafbb92b792168c7d49f3ec8e4759489395-2210x2213.jpg?w=1000&q=80&auto=format",
+        "bytes": 116603,
+        "status": 200,
+        "passThrough": false,
+        "width": 1000
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/58ed948a2a65c474bf5eff90e9117bfef4d09dd0-2381x2389.jpg?w=1000&q=80&auto=format",
+        "bytes": 114616,
+        "status": 200,
+        "passThrough": false,
+        "width": 1000
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/1d50c6ce68a5b5d4e5e53d1bfb16a2071e964555-2395x2392.jpg?w=1000&q=80&auto=format",
+        "bytes": 109214,
+        "status": 200,
+        "passThrough": false,
+        "width": 1000
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=260&q=80&auto=format",
+        "bytes": 3902,
+        "status": 200,
+        "passThrough": false,
+        "width": 260
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=200&q=80&auto=format",
+        "bytes": 3633,
+        "status": 200,
+        "passThrough": false,
+        "width": 200
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/collage/",
+        "bytes": 0,
+        "type": "document"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 8,
+    "passThroughBytes": 0,
+    "duplicates": [],
+    "consoleErrors": [],
+    "domContentLoaded": 118,
+    "load": 146,
+    "lcp": 216,
+    "cls": 0,
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|40|1.15|0",
+        "count": 1
+      }
+    ],
+    "bodySamples": [],
+    "typeIssues": [],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "49x44",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "37x44",
+        "label": "Merch"
+      },
+      {
+        "tag": "a",
+        "size": "42x44",
+        "label": "Collage"
+      },
+      {
+        "tag": "a",
+        "size": "33x44",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "26x44",
+        "label": "Blog"
+      },
+      {
+        "tag": "a",
+        "size": "35x44",
+        "label": "About"
+      },
+      {
+        "tag": "a",
+        "size": "46x44",
+        "label": "Contact"
+      },
+      {
+        "tag": "a",
+        "size": "126x44",
+        "label": "Adelante Barbell Club​​​​‌﻿‍﻿​"
+      },
+      {
+        "tag": "a",
+        "size": "86x44",
+        "label": "Chateau Seven​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌"
+      },
+      {
+        "tag": "a",
+        "size": "154x44",
+        "label": "DumpStat, a D&D Podcast​​​​‌﻿‍"
+      }
+    ],
+    "smallTargetCount": 11,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 0,
+    "facades": 0,
+    "imgCount": 8,
+    "unsizedImages": 0
+  },
+  {
+    "path": "/merchfolio",
+    "viewport": "desktop",
+    "status": 200,
+    "wallMs": 407,
+    "requests": 47,
+    "totalBytes": 1903463,
+    "bytes": {
+      "document": 0,
+      "image": 1626079,
+      "font": 277384,
+      "stylesheet": 0,
+      "script": 0
+    },
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7e5b5a8908e617eb9222679575e28e2ca2b28309-200x200.webp",
+        "bytes": 620420,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/84932c87f8d266a2d3c30330f2797e46e86308c2-1080x1080.gif",
+        "bytes": 183705,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/14cbc0bbdd797d87f6cef301bc84b0c87a3da94a-1080x1080.gif",
+        "bytes": 165425,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/26a9abdcdfc3de814a1e9ce0c9e2bebaf688458e-1080x1080.gif",
+        "bytes": 155562,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/3eaf5b8f0435faee5bd9541dc5a827597a1e2a64-1080x1080.gif",
+        "bytes": 146685,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/3a6ce4b455cf5e6a664d936e221cfd3a2ae68686-1200x750.webp?rect=225%2C0%2C750%2C750&w=480&h=480&q=80&fit=crop&auto=format",
+        "bytes": 67439,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/f25faebaa17b9fce19efe8737af151c5c1ba858a-2232x3132.webp?rect=0%2C450%2C2232%2C2232&w=480&h=480&q=80&fit=crop&auto=format",
+        "bytes": 66168,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/846875406fbeb1fba2b3912a57da01ba873be73d-2000x2000.webp?w=480&h=480&q=80&fit=crop&auto=format",
+        "bytes": 31782,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/708b84ee983730d44c703fbb240fb13b0137d5eb-1080x1080.webp?w=480&h=480&q=80&fit=crop&auto=format",
+        "bytes": 30095,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/a119a1c61ce778a74959e7668da9149f1e2e251d-2000x2000.webp?w=480&h=480&q=80&fit=crop&auto=format",
+        "bytes": 29159,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/f777821ba34b7d9c756e91b5ff1801b97a38c8ab-1920x2010.webp?rect=0%2C45%2C1920%2C1920&w=480&h=480&q=80&fit=crop&auto=format",
+        "bytes": 18946,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/0607929c1c3e25eefd0b07b5d0f7083da7b73b8e-1080x1080.webp?w=480&h=480&q=80&fit=crop&auto=format",
+        "bytes": 18165,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/cf4b645af6520f3f67ebdc310e7f5f9ac6ad1551-2572x1920.webp?rect=326%2C0%2C1920%2C1920&w=480&h=480&q=80&fit=crop&auto=format",
+        "bytes": 17011,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/c84dd364205797cc65d099bc95125fc75a5c4378-750x600.jpg?rect=75%2C0%2C600%2C600&w=480&h=480&q=80&fit=crop&auto=format",
+        "bytes": 14593,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/76f9f6b7b1b1ded31a8982c87aa6e3ed0ee2bb6b-1080x810.jpg?rect=135%2C0%2C810%2C810&w=480&h=480&q=80&fit=crop&auto=format",
+        "bytes": 14587,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/fad38a5513cc81cba571e0bbc7f5b83da27ac635-1178x1892.webp?rect=0%2C357%2C1178%2C1178&w=480&h=480&q=80&fit=crop&auto=format",
+        "bytes": 11861,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/2ba32baac413b4b86265760d6d4bd10561c7bf9a-1440x1440.jpg?w=480&h=480&q=80&fit=crop&auto=format",
+        "bytes": 10772,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/4537bbe0655d2b097dc107f9ea2c688d059505f7-1332x1650.webp?rect=0%2C159%2C1332%2C1332&w=480&h=480&q=80&fit=crop&auto=format",
+        "bytes": 9783,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/463fd3baa042261b692319538c35c8afb3a93599-2500x2500.png?w=480&h=480&q=80&fit=crop&auto=format",
+        "bytes": 6386,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=260&q=80&auto=format",
+        "bytes": 3902,
+        "status": 200,
+        "passThrough": false,
+        "width": 260
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/merchfolio/",
+        "bytes": 0,
+        "type": "document"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 21,
+    "passThroughBytes": 1271797,
+    "duplicates": [],
+    "consoleErrors": [],
+    "domContentLoaded": 321,
+    "load": 406,
+    "lcp": 444,
+    "cls": 0,
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|56|1.15|0",
+        "count": 1
+      }
+    ],
+    "bodySamples": [],
+    "typeIssues": [],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "63x24",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "45x24",
+        "label": "About"
+      },
+      {
+        "tag": "a",
+        "size": "43x24",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "66x14",
+        "label": "Instagram​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌"
+      },
+      {
+        "tag": "a",
+        "size": "49x13",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "37x13",
+        "label": "Merch"
+      },
+      {
+        "tag": "a",
+        "size": "42x13",
+        "label": "Collage"
+      },
+      {
+        "tag": "a",
+        "size": "33x13",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "26x13",
+        "label": "Blog"
+      },
+      {
+        "tag": "a",
+        "size": "35x13",
+        "label": "About"
+      }
+    ],
+    "smallTargetCount": 18,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 0,
+    "facades": 0,
+    "imgCount": 21,
+    "unsizedImages": 0
+  },
+  {
+    "path": "/merchfolio",
+    "viewport": "mobile",
+    "status": 200,
+    "wallMs": 140,
+    "requests": 41,
+    "totalBytes": 1015436,
+    "bytes": {
+      "document": 0,
+      "font": 277384,
+      "image": 738052,
+      "script": 0,
+      "stylesheet": 0
+    },
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/84932c87f8d266a2d3c30330f2797e46e86308c2-1080x1080.gif",
+        "bytes": 183705,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/14cbc0bbdd797d87f6cef301bc84b0c87a3da94a-1080x1080.gif",
+        "bytes": 165425,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/3a6ce4b455cf5e6a664d936e221cfd3a2ae68686-1200x750.webp?rect=225%2C0%2C750%2C750&w=600&h=600&q=80&fit=crop&auto=format",
+        "bytes": 104912,
+        "status": 200,
+        "passThrough": false,
+        "width": 600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/3a6ce4b455cf5e6a664d936e221cfd3a2ae68686-1200x750.webp?rect=225%2C0%2C750%2C750&w=600&h=600&q=80&fit=crop&auto=format",
+        "bytes": 104912,
+        "status": 200,
+        "passThrough": false,
+        "width": 600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/cf4b645af6520f3f67ebdc310e7f5f9ac6ad1551-2572x1920.webp?rect=326%2C0%2C1920%2C1920&w=600&h=600&q=80&fit=crop&auto=format",
+        "bytes": 20784,
+        "status": 200,
+        "passThrough": false,
+        "width": 600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/cf4b645af6520f3f67ebdc310e7f5f9ac6ad1551-2572x1920.webp?rect=326%2C0%2C1920%2C1920&w=600&h=600&q=80&fit=crop&auto=format",
+        "bytes": 20784,
+        "status": 200,
+        "passThrough": false,
+        "width": 600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/c84dd364205797cc65d099bc95125fc75a5c4378-750x600.jpg?rect=75%2C0%2C600%2C600&w=600&h=600&q=80&fit=crop&auto=format",
+        "bytes": 20022,
+        "status": 200,
+        "passThrough": false,
+        "width": 600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/c84dd364205797cc65d099bc95125fc75a5c4378-750x600.jpg?rect=75%2C0%2C600%2C600&w=600&h=600&q=80&fit=crop&auto=format",
+        "bytes": 20022,
+        "status": 200,
+        "passThrough": false,
+        "width": 600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/76f9f6b7b1b1ded31a8982c87aa6e3ed0ee2bb6b-1080x810.jpg?rect=135%2C0%2C810%2C810&w=600&h=600&q=80&fit=crop&auto=format",
+        "bytes": 19278,
+        "status": 200,
+        "passThrough": false,
+        "width": 600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/76f9f6b7b1b1ded31a8982c87aa6e3ed0ee2bb6b-1080x810.jpg?rect=135%2C0%2C810%2C810&w=600&h=600&q=80&fit=crop&auto=format",
+        "bytes": 19278,
+        "status": 200,
+        "passThrough": false,
+        "width": 600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/2ba32baac413b4b86265760d6d4bd10561c7bf9a-1440x1440.jpg?w=600&h=600&q=80&fit=crop&auto=format",
+        "bytes": 18771,
+        "status": 200,
+        "passThrough": false,
+        "width": 600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/2ba32baac413b4b86265760d6d4bd10561c7bf9a-1440x1440.jpg?w=600&h=600&q=80&fit=crop&auto=format",
+        "bytes": 18771,
+        "status": 200,
+        "passThrough": false,
+        "width": 600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/463fd3baa042261b692319538c35c8afb3a93599-2500x2500.png?w=600&h=600&q=80&fit=crop&auto=format",
+        "bytes": 8743,
+        "status": 200,
+        "passThrough": false,
+        "width": 600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/463fd3baa042261b692319538c35c8afb3a93599-2500x2500.png?w=600&h=600&q=80&fit=crop&auto=format",
+        "bytes": 8743,
+        "status": 200,
+        "passThrough": false,
+        "width": 600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=260&q=80&auto=format",
+        "bytes": 3902,
+        "status": 200,
+        "passThrough": false,
+        "width": 260
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/merchfolio/",
+        "bytes": 0,
+        "type": "document"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 15,
+    "passThroughBytes": 349130,
+    "duplicates": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/3a6ce4b455cf5e6a664d936e221cfd3a2ae68686-1200x750.webp?rect=225%2C0%2C750%2C750&w=600&h=600&q=80&fit=crop&auto=format",
+        "count": 2,
+        "bytes": 104912,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/cf4b645af6520f3f67ebdc310e7f5f9ac6ad1551-2572x1920.webp?rect=326%2C0%2C1920%2C1920&w=600&h=600&q=80&fit=crop&auto=format",
+        "count": 2,
+        "bytes": 20784,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/c84dd364205797cc65d099bc95125fc75a5c4378-750x600.jpg?rect=75%2C0%2C600%2C600&w=600&h=600&q=80&fit=crop&auto=format",
+        "count": 2,
+        "bytes": 20022,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/76f9f6b7b1b1ded31a8982c87aa6e3ed0ee2bb6b-1080x810.jpg?rect=135%2C0%2C810%2C810&w=600&h=600&q=80&fit=crop&auto=format",
+        "count": 2,
+        "bytes": 19278,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/2ba32baac413b4b86265760d6d4bd10561c7bf9a-1440x1440.jpg?w=600&h=600&q=80&fit=crop&auto=format",
+        "count": 2,
+        "bytes": 18771,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/463fd3baa042261b692319538c35c8afb3a93599-2500x2500.png?w=600&h=600&q=80&fit=crop&auto=format",
+        "count": 2,
+        "bytes": 8743,
+        "statuses": [
+          200,
+          200
+        ]
+      }
+    ],
+    "consoleErrors": [],
+    "domContentLoaded": 119,
+    "load": 137,
+    "lcp": 248,
+    "cls": 0,
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|40|1.15|0",
+        "count": 1
+      }
+    ],
+    "bodySamples": [],
+    "typeIssues": [],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "358x27",
+        "label": "Two Point Oh - Luna Tee​​​​‌﻿‍"
+      },
+      {
+        "tag": "a",
+        "size": "49x44",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "37x44",
+        "label": "Merch"
+      },
+      {
+        "tag": "a",
+        "size": "42x44",
+        "label": "Collage"
+      },
+      {
+        "tag": "a",
+        "size": "33x44",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "26x44",
+        "label": "Blog"
+      },
+      {
+        "tag": "a",
+        "size": "35x44",
+        "label": "About"
+      },
+      {
+        "tag": "a",
+        "size": "46x44",
+        "label": "Contact"
+      },
+      {
+        "tag": "a",
+        "size": "126x44",
+        "label": "Adelante Barbell Club​​​​‌﻿‍﻿​"
+      },
+      {
+        "tag": "a",
+        "size": "86x44",
+        "label": "Chateau Seven​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌"
+      }
+    ],
+    "smallTargetCount": 12,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 0,
+    "facades": 0,
+    "imgCount": 21,
+    "unsizedImages": 0
+  },
+  {
+    "path": "/blog",
+    "viewport": "desktop",
+    "status": 200,
+    "wallMs": 210,
+    "requests": 30,
+    "totalBytes": 324818,
+    "bytes": {
+      "document": 0,
+      "font": 277384,
+      "image": 47434,
+      "stylesheet": 0,
+      "script": 0
+    },
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/07b8a128afb7f15f29a1e62e00df7d77e93a1984-1500x1580.webp?w=320&q=80&auto=format",
+        "bytes": 35554,
+        "status": 200,
+        "passThrough": false,
+        "width": 320
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/5b80014f601f43b08b7f61b6babcca1521b89eff-1762x1383.webp?w=320&q=80&auto=format",
+        "bytes": 4345,
+        "status": 200,
+        "passThrough": false,
+        "width": 320
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=260&q=80&auto=format",
+        "bytes": 3902,
+        "status": 200,
+        "passThrough": false,
+        "width": 260
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=200&q=80&auto=format",
+        "bytes": 3633,
+        "status": 200,
+        "passThrough": false,
+        "width": 200
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/blog/",
+        "bytes": 0,
+        "type": "document"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 4,
+    "passThroughBytes": 0,
+    "duplicates": [],
+    "consoleErrors": [],
+    "domContentLoaded": 119,
+    "load": 208,
+    "lcp": 228,
+    "cls": 0,
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|56|1.15|0",
+        "count": 1
+      }
+    ],
+    "bodySamples": [
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 71,
+        "sample": "Notes on heritage brand identity, hand lettering, "
+      },
+      {
+        "tag": "p",
+        "fontPx": 15,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 65,
+        "sample": "It takes half a second to make a first impression "
+      },
+      {
+        "tag": "p",
+        "fontPx": 15,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 65,
+        "sample": "Logo design is the single most important step you "
+      }
+    ],
+    "typeIssues": [],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "63x24",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "45x24",
+        "label": "About"
+      },
+      {
+        "tag": "a",
+        "size": "43x24",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "66x14",
+        "label": "Instagram​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌"
+      },
+      {
+        "tag": "a",
+        "size": "49x13",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "37x13",
+        "label": "Merch"
+      },
+      {
+        "tag": "a",
+        "size": "42x13",
+        "label": "Collage"
+      },
+      {
+        "tag": "a",
+        "size": "33x13",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "26x13",
+        "label": "Blog"
+      },
+      {
+        "tag": "a",
+        "size": "35x13",
+        "label": "About"
+      }
+    ],
+    "smallTargetCount": 18,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 0,
+    "facades": 0,
+    "imgCount": 4,
+    "unsizedImages": 0
+  },
+  {
+    "path": "/blog",
+    "viewport": "mobile",
+    "status": 200,
+    "wallMs": 134,
+    "requests": 30,
+    "totalBytes": 324818,
+    "bytes": {
+      "document": 0,
+      "font": 277384,
+      "image": 47434,
+      "stylesheet": 0,
+      "script": 0
+    },
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/07b8a128afb7f15f29a1e62e00df7d77e93a1984-1500x1580.webp?w=320&q=80&auto=format",
+        "bytes": 35554,
+        "status": 200,
+        "passThrough": false,
+        "width": 320
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/5b80014f601f43b08b7f61b6babcca1521b89eff-1762x1383.webp?w=320&q=80&auto=format",
+        "bytes": 4345,
+        "status": 200,
+        "passThrough": false,
+        "width": 320
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=260&q=80&auto=format",
+        "bytes": 3902,
+        "status": 200,
+        "passThrough": false,
+        "width": 260
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=200&q=80&auto=format",
+        "bytes": 3633,
+        "status": 200,
+        "passThrough": false,
+        "width": 200
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/blog/",
+        "bytes": 0,
+        "type": "document"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 4,
+    "passThroughBytes": 0,
+    "duplicates": [],
+    "consoleErrors": [],
+    "domContentLoaded": 120,
+    "load": 133,
+    "lcp": 228,
+    "cls": 0,
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|40|1.15|0",
+        "count": 1
+      }
+    ],
+    "bodySamples": [
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 46,
+        "sample": "Notes on heritage brand identity, hand lettering, "
+      },
+      {
+        "tag": "p",
+        "fontPx": 15,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 49,
+        "sample": "It takes half a second to make a first impression "
+      },
+      {
+        "tag": "p",
+        "fontPx": 15,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 49,
+        "sample": "Logo design is the single most important step you "
+      }
+    ],
+    "typeIssues": [],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "49x44",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "37x44",
+        "label": "Merch"
+      },
+      {
+        "tag": "a",
+        "size": "42x44",
+        "label": "Collage"
+      },
+      {
+        "tag": "a",
+        "size": "33x44",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "26x44",
+        "label": "Blog"
+      },
+      {
+        "tag": "a",
+        "size": "35x44",
+        "label": "About"
+      },
+      {
+        "tag": "a",
+        "size": "46x44",
+        "label": "Contact"
+      },
+      {
+        "tag": "a",
+        "size": "126x44",
+        "label": "Adelante Barbell Club​​​​‌﻿‍﻿​"
+      },
+      {
+        "tag": "a",
+        "size": "86x44",
+        "label": "Chateau Seven​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌"
+      },
+      {
+        "tag": "a",
+        "size": "154x44",
+        "label": "DumpStat, a D&D Podcast​​​​‌﻿‍"
+      }
+    ],
+    "smallTargetCount": 11,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 0,
+    "facades": 0,
+    "imgCount": 4,
+    "unsizedImages": 0
+  },
+  {
+    "path": "/privacy-policy",
+    "viewport": "desktop",
+    "status": 200,
+    "wallMs": 339,
+    "requests": 27,
+    "totalBytes": 281286,
+    "bytes": {
+      "document": 0,
+      "font": 277384,
+      "image": 3902,
+      "script": 0,
+      "stylesheet": 0
+    },
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=260&q=80&auto=format",
+        "bytes": 3902,
+        "status": 200,
+        "passThrough": false,
+        "width": 260
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/privacy-policy/",
+        "bytes": 0,
+        "type": "document"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 1,
+    "passThroughBytes": 0,
+    "duplicates": [],
+    "consoleErrors": [],
+    "domContentLoaded": 325,
+    "load": 336,
+    "lcp": 464,
+    "cls": 0,
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|56|1.15|0",
+        "count": 1
+      },
+      {
+        "spec": "h2|48|1.2|0",
+        "count": 10
+      },
+      {
+        "spec": "h3|40|1.2|0",
+        "count": 3
+      }
+    ],
+    "bodySamples": [
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 71,
+        "sample": "This site is run by Rumeau Design LLC. This page e"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 71,
+        "sample": "Browsing this site does not require you to give us"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 71,
+        "sample": "We do not run analytics of any kind, we do not loa"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 71,
+        "sample": "We do not ask you for anything, and there is no lo"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 71,
+        "sample": "Our contact buttons open a form hosted by Tally. W"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 71,
+        "sample": "We use that to reply to you and to do the work you"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 71,
+        "sample": "This site loads Meta's tracking pixel on every pag"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 71,
+        "sample": "It loads as soon as the page does, whether or not "
+      }
+    ],
+    "typeIssues": [],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "63x24",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "45x24",
+        "label": "About"
+      },
+      {
+        "tag": "a",
+        "size": "43x24",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "66x14",
+        "label": "Instagram​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌"
+      },
+      {
+        "tag": "a",
+        "size": "49x13",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "37x13",
+        "label": "Merch"
+      },
+      {
+        "tag": "a",
+        "size": "42x13",
+        "label": "Collage"
+      },
+      {
+        "tag": "a",
+        "size": "33x13",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "26x13",
+        "label": "Blog"
+      },
+      {
+        "tag": "a",
+        "size": "35x13",
+        "label": "About"
+      }
+    ],
+    "smallTargetCount": 18,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 0,
+    "facades": 0,
+    "imgCount": 2,
+    "unsizedImages": 0
+  },
+  {
+    "path": "/privacy-policy",
+    "viewport": "mobile",
+    "status": 200,
+    "wallMs": 160,
+    "requests": 27,
+    "totalBytes": 281286,
+    "bytes": {
+      "document": 0,
+      "image": 3902,
+      "font": 277384,
+      "script": 0,
+      "stylesheet": 0
+    },
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=260&q=80&auto=format",
+        "bytes": 3902,
+        "status": 200,
+        "passThrough": false,
+        "width": 260
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/privacy-policy/",
+        "bytes": 0,
+        "type": "document"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 1,
+    "passThroughBytes": 0,
+    "duplicates": [],
+    "consoleErrors": [],
+    "domContentLoaded": 144,
+    "load": 159,
+    "lcp": 312,
+    "cls": 0,
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|40|1.15|0",
+        "count": 1
+      },
+      {
+        "spec": "h2|32|1.2|0",
+        "count": 10
+      },
+      {
+        "spec": "h3|28|1.2|0",
+        "count": 3
+      }
+    ],
+    "bodySamples": [
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 46,
+        "sample": "This site is run by Rumeau Design LLC. This page e"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 46,
+        "sample": "Browsing this site does not require you to give us"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 46,
+        "sample": "We do not run analytics of any kind, we do not loa"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 46,
+        "sample": "We do not ask you for anything, and there is no lo"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 46,
+        "sample": "Our contact buttons open a form hosted by Tally. W"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 46,
+        "sample": "We use that to reply to you and to do the work you"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 46,
+        "sample": "This site loads Meta's tracking pixel on every pag"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 46,
+        "sample": "It loads as soon as the page does, whether or not "
+      }
+    ],
+    "typeIssues": [
+      "li 43ch (want 45-75) — \"and a cookie it sets in your browser, _fbp, which …\"",
+      "li 43ch (want 45-75) — \"Use a content blocker, or a browser that blocks tr…\"",
+      "li 43ch (want 45-75) — \"Turn off \"Activity off Meta technologies\" in your …\"",
+      "li 43ch (want 45-75) — \"Cloudflare hosts the site, and sees your IP addres…\"",
+      "li 43ch (want 45-75) — \"Sanity stores the site's content and serves every …\"",
+      "li 43ch (want 45-75) — \"Google supplies the preview thumbnail on a few pag…\"",
+      "li 43ch (want 45-75) — \"YouTube and Vimeo play the videos, and see nothing…\"",
+      "li 43ch (want 45-75) — \"Answering you. When you send us an enquiry, we use…\"",
+      "li 43ch (want 45-75) — \"Keeping the site up. Server logs exist so the site…\"",
+      "li 43ch (want 45-75) — \"The Meta pixel. We use this for our legitimate int…\""
+    ],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "49x44",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "37x44",
+        "label": "Merch"
+      },
+      {
+        "tag": "a",
+        "size": "42x44",
+        "label": "Collage"
+      },
+      {
+        "tag": "a",
+        "size": "33x44",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "26x44",
+        "label": "Blog"
+      },
+      {
+        "tag": "a",
+        "size": "35x44",
+        "label": "About"
+      },
+      {
+        "tag": "a",
+        "size": "46x44",
+        "label": "Contact"
+      },
+      {
+        "tag": "a",
+        "size": "126x44",
+        "label": "Adelante Barbell Club​​​​‌﻿‍﻿​"
+      },
+      {
+        "tag": "a",
+        "size": "86x44",
+        "label": "Chateau Seven​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌"
+      },
+      {
+        "tag": "a",
+        "size": "154x44",
+        "label": "DumpStat, a D&D Podcast​​​​‌﻿‍"
+      }
+    ],
+    "smallTargetCount": 11,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 0,
+    "facades": 0,
+    "imgCount": 2,
+    "unsizedImages": 0
+  },
+  {
+    "path": "/style-guide",
+    "viewport": "desktop",
+    "status": 200,
+    "wallMs": 490,
+    "requests": 40,
+    "totalBytes": 7610873,
+    "bytes": {
+      "document": 0,
+      "image": 1715457,
+      "media": 5618032,
+      "font": 277384,
+      "stylesheet": 0,
+      "script": 0
+    },
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7699f292fa859c7d126fd3aafe76eaf7eb0ac579-400x400.gif",
+        "bytes": 887487,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/84932c87f8d266a2d3c30330f2797e46e86308c2-1080x1080.gif",
+        "bytes": 183705,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/b3834b3ffbcf2783a337743475cd2041ff0aceb9-1080x1080.webp?w=800&sharp=15&q=92&auto=format",
+        "bytes": 177333,
+        "status": 200,
+        "passThrough": false,
+        "width": 800
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/b3834b3ffbcf2783a337743475cd2041ff0aceb9-1080x1080.webp?w=800&sharp=15&q=92&auto=format",
+        "bytes": 177333,
+        "status": 200,
+        "passThrough": false,
+        "width": 800
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/b3834b3ffbcf2783a337743475cd2041ff0aceb9-1080x1080.webp?w=480&q=80&auto=format",
+        "bytes": 72749,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/b3834b3ffbcf2783a337743475cd2041ff0aceb9-1080x1080.webp?w=480&q=80&auto=format",
+        "bytes": 72749,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://i.ytimg.com/vi/plYFXjoViKI/sddefault.jpg",
+        "bytes": 60891,
+        "status": 200,
+        "passThrough": false,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/b3834b3ffbcf2783a337743475cd2041ff0aceb9-1080x1080.webp?w=320&sharp=15&q=92&auto=format",
+        "bytes": 40833,
+        "status": 200,
+        "passThrough": false,
+        "width": 320
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/b3834b3ffbcf2783a337743475cd2041ff0aceb9-1080x1080.webp?w=320&q=80&auto=format",
+        "bytes": 38475,
+        "status": 200,
+        "passThrough": false,
+        "width": 320
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=260&q=80&auto=format",
+        "bytes": 3902,
+        "status": 200,
+        "passThrough": false,
+        "width": 260
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/style-guide/",
+        "bytes": 0,
+        "type": "document"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 10,
+    "passThroughBytes": 1071192,
+    "duplicates": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/b3834b3ffbcf2783a337743475cd2041ff0aceb9-1080x1080.webp?w=800&sharp=15&q=92&auto=format",
+        "count": 2,
+        "bytes": 177333,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/b3834b3ffbcf2783a337743475cd2041ff0aceb9-1080x1080.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 72749,
+        "statuses": [
+          200,
+          200
+        ]
+      }
+    ],
+    "consoleErrors": [],
+    "domContentLoaded": 473,
+    "load": 488,
+    "lcp": 368,
+    "cls": 0.0009,
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|56|1.15|0",
+        "count": 1
+      },
+      {
+        "spec": "h2|48|1.2|0",
+        "count": 5
+      },
+      {
+        "spec": "h2|40|1.2|0",
+        "count": 6
+      }
+    ],
+    "bodySamples": [
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 71,
+        "sample": "Pulled from what's actually applied on rumeaudesig"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 71,
+        "sample": "Body copy sets in Gothic A1 at a comfortable readi"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 71,
+        "sample": "Every block available in Studio, rendered with fix"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 68,
+        "sample": "The video replaces the image when a URL is set, th"
+      }
+    ],
+    "typeIssues": [],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "63x24",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "45x24",
+        "label": "About"
+      },
+      {
+        "tag": "a",
+        "size": "43x24",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "141x16",
+        "label": "A standard text link"
+      },
+      {
+        "tag": "button",
+        "size": "73x32",
+        "label": "Pause"
+      },
+      {
+        "tag": "a",
+        "size": "66x14",
+        "label": "Instagram​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌"
+      },
+      {
+        "tag": "a",
+        "size": "49x13",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "37x13",
+        "label": "Merch"
+      },
+      {
+        "tag": "a",
+        "size": "42x13",
+        "label": "Collage"
+      },
+      {
+        "tag": "a",
+        "size": "33x13",
+        "label": "Video"
+      }
+    ],
+    "smallTargetCount": 20,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 2,
+    "facades": 4,
+    "imgCount": 9,
+    "unsizedImages": 0
+  },
+  {
+    "path": "/style-guide",
+    "viewport": "mobile",
+    "status": 200,
+    "wallMs": 426,
+    "requests": 37,
+    "totalBytes": 5462965,
+    "bytes": {
+      "document": 0,
+      "font": 277384,
+      "image": 1963289,
+      "media": 3222292,
+      "script": 0,
+      "stylesheet": 0
+    },
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/7699f292fa859c7d126fd3aafe76eaf7eb0ac579-400x400.gif",
+        "bytes": 887487,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/b3834b3ffbcf2783a337743475cd2041ff0aceb9-1080x1080.webp?w=1080&sharp=15&q=92&auto=format",
+        "bytes": 245647,
+        "status": 200,
+        "passThrough": false,
+        "width": 1080
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/b3834b3ffbcf2783a337743475cd2041ff0aceb9-1080x1080.webp?w=1080&sharp=15&q=92&auto=format",
+        "bytes": 245647,
+        "status": 200,
+        "passThrough": false,
+        "width": 1080
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/84932c87f8d266a2d3c30330f2797e46e86308c2-1080x1080.gif",
+        "bytes": 183705,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/b3834b3ffbcf2783a337743475cd2041ff0aceb9-1080x1080.webp?w=1000&q=80&auto=format",
+        "bytes": 168005,
+        "status": 200,
+        "passThrough": false,
+        "width": 1000
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/b3834b3ffbcf2783a337743475cd2041ff0aceb9-1080x1080.webp?w=1000&q=80&auto=format",
+        "bytes": 168005,
+        "status": 200,
+        "passThrough": false,
+        "width": 1000
+      },
+      {
+        "url": "https://i.ytimg.com/vi/plYFXjoViKI/sddefault.jpg",
+        "bytes": 60891,
+        "status": 200,
+        "passThrough": false,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=260&q=80&auto=format",
+        "bytes": 3902,
+        "status": 200,
+        "passThrough": false,
+        "width": 260
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/style-guide/",
+        "bytes": 0,
+        "type": "document"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 8,
+    "passThroughBytes": 1071192,
+    "duplicates": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/b3834b3ffbcf2783a337743475cd2041ff0aceb9-1080x1080.webp?w=1080&sharp=15&q=92&auto=format",
+        "count": 2,
+        "bytes": 245647,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/b3834b3ffbcf2783a337743475cd2041ff0aceb9-1080x1080.webp?w=1000&q=80&auto=format",
+        "count": 2,
+        "bytes": 168005,
+        "statuses": [
+          200,
+          200
+        ]
+      }
+    ],
+    "consoleErrors": [],
+    "domContentLoaded": 294,
+    "load": 425,
+    "lcp": 424,
+    "cls": 0,
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|40|1.15|0",
+        "count": 1
+      },
+      {
+        "spec": "h2|32|1.2|0",
+        "count": 5
+      },
+      {
+        "spec": "h2|40|1.2|0",
+        "count": 6
+      }
+    ],
+    "bodySamples": [
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 46,
+        "sample": "Pulled from what's actually applied on rumeaudesig"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 46,
+        "sample": "Body copy sets in Gothic A1 at a comfortable readi"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 46,
+        "sample": "Every block available in Studio, rendered with fix"
+      },
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.5,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 46,
+        "sample": "The video replaces the image when a URL is set, th"
+      }
+    ],
+    "typeIssues": [],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "141x16",
+        "label": "A standard text link"
+      },
+      {
+        "tag": "button",
+        "size": "73x32",
+        "label": "Pause"
+      },
+      {
+        "tag": "a",
+        "size": "49x44",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "37x44",
+        "label": "Merch"
+      },
+      {
+        "tag": "a",
+        "size": "42x44",
+        "label": "Collage"
+      },
+      {
+        "tag": "a",
+        "size": "33x44",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "26x44",
+        "label": "Blog"
+      },
+      {
+        "tag": "a",
+        "size": "35x44",
+        "label": "About"
+      },
+      {
+        "tag": "a",
+        "size": "46x44",
+        "label": "Contact"
+      },
+      {
+        "tag": "a",
+        "size": "126x44",
+        "label": "Adelante Barbell Club​​​​‌﻿‍﻿​"
+      }
+    ],
+    "smallTargetCount": 13,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 2,
+    "facades": 4,
+    "imgCount": 9,
+    "unsizedImages": 0
+  },
+  {
+    "path": "/work/chateau-seven",
+    "viewport": "desktop",
+    "status": 200,
+    "wallMs": 635,
+    "requests": 45,
+    "totalBytes": 2709322,
+    "bytes": {
+      "document": 0,
+      "image": 2431938,
+      "font": 277384,
+      "stylesheet": 0,
+      "script": 0
+    },
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/2e17a1379a86d5bf90144ae6e28572e42c1b3979-1280x758.gif",
+        "bytes": 586614,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/20d4bf54106105981b19b4d40d21bd1144d77cff-2068x1920.webp",
+        "bytes": 364224,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/027e645b1eced579df6d06d9062e28983e000020-800x481.gif",
+        "bytes": 342888,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/f008390788591ed73449fb38b701bebc797cecd0-1179x1461.jpg",
+        "bytes": 223934,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/ca9c936a52fbd3746adb564e2e65e39be9146b34-1179x1461.jpg",
+        "bytes": 201980,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/8f95e1b90ea1110e5ccfc547b47e72683dec2863-1179x1461.jpg?w=1179&sharp=15&q=92&auto=format",
+        "bytes": 160270,
+        "status": 200,
+        "passThrough": false,
+        "width": 1179
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/8f95e1b90ea1110e5ccfc547b47e72683dec2863-1179x1461.jpg?w=1179&sharp=15&q=92&auto=format",
+        "bytes": 160270,
+        "status": 200,
+        "passThrough": false,
+        "width": 1179
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/dbac17b45017154e686fc03caadfba1a92f0afe3-3526x2644.webp?w=1600&q=80&auto=format",
+        "bytes": 130185,
+        "status": 200,
+        "passThrough": false,
+        "width": 1600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/6d7320dfe209b94c00cc10b04e9bd20b8f234672-1080x1252.webp",
+        "bytes": 77110,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/96cf18e91e020373d297bb2c4fa22bf76fe22b70-2000x1372.webp?w=1600&q=80&auto=format",
+        "bytes": 47815,
+        "status": 200,
+        "passThrough": false,
+        "width": 1600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/e6b1733d27e60874f886cf6233cf35f985b6bfc5-1920x1440.webp?w=480&q=80&auto=format",
+        "bytes": 36697,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/e6b1733d27e60874f886cf6233cf35f985b6bfc5-1920x1440.webp?w=480&q=80&auto=format",
+        "bytes": 36697,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/e6b1733d27e60874f886cf6233cf35f985b6bfc5-1920x1440.webp?w=320&q=80&auto=format",
+        "bytes": 19693,
+        "status": 200,
+        "passThrough": false,
+        "width": 320
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/8f95e1b90ea1110e5ccfc547b47e72683dec2863-1179x1461.jpg?w=320&sharp=15&q=92&auto=format",
+        "bytes": 11507,
+        "status": 200,
+        "passThrough": false,
+        "width": 320
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/96cf18e91e020373d297bb2c4fa22bf76fe22b70-2000x1372.webp?w=320&q=80&auto=format",
+        "bytes": 10008,
+        "status": 200,
+        "passThrough": false,
+        "width": 320
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/614092cf7707bf31482dc41079b87ed84033a699-1076x369.webp?w=480&q=80&auto=format",
+        "bytes": 6607,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/614092cf7707bf31482dc41079b87ed84033a699-1076x369.webp?w=480&q=80&auto=format",
+        "bytes": 6607,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/614092cf7707bf31482dc41079b87ed84033a699-1076x369.webp?w=320&q=80&auto=format",
+        "bytes": 4930,
+        "status": 200,
+        "passThrough": false,
+        "width": 320
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=260&q=80&auto=format",
+        "bytes": 3902,
+        "status": 200,
+        "passThrough": false,
+        "width": 260
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/work/chateau-seven/",
+        "bytes": 0,
+        "type": "document"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 19,
+    "passThroughBytes": 1796750,
+    "duplicates": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/8f95e1b90ea1110e5ccfc547b47e72683dec2863-1179x1461.jpg?w=1179&sharp=15&q=92&auto=format",
+        "count": 2,
+        "bytes": 160270,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/e6b1733d27e60874f886cf6233cf35f985b6bfc5-1920x1440.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 36697,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/614092cf7707bf31482dc41079b87ed84033a699-1076x369.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 6607,
+        "statuses": [
+          200,
+          200
+        ]
+      }
+    ],
+    "consoleErrors": [],
+    "domContentLoaded": 344,
+    "load": 634,
+    "lcp": 400,
+    "cls": 0.0012,
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|56|1.05|-1.12",
+        "count": 1
+      }
+    ],
+    "bodySamples": [
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.55,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 69,
+        "sample": "Chateau Seven and I created a brand overhaul for a"
+      },
+      {
+        "tag": "p",
+        "fontPx": 14,
+        "lineHeight": 1.35,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 37,
+        "sample": "Sed auctor augue id tellus lacinia, nec ultricies "
+      }
+    ],
+    "typeIssues": [
+      "p 37ch (want 45-75) — \"Sed auctor augue id tellus lacinia, nec ultricies …\"",
+      "p line-height 1.35 at 14px (want 1.4-1.7) — \"Sed auctor augue id tellus lacinia, nec ultricies …\""
+    ],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "63x24",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "45x24",
+        "label": "About"
+      },
+      {
+        "tag": "a",
+        "size": "43x24",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "61x13",
+        "label": "Will Cherry​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​"
+      },
+      {
+        "tag": "a",
+        "size": "66x14",
+        "label": "Instagram​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌"
+      },
+      {
+        "tag": "a",
+        "size": "49x13",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "37x13",
+        "label": "Merch"
+      },
+      {
+        "tag": "a",
+        "size": "42x13",
+        "label": "Collage"
+      },
+      {
+        "tag": "a",
+        "size": "33x13",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "26x13",
+        "label": "Blog"
+      }
+    ],
+    "smallTargetCount": 19,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 2,
+    "facades": 0,
+    "imgCount": 12,
+    "unsizedImages": 0
+  },
+  {
+    "path": "/work/chateau-seven",
+    "viewport": "mobile",
+    "status": 200,
+    "wallMs": 301,
+    "requests": 43,
+    "totalBytes": 2677372,
+    "bytes": {
+      "document": 0,
+      "font": 277384,
+      "image": 2399988,
+      "script": 0,
+      "stylesheet": 0
+    },
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/2e17a1379a86d5bf90144ae6e28572e42c1b3979-1280x758.gif",
+        "bytes": 586614,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/20d4bf54106105981b19b4d40d21bd1144d77cff-2068x1920.webp",
+        "bytes": 364224,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/027e645b1eced579df6d06d9062e28983e000020-800x481.gif",
+        "bytes": 342888,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/f008390788591ed73449fb38b701bebc797cecd0-1179x1461.jpg",
+        "bytes": 223934,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/ca9c936a52fbd3746adb564e2e65e39be9146b34-1179x1461.jpg",
+        "bytes": 201980,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/8f95e1b90ea1110e5ccfc547b47e72683dec2863-1179x1461.jpg?w=1179&sharp=15&q=92&auto=format",
+        "bytes": 160270,
+        "status": 200,
+        "passThrough": false,
+        "width": 1179
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/8f95e1b90ea1110e5ccfc547b47e72683dec2863-1179x1461.jpg?w=1179&sharp=15&q=92&auto=format",
+        "bytes": 160270,
+        "status": 200,
+        "passThrough": false,
+        "width": 1179
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/dbac17b45017154e686fc03caadfba1a92f0afe3-3526x2644.webp?w=1600&q=80&auto=format",
+        "bytes": 130185,
+        "status": 200,
+        "passThrough": false,
+        "width": 1600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/6d7320dfe209b94c00cc10b04e9bd20b8f234672-1080x1252.webp",
+        "bytes": 77110,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/96cf18e91e020373d297bb2c4fa22bf76fe22b70-2000x1372.webp?w=1600&q=80&auto=format",
+        "bytes": 47815,
+        "status": 200,
+        "passThrough": false,
+        "width": 1600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/e6b1733d27e60874f886cf6233cf35f985b6bfc5-1920x1440.webp?w=480&q=80&auto=format",
+        "bytes": 36697,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/e6b1733d27e60874f886cf6233cf35f985b6bfc5-1920x1440.webp?w=480&q=80&auto=format",
+        "bytes": 36697,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/96cf18e91e020373d297bb2c4fa22bf76fe22b70-2000x1372.webp?w=340&q=80&auto=format",
+        "bytes": 10555,
+        "status": 200,
+        "passThrough": false,
+        "width": 340
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/614092cf7707bf31482dc41079b87ed84033a699-1076x369.webp?w=480&q=80&auto=format",
+        "bytes": 6607,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/614092cf7707bf31482dc41079b87ed84033a699-1076x369.webp?w=480&q=80&auto=format",
+        "bytes": 6607,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=260&q=80&auto=format",
+        "bytes": 3902,
+        "status": 200,
+        "passThrough": false,
+        "width": 260
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=200&q=80&auto=format",
+        "bytes": 3633,
+        "status": 200,
+        "passThrough": false,
+        "width": 200
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/work/chateau-seven/",
+        "bytes": 0,
+        "type": "document"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 17,
+    "passThroughBytes": 1796750,
+    "duplicates": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/8f95e1b90ea1110e5ccfc547b47e72683dec2863-1179x1461.jpg?w=1179&sharp=15&q=92&auto=format",
+        "count": 2,
+        "bytes": 160270,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/e6b1733d27e60874f886cf6233cf35f985b6bfc5-1920x1440.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 36697,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/614092cf7707bf31482dc41079b87ed84033a699-1076x369.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 6607,
+        "statuses": [
+          200,
+          200
+        ]
+      }
+    ],
+    "consoleErrors": [],
+    "domContentLoaded": 129,
+    "load": 300,
+    "lcp": 216,
+    "cls": 0,
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|32|1.15|-0.64",
+        "count": 1
+      }
+    ],
+    "bodySamples": [
+      {
+        "tag": "p",
+        "fontPx": 16,
+        "lineHeight": 1.55,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 46,
+        "sample": "Chateau Seven and I created a brand overhaul for a"
+      },
+      {
+        "tag": "p",
+        "fontPx": 12,
+        "lineHeight": 1.35,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 19,
+        "sample": "Sed auctor augue id tellus lacinia, nec ultricies "
+      }
+    ],
+    "typeIssues": [
+      "p 19ch (want 45-75) — \"Sed auctor augue id tellus lacinia, nec ultricies …\"",
+      "p line-height 1.35 at 12px (want 1.4-1.7) — \"Sed auctor augue id tellus lacinia, nec ultricies …\"",
+      "p 12px body copy — \"Sed auctor augue id tellus lacinia, nec ultricies …\""
+    ],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "61x13",
+        "label": "Will Cherry​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​"
+      },
+      {
+        "tag": "a",
+        "size": "49x44",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "37x44",
+        "label": "Merch"
+      },
+      {
+        "tag": "a",
+        "size": "42x44",
+        "label": "Collage"
+      },
+      {
+        "tag": "a",
+        "size": "33x44",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "26x44",
+        "label": "Blog"
+      },
+      {
+        "tag": "a",
+        "size": "35x44",
+        "label": "About"
+      },
+      {
+        "tag": "a",
+        "size": "46x44",
+        "label": "Contact"
+      },
+      {
+        "tag": "a",
+        "size": "126x44",
+        "label": "Adelante Barbell Club​​​​‌﻿‍﻿​"
+      },
+      {
+        "tag": "a",
+        "size": "86x44",
+        "label": "Chateau Seven​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌"
+      }
+    ],
+    "smallTargetCount": 12,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 2,
+    "facades": 0,
+    "imgCount": 12,
+    "unsizedImages": 0
+  },
+  {
+    "path": "/blog/how-i-overworked-a-flyer",
+    "viewport": "desktop",
+    "status": 200,
+    "wallMs": 419,
+    "requests": 38,
+    "totalBytes": 604057,
+    "bytes": {
+      "document": 0,
+      "font": 277384,
+      "image": 326673,
+      "script": 0,
+      "stylesheet": 0
+    },
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/96cf18e91e020373d297bb2c4fa22bf76fe22b70-2000x1372.webp",
+        "bytes": 90898,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/6d7320dfe209b94c00cc10b04e9bd20b8f234672-1080x1252.webp",
+        "bytes": 77110,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/e6b1733d27e60874f886cf6233cf35f985b6bfc5-1920x1440.webp?w=480&q=80&auto=format",
+        "bytes": 36697,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/e6b1733d27e60874f886cf6233cf35f985b6bfc5-1920x1440.webp?w=480&q=80&auto=format",
+        "bytes": 36697,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/07b8a128afb7f15f29a1e62e00df7d77e93a1984-1500x1580.webp?w=320&q=80&auto=format",
+        "bytes": 35554,
+        "status": 200,
+        "passThrough": false,
+        "width": 320
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/e6b1733d27e60874f886cf6233cf35f985b6bfc5-1920x1440.webp?w=320&q=80&auto=format",
+        "bytes": 19693,
+        "status": 200,
+        "passThrough": false,
+        "width": 320
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/614092cf7707bf31482dc41079b87ed84033a699-1076x369.webp?w=480&q=80&auto=format",
+        "bytes": 6607,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/614092cf7707bf31482dc41079b87ed84033a699-1076x369.webp?w=480&q=80&auto=format",
+        "bytes": 6607,
+        "status": 200,
+        "passThrough": false,
+        "width": 480
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/614092cf7707bf31482dc41079b87ed84033a699-1076x369.webp?w=320&q=80&auto=format",
+        "bytes": 4930,
+        "status": 200,
+        "passThrough": false,
+        "width": 320
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/5b80014f601f43b08b7f61b6babcca1521b89eff-1762x1383.webp?w=320&q=80&auto=format",
+        "bytes": 4345,
+        "status": 200,
+        "passThrough": false,
+        "width": 320
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=260&q=80&auto=format",
+        "bytes": 3902,
+        "status": 200,
+        "passThrough": false,
+        "width": 260
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=200&q=80&auto=format",
+        "bytes": 3633,
+        "status": 200,
+        "passThrough": false,
+        "width": 200
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/blog/how-i-overworked-a-flyer/",
+        "bytes": 0,
+        "type": "document"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 12,
+    "passThroughBytes": 168008,
+    "duplicates": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/e6b1733d27e60874f886cf6233cf35f985b6bfc5-1920x1440.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 36697,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/614092cf7707bf31482dc41079b87ed84033a699-1076x369.webp?w=480&q=80&auto=format",
+        "count": 2,
+        "bytes": 6607,
+        "statuses": [
+          200,
+          200
+        ]
+      }
+    ],
+    "consoleErrors": [],
+    "domContentLoaded": 304,
+    "load": 415,
+    "lcp": 428,
+    "cls": 0,
+    "scrollWidth": 1440,
+    "clientWidth": 1440,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|56|1.15|0",
+        "count": 1
+      },
+      {
+        "spec": "h2|48|1.2|0",
+        "count": 2
+      }
+    ],
+    "bodySamples": [
+      {
+        "tag": "p",
+        "fontPx": 19,
+        "lineHeight": 1.65,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 72,
+        "sample": "I overworked myself. This time, it was in no part "
+      },
+      {
+        "tag": "p",
+        "fontPx": 17,
+        "lineHeight": 1.75,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 66,
+        "sample": "So, not to humblebrag, but aw shucks! I just cared"
+      },
+      {
+        "tag": "p",
+        "fontPx": 17,
+        "lineHeight": 1.75,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 66,
+        "sample": "Band flyers are a wonderful expression of artistry"
+      },
+      {
+        "tag": "p",
+        "fontPx": 17,
+        "lineHeight": 1.75,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 66,
+        "sample": "*Note: Helvetica and Grotesk type has a long histo"
+      },
+      {
+        "tag": "p",
+        "fontPx": 17,
+        "lineHeight": 1.75,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 66,
+        "sample": "You know this painting, Christina's World. It's by"
+      }
+    ],
+    "typeIssues": [
+      "p line-height 1.75 at 17px (want 1.4-1.7) — \"So, not to humblebrag, but aw shucks! I just cared…\"",
+      "p line-height 1.75 at 17px (want 1.4-1.7) — \"Band flyers are a wonderful expression of artistry…\"",
+      "p line-height 1.75 at 17px (want 1.4-1.7) — \"*Note: Helvetica and Grotesk type has a long histo…\"",
+      "p line-height 1.75 at 17px (want 1.4-1.7) — \"You know this painting, Christina's World. It's by…\""
+    ],
+    "smallTargets": [
+      {
+        "tag": "a",
+        "size": "63x24",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "45x24",
+        "label": "About"
+      },
+      {
+        "tag": "a",
+        "size": "43x24",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "82x24",
+        "label": "← All posts"
+      },
+      {
+        "tag": "a",
+        "size": "66x14",
+        "label": "Instagram​​​​‌﻿‍﻿​‍​‍‌‍﻿﻿‌﻿​‍‌"
+      },
+      {
+        "tag": "a",
+        "size": "49x13",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "37x13",
+        "label": "Merch"
+      },
+      {
+        "tag": "a",
+        "size": "42x13",
+        "label": "Collage"
+      },
+      {
+        "tag": "a",
+        "size": "33x13",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "26x13",
+        "label": "Blog"
+      }
+    ],
+    "smallTargetCount": 19,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 0,
+    "facades": 0,
+    "imgCount": 8,
+    "unsizedImages": 0
+  },
+  {
+    "path": "/blog/how-i-overworked-a-flyer",
+    "viewport": "mobile",
+    "status": 200,
+    "wallMs": 125,
+    "requests": 36,
+    "totalBytes": 581522,
+    "bytes": {
+      "document": 0,
+      "font": 277384,
+      "image": 304138,
+      "stylesheet": 0,
+      "script": 0
+    },
+    "images": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/96cf18e91e020373d297bb2c4fa22bf76fe22b70-2000x1372.webp",
+        "bytes": 90898,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/6d7320dfe209b94c00cc10b04e9bd20b8f234672-1080x1252.webp",
+        "bytes": 77110,
+        "status": 200,
+        "passThrough": true,
+        "width": null
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/e6b1733d27e60874f886cf6233cf35f985b6bfc5-1920x1440.webp?w=600&q=80&auto=format",
+        "bytes": 36743,
+        "status": 200,
+        "passThrough": false,
+        "width": 600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/e6b1733d27e60874f886cf6233cf35f985b6bfc5-1920x1440.webp?w=600&q=80&auto=format",
+        "bytes": 36743,
+        "status": 200,
+        "passThrough": false,
+        "width": 600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/07b8a128afb7f15f29a1e62e00df7d77e93a1984-1500x1580.webp?w=320&q=80&auto=format",
+        "bytes": 35554,
+        "status": 200,
+        "passThrough": false,
+        "width": 320
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/614092cf7707bf31482dc41079b87ed84033a699-1076x369.webp?w=600&q=80&auto=format",
+        "bytes": 7605,
+        "status": 200,
+        "passThrough": false,
+        "width": 600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/614092cf7707bf31482dc41079b87ed84033a699-1076x369.webp?w=600&q=80&auto=format",
+        "bytes": 7605,
+        "status": 200,
+        "passThrough": false,
+        "width": 600
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/5b80014f601f43b08b7f61b6babcca1521b89eff-1762x1383.webp?w=320&q=80&auto=format",
+        "bytes": 4345,
+        "status": 200,
+        "passThrough": false,
+        "width": 320
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=260&q=80&auto=format",
+        "bytes": 3902,
+        "status": 200,
+        "passThrough": false,
+        "width": 260
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/d35804124eae698ecd71107d912c5f078a45e996-3872x1909.webp?w=200&q=80&auto=format",
+        "bytes": 3633,
+        "status": 200,
+        "passThrough": false,
+        "width": 200
+      }
+    ],
+    "scripts": [
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/blog/how-i-overworked-a-flyer/",
+        "bytes": 0,
+        "type": "document"
+      },
+      {
+        "url": "https://preview.rumeau-design-co.pages.dev/_astro/page.JpI38oi2.js",
+        "bytes": 0,
+        "type": "script"
+      }
+    ],
+    "iframeCount": 0,
+    "imageRequests": 10,
+    "passThroughBytes": 168008,
+    "duplicates": [
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/e6b1733d27e60874f886cf6233cf35f985b6bfc5-1920x1440.webp?w=600&q=80&auto=format",
+        "count": 2,
+        "bytes": 36743,
+        "statuses": [
+          200,
+          200
+        ]
+      },
+      {
+        "url": "https://cdn.sanity.io/images/8337vjtf/production/614092cf7707bf31482dc41079b87ed84033a699-1076x369.webp?w=600&q=80&auto=format",
+        "count": 2,
+        "bytes": 7605,
+        "statuses": [
+          200,
+          200
+        ]
+      }
+    ],
+    "consoleErrors": [],
+    "domContentLoaded": 117,
+    "load": 124,
+    "lcp": 248,
+    "cls": 0,
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "overflows": [],
+    "headings": [
+      {
+        "spec": "h1|40|1.15|0",
+        "count": 1
+      },
+      {
+        "spec": "h2|32|1.2|0",
+        "count": 2
+      }
+    ],
+    "bodySamples": [
+      {
+        "tag": "p",
+        "fontPx": 19,
+        "lineHeight": 1.65,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 38,
+        "sample": "I overworked myself. This time, it was in no part "
+      },
+      {
+        "tag": "p",
+        "fontPx": 17,
+        "lineHeight": 1.75,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 43,
+        "sample": "So, not to humblebrag, but aw shucks! I just cared"
+      },
+      {
+        "tag": "p",
+        "fontPx": 17,
+        "lineHeight": 1.75,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 43,
+        "sample": "Band flyers are a wonderful expression of artistry"
+      },
+      {
+        "tag": "p",
+        "fontPx": 17,
+        "lineHeight": 1.75,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 43,
+        "sample": "*Note: Helvetica and Grotesk type has a long histo"
+      },
+      {
+        "tag": "p",
+        "fontPx": 17,
+        "lineHeight": 1.75,
+        "letterSpacing": 0,
+        "weight": "400",
+        "family": "Gothic A1",
+        "measureCh": 43,
+        "sample": "You know this painting, Christina's World. It's by"
+      }
+    ],
+    "typeIssues": [
+      "p 38ch (want 45-75) — \"I overworked myself. This time, it was in no part …\"",
+      "p 43ch (want 45-75) — \"So, not to humblebrag, but aw shucks! I just cared…\"",
+      "p line-height 1.75 at 17px (want 1.4-1.7) — \"So, not to humblebrag, but aw shucks! I just cared…\"",
+      "p 43ch (want 45-75) — \"Band flyers are a wonderful expression of artistry…\"",
+      "p line-height 1.75 at 17px (want 1.4-1.7) — \"Band flyers are a wonderful expression of artistry…\"",
+      "p 43ch (want 45-75) — \"*Note: Helvetica and Grotesk type has a long histo…\"",
+      "p line-height 1.75 at 17px (want 1.4-1.7) — \"*Note: Helvetica and Grotesk type has a long histo…\"",
+      "p 43ch (want 45-75) — \"You know this painting, Christina's World. It's by…\"",
+      "p line-height 1.75 at 17px (want 1.4-1.7) — \"You know this painting, Christina's World. It's by…\""
+    ],
+    "smallTargets": [
+      {
+        "tag": "input",
+        "size": "310x37",
+        "label": ""
+      },
+      {
+        "tag": "a",
+        "size": "82x24",
+        "label": "← All posts"
+      },
+      {
+        "tag": "a",
+        "size": "49x44",
+        "label": "Portfolio"
+      },
+      {
+        "tag": "a",
+        "size": "37x44",
+        "label": "Merch"
+      },
+      {
+        "tag": "a",
+        "size": "42x44",
+        "label": "Collage"
+      },
+      {
+        "tag": "a",
+        "size": "33x44",
+        "label": "Video"
+      },
+      {
+        "tag": "a",
+        "size": "26x44",
+        "label": "Blog"
+      },
+      {
+        "tag": "a",
+        "size": "35x44",
+        "label": "About"
+      },
+      {
+        "tag": "a",
+        "size": "46x44",
+        "label": "Contact"
+      },
+      {
+        "tag": "a",
+        "size": "126x44",
+        "label": "Adelante Barbell Club​​​​‌﻿‍﻿​"
+      }
+    ],
+    "smallTargetCount": 13,
+    "invisibleText": [],
+    "buildCommit": "66414cd07f06db65b4d48bbf60d9e8ff6d2ceccc",
+    "iframes": 0,
+    "videos": 0,
+    "facades": 0,
+    "imgCount": 8,
+    "unsizedImages": 0
+  }
+]

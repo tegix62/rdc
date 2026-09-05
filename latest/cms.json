@@ -1,0 +1,3090 @@
+{
+  "fields": [
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "siteTitle",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "tagline",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "logo",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "logo.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "logo.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "favicon",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "portrait",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "portrait.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "portrait.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "socialImage",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "socialImage.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "socialImage.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "metaPixelId",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "contactUrl",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "founderName",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "founderRole",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "email",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "locality",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "areaServed",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "heroVideo",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "heroBackground",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "heroBackground.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "heroBackground.noRecompress",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "featuredWork",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "featuredWorkHeading",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "bioText",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "clientLogos",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "clientLogos[].logo",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "clientLogos[].logo.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "clientLogos[].logo.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "clientLogos[].alt",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "clientLogos[].href",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "proofStats",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "proofStats[].stat",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "proofStats[].rest",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "proofStats[].name",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "proofStats[].org",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "proofStats[].href",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "checklist",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "proofBandBackground",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "proofBandBackground.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "proofBandBackground.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "closerPrefix",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "closerBold",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "closerSuffix",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "finalCtaHeading",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "footerText",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "legalName",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "socialLinks",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "socialLinks[].platform",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "socialLinks[].url",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "siteSettings",
+      "fieldPath": "socialLinks[].primary",
+      "dead": false,
+      "filled": 1,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "heading",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "intro",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "step1Heading",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "step1Copy",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "nameLabel",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "emailLabel",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "companyLabel",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "step2Heading",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "businessLabel",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "businessHelp",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "businessPlaceholder",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "goalsLabel",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "goalsHelp",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "goalsPlaceholder",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "step3Heading",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "step4Heading",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "timeframeLabel",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "timeframeHelp",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "budgetLabel",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "budgetHelp",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "budgetNotSureLabel",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "foundViaLabel",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "foundViaPlaceholder",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "step5Heading",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "step5Copy",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "backLabel",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "nextLabel",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "submitLabel",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "doneHeading",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "doneBody",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "contactForm",
+      "fieldPath": "doneSignature",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "page",
+      "fieldPath": "title",
+      "dead": false,
+      "filled": 10,
+      "total": 10,
+      "invalid": []
+    },
+    {
+      "typeName": "page",
+      "fieldPath": "slug",
+      "dead": false,
+      "filled": 10,
+      "total": 10,
+      "invalid": []
+    },
+    {
+      "typeName": "page",
+      "fieldPath": "seoDescription",
+      "dead": false,
+      "filled": 9,
+      "total": 10,
+      "invalid": []
+    },
+    {
+      "typeName": "page",
+      "fieldPath": "heading",
+      "dead": false,
+      "filled": 7,
+      "total": 10,
+      "invalid": []
+    },
+    {
+      "typeName": "page",
+      "fieldPath": "heroImage",
+      "dead": false,
+      "filled": 2,
+      "total": 10,
+      "invalid": []
+    },
+    {
+      "typeName": "page",
+      "fieldPath": "heroImage.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 10,
+      "invalid": []
+    },
+    {
+      "typeName": "page",
+      "fieldPath": "heroImage.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 10,
+      "invalid": []
+    },
+    {
+      "typeName": "page",
+      "fieldPath": "heroAlt",
+      "dead": false,
+      "filled": 2,
+      "total": 10,
+      "invalid": []
+    },
+    {
+      "typeName": "page",
+      "fieldPath": "body",
+      "dead": false,
+      "filled": 4,
+      "total": 10,
+      "invalid": []
+    },
+    {
+      "typeName": "page",
+      "fieldPath": "body[].alt",
+      "dead": false,
+      "filled": 0,
+      "total": 10,
+      "invalid": []
+    },
+    {
+      "typeName": "page",
+      "fieldPath": "body[].noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 10,
+      "invalid": []
+    },
+    {
+      "typeName": "page",
+      "fieldPath": "sections",
+      "dead": false,
+      "filled": 3,
+      "total": 10,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "title",
+      "dead": false,
+      "filled": 70,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "slug",
+      "dead": false,
+      "filled": 70,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "pageType",
+      "dead": false,
+      "filled": 70,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "category",
+      "dead": false,
+      "filled": 66,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "thumbnail",
+      "dead": false,
+      "filled": 67,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "thumbnail.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "thumbnail.noRecompress",
+      "dead": false,
+      "filled": 4,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "thumbnail.inkMode",
+      "dead": false,
+      "filled": 10,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "archiveMark",
+      "dead": false,
+      "filled": 10,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "archiveMark.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "archiveMark.noRecompress",
+      "dead": false,
+      "filled": 3,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "heroTile",
+      "dead": false,
+      "filled": 68,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "assetType",
+      "dead": false,
+      "filled": 37,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "tileTreatment",
+      "dead": false,
+      "filled": 2,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "parentBrand",
+      "dead": false,
+      "filled": 44,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "mainImage",
+      "dead": false,
+      "filled": 9,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "mainImage.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "mainImage.noRecompress",
+      "dead": false,
+      "filled": 3,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "mainImage.inkMode",
+      "dead": false,
+      "filled": 4,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "accessPassword",
+      "dead": false,
+      "filled": 0,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "heroVideo",
+      "dead": false,
+      "filled": 2,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "headline",
+      "dead": false,
+      "filled": 1,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "subtitle",
+      "dead": false,
+      "filled": 1,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "oneLineSummary",
+      "dead": false,
+      "filled": 11,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "seoDescription",
+      "dead": false,
+      "filled": 0,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "summary",
+      "dead": false,
+      "filled": 5,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "resultStat",
+      "dead": false,
+      "filled": 1,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "client",
+      "dead": false,
+      "filled": 5,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "clientLogo",
+      "dead": false,
+      "filled": 7,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "clientLogo.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "clientLogo.noRecompress",
+      "dead": false,
+      "filled": 2,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "sections",
+      "dead": false,
+      "filled": 5,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "principalType",
+      "dead": false,
+      "filled": 5,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "principalTypeUrl",
+      "dead": false,
+      "filled": 1,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "credits",
+      "dead": false,
+      "filled": 5,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "credits[].name",
+      "dead": false,
+      "filled": 5,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "credits[].role",
+      "dead": false,
+      "filled": 5,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "credits[].url",
+      "dead": false,
+      "filled": 2,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "body",
+      "dead": false,
+      "filled": 4,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "body[].alt",
+      "dead": false,
+      "filled": 0,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "body[].noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "servicesRendered",
+      "dead": false,
+      "filled": 4,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "merchGrid",
+      "dead": false,
+      "filled": 2,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "merchGrid[].alt",
+      "dead": false,
+      "filled": 1,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "merchGrid[].noRecompress",
+      "dead": false,
+      "filled": 1,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "flyerGrid",
+      "dead": false,
+      "filled": 1,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "flyerGrid[].alt",
+      "dead": false,
+      "filled": 0,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "flyerGrid[].noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "processGrid",
+      "dead": false,
+      "filled": 1,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "processGrid[].alt",
+      "dead": false,
+      "filled": 0,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "processGrid[].noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "filmEmbed",
+      "dead": false,
+      "filled": 0,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "caseStudy",
+      "fieldPath": "accentColor",
+      "dead": false,
+      "filled": 2,
+      "total": 70,
+      "invalid": []
+    },
+    {
+      "typeName": "blogPost",
+      "fieldPath": "title",
+      "dead": false,
+      "filled": 3,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "blogPost",
+      "fieldPath": "slug",
+      "dead": false,
+      "filled": 3,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "blogPost",
+      "fieldPath": "author",
+      "dead": false,
+      "filled": 2,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "blogPost",
+      "fieldPath": "publishedAt",
+      "dead": false,
+      "filled": 2,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "blogPost",
+      "fieldPath": "category",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "blogPost",
+      "fieldPath": "thumbnailImage",
+      "dead": false,
+      "filled": 2,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "blogPost",
+      "fieldPath": "thumbnailImage.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "blogPost",
+      "fieldPath": "thumbnailImage.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "blogPost",
+      "fieldPath": "mainImage",
+      "dead": false,
+      "filled": 2,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "blogPost",
+      "fieldPath": "mainImage.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "blogPost",
+      "fieldPath": "mainImage.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "blogPost",
+      "fieldPath": "excerpt",
+      "dead": false,
+      "filled": 2,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "blogPost",
+      "fieldPath": "metaDescription",
+      "dead": false,
+      "filled": 3,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "blogPost",
+      "fieldPath": "audioNarration",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "blogPost",
+      "fieldPath": "body",
+      "dead": false,
+      "filled": 3,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "blogPost",
+      "fieldPath": "body[].alt",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "blogPost",
+      "fieldPath": "body[].noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "tag",
+      "fieldPath": "name",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "tag",
+      "fieldPath": "slug",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "submission",
+      "fieldPath": "name",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "submission",
+      "fieldPath": "email",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "submission",
+      "fieldPath": "company",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "submission",
+      "fieldPath": "businessDescription",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "submission",
+      "fieldPath": "goals",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "submission",
+      "fieldPath": "seriousness",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "submission",
+      "fieldPath": "timeframe",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "submission",
+      "fieldPath": "budgetMin",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "submission",
+      "fieldPath": "budgetMax",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "submission",
+      "fieldPath": "budgetOpenEnded",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "submission",
+      "fieldPath": "budgetNotSure",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "submission",
+      "fieldPath": "foundVia",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "submission",
+      "fieldPath": "phone",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "submission",
+      "fieldPath": "submittedAt",
+      "dead": true,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "submission",
+      "fieldPath": "status",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "formFunnel",
+      "fieldPath": "formName",
+      "dead": true,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "formFunnel",
+      "fieldPath": "since",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "formFunnel",
+      "fieldPath": "step1",
+      "dead": true,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "formFunnel",
+      "fieldPath": "step2",
+      "dead": true,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "formFunnel",
+      "fieldPath": "step3",
+      "dead": true,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "formFunnel",
+      "fieldPath": "step4",
+      "dead": true,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "formFunnel",
+      "fieldPath": "step5",
+      "dead": true,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "fullImageSection",
+      "fieldPath": "image",
+      "dead": false,
+      "filled": 0,
+      "total": 4,
+      "invalid": []
+    },
+    {
+      "typeName": "fullImageSection",
+      "fieldPath": "image.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 4,
+      "invalid": []
+    },
+    {
+      "typeName": "fullImageSection",
+      "fieldPath": "image.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 4,
+      "invalid": []
+    },
+    {
+      "typeName": "fullImageSection",
+      "fieldPath": "plateFit",
+      "dead": false,
+      "filled": 0,
+      "total": 4,
+      "invalid": []
+    },
+    {
+      "typeName": "twoUpSection",
+      "fieldPath": "imageLeft",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "twoUpSection",
+      "fieldPath": "imageLeft.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "twoUpSection",
+      "fieldPath": "imageLeft.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "twoUpSection",
+      "fieldPath": "imageRight",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "twoUpSection",
+      "fieldPath": "imageRight.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "twoUpSection",
+      "fieldPath": "imageRight.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "threeUpSection",
+      "fieldPath": "imageOne",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "threeUpSection",
+      "fieldPath": "imageOne.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "threeUpSection",
+      "fieldPath": "imageOne.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "threeUpSection",
+      "fieldPath": "imageTwo",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "threeUpSection",
+      "fieldPath": "imageTwo.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "threeUpSection",
+      "fieldPath": "imageTwo.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "threeUpSection",
+      "fieldPath": "imageThree",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "threeUpSection",
+      "fieldPath": "imageThree.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "threeUpSection",
+      "fieldPath": "imageThree.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "imageTextSection",
+      "fieldPath": "image",
+      "dead": false,
+      "filled": 0,
+      "total": 4,
+      "invalid": []
+    },
+    {
+      "typeName": "imageTextSection",
+      "fieldPath": "image.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 4,
+      "invalid": []
+    },
+    {
+      "typeName": "imageTextSection",
+      "fieldPath": "image.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 4,
+      "invalid": []
+    },
+    {
+      "typeName": "imageTextSection",
+      "fieldPath": "imagePosition",
+      "dead": false,
+      "filled": 0,
+      "total": 4,
+      "invalid": []
+    },
+    {
+      "typeName": "imageTextSection",
+      "fieldPath": "heading",
+      "dead": false,
+      "filled": 0,
+      "total": 4,
+      "invalid": []
+    },
+    {
+      "typeName": "imageTextSection",
+      "fieldPath": "text",
+      "dead": false,
+      "filled": 0,
+      "total": 4,
+      "invalid": []
+    },
+    {
+      "typeName": "videoSection",
+      "fieldPath": "url",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "videoSection",
+      "fieldPath": "caption",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "videoSection",
+      "fieldPath": "videoPoster",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "videoSection",
+      "fieldPath": "videoPoster.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "videoSection",
+      "fieldPath": "videoPoster.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "videoSection",
+      "fieldPath": "videoPlayback",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "videoSection",
+      "fieldPath": "videoPosterBackground",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "videoSection",
+      "fieldPath": "videoMuted",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "videoSection",
+      "fieldPath": "videoSrc",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "videoSection",
+      "fieldPath": "videoFile",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "videoSection",
+      "fieldPath": "videoWebm",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "statCalloutSection",
+      "fieldPath": "heading",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "statCalloutSection",
+      "fieldPath": "checklist",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "statCalloutSection",
+      "fieldPath": "statValue",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "statCalloutSection",
+      "fieldPath": "statLabel",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "textSection",
+      "fieldPath": "heading",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "textSection",
+      "fieldPath": "body",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "achievementsSection",
+      "fieldPath": "imageLeft",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "achievementsSection",
+      "fieldPath": "imageLeft.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "achievementsSection",
+      "fieldPath": "imageLeft.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "achievementsSection",
+      "fieldPath": "imageRight",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "achievementsSection",
+      "fieldPath": "imageRight.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "achievementsSection",
+      "fieldPath": "imageRight.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "achievementsSection",
+      "fieldPath": "items",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "videoHeroSection",
+      "fieldPath": "url",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "videoHeroSection",
+      "fieldPath": "heading",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "videoHeroSection",
+      "fieldPath": "videoPoster",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "videoHeroSection",
+      "fieldPath": "videoPoster.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "videoHeroSection",
+      "fieldPath": "videoPoster.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "videoHeroSection",
+      "fieldPath": "videoPlayback",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "videoHeroSection",
+      "fieldPath": "videoPosterBackground",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "videoHeroSection",
+      "fieldPath": "videoMuted",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "videoHeroSection",
+      "fieldPath": "videoSrc",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "videoHeroSection",
+      "fieldPath": "videoFile",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "videoHeroSection",
+      "fieldPath": "videoWebm",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "aestheticRangeSection",
+      "fieldPath": "heading",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "aestheticRangeSection",
+      "fieldPath": "intro",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "aestheticRangeSection",
+      "fieldPath": "items",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "aestheticRangeSection",
+      "fieldPath": "items[].label",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "aestheticRangeSection",
+      "fieldPath": "items[].icon",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "aestheticRangeSection",
+      "fieldPath": "items[].icon.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "aestheticRangeSection",
+      "fieldPath": "items[].icon.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "aestheticRangeSection",
+      "fieldPath": "items[].iconAlt",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "aestheticRangeSection",
+      "fieldPath": "items[].href",
+      "dead": false,
+      "filled": 0,
+      "total": 0,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaImage",
+      "fieldPath": "image",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaImage",
+      "fieldPath": "image.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaImage",
+      "fieldPath": "image.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaImage",
+      "fieldPath": "caption",
+      "dead": false,
+      "filled": 0,
+      "total": 2,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaVideo",
+      "fieldPath": "url",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaVideo",
+      "fieldPath": "videoPoster",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaVideo",
+      "fieldPath": "videoPoster.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaVideo",
+      "fieldPath": "videoPoster.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaVideo",
+      "fieldPath": "videoPlayback",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaVideo",
+      "fieldPath": "videoPosterBackground",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaVideo",
+      "fieldPath": "videoMuted",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaVideo",
+      "fieldPath": "videoSrc",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaVideo",
+      "fieldPath": "videoFile",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaVideo",
+      "fieldPath": "videoWebm",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaVideo",
+      "fieldPath": "caption",
+      "dead": false,
+      "filled": 0,
+      "total": 3,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaRowSection",
+      "fieldPath": "items",
+      "dead": false,
+      "filled": 0,
+      "total": 4,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaRowSection",
+      "fieldPath": "heading",
+      "dead": false,
+      "filled": 0,
+      "total": 4,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaTextSection",
+      "fieldPath": "image",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaTextSection",
+      "fieldPath": "image.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaTextSection",
+      "fieldPath": "image.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaTextSection",
+      "fieldPath": "mediaPosition",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaTextSection",
+      "fieldPath": "heading",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaTextSection",
+      "fieldPath": "text",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaTextSection",
+      "fieldPath": "videoUrl",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaTextSection",
+      "fieldPath": "videoPoster",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaTextSection",
+      "fieldPath": "videoPoster.alt",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaTextSection",
+      "fieldPath": "videoPoster.noRecompress",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaTextSection",
+      "fieldPath": "videoPlayback",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaTextSection",
+      "fieldPath": "videoPosterBackground",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaTextSection",
+      "fieldPath": "videoMuted",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaTextSection",
+      "fieldPath": "videoSrc",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaTextSection",
+      "fieldPath": "videoFile",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    },
+    {
+      "typeName": "mediaTextSection",
+      "fieldPath": "videoWebm",
+      "dead": false,
+      "filled": 0,
+      "total": 1,
+      "invalid": []
+    }
+  ],
+  "findings": [
+    {
+      "level": "DEAD",
+      "typeName": "formFunnel",
+      "fieldPath": "formName",
+      "detail": "nothing in src/ reads \"formName\""
+    },
+    {
+      "level": "DEAD",
+      "typeName": "formFunnel",
+      "fieldPath": "step1",
+      "detail": "nothing in src/ reads \"step1\""
+    },
+    {
+      "level": "DEAD",
+      "typeName": "formFunnel",
+      "fieldPath": "step2",
+      "detail": "nothing in src/ reads \"step2\""
+    },
+    {
+      "level": "DEAD",
+      "typeName": "formFunnel",
+      "fieldPath": "step3",
+      "detail": "nothing in src/ reads \"step3\""
+    },
+    {
+      "level": "DEAD",
+      "typeName": "formFunnel",
+      "fieldPath": "step4",
+      "detail": "nothing in src/ reads \"step4\""
+    },
+    {
+      "level": "DEAD",
+      "typeName": "formFunnel",
+      "fieldPath": "step5",
+      "detail": "nothing in src/ reads \"step5\""
+    },
+    {
+      "level": "DEAD",
+      "typeName": "submission",
+      "fieldPath": "submittedAt",
+      "detail": "nothing in src/ reads \"submittedAt\""
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "achievementsSection",
+      "fieldPath": "imageLeft",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "achievementsSection",
+      "fieldPath": "imageLeft.alt",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "achievementsSection",
+      "fieldPath": "imageLeft.noRecompress",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "achievementsSection",
+      "fieldPath": "imageRight",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "achievementsSection",
+      "fieldPath": "imageRight.alt",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "achievementsSection",
+      "fieldPath": "imageRight.noRecompress",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "achievementsSection",
+      "fieldPath": "items",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "blogPost",
+      "fieldPath": "category",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "blogPost",
+      "fieldPath": "thumbnailImage.alt",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "blogPost",
+      "fieldPath": "thumbnailImage.noRecompress",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "blogPost",
+      "fieldPath": "mainImage.alt",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "blogPost",
+      "fieldPath": "mainImage.noRecompress",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "blogPost",
+      "fieldPath": "audioNarration",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "blogPost",
+      "fieldPath": "body[].alt",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "blogPost",
+      "fieldPath": "body[].noRecompress",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "caseStudy",
+      "fieldPath": "thumbnail.alt",
+      "detail": "empty in all 70 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "caseStudy",
+      "fieldPath": "archiveMark.alt",
+      "detail": "empty in all 70 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "caseStudy",
+      "fieldPath": "mainImage.alt",
+      "detail": "empty in all 70 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "caseStudy",
+      "fieldPath": "accessPassword",
+      "detail": "empty in all 70 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "caseStudy",
+      "fieldPath": "seoDescription",
+      "detail": "empty in all 70 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "caseStudy",
+      "fieldPath": "clientLogo.alt",
+      "detail": "empty in all 70 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "caseStudy",
+      "fieldPath": "body[].alt",
+      "detail": "empty in all 70 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "caseStudy",
+      "fieldPath": "body[].noRecompress",
+      "detail": "empty in all 70 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "caseStudy",
+      "fieldPath": "flyerGrid[].alt",
+      "detail": "empty in all 70 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "caseStudy",
+      "fieldPath": "flyerGrid[].noRecompress",
+      "detail": "empty in all 70 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "caseStudy",
+      "fieldPath": "processGrid[].alt",
+      "detail": "empty in all 70 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "caseStudy",
+      "fieldPath": "processGrid[].noRecompress",
+      "detail": "empty in all 70 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "caseStudy",
+      "fieldPath": "filmEmbed",
+      "detail": "empty in all 70 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "fullImageSection",
+      "fieldPath": "image",
+      "detail": "empty in all 4 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "fullImageSection",
+      "fieldPath": "image.alt",
+      "detail": "empty in all 4 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "fullImageSection",
+      "fieldPath": "image.noRecompress",
+      "detail": "empty in all 4 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "fullImageSection",
+      "fieldPath": "plateFit",
+      "detail": "empty in all 4 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "imageTextSection",
+      "fieldPath": "image",
+      "detail": "empty in all 4 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "imageTextSection",
+      "fieldPath": "image.alt",
+      "detail": "empty in all 4 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "imageTextSection",
+      "fieldPath": "image.noRecompress",
+      "detail": "empty in all 4 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "imageTextSection",
+      "fieldPath": "imagePosition",
+      "detail": "empty in all 4 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "imageTextSection",
+      "fieldPath": "heading",
+      "detail": "empty in all 4 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "imageTextSection",
+      "fieldPath": "text",
+      "detail": "empty in all 4 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaImage",
+      "fieldPath": "image",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaImage",
+      "fieldPath": "image.alt",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaImage",
+      "fieldPath": "image.noRecompress",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaImage",
+      "fieldPath": "caption",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaRowSection",
+      "fieldPath": "items",
+      "detail": "empty in all 4 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaRowSection",
+      "fieldPath": "heading",
+      "detail": "empty in all 4 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaTextSection",
+      "fieldPath": "image",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaTextSection",
+      "fieldPath": "image.alt",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaTextSection",
+      "fieldPath": "image.noRecompress",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaTextSection",
+      "fieldPath": "mediaPosition",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaTextSection",
+      "fieldPath": "heading",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaTextSection",
+      "fieldPath": "text",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaTextSection",
+      "fieldPath": "videoUrl",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaTextSection",
+      "fieldPath": "videoPoster",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaTextSection",
+      "fieldPath": "videoPoster.alt",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaTextSection",
+      "fieldPath": "videoPoster.noRecompress",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaTextSection",
+      "fieldPath": "videoPlayback",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaTextSection",
+      "fieldPath": "videoPosterBackground",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaTextSection",
+      "fieldPath": "videoMuted",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaTextSection",
+      "fieldPath": "videoSrc",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaTextSection",
+      "fieldPath": "videoFile",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaTextSection",
+      "fieldPath": "videoWebm",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaVideo",
+      "fieldPath": "url",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaVideo",
+      "fieldPath": "videoPoster",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaVideo",
+      "fieldPath": "videoPoster.alt",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaVideo",
+      "fieldPath": "videoPoster.noRecompress",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaVideo",
+      "fieldPath": "videoPlayback",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaVideo",
+      "fieldPath": "videoPosterBackground",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaVideo",
+      "fieldPath": "videoMuted",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaVideo",
+      "fieldPath": "videoSrc",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaVideo",
+      "fieldPath": "videoFile",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaVideo",
+      "fieldPath": "videoWebm",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "mediaVideo",
+      "fieldPath": "caption",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "page",
+      "fieldPath": "heroImage.alt",
+      "detail": "empty in all 10 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "page",
+      "fieldPath": "heroImage.noRecompress",
+      "detail": "empty in all 10 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "page",
+      "fieldPath": "body[].alt",
+      "detail": "empty in all 10 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "page",
+      "fieldPath": "body[].noRecompress",
+      "detail": "empty in all 10 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "siteSettings",
+      "fieldPath": "logo.alt",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "siteSettings",
+      "fieldPath": "logo.noRecompress",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "siteSettings",
+      "fieldPath": "portrait.alt",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "siteSettings",
+      "fieldPath": "portrait.noRecompress",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "siteSettings",
+      "fieldPath": "socialImage",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "siteSettings",
+      "fieldPath": "socialImage.alt",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "siteSettings",
+      "fieldPath": "socialImage.noRecompress",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "siteSettings",
+      "fieldPath": "founderRole",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "siteSettings",
+      "fieldPath": "email",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "siteSettings",
+      "fieldPath": "heroVideo",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "siteSettings",
+      "fieldPath": "heroBackground.alt",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "siteSettings",
+      "fieldPath": "featuredWorkHeading",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "siteSettings",
+      "fieldPath": "clientLogos[].logo.alt",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "siteSettings",
+      "fieldPath": "clientLogos[].logo.noRecompress",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "siteSettings",
+      "fieldPath": "proofBandBackground.alt",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "siteSettings",
+      "fieldPath": "proofBandBackground.noRecompress",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "siteSettings",
+      "fieldPath": "footerText",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "siteSettings",
+      "fieldPath": "legalName",
+      "detail": "empty in all 1 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "threeUpSection",
+      "fieldPath": "imageOne",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "threeUpSection",
+      "fieldPath": "imageOne.alt",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "threeUpSection",
+      "fieldPath": "imageOne.noRecompress",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "threeUpSection",
+      "fieldPath": "imageTwo",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "threeUpSection",
+      "fieldPath": "imageTwo.alt",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "threeUpSection",
+      "fieldPath": "imageTwo.noRecompress",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "threeUpSection",
+      "fieldPath": "imageThree",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "threeUpSection",
+      "fieldPath": "imageThree.alt",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "threeUpSection",
+      "fieldPath": "imageThree.noRecompress",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "twoUpSection",
+      "fieldPath": "imageLeft",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "twoUpSection",
+      "fieldPath": "imageLeft.alt",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "twoUpSection",
+      "fieldPath": "imageLeft.noRecompress",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "twoUpSection",
+      "fieldPath": "imageRight",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "twoUpSection",
+      "fieldPath": "imageRight.alt",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "twoUpSection",
+      "fieldPath": "imageRight.noRecompress",
+      "detail": "empty in all 3 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "videoSection",
+      "fieldPath": "url",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "videoSection",
+      "fieldPath": "caption",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "videoSection",
+      "fieldPath": "videoPoster",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "videoSection",
+      "fieldPath": "videoPoster.alt",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "videoSection",
+      "fieldPath": "videoPoster.noRecompress",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "videoSection",
+      "fieldPath": "videoPlayback",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "videoSection",
+      "fieldPath": "videoPosterBackground",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "videoSection",
+      "fieldPath": "videoMuted",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "videoSection",
+      "fieldPath": "videoSrc",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "videoSection",
+      "fieldPath": "videoFile",
+      "detail": "empty in all 2 document(s)"
+    },
+    {
+      "level": "UNUSED",
+      "typeName": "videoSection",
+      "fieldPath": "videoWebm",
+      "detail": "empty in all 2 document(s)"
+    }
+  ]
+}

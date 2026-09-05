@@ -3,6 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import Img from '../../components/Img.astro';
 import EmailCapture from '../../components/EmailCapture.astro';
 import ReadingBar from '../../components/ReadingBar.astro';
+import PostCard from '../../components/PostCard.astro';
 import { sanityClient } from '../../lib/sanity';
 import { getBlogPost, getOtherBlogPosts, getRelatedWork, getSiteSettings } from '../../lib/queries';
 import { socialCardUrl, fileUrl, archiveCard } from '../../lib/image';
@@ -114,28 +115,9 @@ const time = readingTime(post.body);
   {morePosts.length > 0 && (
     <section class="more-posts">
       <h2>More posts</h2>
-      <div class="grid grid--prose">
+      <div class="post-list">
         {morePosts.map((p: any) => (
-          <a class="card" href={`/blog/${p.slug.current}`}>
-            {(p.thumbnailImage || p.mainImage) && (
-              <Img
-                image={p.thumbnailImage || p.mainImage}
-                field={p.thumbnailImage ? 'thumbnailImage' : 'mainImage'}
-                alt={p.title}
-                width={600}
-                height={400}
-                sizes="(max-width: 40rem) 100vw, (max-width: 60rem) 50vw, 33vw"
-              />
-            )}
-            <p class="card__title">{p.title}</p>
-            <p class="card__meta">
-              {formatDate(p.publishedAt) && (
-                <time datetime={dateAttr(p.publishedAt)}>{formatDate(p.publishedAt)}</time>
-              )}
-              {formatDate(p.publishedAt) && readingTime(p.body) && ' · '}
-              {readingTime(p.body)}
-            </p>
-          </a>
+          <PostCard post={p} />
         ))}
       </div>
     </section>

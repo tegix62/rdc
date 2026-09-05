@@ -14,9 +14,8 @@
 import Layout from '../../../layouts/Layout.astro';
 import Img from '../../../components/Img.astro';
 import EmailCapture from '../../../components/EmailCapture.astro';
+import PostCard from '../../../components/PostCard.astro';
 import { sanityClient } from '../../../lib/sanity';
-import { dateAttr, formatDate } from '../../../lib/date';
-import { readingTime } from '../../../lib/readingTime';
 import { getRelatedWork } from '../../../lib/queries';
 import { archiveCard } from '../../../lib/image';
 import { BLOG_CATEGORIES, categorySlug } from '../../../lib/blogCategories';
@@ -53,29 +52,9 @@ const relatedWork = await getRelatedWork(categoryName, 4);
   <p class="blog-intro">{meta.description}</p>
 
   {posts.length > 0 ? (
-    <div class="grid grid--prose">
+    <div class="post-list">
       {posts.map((post: any) => (
-        <a class="card" href={`/blog/${post.slug.current}`}>
-          {(post.thumbnailImage || post.mainImage) && (
-            <Img
-              image={post.thumbnailImage || post.mainImage}
-              field={post.thumbnailImage ? 'thumbnailImage' : 'mainImage'}
-              alt={post.title}
-              width={600}
-              height={400}
-              sizes="(max-width: 40rem) 100vw, (max-width: 60rem) 50vw, 33vw"
-            />
-          )}
-          <p class="card__title">{post.title}</p>
-          <p class="card__meta">
-            {formatDate(post.publishedAt) && (
-              <time datetime={dateAttr(post.publishedAt)}>{formatDate(post.publishedAt)}</time>
-            )}
-            {formatDate(post.publishedAt) && readingTime(post.body) && ' · '}
-            {readingTime(post.body)}
-          </p>
-          {post.excerpt && <p class="card__meta">{post.excerpt}</p>}
-        </a>
+        <PostCard post={post} showExcerpt />
       ))}
     </div>
   ) : (

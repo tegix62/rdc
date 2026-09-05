@@ -1,0 +1,104 @@
+---
+/*
+  One post in a list of posts.
+
+  This markup existed three times - the blog index, a category page, and the
+  "More posts" row under an article - identical apart from which of the
+  category and the excerpt it showed. Three copies is why the image treatment
+  below was wrong in three places at once.
+
+  WHAT CHANGED, AND WHY
+
+  A post used to be a 4:5 portrait photograph with its title underneath.
+  Measured at 390px: 358x448 of image, then the headline. That is more than
+  half a phone screen spent on a picture before a word of what the post says.
+
+  The rule it came from is a good one - on a portfolio the work IS the
+  picture. On a writing index the picture is the least informative thing in
+  the card: it cannot tell you what the post argues, and every post's image
+  looks broadly like every other post's image.
+
+  So the image becomes a thumbnail beside the writing rather than a hero above
+  it. It still earns its place - it is how you recognise a post you have seen
+  before - it just stops being the headline.
+
+  ALT TEXT. The old markup passed alt={post.title}, which made a screen reader
+  read the title twice inside one link: once as the image, once as the text
+  right after it. Empty here, which Img.astro reads as "fall back to the alt
+  set on the asset in Sanity" - so a described image is still described, and an
+  undescribed one is correctly silent rather than an echo.
+*/
+import Img from './Img.astro';
+import { dateAttr, formatDate } from '../lib/date';
+import { readingTime } from '../lib/readingTime';
+
+interface Props {
+  post: any;
+  /* Off on a category page - you are already inside that category, so
+     printing it on every card is one word repeated down the screen. */
+  showCategory?: boolean;
+  /* Off in the "More posts" row, which is a footnote to the article above it
+     rather than an index to read. */
+  showExcerpt?: boolean;
+}
+
+const { post, showCategory = false, showExcerpt = false } = Astro.props;
+
+const image = post.thumbnailImage || post.mainImage;
+const date = formatDate(post.publishedAt);
+const read = readingTime(post.body);
+const category = showCategory ? post.category : null;
+---
+
+<a
+  class:list={['post-card', !image && 'post-card--textonly']}
+  href={`/blog/${post.slug.current}`}
+>
+  {/*
+    The thumbnail is 88px on a phone and 176px at its largest, so the old
+    600px request was between three and seven times more image than any screen
+    could use. Doubled for retina and no more.
+  */}
+  {image && (
+    <Img
+      class="post-card__thumb"
+      image={image}
+      field={post.thumbnailImage ? 'thumbnailImage' : 'mainImage'}
+      alt=""
+      width={400}
+      sizes="(max-width: 40rem) 96px, 176px"
+    />
+  )}
+
+  {/*
+    Three grid children, not a thumbnail and a body. The excerpt has to be
+    placeable independently of the heading: measured, sitting it in the column
+    beside the thumbnail put it at 33 characters a line on a phone, which is
+    the exact cramping the old .grid--prose was invented to fix. It spans the
+    full card width there instead, and only shares the heading's column once
+    there is room for it to.
+  */}
+  <div class="post-card__head">
+    <p class="post-card__title">{post.title}</p>
+
+    {/*
+      Each part wrapped so it wraps as a unit. Beside an 88px thumbnail this
+      line has 246px, which is not enough for "March 4, 2026 · 7 min read ·
+      Brand Identity" - and unwrapped it broke as "Brand" / "Identity",
+      splitting a two-word category across two lines.
+    */}
+    {(date || read || category) && (
+      <p class="post-card__meta">
+        {date && <time datetime={dateAttr(post.publishedAt)}>{date}</time>}
+        {date && read && ' · '}
+        {read && <span>{read}</span>}
+        {(date || read) && category && ' · '}
+        {category && <span>{category}</span>}
+      </p>
+    )}
+  </div>
+
+  {showExcerpt && post.excerpt && (
+    <p class="post-card__excerpt">{post.excerpt}</p>
+  )}
+</a>

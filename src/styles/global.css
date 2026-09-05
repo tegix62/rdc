@@ -694,20 +694,170 @@ a {
 }
 
 /*
-  A grid whose cards carry a paragraph, not just a title.
+  A list of posts: the blog index, a category page, and the "More posts" row
+  under an article. See PostCard.astro for why a post is no longer a
+  photograph with a title under it.
 
-  The shared .grid packs a 15rem minimum, which on a desktop gave the blog index
-  three or four columns and measured the excerpts at 31-37 characters - about
-  half the 45-75 a line of prose needs to be readable. The images survive that
-  width; the writing does not.
+  This replaces .grid--prose, which widened the card columns to 22rem so an
+  excerpt would measure 50-55 characters instead of 31-37. That was the right
+  fix for the grid it was in, and the grid is what is gone: one column of
+  full-measure cards gives the excerpt a proper line without having to
+  negotiate for it.
 
-  22rem is the number that puts a 0.875rem excerpt at roughly 50-55 characters,
-  which caps the index at two columns on a normal laptop and three on a very
-  wide screen. min() so the column can still shrink below 22rem on a phone
-  rather than forcing a horizontal scrollbar.
+  52rem is the measure a blog post itself is set to, so the index and the
+  writing agree about how long a line should be.
 */
-.grid--prose {
-  grid-template-columns: repeat(auto-fill, minmax(min(22rem, 100%), 1fr));
+.post-list {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 52rem;
+}
+
+/*
+  Thumbnail beside the writing, not above it.
+
+  clamp() rather than a breakpoint: 88px on the narrowest phone, growing with
+  the viewport to 176px at about 800px and stopping there. A thumbnail that
+  jumps size at a breakpoint draws attention to itself, which is the opposite
+  of what this change is for.
+
+  The hairline goes ABOVE each card, the same device the footer's index groups
+  use, rather than a border boxing each one in. This site does not draw boxes
+  around things.
+*/
+.post-card {
+  display: grid;
+  grid-template-columns: clamp(5.5rem, 22vw, 11rem) 1fr;
+  /*
+    The thumbnail SPANS both rows, so the excerpt follows straight under the
+    meta line in the same column.
+
+    The obvious version - leaving the thumbnail in row one and putting a `.`
+    under it - looked correct in the areas grammar and was wrong on the page:
+    row one is then as tall as the 176px thumbnail, so the excerpt was pushed
+    below it with 130px of nothing between the date and the sentence it
+    belongs to. Spanning costs nothing and puts the writing back together.
+
+    On a phone the excerpt takes its own full-width row instead - see the
+    mobile block below.
+  */
+  grid-template-areas:
+    'thumb head'
+    'thumb excerpt';
+  /*
+    auto then 1fr, or the spanning thumbnail inflates the row it shares with
+    the heading. A grid row grows to fit anything spanning it, and the extra
+    height gets shared between the rows it spans - which put 40px between the
+    date and the excerpt, in a card whose whole argument is that those two
+    belong together. Pinning row one to its content sends every spare pixel to
+    row two, below the writing, where empty space is just empty space.
+  */
+  grid-template-rows: auto 1fr;
+  column-gap: var(--space-3);
+  row-gap: var(--space-1);
+  align-items: start;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  text-decoration: none;
+  color: inherit;
+}
+
+.post-card__thumb { grid-area: thumb; }
+.post-card__head { grid-area: head; }
+.post-card__excerpt { grid-area: excerpt; }
+
+/*
+  A post with no image gives the whole card to the text rather than leaving a
+  thumbnail-shaped hole at the start of it. Set from the component rather than
+  with :has(), so it is deterministic - and written as a doubled class so it
+  outranks the phone rule below whatever the source order.
+*/
+.post-card.post-card--textonly {
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    'head'
+    'excerpt';
+}
+
+.post-card__thumb {
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  background: var(--color-gray-light);
+}
+
+/*
+  The headline, and now actually a headline: 1.25rem against the 1rem it
+  inherited as a .card__title. It is the thing the card exists to show.
+*/
+.post-card__title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--color-navy);
+}
+
+.post-card__meta {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--color-gray);
+}
+
+/* A date, a reading time and a category each wrap as a unit - see the note in
+   PostCard.astro. The separators stay outside these, so the line still breaks
+   where it should. */
+.post-card__meta time,
+.post-card__meta span {
+  white-space: nowrap;
+}
+
+/*
+  60ch, because the card is wider than a line of prose wants to be. At the
+  list's full 52rem the excerpt measured about 84 characters a line - past the
+  45-75 that reads comfortably, and the same mistake in the other direction
+  from the 33 the phone layout was making.
+*/
+.post-card__excerpt {
+  margin: 0;
+  max-width: 60ch;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--color-gray);
+}
+
+/* The whole card is the link, so the affordance goes on the one part of it a
+   reader is looking at. */
+.post-card:hover .post-card__title,
+.post-card:focus-visible .post-card__title {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 40rem) {
+  /*
+    The excerpt takes its own full-width row. Beside an 88px thumbnail it had
+    246px to work with, which measured 33 characters a line; across the card
+    it gets the full 358px and lands around 48, which is inside the readable
+    range. The thumbnail and the headline still share the top row - that is
+    the whole point of the layout - the excerpt just stops trying to fit in
+    the gap they leave.
+  */
+  .post-card {
+    grid-template-areas:
+      'thumb head'
+      'excerpt excerpt';
+    /* Nothing spans here, so both rows go back to their own content - the
+       1fr above exists only to absorb a tall thumbnail. */
+    grid-template-rows: auto auto;
+    row-gap: var(--space-2);
+  }
+
+  .post-card__title {
+    font-size: 1.125rem;
+  }
 }
 
 .card {
@@ -803,19 +953,13 @@ a {
   color: var(--color-gray);
 }
 
-.card__category {
-  display: inline-block;
-  font-size: 0.75rem;
-  font-family: var(--font-heading);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: var(--label-track);
-  color: var(--color-navy);
-  background: var(--color-gray-light);
-  padding: 0.15em 0.5em;
-  margin-top: var(--space-1);
-  border-radius: 2px;
-}
+/*
+  .card__category is gone with the blog card that used it - the only one on
+  the site. It was a grey rounded pill of uppercase tracked micro-caps, which
+  is both the last survivor of the tracked-capitals pass and about as generic
+  as a component gets. The category now sits in the card's meta line as plain
+  text beside the date, which is where a reader looks for it anyway.
+*/
 
 .blog-intro {
   max-width: 62ch;

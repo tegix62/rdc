@@ -1194,8 +1194,25 @@ a {
   there was no padding to remove. A rule that looks live and is not is worse than
   no rule.
 */
+/*
+  <main> is `class="wrap"`, and .wrap is a CLASS while this is an element
+  selector - so .wrap won here on specificity, not source order, and its
+  `padding: 0 var(--space-3)` shorthand zeroed the vertical padding below.
+  This rule has therefore never once applied on any page of this site.
+
+  It stopped being dead the moment .wrap became padding-inline, and 48px of
+  white appeared between the header and the homepage hero - a gap that had
+  been fixed before and looked like it had regressed. It had not; it had never
+  existed, and un-shadowing this rule created it.
+
+  Stated as zero rather than deleted, because a bare `main` selector that
+  looks like it sets the page's vertical rhythm is exactly the trap that was
+  set here the first time. The rhythm belongs to the blocks inside main -
+  every page on this site has always laid itself out that way, because it has
+  never had a choice.
+*/
 main {
-  padding: var(--space-5) 0;
+  padding-block: 0;
 }
 
 .prose :is(h2, h3, h4) {
@@ -1377,7 +1394,15 @@ main {
     /* The real mobile hero isn't edge-to-edge - the heading/lines/subtitle
        sit in a centered column with roughly a 10% inset on each side. */
     padding: 1.25rem 10%;
-    text-align: left;
+    /*
+      Centred, like every other width. This was the one breakpoint that ranged
+      the hero left, carried over from the Webflow original, and it is the
+      reason three words set one-per-line read as a ragged column on a phone
+      and a centred block everywhere else - RUMEAU, DESIGN and COMPANY are
+      three different widths, so left-ranging them shows the difference and
+      centring hides it. The mark is the same mark at every size.
+    */
+    text-align: center;
   }
 }
 
@@ -4059,8 +4084,10 @@ body {
     padding: 0.75rem var(--space-2);
   }
 
+  /* Dead for the same reason as the base rule - see the note there. Zero, not
+     32px, because 32px is what un-shadowing it would newly introduce. */
   main {
-    padding: var(--space-4) 0;
+    padding-block: 0;
   }
 
   .top-cta {

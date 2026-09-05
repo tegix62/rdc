@@ -709,7 +709,14 @@ a {
 */
 .post-list {
   display: grid;
-  gap: var(--space-3);
+  /*
+    Wider than it looks like it needs to be, because the rules between cards
+    are gone and air is now the only thing separating one post from the next.
+    It has to beat the largest gap INSIDE a card - the 16px between a heading
+    and its excerpt on a phone - by enough that the grouping is unambiguous,
+    or two posts read as one long one.
+  */
+  gap: var(--space-5);
   max-width: 52rem;
 }
 
@@ -721,9 +728,11 @@ a {
   jumps size at a breakpoint draws attention to itself, which is the opposite
   of what this change is for.
 
-  The hairline goes ABOVE each card, the same device the footer's index groups
-  use, rather than a border boxing each one in. This site does not draw boxes
-  around things.
+  NO RULE BETWEEN CARDS. There was a hairline above each one, borrowed from
+  the footer's index groups, and it did the separating so the gap did not have
+  to. Without it the gap is the only thing holding the list apart, which is
+  why .post-list above is spaced as generously as it is - the two were changed
+  together and one is wrong without the other.
 */
 .post-card {
   display: grid;
@@ -756,8 +765,6 @@ a {
   column-gap: var(--space-3);
   row-gap: var(--space-1);
   align-items: start;
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-border);
   text-decoration: none;
   color: inherit;
 }

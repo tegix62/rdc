@@ -1392,8 +1392,13 @@ main {
 @media (max-width: 40rem) {
   .statement {
     /* The real mobile hero isn't edge-to-edge - the heading/lines/subtitle
-       sit in a centered column with roughly a 10% inset on each side. */
-    padding: 1.25rem 10%;
+       sit in a centered column, inset on each side.
+
+       7%, not 10%. The heading is sized to fill 80% of the SCREEN, which is
+       95% of an 80vw box - too close to its own edges to trust across
+       devices. A slightly narrower inset gives the larger type somewhere to
+       be: 80 of 86 available, so there is real air either side. */
+    padding: 1.25rem 7%;
     /*
       Centred, like every other width. This was the one breakpoint that ranged
       the hero left, carried over from the Webflow original, and it is the
@@ -1412,36 +1417,52 @@ main {
   margin: 0 0 0.9375rem;
 }
 
+/*
+  Sized by the smaller of the height it has and the width it has to fit in.
+
+  It used to be vh alone, stepped down through three breakpoints - 21vh, 16vh,
+  13vh, 7vh. Viewport height says nothing about whether a word fits across the
+  line, and measured, it did not: at 500x900 COMPANY rendered 567px of ink
+  into a 406px box, 140% of it. The overflow was invisible only because
+  .statement is overflow:hidden, so the mark was silently CLIPPED at every
+  width from about 480 to 700px.
+
+  The steps were also what made a phone look under-set next to a desktop: they
+  dropped to 7vh below 480px, so the type shrank with the screen's height
+  while the constraint that actually mattered was its width.
+
+  min() states both constraints at once and takes whichever binds. Above about
+  1000px the height term rules and nothing changes - 1024, 1440 and 1920 come
+  out at exactly the sizes the old rules gave them. Below it the width term
+  takes over, which is what the breakpoints were groping towards.
+
+  WHERE 16.6vw COMES FROM. COMPANY is the longest of the three words, so it
+  governs. Measured on the real Inter Tight face at weight 800 with the
+  letter-spacing below, its ink is 4.806x the font-size - so 16.6vw sets it to
+  4.806 x 0.166 = 80% of the screen's width. It was 73%.
+
+  Letter-spacing in em, not px, for the same reason the size is not in vh: -8px
+  on 189px type and -8px on 59px type are different typography. -0.04em is
+  what those px values already worked out to at each end - about -7.6px on a
+  desktop, -2.6px on a phone - so the drawing does not change, it just stops
+  depending on which breakpoint you landed in.
+
+  Line height unitless so it follows the size. In vh it did not: the width
+  term makes the type larger than the old vh sizing on a phone, and a 5.8vh
+  line under a 64px letter would have overlapped.
+*/
 .statement__heading {
   margin: 0;
-  font-size: 21vh;
-  line-height: 16vh;
+  font-size: min(21vh, 16.6vw);
+  line-height: 0.78;
   font-weight: 800;
-  letter-spacing: -8px;
+  letter-spacing: -0.04em;
   color: var(--color-white);
-}
-
-@media (max-width: 62rem) {
-  .statement__heading {
-    font-size: 16vh;
-    line-height: 12vh;
-  }
 }
 
 @media (max-width: 48rem) {
   .statement__heading {
     margin: 15px 0;
-    font-size: 13vh;
-    line-height: 10vh;
-    letter-spacing: -4px;
-  }
-}
-
-@media (max-width: 30rem) {
-  .statement__heading {
-    font-size: 7vh;
-    line-height: 5.8vh;
-    letter-spacing: -2px;
   }
 }
 

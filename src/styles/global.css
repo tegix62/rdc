@@ -199,10 +199,27 @@ a {
   color: var(--color-navy);
 }
 
+/*
+  The horizontal gutter, and ONLY the horizontal gutter.
+
+  padding-inline, not `padding: 0 var(--space-3)`. The shorthand also writes
+  top and bottom, which quietly zeroed the vertical padding of anything that
+  set its own - and because the phone override of this rule lives at the very
+  end of the file, it beat every `.wrap` element's spacing at equal
+  specificity. On a phone the whole footer collapsed: the tray's 2rem below the
+  Get in Touch button, the index's 1.5rem above the first heading, and the
+  copyright line's 2rem all became 0, leaving the button sitting directly on
+  the hairline above the site index.
+
+  It was known, and worked around one element at a time rather than fixed:
+  .site-nav__inner restates its vertical padding inside the phone query with a
+  comment explaining it has to. With padding-inline the rule cannot reach
+  vertical padding at all, so nothing downstream has to defend against it.
+*/
 .wrap {
   max-width: var(--content-width);
   margin: 0 auto;
-  padding: 0 var(--space-3);
+  padding-inline: var(--space-3);
 }
 
 /*
@@ -481,13 +498,14 @@ a {
 }
 
 
-/* Optional line of copy from siteSettings.footerText. Capped near 45
-   characters so it stays a short statement beside the columns rather than
-   growing into a paragraph that unbalances the row. */
+/* Optional line of copy from siteSettings.footerText. Its own row now that the
+   right of the identity line belongs to the social links, so it no longer
+   needs flex sizing - just a measure, so it stays a short statement rather
+   than growing into a paragraph. */
 .site-footer__blurb {
-  flex: 1 1 16rem;
   max-width: 28ch;
   margin: 0;
+  padding-bottom: var(--space-3);
   color: var(--color-gray);
 }
 
@@ -508,7 +526,10 @@ a {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  /* One control now that the social links sit beside the wordmark, so it goes
+     to the right - under the follow link directly above it, rather than
+     stranded at the left of an otherwise empty row. */
+  justify-content: flex-end;
   gap: var(--space-2) var(--space-3);
   padding-bottom: var(--space-4);
 }
@@ -2502,10 +2523,16 @@ main {
     padding-top: var(--space-4);
   }
 
+  /*
+    Stays a ROW on a phone. It was stacked into a column here, which was right
+    while this row held the wordmark and a sentence of copy - a paragraph
+    beside a 100px logo on a 358px line is two cramped columns. It now holds
+    the wordmark and the social links, which is the one pair that wants to be
+    side by side: the mark on the left, where to follow it on the right,
+    filling a line that was otherwise half empty. The blurb moved to its own
+    row, so nothing here needs the stack any more.
+  */
   .site-footer__top {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-3);
     padding-bottom: var(--space-4);
   }
 
@@ -3865,8 +3892,12 @@ body {
   h2 { font-size: 2rem; }
   h3 { font-size: 1.75rem; }
 
+  /* padding-inline for the same reason as the base rule - see the comment
+     there. The shorthand here is what actually did the damage, because this
+     block sits at the end of the file and so outranked every element that had
+     set its own vertical padding earlier. */
   .wrap {
-    padding: 0 var(--space-2);
+    padding-inline: var(--space-2);
   }
 
   /* Same horizontal padding as .wrap above, same reasoning as the nav

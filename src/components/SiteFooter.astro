@@ -87,6 +87,22 @@ const idFor = (name: string) => 'site-index-' + categorySlug(name).replace(/[^a-
 ---
 
 <footer class="site-footer">
+  {/*
+    The identity line: who this is, and where else they are.
+
+    The social links used to sit in the tray below, sharing a row with the
+    contact button. On a phone that put Instagram alone on its own line
+    between the wordmark and a full-width button - the loudest thing in
+    Chris's practice, rendered as the quietest thing in the footer, floating
+    with nothing beside it.
+
+    Opposite the wordmark instead. It fills a line that was half empty, and
+    the position itself does the work the `primary` styling can only finish:
+    the mark on the left, where to follow it on the right.
+
+    Several links still work - they group at the right and wrap as a unit -
+    and the one marked Primary in Studio stays the loud one within the group.
+  */}
   <div class="wrap site-footer__top">
     <a class="site-footer__brand" href="/">
       {logo ? (
@@ -95,32 +111,7 @@ const idFor = (name: string) => 'site-index-' + categorySlug(name).replace(/[^a-
         siteName
       )}
     </a>
-    {footerText && <p class="site-footer__blurb">{footerText}</p>}
-  </div>
 
-  {/*
-    The tray: everywhere to go NEXT, on one line across the footer.
-
-    This was two stacked columns headed "Follow" and "Contact", which on a
-    phone became a vertical list one item tall - a wordmark, the word FOLLOW,
-    Instagram, the word CONTACT, a button, each on its own line down the
-    screen. The two things a visitor is most likely to want were also the two
-    things spread thinnest.
-
-    A row instead, spanning the width: destinations on the left, the contact
-    button on the right, wrapping to two lines on a phone rather than eight.
-
-    The headings go with it. "Follow" above a link that says Instagram, and
-    "Contact" above a button that says Get in Touch, are labels for things
-    that already name themselves - and they were two more of the uppercase
-    tracked eyebrows the label pass was about.
-
-    DOM order is visual order at every width, deliberately. Putting the button
-    first in the markup and moving it right with `order` or `row-reverse`
-    would leave a keyboard tabbing through the footer in an order that does
-    not match what is on the screen.
-  */}
-  <div class="wrap site-footer__tray">
     {socialLinks && socialLinks.length > 0 ? (
       <ul class="site-footer__social">
         {socialLinks.map((s: any) =>
@@ -142,7 +133,31 @@ const idFor = (name: string) => 'site-index-' + categorySlug(name).replace(/[^a-
     ) : (
       <p class="site-footer__muted">No social links yet</p>
     )}
+  </div>
 
+  {/*
+    Optional line from siteSettings.footerText, on its own row now rather than
+    opposite the wordmark - the right of that row belongs to the social links.
+  */}
+  {footerText && <p class="wrap site-footer__blurb">{footerText}</p>}
+
+  {/*
+    The tray, now carrying only the contact button.
+
+    It was built to replace two stacked columns headed "Follow" and "Contact",
+    which on a phone became a vertical list eight lines tall. Those headings
+    were labels for things that already name themselves, and they were two
+    more of the uppercase tracked eyebrows the label pass was about.
+
+    With the social links moved up beside the wordmark this is one control, so
+    it is one control's worth of row: full width on a phone, right-aligned on
+    a desktop, where it lines up under the follow link directly above it.
+
+    DOM order is visual order at every width, deliberately - nothing here is
+    repositioned with `order` or `row-reverse`, which would leave a keyboard
+    tabbing the footer in an order that does not match the screen.
+  */}
+  <div class="wrap site-footer__tray">
     <a class="button site-footer__cta" href={contactUrl}>Get in Touch</a>
   </div>
 

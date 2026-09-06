@@ -1025,12 +1025,62 @@ a {
   height: 2.5rem;
 }
 
+/*
+  LEADING FOLLOWS THE MEASURE, because the two are one decision.
+
+  Leading exists to help the eye find the start of the next line, so how much
+  is right depends on how far that sweep travels. This was a flat 1.75 while
+  the measure was anything but flat - 71 characters a line at 1440px, and 41
+  on a 390px phone. 1.75 is right for 71. On a 41-character line the eye
+  barely has to travel, so the same leading just spaces the column out and
+  makes a post longer to scroll for no reading benefit.
+
+  Declared as a variable because the paragraph spacing below is derived from
+  it - see the note there. Changing one without the other is what produced the
+  problem being fixed.
+*/
 .blog-article .prose {
+  --prose-leading: 1.75;
   font-size: 1.0625rem;
-  line-height: 1.75;
+  line-height: var(--prose-leading);
   font-variant-ligatures: common-ligatures contextual;
   font-variant-numeric: oldstyle-nums;
   font-kerning: normal;
+}
+
+@media (max-width: 40rem) {
+  .blog-article .prose {
+    --prose-leading: 1.6;
+  }
+}
+
+/*
+  A PARAGRAPH BREAK HAS TO BE BIGGER THAN A LINE BREAK.
+
+  Things read as a group when the space between groups exceeds the space
+  within them. This had it backwards. `margin: var(--space-2) 0` looks like
+  32px of separation and is not: adjacent margins COLLAPSE, so only one of the
+  two applied and the real gap was 16px - against 29.75px of leading, a ratio
+  of 0.54. The space between two paragraphs was barely half the space between
+  two lines of the same paragraph, so paragraphs dissolved into one column of
+  text and every break the writing intended was invisible.
+
+  Stated as a multiple of the leading rather than a fixed pixel value, because
+  that ratio is the thing being set - 1.45 here, comfortably clear of 1 and
+  short of the gulf you get past about 2. It resolves against each breakpoint's
+  own leading: 43px on a desktop, 39px on a phone.
+
+  em, not rem: em is relative to this element's font-size, so the arithmetic is
+  (leading x 1.45) x font-size, which is exactly "1.45 line-heights".
+
+  SPACE AFTER ONLY, never before. With margins on both sides and collapsing in
+  play, the gap between a heading and the paragraph it introduces would be
+  whichever of the two happened to be larger - and it would grow with this
+  change, pushing a heading away from the text it belongs to. Zero on top
+  means a heading's own bottom margin decides that distance, deliberately.
+*/
+.blog-article .prose > :is(p, ul, ol) {
+  margin-block: 0 calc(var(--prose-leading) * 1.45em);
 }
 
 .blog-article .prose > p:first-child {
@@ -1039,14 +1089,33 @@ a {
   color: var(--color-navy-dark);
 }
 
+/*
+  A section break has to open a bigger interval than a paragraph break, and
+  once paragraphs sit 43px apart, 48px above a heading is not a break at all -
+  it is the same gap with bigger type in it. 64px against 43px reads as a new
+  section; 48px against 43px read as an accident.
+
+  In the spacing scale rather than the leading variable, because em on a
+  heading resolves against the HEADING's font-size - 4em of a 48px h2 is 192px,
+  not the ~70px intended. The paragraph rule can use em precisely because
+  those elements are all set at the body size.
+
+  The bottom margin stays small on purpose. A heading belongs to the text
+  underneath it, so it should sit closer to that than paragraphs sit to each
+  other: 8px below against 64px above is what makes it read as opening a
+  section rather than closing the one before.
+*/
 .blog-article .prose :is(h2, h3) {
-  margin-top: var(--space-5);
+  margin-top: var(--space-6);
   margin-bottom: var(--space-1);
 }
 
+/* Same rhythm as a paragraph, from the same variable - a pull quote sitting
+   32px from its neighbours while the paragraphs around it sit 43px apart
+   would read as more tightly bound to them than they are to each other. */
 .blog-article .prose blockquote {
   border-left: 3px solid var(--color-navy);
-  margin: var(--space-4) 0;
+  margin-block: 0 calc(var(--prose-leading) * 1.45em);
   padding: var(--space-1) var(--space-3);
   font-style: italic;
   color: var(--color-navy-dark);

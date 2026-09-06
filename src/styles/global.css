@@ -1039,9 +1039,34 @@ a {
   it - see the note there. Changing one without the other is what produced the
   problem being fixed.
 */
+/*
+  DISPLAY TYPE AND READING TYPE ARE NOT THE SAME SCALE.
+
+  The site has one heading scale - 56 / 48 / 40 / 32 / 24 - and it is a
+  display scale, which is right for what it was built for: the homepage
+  statement, a case study title, a band heading you are meant to see from
+  across the room. It was also being used inside articles, where its job is
+  completely different, and at those sizes it stopped being a subhead:
+
+    h1  56px  =  3.3x the body copy
+    h2  48px  =  2.8x        editorial subheads run about 1.3-1.6x
+    h3  40px  =  2.4x
+
+  A 48px subhead over 17px text does not organise the text, it interrupts it -
+  it reads as a new page beginning rather than a section continuing, which is
+  most of why the writing felt oversized even though the body copy was 17px.
+
+  Checked before assuming the face was at fault: Gothic A1's x-height is
+  0.53em against Arial's 0.54, so it sets no larger than a normal sans and the
+  nominal sizes are the honest ones.
+
+  So reading contexts get their own scale, and the display scale is untouched -
+  the hero, the case study titles and the band headings are all deliberately
+  large and stay exactly as they are.
+*/
 .blog-article .prose {
   --prose-leading: 1.75;
-  font-size: 1.0625rem;
+  font-size: 1rem;
   line-height: var(--prose-leading);
   font-variant-ligatures: common-ligatures contextual;
   font-variant-numeric: oldstyle-nums;
@@ -1083,10 +1108,56 @@ a {
   margin-block: 0 calc(var(--prose-leading) * 1.45em);
 }
 
+/* The lede stays a step above the body, just a smaller step: 1.125 against
+   1rem rather than 1.1875 against 1.0625. It should read as the opening
+   paragraph, not as a pull quote. */
 .blog-article .prose > p:first-child {
-  font-size: 1.1875rem;
+  font-size: 1.125rem;
   line-height: 1.65;
   color: var(--color-navy-dark);
+}
+
+/*
+  The reading scale. 1.5rem and 1.1875rem against a 1rem body - 1.5x and
+  1.19x, inside the editorial range - so a subhead marks a section without
+  announcing a new page.
+
+  These need no !important and no fight: `.blog-article .prose h2` outranks
+  the bare `h2` element selector, including the one in the phone query, so the
+  display scale simply does not reach in here.
+*/
+.blog-article .prose h2 {
+  font-size: 1.5rem;
+  line-height: 1.25;
+}
+
+.blog-article .prose h3 {
+  font-size: 1.1875rem;
+  line-height: 1.3;
+}
+
+/*
+  The post's own title is the one display moment an article gets, so it stays
+  bigger than anything in the body - but 56px over 16px copy was a poster, and
+  the h1 is immediately followed by the words it names.
+*/
+.blog-article .blog-header h1 {
+  font-size: 2.5rem;
+  line-height: 1.15;
+}
+
+@media (max-width: 40rem) {
+  .blog-article .prose h2 {
+    font-size: 1.375rem;
+  }
+
+  .blog-article .prose h3 {
+    font-size: 1.125rem;
+  }
+
+  .blog-article .blog-header h1 {
+    font-size: 2rem;
+  }
 }
 
 /*

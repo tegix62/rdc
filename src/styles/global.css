@@ -5210,6 +5210,142 @@ body {
   }
 }
 
+/*
+  PANORAMA - artwork sliced into layers that drift past each other.
+
+  Prototype; see Panorama.astro. Placed by hand on /style-guide for now.
+
+  THE STILL COMPOSITION IS THE BASE STATE, and everything that moves is added
+  on top of it. Two large groups of visitors never see the motion - browsers
+  without scroll-driven animation, and anyone who has asked for reduced motion
+  - so the layout below is written to look finished before a single transform
+  applies. A parallax built the other way round, with the still state as the
+  degraded one, looks broken for those people.
+
+  WHY THE LAYERS ARE OVERSIZED
+
+  A layer that exactly fills the window cannot move: drift it up and its own
+  bottom edge appears. So each layer overscans by its own depth on both sides
+  and starts centred, which is also why the still state is the midpoint of the
+  travel rather than one end of it.
+
+  The overscan and the travel have to be the same distance measured against
+  the same thing, or a deep layer tears its edge into view. cqh is what makes
+  that exact - 1cqh is 1% of the window's height, so `depth * 1cqh` means the
+  same number of pixels in both places. Percentages could not do it: a
+  percentage translate resolves against the ELEMENT's height, which is the
+  window's height plus the overscan, so it would always overshoot by exactly
+  the amount it was supposed to stay within.
+*/
+.panorama {
+  margin: var(--space-5) 0;
+}
+
+.panorama__window {
+  position: relative;
+  /* Reserves the height before any layer loads. Late-loading images shifting
+     the page is how this site once measured a CLS of 1.001. */
+  aspect-ratio: var(--panorama-ratio, 16 / 9);
+  /*
+    clip, NOT hidden, and the difference is the whole effect.
+
+    `overflow: hidden` makes an element a scroll container. view() measures its
+    subject against the nearest scrollport, so with `hidden` here every layer
+    was being measured against THIS box - which never scrolls. Measured: the
+    timeline sat at 49.997% at every scroll position on the page, and since
+    50% is the midpoint between +travel and -travel, every layer computed a
+    transform of exactly 0. The animation was running perfectly and going
+    nowhere, which is the hardest kind of nothing to see.
+
+    `overflow: clip` clips without creating a scrollport, so the layers are
+    measured against the page. The named timeline below is the second half of
+    the fix.
+  */
+  overflow: clip;
+  background: var(--color-navy);
+  container-type: size;
+}
+
+.panorama__layer {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  /*
+    Overscan 1.15x the travel, not 1x. At exactly 1x the layer arrives flush
+    with the window edge at the extremes of its range - correct to the pixel
+    and with nothing left over, so any sub-pixel rounding on a fractional
+    device ratio shows a one-pixel sliver of whatever is behind it. The 15%
+    costs nothing and means the edge is never the thing being tested.
+  */
+  top: calc(var(--depth, 0) * -1.15cqh);
+  height: calc(100% + var(--depth, 0) * 2.3cqh);
+  object-fit: cover;
+  /* Halves the travel on a phone. Parallax is at its worst there - a small
+     viewport, momentum scrolling, and a URL bar that resizes the viewport
+     mid-gesture - and the effect reads at half strength anyway. */
+  --panorama-travel: calc(var(--depth, 0) * var(--panorama-depth-scale, 1) * 1cqh);
+}
+
+.panorama__caption {
+  margin: var(--space-1) 0 0;
+  font-size: 0.8125rem;
+  color: var(--color-gray);
+}
+
+@media (max-width: 40rem) {
+  .panorama__layer {
+    --panorama-depth-scale: 0.5;
+  }
+}
+
+@supports (animation-timeline: view()) {
+  /*
+    The FIGURE's travel through the viewport is what drives the layers, named
+    so it is said out loud rather than inferred.
+
+    A bare `view()` on each layer resolves against whatever the layer's nearest
+    scrollport happens to be, which is a property of an ancestor nobody is
+    looking at when they change it - and that is exactly how this broke the
+    first time (see the note on overflow above). Naming the timeline on the
+    element whose visibility is actually meant to drive the effect means a
+    change to the window's clipping cannot quietly redirect it again.
+  */
+  .panorama {
+    view-timeline-name: --panorama-view;
+  }
+
+  .panorama__layer {
+    animation: panorama-drift linear both;
+    animation-timeline: --panorama-view;
+    /* The whole time the section is on screen, entering to leaving - not just
+       the entry window the reveal above uses. */
+    animation-range: cover 0% cover 100%;
+    will-change: transform;
+  }
+
+  @keyframes panorama-drift {
+    from {
+      transform: translate3d(0, var(--panorama-travel), 0);
+    }
+    to {
+      transform: translate3d(0, calc(var(--panorama-travel) * -1), 0);
+    }
+  }
+}
+
+/*
+  Asked for less movement, so there is none - the composition holds at the
+  midpoint of its travel, which is what the layout is built around anyway.
+  Parallax is among the most reliable triggers for motion sickness, so this is
+  not a nicety.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .panorama__layer {
+    animation: none;
+    transform: none;
+  }
+}
+
 @media print {
   nav,
   footer,

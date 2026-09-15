@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Sections from '../components/Sections.astro';
+import Panorama from '../components/Panorama.astro';
 import { sanityClient } from '../lib/sanity';
 
 const colors = [
@@ -206,4 +207,32 @@ const blockFixtures = [
     checks that animated sources bypass the resize pipeline.
   </p>
   <Sections sections={blockFixtures} />
+
+  <h2>Panorama (prototype)</h2>
+  <p class="style-guide-note">
+    Artwork sliced into layers that drift past each other as the section
+    crosses the viewport. Nothing in Studio makes one of these yet — this is
+    here to be scrolled on a real phone before a CMS block gets built around
+    it, so the shape of the data can be decided from the feel rather than
+    guessed at. The slices are placeholders from <code>public/parallax-demo/</code>
+    and are labelled with their own depth so it is obvious which layer is
+    doing what.
+  </p>
+  <p class="style-guide-note">
+    No JavaScript: it runs on <code>animation-timeline: view()</code>, the same
+    mechanism as the fade-and-rise on cards. Where that is unsupported, or
+    where reduced motion is requested, the layers hold still at the midpoint of
+    their travel — which is why the still composition has to be the design and
+    the movement the bonus.
+  </p>
+  <Panorama
+    label="Placeholder panorama: four layers drifting at different depths"
+    caption="Placeholder slices — depth 0 / 4 / 10 / 22"
+    layers={[
+      { src: '/parallax-demo/layer-1-sky.svg', depth: 0 },
+      { src: '/parallax-demo/layer-2-far.svg', depth: 4 },
+      { src: '/parallax-demo/layer-3-mid.svg', depth: 10 },
+      { src: '/parallax-demo/layer-4-near.svg', depth: 22 },
+    ]}
+  />
 </Layout>

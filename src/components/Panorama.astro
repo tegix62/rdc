@@ -1,0 +1,100 @@
+---
+/*
+  A parallax panorama: artwork sliced into layers that drift past each other
+  as the section crosses the viewport.
+
+  PROTOTYPE. Nothing in Studio makes one of these yet - it is placed by hand on
+  /style-guide with the placeholder slices in public/parallax-demo/ so the FEEL
+  can be judged on a real phone before a CMS block is built around it. The
+  shape of the data is the thing still in question: how many layers, whether
+  depth is authored per layer or derived from order, vertical or horizontal
+  drift. Those are much easier to answer after scrolling one.
+
+  HOW IT MOVES, AND WHY THERE IS NO JAVASCRIPT
+
+  animation-timeline: view() ties an animation's progress to how far this
+  element has travelled through the viewport. The browser runs it off the main
+  thread, so it does not stutter the way a scroll listener recalculating
+  transforms does - and this site already uses the same mechanism for the
+  fade-and-rise on cards and article prose, so it is a pattern in use here
+  rather than a new dependency.
+
+  Each layer drifts by its own --depth. 0 pins a layer to the page; larger
+  numbers move further, so a foreground slice outruns a background one and the
+  gap between them reads as distance.
+
+  THE STILL VERSION IS THE REAL DESIGN
+
+  Everything below is inside @supports, and browser support is uneven - Chrome
+  and Edge have had it since 115, Safari only recently, Firefox later still.
+  Where it is missing the layers simply stack and sit, which has to look
+  deliberate rather than broken. That is a constraint on how the artwork gets
+  sliced, not something CSS can fix: compose the still image first, and treat
+  the motion as something the capable browsers get on top.
+
+  Same for prefers-reduced-motion, which this honours - parallax is one of the
+  effects that reliably makes people motion-sick, so the static composition is
+  what a reader who asked for less movement gets.
+
+  WEIGHT. Layers mean transparency, which means PNG, which does not compress
+  the way the photography on this site does. These placeholders are SVG and
+  weigh 16 KB for all four; real sliced artwork will not. When this becomes a
+  Studio block, the compression toggle wants to be OFF for these so the CDN
+  can serve WebP with alpha - the opposite of the usual habit here.
+*/
+
+interface Layer {
+  /** Path or URL of the slice. Transparent PNG, or anything with an alpha channel. */
+  src: string;
+  /**
+   * How far this layer drifts, as a percentage of its own height.
+   * 0 pins it. Around 4 reads as far away, around 20 as close.
+   */
+  depth: number;
+  /** Empty for a decorative slice - the panorama as a whole carries the alt. */
+  alt?: string;
+}
+
+interface Props {
+  layers: Layer[];
+  /** What the whole composition depicts, for screen readers. */
+  label: string;
+  /** Aspect ratio of the window the layers are seen through. */
+  ratio?: string;
+  caption?: string;
+}
+
+const { layers, label, ratio = '16 / 9', caption } = Astro.props;
+---
+
+{/*
+  role="img" goes on the WINDOW, not the figure.
+
+  A composite of slices is one picture, and role="img" plus a label is how you
+  say that - the individual layers then carry alt="" correctly, because none of
+  them is a picture on its own. But role="img" also makes everything inside it
+  presentational, so putting it on the <figure> would have taken the
+  <figcaption> down with it: the caption would be on the page and unreadable to
+  a screen reader. On the window, the figure keeps its normal structure and the
+  caption is still announced with it.
+*/}
+<figure class="panorama" style={`--panorama-ratio: ${ratio}`}>
+  <div class="panorama__window" role="img" aria-label={label}>
+    {layers.map((layer, i) => (
+      <img
+        class="panorama__layer"
+        src={layer.src}
+        alt=""
+        /*
+          Eager on the first layer, lazy after. A panorama that scrolls into
+          view with its background still blank reads as broken, and the
+          backdrop is the one layer that covers the whole window.
+        */
+        loading={i === 0 ? 'eager' : 'lazy'}
+        decoding="async"
+        style={`--depth: ${layer.depth}`}
+      />
+    ))}
+  </div>
+  {caption && <figcaption class="panorama__caption">{caption}</figcaption>}
+</figure>

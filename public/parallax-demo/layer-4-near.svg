@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+  <g fill="#ffffff">
+    <circle cx="260" cy="790" r="64"/><circle cx="700" cy="820" r="46"/>
+    <circle cx="1120" cy="800" r="74"/><circle cx="1500" cy="830" r="52"/>
+  </g>
+  <text x="40" y="220" font-family="monospace" font-size="28" fill="#ffffff">LAYER 4 — FOREGROUND — depth 22</text>
+</svg>

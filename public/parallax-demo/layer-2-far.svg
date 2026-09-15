@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+  <g fill="#ffffff" opacity="0.16">
+    <path d="M0 640 L180 470 L340 640 Z"/><path d="M300 640 L470 430 L640 640 Z"/>
+    <path d="M620 640 L800 500 L980 640 Z"/><path d="M940 640 L1140 420 L1340 640 Z"/>
+    <path d="M1280 640 L1460 510 L1600 640 Z"/>
+  </g>
+  <text x="40" y="120" font-family="monospace" font-size="28" fill="#ffffff" opacity="0.5">LAYER 2 — FAR — depth 4</text>
+</svg>

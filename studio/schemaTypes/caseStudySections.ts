@@ -364,12 +364,20 @@ export const mediaRowSection = defineType({
       description: 'Optional heading above the row.',
     }),
   ],
+  /*
+    Counts the videos, because "3 item(s)" does not tell you a row contains
+    one - and a Media Row is one of the four blocks that can put a video on the
+    page while being listed under a name that does not say so.
+  */
   preview: {
     select: {heading: 'heading', items: 'items'},
-    prepare: ({heading, items}) => ({
-      title: heading || 'Media Row',
-      subtitle: `${items?.length ?? 0} item(s)`,
-    }),
+    prepare: ({heading, items}) => {
+      const n = items?.length ?? 0
+      const videos = (items ?? []).filter((i: any) => i?._type === 'mediaVideo').length
+      const parts = [`${n} item${n === 1 ? '' : 's'}`]
+      if (videos) parts.push(`${videos} video${videos === 1 ? '' : 's'}`)
+      return {title: heading || 'Media Row', subtitle: parts.join(' · ')}
+    },
   },
 })
 
@@ -406,7 +414,6 @@ export const mediaTextSection = defineType({
       name: 'videoUrl',
       title: 'Video URL (optional)',
       type: 'url',
-      fieldset: VIDEO_FIELDSET,
       description:
         'A YouTube or Vimeo link. When set, this plays INSTEAD of the image ' +
         'above - the image is not shown. Leave empty for an image.',
@@ -414,11 +421,27 @@ export const mediaTextSection = defineType({
     ...videoBehaviourFields('optional'),
   ],
   fieldsets: videoFieldsets('optional'),
+  /*
+    Says "Video" for a video from ANY source, not just a pasted link.
+
+    It used to key on `videoUrl` alone, so a block playing an uploaded file -
+    the R2 field, or either Sanity upload - looked identical in the list to a
+    block that was only an image. That is half of how a video on this page
+    became impossible to find: the form hid it, and the list did not mention
+    it either.
+  */
   preview: {
-    select: {title: 'heading', media: 'image', subtitle: 'videoUrl'},
-    prepare: ({title, media, subtitle}) => ({
+    select: {
+      title: 'heading',
+      media: 'image',
+      url: 'videoUrl',
+      src: 'videoSrc',
+      file: 'videoFile.asset._ref',
+      webm: 'videoWebm.asset._ref',
+    },
+    prepare: ({title, media, url, src, file, webm}) => ({
       title: title || 'Media + Text',
-      subtitle: subtitle ? 'video' : undefined,
+      subtitle: url || src || file || webm ? 'Video (plays instead of the image)' : undefined,
       media,
     }),
   },

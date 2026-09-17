@@ -100,9 +100,27 @@ export const videoFieldsets = (mode: VideoMode = 'primary') =>
       ]
 
 export function videoBehaviourFields(mode: VideoMode = 'primary') {
-  // In an image-first block everything video belongs behind the one panel; in a
-  // video-first block the source is the point and stays out in the open.
-  const sourceFieldset = mode === 'optional' ? VIDEO_FIELDSET : undefined
+  /*
+    THE SOURCE IS NEVER HIDDEN, in either mode.
+
+    The first version of this folded everything video into one collapsed panel
+    on an image-first block, including the fields naming the video. That made
+    an image-only block beautifully clean and made a block that HAD a video
+    look exactly like one that did not - Chris went looking for a video he
+    could see on the page and found no video field anywhere in the form,
+    because it was behind a shut panel with a title that reads like an offer
+    rather than a statement.
+
+    A fieldset cannot fix this by opening itself: ObjectOptions types
+    `collapsed` as a plain boolean, so it cannot depend on whether the block
+    has a video. Only `hidden` is conditional.
+
+    So the rule is the same one the video-first blocks already follow, applied
+    here too: whatever names the video stays in the open, and only the
+    presentation options fold away. Two extra controls on an image-only block
+    is the price of never hiding content that is on the page.
+  */
+  const sourceFieldset = undefined
   const uploadFieldset = mode === 'optional' ? VIDEO_FIELDSET : UPLOAD_FIELDSET
 
   return [

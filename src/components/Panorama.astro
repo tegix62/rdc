@@ -61,10 +61,16 @@ interface Props {
   label: string;
   /** Aspect ratio of the window the layers are seen through. */
   ratio?: string;
+  /*
+    And on a phone, where a 16:9 window is a 201px strip - too thin to show
+    artwork, and too short to give the drift anywhere to go, since the travel
+    is a percentage of this box's height. Portrait by default.
+  */
+  ratioMobile?: string;
   caption?: string;
 }
 
-const { layers, label, ratio = '16 / 9', caption } = Astro.props;
+const { layers, label, ratio = '16 / 9', ratioMobile = '4 / 5', caption } = Astro.props;
 ---
 
 {/*
@@ -78,7 +84,10 @@ const { layers, label, ratio = '16 / 9', caption } = Astro.props;
   a screen reader. On the window, the figure keeps its normal structure and the
   caption is still announced with it.
 */}
-<figure class="panorama" style={`--panorama-ratio: ${ratio}`}>
+<figure
+  class="panorama"
+  style={`--panorama-ratio: ${ratio}; --panorama-ratio-mobile: ${ratioMobile}`}
+>
   <div class="panorama__window" role="img" aria-label={label}>
     {layers.map((layer, i) => (
       <img

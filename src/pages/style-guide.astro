@@ -219,11 +219,24 @@ const blockFixtures = [
     doing what.
   </p>
   <p class="style-guide-note">
-    No JavaScript: it runs on <code>animation-timeline: view()</code>, the same
+    No JavaScript: it runs on <code>animation-timeline</code>, the same
     mechanism as the fade-and-rise on cards. Where that is unsupported, or
     where reduced motion is requested, the layers hold still at the midpoint of
     their travel — which is why the still composition has to be the design and
     the movement the bonus.
+  </p>
+  <p class="style-guide-note">
+    <strong>This browser:</strong>
+    <span class="panorama-support__yes">
+      supports scroll-driven animation — the layers below should drift as you
+      scroll past them. If they look static, the effect is too weak rather than
+      missing.
+    </span>
+    <span class="panorama-support__no">
+      has no scroll-driven animation — you are seeing the still composition,
+      which is the fallback working as intended, not a bug. Nothing here will
+      move however far you scroll.
+    </span>
   </p>
   <Panorama
     label="Placeholder panorama: four layers drifting at different depths"

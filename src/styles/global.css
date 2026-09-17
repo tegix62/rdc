@@ -5280,9 +5280,6 @@ body {
   top: calc(var(--depth, 0) * -1.15cqh);
   height: calc(100% + var(--depth, 0) * 2.3cqh);
   object-fit: cover;
-  /* Halves the travel on a phone. Parallax is at its worst there - a small
-     viewport, momentum scrolling, and a URL bar that resizes the viewport
-     mid-gesture - and the effect reads at half strength anyway. */
   --panorama-travel: calc(var(--depth, 0) * var(--panorama-depth-scale, 1) * 1cqh);
 }
 
@@ -5292,13 +5289,57 @@ body {
   color: var(--color-gray);
 }
 
+/*
+  A TALLER WINDOW ON A PHONE, and no reduction in depth. Both of those are
+  reversals of the first version, and the measurement says why.
+
+  Travel is depth as a percentage of the WINDOW's height, and a 16:9 window on
+  a 358px-wide screen is 201px tall. So the same depth that moves a layer 273px
+  on a desktop moved it 89px on a phone before anything else happened - and the
+  first version then halved it to 44px, on the reasoning that parallax is worst
+  on phones. That reasoning was about motion sickness and it was already
+  handled, properly, by prefers-reduced-motion. What it actually did was take
+  an effect that was six times weaker by geometry and halve it again, which is
+  why Chris could not see it.
+
+  A 16:9 panorama on a phone is a thin strip anyway - not much of a view.
+  Portrait gives the artwork presence AND gives the parallax room to work:
+
+    desktop 1440, 16:9            window 1104x621   depth-22 travel 273px
+    phone 390, 16:9, half depth   window  358x201                    44px
+    phone 390, 4:5, full depth    window  358x448                   197px
+*/
 @media (max-width: 40rem) {
-  .panorama__layer {
-    --panorama-depth-scale: 0.5;
+  .panorama__window {
+    aspect-ratio: var(--panorama-ratio-mobile, 4 / 5);
   }
 }
 
+/*
+  A readout on the prototype page saying which of the two things you are
+  looking at. "I saw no movement" has two completely different causes - the
+  browser has no scroll-driven animation and you are seeing the still
+  composition, or it has it and the effect is too weak - and they need
+  opposite fixes. Guessing from a description cost a round trip once already.
+
+  Pure CSS: the @supports block below hides one line and shows the other, so
+  it reports the rendering engine's real answer rather than a User-Agent
+  string's opinion of it. Prototype scaffolding; it goes when the Studio block
+  arrives.
+*/
+.panorama-support__yes {
+  display: none;
+}
+
 @supports (animation-timeline: view()) {
+  .panorama-support__no {
+    display: none;
+  }
+
+  .panorama-support__yes {
+    display: inline;
+  }
+
   /*
     The FIGURE's travel through the viewport is what drives the layers, named
     so it is said out loud rather than inferred.

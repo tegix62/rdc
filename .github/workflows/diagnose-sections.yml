@@ -1,0 +1,46 @@
+name: Diagnose case study sections
+
+# What is actually in a case study's Page Builder, published against draft.
+#
+# The site reads published content; Studio shows the draft when one exists.
+# Nothing else in the repo compares the two, so a draft that quietly differs
+# from what is on the page could never be seen from here.
+#
+# Read-only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: 'Case study slug (e.g. chateau-seven)'
+        default: 'chateau-seven'
+  push:
+    paths:
+      - 'scripts/diagnose-sections.mjs'
+      - '.github/workflows/diagnose-sections.yml'
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Read the sections
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          SLUG: ${{ inputs.slug || 'chateau-seven' }}
+        run: |
+          set -o pipefail
+          node scripts/diagnose-sections.mjs 2>&1 | tee sections.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo "## Page Builder contents"
+            echo ""
+            echo '```'
+            cat sections.txt 2>/dev/null || echo '(the script did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

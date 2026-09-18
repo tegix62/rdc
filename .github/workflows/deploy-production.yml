@@ -199,19 +199,31 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
-      - uses: cloudflare/pages-action@v1
+      # wrangler directly - see the long note on the same step in
+      # deploy-pages.yml. cloudflare/pages-action stopped resolving on
+      # 18 September 2026 and every deploy failed at setup, this one included,
+      # so a Studio publish reached Sanity and could not reach the domain.
+      #
+      # The `if` stays exactly where it was: nothing uploads unless PUBLISH is
+      # true, which is the property the push trigger's safety rests on.
+      - name: Deploy to Cloudflare Pages
         if: env.PUBLISH == 'true'
         id: pages
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: rumeau-design-co
-          directory: dist
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          # pipefail, or `tee` returning 0 would let a failed upload report a
+          # successful production deploy.
+          set -o pipefail
           # `main` is the project's production branch, so this is the
           # deployment a custom domain serves. The preview workflow publishes
           # to `preview`, and the two never touch.
-          branch: main
+          npx wrangler@3 pages deploy dist \
+            --project-name=rumeau-design-co \
+            --branch=main 2>&1 | tee deploy.log
+          url=$(grep -oE 'https://[a-z0-9-]+\.rumeau-design-co\.pages\.dev' deploy.log | tail -1)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
 
       # The gate checked files on disk. This checks what the CDN actually
       # serves, which is not the same claim: a stale deployment, a cached

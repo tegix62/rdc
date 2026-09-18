@@ -74,20 +74,45 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      - uses: cloudflare/pages-action@v1
+      # wrangler directly, NOT cloudflare/pages-action.
+      #
+      # That action stopped resolving on 18 September 2026 - "Unable to resolve
+      # action `cloudflare/pages-action`, not found" - and took every deploy
+      # with it, preview and production, at the setup step before a single line
+      # of the build ran. Cloudflare deprecated it in favour of wrangler and the
+      # repository is gone, so the pin bought nothing: a tag cannot protect you
+      # from a repository that no longer exists.
+      #
+      # The step above already shells out to wrangler with these same two
+      # secrets, so this is the tool this workflow was half-using anyway, and
+      # it removes the marketplace dependency rather than trading it for
+      # another one that can disappear the same way.
+      #
+      # What is genuinely lost: pages-action also created a GitHub Deployment
+      # record per run, via gitHubToken. Nothing here read those - the URLs
+      # below come from the step output - so it costs the Deployments sidebar
+      # entry and nothing else.
+      - name: Deploy to Cloudflare Pages
         id: pages
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: rumeau-design-co
-          directory: dist
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          # pipefail, or `tee` returning 0 would mask a failed deploy and this
+          # step would go green having uploaded nothing.
+          set -o pipefail
           # Deploy under a fixed label rather than the git branch name.
           # Cloudflare builds its stable alias from this, and it wouldn't make
           # one for a branch containing a "/" - so every deploy was reachable
           # only at its own throwaway hash URL, which is no use as Studio's
           # preview target. This pins it to preview.rumeau-design-co.pages.dev.
-          branch: preview
+          npx wrangler@3 pages deploy dist \
+            --project-name=rumeau-design-co \
+            --branch=preview 2>&1 | tee deploy.log
+          # Same output name the old action published, so the reporting below
+          # and the smoke test keep working unchanged.
+          url=$(grep -oE 'https://[a-z0-9-]+\.rumeau-design-co\.pages\.dev' deploy.log | tail -1)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
       # Every deploy gets a throwaway per-commit URL, but the branch alias is
       # stable - that's the one to point Studio's Presentation tab at, and the
       # one worth bookmarking. Surfaced in the summary so it isn't buried in

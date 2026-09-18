@@ -1,0 +1,127 @@
+name: Deploy alarm
+
+# A red workflow that tells nobody is the same as no workflow.
+#
+# Twice in one week a job sat broken and was found by accident:
+#
+#   Deploy Sanity Studio   10 days red on a token missing the deployStudio
+#                          grant. Its own HTTP-200 check caught it correctly
+#                          on every run and reported to an empty room.
+#   Deploy to Cloudflare   about a day, both preview and production, after
+#                          cloudflare/pages-action was deleted from the
+#                          marketplace. Found only because a Sanity publish
+#                          did not reach the domain and Chris asked why.
+#
+# Both had good checks. What neither had was an audience. GitHub's own
+# notifications clearly were not landing, so this uses the one channel that is
+# hard to miss and stays put: an issue in the repository.
+#
+# ONE OPEN ISSUE PER WORKFLOW, reused. A workflow failing on every push would
+# otherwise file an issue per push, and an inbox of forty identical alerts gets
+# muted, which puts us back where we started. Repeat failures comment on the
+# existing issue instead.
+#
+# IT CLOSES ITSELF on the next success, which is what makes the issue list a
+# status board rather than a graveyard: an open alarm means something is broken
+# RIGHT NOW. Alerts that have to be tidied up by hand stop being read.
+#
+# NOT COVERED, deliberately: a workflow that should have run and never did.
+# That is a different mechanism - nothing completes, so there is nothing to
+# react to - and it is not what bit us either time. It would need a scheduled
+# watchdog comparing last-run times against expectations.
+
+on:
+  workflow_run:
+    workflows:
+      - Deploy to Cloudflare Pages
+      - Deploy to production
+      - Deploy Sanity Studio
+      - Build check
+    types: [completed]
+
+# Only what filing and closing an issue needs.
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  alarm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open, update or close the alarm
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          WF: ${{ github.event.workflow_run.name }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          RUN_NUMBER: ${{ github.event.workflow_run.run_number }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          EVENT: ${{ github.event.workflow_run.event }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          # Fail loudly rather than quietly not alarming - an alarm that breaks
+          # silently is the exact bug this workflow exists to fix.
+          set -euo pipefail
+
+          TITLE="Workflow failing: $WF"
+
+          # The label is cosmetic, so never let a missing one stop the alarm.
+          gh label create deploy-alarm \
+            --color B60205 \
+            --description "An automated deploy or check is currently failing" \
+            --repo "$REPO" 2>/dev/null || true
+
+          # Any alarm already open for THIS workflow. --search matches loosely,
+          # so the exact title is confirmed with jq before reusing a number.
+          EXISTING=$(gh issue list \
+            --repo "$REPO" --state open --limit 50 \
+            --search "in:title \"$TITLE\"" \
+            --json number,title \
+            --jq "[.[] | select(.title == \"$TITLE\") | .number] | first // empty")
+
+          if [ "$CONCLUSION" = "success" ]; then
+            if [ -n "$EXISTING" ]; then
+              gh issue comment "$EXISTING" --repo "$REPO" --body \
+                "Recovered: [run #$RUN_NUMBER]($RUN_URL) succeeded on \`$SHA\`. Closing."
+              gh issue close "$EXISTING" --repo "$REPO"
+              echo "closed alarm #$EXISTING - $WF recovered"
+            else
+              echo "$WF succeeded, no alarm open"
+            fi
+            exit 0
+          fi
+
+          # Cancelled and skipped are not failures. A newer push superseding a
+          # run is normal here - deploy-pages cancels in-flight runs by design -
+          # and alarming on it would train everyone to ignore the alarm.
+          if [ "$CONCLUSION" != "failure" ]; then
+            echo "$WF concluded '$CONCLUSION' - not an alarm"
+            exit 0
+          fi
+
+          BODY=$(printf '%s\n' \
+            "**$WF** failed." \
+            "" \
+            "| | |" \
+            "|---|---|" \
+            "| Run | [#$RUN_NUMBER]($RUN_URL) |" \
+            "| Commit | \`$SHA\` |" \
+            "| Branch | \`$BRANCH\` |" \
+            "| Triggered by | \`$EVENT\` |" \
+            "" \
+            "This issue closes itself when the workflow next succeeds, so an open one means it is still broken." \
+            "" \
+            "_Filed by .github/workflows/notify-failure.yml_")
+
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "$REPO" --body "$BODY"
+            echo "commented on existing alarm #$EXISTING"
+          else
+            gh issue create \
+              --repo "$REPO" \
+              --title "$TITLE" \
+              --label deploy-alarm \
+              --body "$BODY"
+            echo "opened a new alarm for $WF"
+          fi

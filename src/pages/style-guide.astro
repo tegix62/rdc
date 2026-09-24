@@ -75,6 +75,50 @@ const blockFixtures = [
       {_type: 'mediaImage', _key: 'c', image: {...ref(STATIC_IMAGE), alt: 'Static brand sheet'}, caption: 'Static image'},
     ],
   },
+  /*
+    The three Layout modes, on identical content, so the difference is the
+    setting and nothing else.
+
+    Same three images in the same order each time - a square, a square and a
+    landscape - because the whole question is what a row does when the items
+    do NOT share a shape, and that is invisible if the fixtures are uniform.
+    Nothing in Studio uses these settings yet, so without this the feature
+    would ship unseeable, which is the reason this page exists.
+  */
+  {
+    _type: 'mediaRowSection',
+    _key: 'row-layout-shape',
+    heading: 'Layout: sized by shape (the default) - widths follow each image',
+    items: [
+      {_type: 'mediaImage', _key: 'a', image: {...ref(STATIC_IMAGE), alt: 'Square source'}},
+      {_type: 'mediaImage', _key: 'b', image: {...ref(ANIMATED_GIF_A), alt: 'Square source'}},
+      {_type: 'mediaImage', _key: 'c', image: {...ref(ANIMATED_GIF_B), alt: 'Square source'}},
+    ],
+  },
+  {
+    _type: 'mediaRowSection',
+    _key: 'row-layout-fit',
+    rowLayout: 'fit',
+    cellShape: '4 / 5',
+    heading: 'Layout: equal slots, images sit inside - tall (4:5) slots, nothing cropped',
+    items: [
+      {_type: 'mediaImage', _key: 'a', image: {...ref(STATIC_IMAGE), alt: 'Square source'}},
+      {_type: 'mediaImage', _key: 'b', image: {...ref(ANIMATED_GIF_A), alt: 'Square source'}},
+      {_type: 'mediaImage', _key: 'c', image: {...ref(ANIMATED_GIF_B), alt: 'Square source'}},
+    ],
+  },
+  {
+    _type: 'mediaRowSection',
+    _key: 'row-layout-fill',
+    rowLayout: 'fill',
+    cellShape: '3 / 2',
+    heading: 'Layout: equal slots, images fill - landscape (3:2) slots, cropped to fit',
+    items: [
+      {_type: 'mediaImage', _key: 'a', image: {...ref(STATIC_IMAGE), alt: 'Square source'}},
+      {_type: 'mediaImage', _key: 'b', image: {...ref(ANIMATED_GIF_A), alt: 'Square source'}},
+      {_type: 'mediaImage', _key: 'c', image: {...ref(ANIMATED_GIF_B), alt: 'Square source'}},
+    ],
+  },
   {
     _type: 'mediaRowSection',
     _key: 'row-two-videos',

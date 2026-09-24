@@ -56,6 +56,19 @@ const videoOf = (s) =>
     s.videoWebm && 'videoWebm:(sanity upload)',
   ].filter(Boolean)
 
+/*
+  Sanity encodes an asset's pixel size in its _ref: image-<hash>-<W>x<H>-<ext>.
+  Printing it is how a rendered box can be checked against the shape the file
+  actually is - the difference between "matted" and "stretched".
+*/
+const dims = (img) => {
+  const ref = img?.asset?._ref
+  const m = typeof ref === 'string' ? ref.match(/-(\d+)x(\d+)-/) : null
+  if (!m) return ''
+  const [w, h] = [Number(m[1]), Number(m[2])]
+  return `  ${w}x${h} (aspect ${(w / h).toFixed(3)})`
+}
+
 const describe = (doc, label) => {
   console.log(`\n=== ${label} ===`)
   if (!doc) {
@@ -73,9 +86,14 @@ const describe = (doc, label) => {
     // A Media Row holds its own items, each of which can independently be one.
     const items = (s.items ?? []).map((it, j) => {
       const iv = videoOf(it)
-      return `      item ${j}: ${it._type}${iv.length ? '  <-- VIDEO  ' + iv.join(' ') : ''}`
+      return `      item ${j}: ${it._type}${dims(it.image)}${iv.length ? '  <-- VIDEO  ' + iv.join(' ') : ''}`
     })
-    console.log(`    ${i}: ${s._type}${vids.length ? '  <-- VIDEO  ' + vids.join(' ') : ''}`)
+    // The row's layout settings, which decide whether an image is sized by
+    // its own shape, matted inside a slot, or cropped to fill one.
+    const layout = s._type === 'mediaRowSection'
+      ? `  [layout: ${s.rowLayout ?? 'shape (unset)'}${s.rowLayout && s.rowLayout !== 'shape' ? `, slots ${s.cellShape ?? '3 / 2 (unset)'}` : ''}]`
+      : ''
+    console.log(`    ${i}: ${s._type}${layout}${dims(s.image)}${vids.length ? '  <-- VIDEO  ' + vids.join(' ') : ''}`)
     items.forEach((l) => console.log(l))
   })
   return sections.length

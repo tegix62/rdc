@@ -403,6 +403,7 @@ export const mediaRowSection = defineType({
       hidden: ({parent}: any) => !parent?.rowLayout || parent.rowLayout === 'shape',
       options: {
         list: [
+          {title: 'Automatic - the shape of the widest image in this row', value: 'auto'},
           {title: 'Wide (2:1)', value: '2 / 1'},
           {title: 'Landscape (3:2)', value: '3 / 2'},
           {title: 'Square (1:1)', value: '1 / 1'},
@@ -410,10 +411,13 @@ export const mediaRowSection = defineType({
         ],
         layout: 'radio',
       },
-      initialValue: '3 / 2',
+      initialValue: 'auto',
       description:
-        'The shape of every slot in this row. Tall suits a row of phone-shaped ' +
-        'video; landscape suits most photography.',
+        'Automatic is right nearly always: the slots take the shape of the ' +
+        'widest image here, so nothing is made smaller than the row and the ' +
+        'only space added is beside the narrower ones. Pick a shape when you ' +
+        'want one imposed - Tall for a row of phone-shaped video, Landscape ' +
+        'across several rows of photography that should all match.',
     }),
   ],
   /*

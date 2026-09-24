@@ -3286,9 +3286,13 @@ main {
 
   This is the opposite discipline, and it is why a page of loosely shaped
   images can read as a grid: every slot the same width, every row the same
-  width, whatever is in them. The slot's shape is AUTHORED (--cell-ar) rather
-  than derived, because the entire point is that it does not follow the
-  content.
+  width, whatever is in them.
+
+  --cell-ar is the slot's shape, and it arrives already decided - see
+  cellAspect() in Sections.astro. By default it is the WIDEST item's ratio,
+  so no picture ends up shorter than the row it is in; a named shape (4:5 for
+  phone-shaped video, say) overrides that when one is wanted. What matters
+  here is only that every slot gets the same one.
 
   A fixed slot forces a choice, and data-fit carries it:
 

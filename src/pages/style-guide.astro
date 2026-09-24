@@ -42,6 +42,19 @@ const ANIMATED_GIF_A = 'image-84932c87f8d266a2d3c30330f2797e46e86308c2-1080x1080
 const ANIMATED_GIF_B = 'image-7699f292fa859c7d126fd3aafe76eaf7eb0ac579-400x400-gif';
 const STATIC_IMAGE = 'image-b3834b3ffbcf2783a337743475cd2041ff0aceb9-1080x1080-webp';
 
+/*
+  Two Point Oh's three posters - the actual row that made the automatic slot
+  shape necessary. Portrait, and NOT the same portrait: 0.800, 0.750, 0.801.
+
+  Fixtures of one shape cannot show what a slot does, because every slot
+  suits them. These three disagree just enough to make the difference
+  visible, and they are the content Chris was looking at, so the row on this
+  page is the row on his page.
+*/
+const POSTER_800 = 'image-dbb0c8ff444a0602ea6bc9c3f9e0ad458b3895b3-2400x3000-webp';
+const POSTER_750 = 'image-329248a1d3eec375b842d0adb19e4a070ebf4a04-2160x2880-jpg';
+const POSTER_801 = 'image-a88128a09e8c208c4194e58e69c298ee911f572a-800x999-gif';
+
 const VIMEO = 'https://player.vimeo.com/video/1044782545';
 const YOUTUBE = 'https://www.youtube.com/watch?v=plYFXjoViKI';
 
@@ -84,6 +97,9 @@ const blockFixtures = [
     do NOT share a shape, and that is invisible if the fixtures are uniform.
     Nothing in Studio uses these settings yet, so without this the feature
     would ship unseeable, which is the reason this page exists.
+
+    The two rows after them carry real posters instead, and exist to show the
+    slot SHAPE rather than the layout mode - automatic against imposed.
   */
   {
     _type: 'mediaRowSection',
@@ -139,6 +155,40 @@ const blockFixtures = [
       {_type: 'mediaImage', _key: 'a', image: {...ref(STATIC_IMAGE), alt: 'Square source'}},
       {_type: 'mediaImage', _key: 'b', image: {...ref(ANIMATED_GIF_A), alt: 'Square source'}},
       {_type: 'mediaImage', _key: 'c', image: {...ref(ANIMATED_GIF_B), alt: 'Square source'}},
+    ],
+  },
+  /*
+    THE DEFAULT, on the content that proved it was needed.
+
+    No cellShape, so the slots take the widest poster's ratio. Measured at
+    1440px: three 443x553 slots, every poster at the row's full height, and
+    the only space added is beside the 0.750 one. Compare the row below it,
+    which is what a fixed 3:2 default did to the same three - 443x295, under
+    half the area, banded either side of all three. Nothing was ever
+    stretched in either; the difference is entirely which shape the row was
+    told to be.
+  */
+  {
+    _type: 'mediaRowSection',
+    _key: 'row-layout-auto',
+    rowLayout: 'fit',
+    heading: 'Layout: equal slots, automatic slot shape (the default) - three posters of three portrait ratios',
+    items: [
+      {_type: 'mediaImage', _key: 'a', image: {...ref(POSTER_800), alt: 'Poster, 4:5'}},
+      {_type: 'mediaImage', _key: 'b', image: {...ref(POSTER_750), alt: 'Poster, 3:4'}},
+      {_type: 'mediaImage', _key: 'c', image: {...ref(POSTER_801), alt: 'Poster, roughly 4:5'}},
+    ],
+  },
+  {
+    _type: 'mediaRowSection',
+    _key: 'row-layout-auto-overridden',
+    rowLayout: 'fit',
+    cellShape: '3 / 2',
+    heading: 'The same three in imposed landscape (3:2) slots - what a fixed default cost them',
+    items: [
+      {_type: 'mediaImage', _key: 'a', image: {...ref(POSTER_800), alt: 'Poster, 4:5'}},
+      {_type: 'mediaImage', _key: 'b', image: {...ref(POSTER_750), alt: 'Poster, 3:4'}},
+      {_type: 'mediaImage', _key: 'c', image: {...ref(POSTER_801), alt: 'Poster, roughly 4:5'}},
     ],
   },
   {

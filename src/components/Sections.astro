@@ -163,6 +163,41 @@ function mediaRowStyle(items: any[]): string {
 }
 
 /*
+  THE SHAPE OF AN EQUAL SLOT, when the row has not been told one.
+
+  A fixed default was the wrong idea and it shipped. "Equal slots" defaulted
+  to 3:2, so Two Point Oh's three posters - 0.800, 0.750 and 0.801, all
+  portrait - were each dropped inside a landscape box. Nothing was distorted;
+  measured in Chromium the shape is kept exactly. But the pictures went from
+  450x582 to about 236x295, under half the area, with grey either side of
+  every one. Chris described it as distorted and height-shrunk, and he was
+  right about everything except the mechanism: the row was obeying a default
+  that had nothing to do with what was in it.
+
+  So the default follows the pictures. The slot takes the WIDEST item's
+  ratio, which is the one value that costs nothing:
+
+    - that item fills its slot exactly
+    - every narrower item fills the slot's HEIGHT, with a band at the sides
+
+  So no picture is ever made shorter than the row, the heights are level, the
+  widths are equal, and the only space introduced is beside the narrower
+  items - which is the Pentagram grid this was built to get. Under `fill` the
+  same choice makes the crop the smallest one available.
+
+  A named shape still wins when it is set: a row of phone-shaped video wants
+  to be told it is 4:5 rather than to work it out. And self-hosted video is
+  skipped for the reason given on mediaAspect - a file asset carries no
+  dimensions, so its ratio here would be a guess that then sized every slot.
+*/
+function cellAspect(section: any, items: any[]): string {
+  if (section.cellShape && section.cellShape !== 'auto') return section.cellShape;
+  const ratios = items.filter((item) => !isSelfHostedVideo(item)).map(mediaAspect);
+  if (!ratios.length) return '3 / 2';
+  return Math.max(...ratios).toFixed(4);
+}
+
+/*
   How tall a row of n plates may get. See --row-max in global.css: a safety
   valve for ratios that would otherwise run away, not a size, so it is set
   high enough to stay out of the way in ordinary rows.
@@ -542,7 +577,7 @@ function rowStyle(images: any[]): string {
               section.rowLayout && section.rowLayout !== 'shape' && 'has-slots',
             ]}
             data-fit={section.rowLayout === 'fill' || section.rowLayout === 'fit' ? section.rowLayout : undefined}
-            style={`${mediaRowStyle(items)};--cell-ar:${section.cellShape ?? '3 / 2'}`}
+            style={`${mediaRowStyle(items)};--cell-ar:${cellAspect(section, items)}`}
           >
             {items.map((item: any, i: number) => (
               <figure

@@ -3276,6 +3276,67 @@ main {
   min-width: 0;
 }
 
+/*
+  EQUAL SLOTS - the other way a row can divide its width.
+
+  The default above gives each item a width from its own shape, so a wide
+  photo beside a tall one splits the row 69/31, and a row of tall items pulls
+  in narrower than a row of wide ones. It never crops, which is right for work
+  whose edges matter.
+
+  This is the opposite discipline, and it is why a page of loosely shaped
+  images can read as a grid: every slot the same width, every row the same
+  width, whatever is in them. The slot's shape is AUTHORED (--cell-ar) rather
+  than derived, because the entire point is that it does not follow the
+  content.
+
+  A fixed slot forces a choice, and data-fit carries it:
+
+    fill   the item covers the slot and is cropped - right for photography
+    fit    the item sits inside at its own shape, with the band showing
+           through either side. That space is the design rather than a gap -
+           the same idea as videoPosterBackground padding a small logomark
+           inside a block so it reads as presented rather than as a crop.
+
+  ABOVE THE PHONE BREAKPOINT ONLY. Below it a row is either stacked full-width
+  or a swipeable strip, and both already give every item the same width - so
+  equal slots is a question that only arises once items share a line, and
+  applying it inside .is-strip would fight the strip's own sizing.
+*/
+@media (min-width: 40.0625rem) {
+  .media-row__items.has-slots {
+    /* --row-cap exists to stop an aspect-driven row running away vertically.
+       Here the height comes from the slot shape, so there is nothing to cap
+       and the row simply takes the room it is given. */
+    --row-w: var(--row-room);
+  }
+
+  /* Names the parent so it outranks both .media-row__item's aspect-driven
+     grow and .media-row__item--video's flex: 0 1 auto. */
+  .media-row__items.has-slots > .media-row__item {
+    flex: 1 1 0;
+    aspect-ratio: var(--cell-ar, 3 / 2);
+  }
+
+  .media-row__items.has-slots > .media-row__item > img,
+  .media-row__items.has-slots > .media-row__item .work-video-frame,
+  .media-row__items.has-slots > .media-row__item .video,
+  .media-row__items.has-slots > .media-row__item .video__el {
+    width: 100%;
+    height: 100%;
+  }
+
+  .media-row__items.has-slots[data-fit='fill'] > .media-row__item > img,
+  .media-row__items.has-slots[data-fit='fill'] > .media-row__item .video__el {
+    object-fit: cover;
+  }
+
+  .media-row__items.has-slots[data-fit='fit'] > .media-row__item > img,
+  .media-row__items.has-slots[data-fit='fit'] > .media-row__item .video__el {
+    object-fit: contain;
+  }
+}
+
 /* Content-sized, taking no share of the row. Was an inline `flex: 0 1 auto`,
    which no stylesheet could adjust; a class can be. */
 .media-row__item--video {

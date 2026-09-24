@@ -363,6 +363,58 @@ export const mediaRowSection = defineType({
       type: 'string',
       description: 'Optional heading above the row.',
     }),
+    /*
+      HOW THE ROW DIVIDES ITS WIDTH.
+
+      By default each item's width comes from its own shape, so a wide photo
+      beside a tall one splits the row 69/31, and a row of tall items pulls in
+      narrower than a row of wide ones. Nothing is ever cropped, which is the
+      right default for work whose edges matter - a mark, a flyer, a poster.
+
+      Equal slots is the other discipline, and it is what makes a page of
+      loose images read as a grid: every slot the same width, every row the
+      same width, whatever is in them. The cost is that an item whose shape
+      differs from the slot has to either be cropped or sit inside with space
+      around it - so that choice is the same field.
+    */
+    defineField({
+      name: 'rowLayout',
+      title: 'Layout',
+      type: 'string',
+      options: {
+        list: [
+          {title: 'Sized by shape - widths follow each image, never cropped', value: 'shape'},
+          {title: 'Equal slots - images sit inside, never cropped', value: 'fit'},
+          {title: 'Equal slots - images fill the slot and are cropped', value: 'fill'},
+        ],
+        layout: 'radio',
+      },
+      initialValue: 'shape',
+      description:
+        'Equal slots keeps every row the same width, which reads as a grid ' +
+        'rather than a stack of rows. Use "fill" for photography that can ' +
+        'take a crop, and "sit inside" for artwork whose edges matter.',
+    }),
+    defineField({
+      name: 'cellShape',
+      title: 'Slot shape',
+      type: 'string',
+      // Meaningless while widths come from the images themselves.
+      hidden: ({parent}: any) => !parent?.rowLayout || parent.rowLayout === 'shape',
+      options: {
+        list: [
+          {title: 'Wide (2:1)', value: '2 / 1'},
+          {title: 'Landscape (3:2)', value: '3 / 2'},
+          {title: 'Square (1:1)', value: '1 / 1'},
+          {title: 'Tall (4:5)', value: '4 / 5'},
+        ],
+        layout: 'radio',
+      },
+      initialValue: '3 / 2',
+      description:
+        'The shape of every slot in this row. Tall suits a row of phone-shaped ' +
+        'video; landscape suits most photography.',
+    }),
   ],
   /*
     Counts the videos, because "3 item(s)" does not tell you a row contains

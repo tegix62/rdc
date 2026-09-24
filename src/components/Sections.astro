@@ -533,8 +533,16 @@ function rowStyle(images: any[]): string {
                 pair, and at that count fitting them costs more than it buys.
               */
               isStripRow(items) && 'is-strip',
+              /*
+                Equal slots, from the row's own setting. The class carries
+                only the fact that slots are equal; data-fit says what an item
+                does when its shape is not the slot's, because those are two
+                different questions and CSS reads them in different places.
+              */
+              section.rowLayout && section.rowLayout !== 'shape' && 'has-slots',
             ]}
-            style={mediaRowStyle(items)}
+            data-fit={section.rowLayout === 'fill' || section.rowLayout === 'fit' ? section.rowLayout : undefined}
+            style={`${mediaRowStyle(items)};--cell-ar:${section.cellShape ?? '3 / 2'}`}
           >
             {items.map((item: any, i: number) => (
               <figure

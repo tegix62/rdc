@@ -150,7 +150,15 @@ const blockFixtures = [
         {
           _type: 'mediaRowSection',
           _key: 'row-autoplay',
-          heading: 'Uploaded file, autoplaying silently on a loop',
+          /*
+            Named for both states, because the left-hand clip genuinely has
+            two and the caption used to assert only one. Anyone with "reduce
+            motion" on saw a still frame under the words "autoplaying
+            silently on a loop" - a style guide describing behaviour the
+            viewer is not getting is worse than no caption, since the natural
+            reading is that the feature is broken.
+          */
+          heading: 'Uploaded file: set to autoplay, beside the same file set to click',
           items: [
             {
               _type: 'mediaVideo',
@@ -158,14 +166,15 @@ const blockFixtures = [
               videoFile: {asset: {url: uploaded.mp4}},
               videoWebm: uploaded.webm ? {asset: {url: uploaded.webm}} : undefined,
               videoPlayback: 'autoplay',
-              caption: 'Autoplay, muted, looping - no player script',
+              caption:
+                'Autoplay: muted, looping, no player script. With "reduce motion" on it holds still and the pill reads Play - that is the setting working, not a failure.',
             },
             {
               _type: 'mediaVideo',
               _key: 'b',
               videoFile: {asset: {url: uploaded.mp4}},
               videoPlayback: 'click',
-              caption: 'Same file, click to play with controls',
+              caption: 'Same file, click to play with the browser’s own controls',
             },
           ],
         },
@@ -249,6 +258,18 @@ const blockFixtures = [
     Every block available in Studio, rendered with fixture content. Two of the
     GIFs below are genuinely animated files from the dataset, so this also
     checks that animated sources bypass the resize pipeline.
+  </p>
+  <p class="style-guide-note">
+    <strong>Your motion setting:</strong>
+    <span class="reduce-motion__off">
+      normal — the autoplay clip below should start on its own, with a Pause
+      control.
+    </span>
+    <span class="reduce-motion__on">
+      <strong>reduce motion is ON</strong> — autoplay is disabled here by
+      design, so that clip holds still and offers a Play control instead.
+      Nothing is broken; turn the system setting off to see it autoplay.
+    </span>
   </p>
   <Sections sections={blockFixtures} />
 

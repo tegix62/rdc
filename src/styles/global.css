@@ -5408,6 +5408,31 @@ body {
   display: none;
 }
 
+/*
+  The same idea for motion, on the same page and for the same reason.
+
+  "The autoplay video isn't autoplaying" has two causes that look identical -
+  reduced motion is on and the site is correctly declining, or autoplay was
+  blocked and something is actually wrong - and telling them apart from a
+  description cost a round trip. This reports the browser's own answer, so the
+  page says which of the two you are looking at before you ask.
+
+  Prototype scaffolding on /style-guide, like the panorama readout above.
+*/
+.reduce-motion__on {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reduce-motion__off {
+    display: none;
+  }
+
+  .reduce-motion__on {
+    display: inline;
+  }
+}
+
 @supports (animation-timeline: view()) {
   .panorama-support__no {
     display: none;

@@ -66,7 +66,9 @@ const dims = (img) => {
   const m = typeof ref === 'string' ? ref.match(/-(\d+)x(\d+)-/) : null
   if (!m) return ''
   const [w, h] = [Number(m[1]), Number(m[2])]
-  return `  ${w}x${h} (aspect ${(w / h).toFixed(3)})`
+  // The whole reference too: it is what a style-guide fixture has to name in
+  // order to demonstrate a layout against real content rather than a stand-in.
+  return `  ${w}x${h} (aspect ${(w / h).toFixed(3)})  ${ref}`
 }
 
 const describe = (doc, label) => {

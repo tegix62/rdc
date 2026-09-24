@@ -99,8 +99,24 @@ const blockFixtures = [
     _type: 'mediaRowSection',
     _key: 'row-layout-fit',
     rowLayout: 'fit',
-    cellShape: '4 / 5',
-    heading: 'Layout: equal slots, images sit inside - tall (4:5) slots, nothing cropped',
+    /*
+      SQUARE slots for square sources, which is the rule this mode lives or
+      dies by: match the slot to the content.
+
+      This demo was 4:5, and with these square fixtures that is the worst
+      possible pairing - every image letterboxed to 467x467 inside a 583-tall
+      slot, banded top and bottom, reading as though the pictures had been
+      shrunk for no reason. The geometry was right (nothing is ever stretched
+      - measured, a circle stays circular) but the demonstration made a
+      correct mode look broken, which is worse than not demonstrating it.
+
+      Mismatch mattes, it does not crop. That is the whole point of "fit" and
+      it is the right behaviour for a mark or a poster whose edges matter -
+      but it is a fallback for when the shape cannot be helped, not a look to
+      design towards.
+    */
+    cellShape: '1 / 1',
+    heading: 'Layout: equal slots, images sit inside - square (1:1) slots matching square sources, nothing cropped',
     items: [
       {_type: 'mediaImage', _key: 'a', image: {...ref(STATIC_IMAGE), alt: 'Square source'}},
       {_type: 'mediaImage', _key: 'b', image: {...ref(ANIMATED_GIF_A), alt: 'Square source'}},
@@ -112,7 +128,13 @@ const blockFixtures = [
     _key: 'row-layout-fill',
     rowLayout: 'fill',
     cellShape: '3 / 2',
-    heading: 'Layout: equal slots, images fill - landscape (3:2) slots, cropped to fit',
+    /*
+      Deliberately the mismatched case, and the counterpart to the row above:
+      the same square sources in landscape slots. "fill" crops them to the
+      slot; "fit" would have matted them. Between the two rows you can see
+      what each does with a shape that is not the slot's.
+    */
+    heading: 'Layout: equal slots, images fill - landscape (3:2) slots, square sources cropped to fit',
     items: [
       {_type: 'mediaImage', _key: 'a', image: {...ref(STATIC_IMAGE), alt: 'Square source'}},
       {_type: 'mediaImage', _key: 'b', image: {...ref(ANIMATED_GIF_A), alt: 'Square source'}},

@@ -68,6 +68,7 @@ export default defineType({
         {type: 'videoSection'},
         {type: 'mediaRowSection'},
         {type: 'mediaTextSection'},
+        {type: 'aestheticRangeSection'},
       ],
     }),
   ],

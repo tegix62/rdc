@@ -157,7 +157,8 @@ check(
   there is no thumbnail, so on some Grid Items it is the only image there is.
 */
 const PAGE_ONLY = [
-  'heroVideo', 'headline', 'subtitle', 'oneLineSummary', 'summary', 'resultStat',
+  'heroVideo', 'heroVideoSrc', 'heroVideoFile', 'heroVideoWebm', 'heroVideoPlayback',
+  'headline', 'subtitle', 'oneLineSummary', 'summary', 'resultStat',
   'client', 'clientLogo', 'sections', 'principalType', 'principalTypeUrl',
   'credits', 'body', 'servicesRendered', 'merchGrid', 'flyerGrid', 'processGrid',
   'filmEmbed', 'accentColor',

@@ -1,5 +1,6 @@
 import {defineField, defineType} from 'sanity'
 import {imageSpec} from './imageFields'
+import {VideoUpload} from '../components/VideoUpload'
 
 const CATEGORIES = ['Brand Identity', 'Merch & Apparel', 'Typography', 'Illustration', 'Photography']
 const ASSET_TYPES = [
@@ -223,6 +224,75 @@ export default defineType({
         'INSTEAD of Main Project Image - the image is not shown above it. For a ' +
         'video further down the page, use the field near the bottom of this tab.',
     }),
+    /*
+      THE SELF-HOSTED HERO, which the template has been reading for months
+      from fields that existed in no schema.
+
+      work/[slug].astro reads heroVideoFile, heroVideoWebm and
+      heroVideoPlayback, and none of the three was declared anywhere - so a
+      hero video set as an uploaded file would render on the page with no
+      field in Studio to edit it through. Undeclared is also unsettable, so
+      in practice the branch was simply dead.
+
+      heroVideoSrc is new, and it is the one that matters. `heroVideo` above
+      is a url, and Video.astro only treats a source as self-hosted when it
+      arrives as an uploaded file or through the videoSrc prop - so pasting an
+      R2 link into heroVideo produced no video at all: not an embed, because
+      it is not YouTube or Vimeo, and not a file, because a url is not one.
+      The hero was the only place on the site with no R2 path.
+
+      Same order as a section's video block: the R2 field first as the one to
+      reach for, the slow Sanity uploads folded behind it.
+    */
+    defineField({
+      name: 'heroVideoSrc',
+      title: 'Or a self-hosted hero video (R2)',
+      type: 'url',
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+      components: {input: VideoUpload},
+      description:
+        'Drop a video or paste a URL. Uploads go straight to R2 - no Sanity ' +
+        'upload stalls. Use this for a short silent loop; use the YouTube or ' +
+        'Vimeo field above for anything long or with sound.',
+    }),
+    defineField({
+      name: 'heroVideoFile',
+      title: 'Or upload the hero via Sanity (MP4) - slow for large files',
+      type: 'file',
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+      options: {accept: '.mp4,.mov,.m4v,video/mp4,video/quicktime'},
+      description: 'Prefer the R2 field above; this uploads through Sanity and can stall.',
+    }),
+    defineField({
+      name: 'heroVideoWebm',
+      title: 'Or upload the hero via Sanity (WebM)',
+      type: 'file',
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+      options: {accept: '.webm,video/webm'},
+      description: 'Same clip as WebM - usually smaller than MP4.',
+    }),
+    defineField({
+      name: 'heroVideoPlayback',
+      title: 'Hero playback',
+      type: 'string',
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+      options: {
+        list: [
+          {title: 'Autoplay, silent, looping (default)', value: 'autoplay'},
+          {title: 'Click to play (centered button)', value: 'click'},
+          {title: 'Poster with corner play button', value: 'poster'},
+        ],
+        layout: 'radio',
+      },
+      initialValue: 'autoplay',
+      description:
+        'The template already defaults a hero to autoplay, which is what a ' +
+        'short silent loop wants. Autoplay only works on a self-hosted file.',
+    }),
     defineField({
       name: 'headline',
       title: 'Display Headline - overrides Title in the big heading',
@@ -352,6 +422,7 @@ export default defineType({
         {type: 'statCalloutSection'},
         {type: 'achievementsSection'},
         {type: 'videoHeroSection'},
+        {type: 'aestheticRangeSection'},
         {type: 'twoUpSection', title: 'Two Images (use Media Row)'},
         {type: 'threeUpSection', title: 'Three Images (use Media Row)'},
         {type: 'imageTextSection', title: 'Image + Text (use Media + Text)'},

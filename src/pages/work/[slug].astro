@@ -73,8 +73,17 @@ const description = caseStudyDescription(caseStudy);
 // duplicated chains, one of which would eventually have drifted.
 const ogImage =
   socialCardUrl(caseStudy.mainImage) ?? socialCardUrl(caseStudy.thumbnail) ?? undefined;
+/*
+  heroVideoSrc first, and not through fileUrl(): it is already a URL rather
+  than a Sanity file asset. Without it a hero self-hosted on R2 - now the
+  recommended path - would share with no video at all, while the two slow
+  upload fields it replaced would have shared fine.
+*/
 const ogVideo =
-  fileUrl(caseStudy.heroVideoWebm) ?? fileUrl(caseStudy.heroVideoFile) ?? undefined;
+  (typeof caseStudy.heroVideoSrc === 'string' ? caseStudy.heroVideoSrc : null) ??
+  fileUrl(caseStudy.heroVideoWebm) ??
+  fileUrl(caseStudy.heroVideoFile) ??
+  undefined;
 const gated = !!caseStudy.accessPassword;
 ---
 
@@ -92,10 +101,18 @@ const gated = !!caseStudy.accessPassword;
     the port's invention. Setting Hero Video swaps the two rather than adding to
     them.
   */}
-  {caseStudy.heroVideo || caseStudy.heroVideoFile || caseStudy.heroVideoWebm ? (
+  {/*
+    heroVideoSrc is the R2 path, and its absence is why the hero was the only
+    video on the site that could not be self-hosted: Video.astro decides
+    `selfHosted` from an uploaded file or the videoSrc prop, and this block
+    passed neither for a pasted link. So an R2 URL in heroVideo produced
+    nothing at all - not an embed (it is not YouTube or Vimeo) and not a file.
+  */}
+  {caseStudy.heroVideo || caseStudy.heroVideoSrc || caseStudy.heroVideoFile || caseStudy.heroVideoWebm ? (
     <div class="work-hero work-hero--video full-bleed">
       <Video
         url={caseStudy.heroVideo}
+        videoSrc={caseStudy.heroVideoSrc}
         file={caseStudy.heroVideoFile}
         webm={caseStudy.heroVideoWebm}
         poster={caseStudy.mainImage ?? caseStudy.thumbnail}

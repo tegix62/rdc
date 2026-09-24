@@ -2909,10 +2909,32 @@ main {
   text-decoration: underline;
 }
 
+/*
+  ONE GAP, HORIZONTAL AND VERTICAL.
+
+  The space between two images in a row was 24px and the space between two
+  rows was 96px - 48px of flex gap here plus another 48px of padding on the
+  rule below, stacking without either knowing about the other. Four to one.
+
+  That ratio is what made the band read as a stack of separate rows rather
+  than one field of work. On the reference Chris brought (Pentagram's National
+  case study) the vertical and horizontal gutters are the same, which is
+  exactly what makes a page of loose images read as a grid.
+
+  Equal now, from the same variable the rows use, so the two cannot drift
+  apart again. The row gap stays --space-3 rather than moving to a new name,
+  because --row-cap's arithmetic counts gaps in --space-3 and a second name
+  would be one more thing to keep in step.
+
+  What this genuinely gives up: 96px said "a new thought starts here", and a
+  Media Row is an authored group. At 24px the band is continuous and the
+  grouping is carried by the images alone. That is the trade the reference
+  makes too.
+*/
 .work-band__inner {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-3);
   max-width: var(--content-width);
   margin: 0 auto;
   padding: 0 var(--space-3);
@@ -2956,25 +2978,19 @@ main {
   bound. It ended up reading as a horizontal scratch across the accent every
   few screens rather than as structure.
 
-  The air stays, and does the whole job: the gap above plus this padding is
-  the interval that says one idea has ended, which is what the rule was
-  actually being credited for. Kept symmetrical for the same reason it was
-  before - uneven space between two sections makes the interval look like it
-  belongs to one of them.
+  The air stays and does the whole job - but it is now the flex gap ALONE.
+  This padding used to sit on top of it, so the interval was 96px while the
+  gap between two images in the same row was 24px, and nothing in either rule
+  mentioned the other. Removed rather than reduced: two independent sources
+  for one measurement is how they got four to one apart in the first place.
 */
-.work-band__inner > .work-section + .work-section {
-  padding-top: var(--space-5);
-}
 
 @media (max-width: 40rem) {
   .work-band__inner {
     padding: 0 var(--space-2);
-    gap: var(--space-4);
-  }
-
-  /* Follows the gap down, so the interval stays even on a phone too. */
-  .work-band__inner > .work-section + .work-section {
-    padding-top: var(--space-4);
+    /* Same rule as the desktop: one gap, matching the one between images in
+       a row, so the band reads as a field at every width. */
+    gap: var(--space-3);
   }
 }
 

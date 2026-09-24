@@ -209,6 +209,29 @@ const blockFixtures = [
       {_type: 'mediaImage', _key: 'b', image: {...ref(STATIC_IMAGE), alt: 'Mobile mockup'}, caption: 'Mockup'},
     ],
   },
+  /*
+    The same block with nothing written in it - which is how a single picture
+    gets placed, and was how two pictures on Two Point Oh ended up hanging
+    off-centre in the left half of an otherwise empty block. One column now,
+    and the standalone plate's ceiling: measured at 1512px it centres on 756
+    like everything else on the page, where before it centred on 386.
+
+    A portrait source on purpose. Landscape fills the column either way, so
+    the old behaviour and the new one are indistinguishable on one - and it
+    was the portrait pictures that showed it.
+  */
+  /* Labelled from outside, because the block being demonstrated is the one
+     with no heading of its own to label it with. */
+  {
+    _type: 'textSection',
+    _key: 'mt-alone-label',
+    heading: 'Media + Text with nothing written in it - one column, centred on the measure',
+  },
+  {
+    _type: 'mediaTextSection',
+    _key: 'mt-alone',
+    image: {...ref(POSTER_750), alt: 'Poster, 3:4'},
+  },
   {
     _type: 'mediaTextSection',
     _key: 'mt-video',

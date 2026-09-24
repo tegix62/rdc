@@ -44,6 +44,32 @@ function aspect(image: any): number {
 }
 
 /*
+  A TEXT HALF WITH NOTHING IN IT IS NOT A HALF.
+
+  Image + Text and Media + Text are two-column blocks, and the text column was
+  emitted whether or not anything went in it. Used as a way to place a single
+  picture - which is what Two Point Oh does twice - that produced a picture
+  sitting in the LEFT HALF of a block whose right half was empty, and so hung
+  off-centre with no relation to anything above or below it. Measured on that
+  page at 1512px: the plate rows run edge to edge on the imagery measure, the
+  full-bleed photo centres on the page, and those two pictures centred on the
+  left column instead - three different centres down one page, which is what
+  Chris saw as the widths being mixed up.
+
+  It also made --image-text-fit the wrong ceiling. That number is deliberately
+  lower than --plate-fit "because that image shares its row with a column of
+  text" (see the token). With no text, the reason for the lower ceiling is
+  gone along with the column.
+
+  So a block with no copy stops being a two-column block: one column, the
+  standalone plate's ceiling, centred on the measure - which is what a single
+  plate already does everywhere else on the page.
+*/
+function hasCopy(section: any): boolean {
+  return Boolean(section?.heading || section?.text);
+}
+
+/*
   The ratio travels as a custom property, not as flex-grow directly.
 
   It was `flex-grow: 1.7778` written inline, and an inline declaration cannot
@@ -402,12 +428,14 @@ function rowStyle(images: any[]): string {
             'work-section',
             'work-section--image-text',
             section.imagePosition === 'Right' && 'is-reversed',
+            !hasCopy(section) && 'is-alone',
           ]}
           style={ratioStyle(section.image)}
         >
           {section.image && (
             <Img image={section.image} field={`${section._type} → image`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
           )}
+          {hasCopy(section) && (
           <div class="work-section__text">
             {/*
               h2, not h3: every section here is a direct, one-per-section
@@ -423,6 +451,7 @@ function rowStyle(images: any[]): string {
             {section.heading && <h2 class="t-h3">{section.heading}</h2>}
             {section.text && <p>{section.text}</p>}
           </div>
+          )}
         </div>
       );
     case 'videoSection':
@@ -629,6 +658,7 @@ function rowStyle(images: any[]): string {
             'work-section',
             'work-section--image-text',
             section.mediaPosition === 'Right' && 'is-reversed',
+            !hasCopy(section) && 'is-alone',
           ]}
           style={ratioStyle(section.image)}
         >
@@ -654,11 +684,13 @@ function rowStyle(images: any[]): string {
               <Img image={section.image} field={`${section._type} → image`} width={1200} sizes="(max-width: 40rem) 100vw, 50vw" />
             )
           )}
+          {hasCopy(section) && (
           <div class="work-section__text">
             {/* h2 - see the comment on imageTextSection's heading above. */}
             {section.heading && <h2 class="t-h3">{section.heading}</h2>}
             {section.text && <p>{section.text}</p>}
           </div>
+          )}
         </div>
       );
     case 'aestheticRangeSection': {

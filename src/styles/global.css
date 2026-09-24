@@ -3093,6 +3093,25 @@ main {
     max-width: calc(var(--image-text-fit) * var(--ar, 3));
     margin-inline: auto;
   }
+
+  /*
+    Standing alone, it takes the STANDALONE PLATE's ceiling.
+
+    --image-text-fit is held below --plate-fit for one stated reason: the
+    picture shares its row with a paragraph, and 76vh of picture beside a
+    paragraph is a section you cannot take in. With no paragraph that reason
+    is gone, and holding the lower ceiling would make a picture placed on its
+    own smaller than the identical picture placed full-bleed - a difference
+    with nothing behind it.
+
+    The video frame gets the same treatment: it is the same object in the
+    same slot, and only the source differs.
+  */
+  .work-section--image-text.is-alone > img,
+  .work-section--image-text.is-alone > .work-video-frame {
+    max-width: calc(var(--plate-fit) * var(--ar, 3));
+    margin-inline: auto;
+  }
 }
 
 
@@ -3667,6 +3686,18 @@ main {
    scrolled sideways on phones once already. */
 .work-section--image-text > * {
   min-width: 0;
+}
+
+/*
+  No copy, so no second column - see hasCopy() in Sections.astro.
+
+  One column at the block's full measure, which puts the picture on the same
+  centre as every other single plate on the page instead of on the centre of
+  a half it was only occupying by accident. is-reversed is inert here: there
+  is nothing to be on the other side of.
+*/
+.work-section--image-text.is-alone {
+  grid-template-columns: 1fr;
 }
 
 .work-section--image-text.is-reversed {

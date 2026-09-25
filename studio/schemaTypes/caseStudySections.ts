@@ -11,6 +11,55 @@ import {VIDEO_FIELDSET, videoBehaviourFields, videoFieldsets} from './videoField
 */
 const image = (name: string, title: string) => defineField(imageSpec({name, title}) as any)
 
+/*
+  NAMING A BLOCK IN THE PAGE BUILDER.
+
+  The list showed each block by its TYPE - "Full Image", "Full Image", "Full
+  Image" - so a page with three of them offered three identical rows and no
+  way to tell which was the band photo. Adelante has exactly that. Finding a
+  block meant opening them one at a time.
+
+  Title and subtitle were the wrong way round. The type is the least
+  distinguishing thing about a block, because every block of that type shares
+  it; what separates them is what is IN them. So the title is now what the
+  block is about and the subtitle is what kind of block it is - which also
+  keeps the type visible, since it was worth showing, just not first.
+
+  Two ways to get a title, in order:
+
+    1. A label, typed by hand. Last in the form and never rendered - it exists
+       for this list and says so.
+    2. Failing that, whatever the block already knows: its heading, or its
+       image's alt text. Most blocks name themselves this way with nothing
+       typed, which is the point - a naming scheme that needs work to be
+       useful does not get used.
+*/
+const labelField = () =>
+  defineField({
+    name: 'label',
+    title: 'Label for the Page Builder list',
+    type: 'string',
+    description:
+      'Optional, and never appears on the site. Only for telling this block ' +
+      'apart from its neighbours in the list above - useful when a page has ' +
+      'several of the same kind.',
+  })
+
+/*
+  title = what this block is about, subtitle = what kind it is, plus whatever
+  detail the block already reported. Undefined rather than an empty string, so
+  Studio renders no subtitle at all instead of a blank line.
+*/
+const describe = (
+  kind: string,
+  name?: string,
+  ...details: (string | undefined | null)[]
+): {title: string; subtitle?: string} => {
+  const detail = details.filter(Boolean).join(' · ')
+  const subtitle = [name ? kind : null, detail || null].filter(Boolean).join(' · ')
+  return {title: name || kind, subtitle: subtitle || undefined}
+}
+
 export const fullImageSection = defineType({
   name: 'fullImageSection',
   title: 'Full Image',
@@ -36,10 +85,11 @@ export const fullImageSection = defineType({
         'through, like a large detailed drawing; be aware a square image at ' +
         'full width runs about three screens tall on a desktop.',
     }),
+    labelField(),
   ],
   preview: {
-    select: {media: 'image'},
-    prepare: ({media}) => ({title: 'Full Image', media}),
+    select: {label: 'label', alt: 'image.alt', media: 'image'},
+    prepare: ({label, alt, media}) => ({...describe('Full Image', label || alt), media}),
   },
 })
 
@@ -47,10 +97,10 @@ export const twoUpSection = defineType({
   name: 'twoUpSection',
   title: 'Two Images',
   type: 'object',
-  fields: [image('imageLeft', 'Left Image'), image('imageRight', 'Right Image')],
+  fields: [image('imageLeft', 'Left Image'), image('imageRight', 'Right Image'), labelField()],
   preview: {
-    select: {media: 'imageLeft'},
-    prepare: ({media}) => ({title: 'Two Images', media}),
+    select: {label: 'label', alt: 'imageLeft.alt', media: 'imageLeft'},
+    prepare: ({label, alt, media}) => ({...describe('Two Images', label || alt), media}),
   },
 })
 
@@ -62,10 +112,11 @@ export const threeUpSection = defineType({
     image('imageOne', 'Image One'),
     image('imageTwo', 'Image Two'),
     image('imageThree', 'Image Three'),
+    labelField(),
   ],
   preview: {
-    select: {media: 'imageOne'},
-    prepare: ({media}) => ({title: 'Three Images', media}),
+    select: {label: 'label', alt: 'imageOne.alt', media: 'imageOne'},
+    prepare: ({label, alt, media}) => ({...describe('Three Images', label || alt), media}),
   },
 })
 
@@ -84,10 +135,14 @@ export const imageTextSection = defineType({
     }),
     defineField({name: 'heading', type: 'string'}),
     defineField({name: 'text', type: 'text', rows: 4}),
+    labelField(),
   ],
   preview: {
-    select: {title: 'heading', media: 'image'},
-    prepare: ({title, media}) => ({title: title || 'Image + Text', media}),
+    select: {label: 'label', heading: 'heading', alt: 'image.alt', media: 'image'},
+    prepare: ({label, heading, alt, media}) => ({
+      ...describe('Image + Text', label || heading || alt),
+      media,
+    }),
   },
 })
 
@@ -104,11 +159,12 @@ export const videoSection = defineType({
     }),
     defineField({name: 'caption', type: 'string'}),
     ...videoBehaviourFields('primary'),
+    labelField(),
   ],
   fieldsets: videoFieldsets('primary'),
   preview: {
-    select: {subtitle: 'url'},
-    prepare: ({subtitle}) => ({title: 'Video', subtitle}),
+    select: {label: 'label', caption: 'caption', url: 'url'},
+    prepare: ({label, caption, url}) => describe('Video Embed', label || caption, url),
   },
 })
 
@@ -132,10 +188,11 @@ export const statCalloutSection = defineType({
       type: 'string',
       description: 'e.g. "Increase in Yearly Revenue"',
     }),
+    labelField(),
   ],
   preview: {
-    select: {title: 'heading', subtitle: 'statValue'},
-    prepare: ({title, subtitle}) => ({title: title || 'Stat Callout', subtitle}),
+    select: {label: 'label', heading: 'heading', stat: 'statValue'},
+    prepare: ({label, heading, stat}) => describe('Stat Callout', label || heading, stat),
   },
 })
 
@@ -152,10 +209,11 @@ export const textSection = defineType({
       type: 'array',
       of: [{type: 'block'}],
     }),
+    labelField(),
   ],
   preview: {
-    select: {title: 'heading'},
-    prepare: ({title}) => ({title: title || 'Text'}),
+    select: {label: 'label', heading: 'heading'},
+    prepare: ({label, heading}) => describe('Text', label || heading),
   },
 })
 
@@ -173,10 +231,11 @@ export const achievementsSection = defineType({
       type: 'array',
       of: [{type: 'block'}],
     }),
+    labelField(),
   ],
   preview: {
-    select: {media: 'imageLeft'},
-    prepare: ({media}) => ({title: 'Achievements', media}),
+    select: {label: 'label', alt: 'imageLeft.alt', media: 'imageLeft'},
+    prepare: ({label, alt, media}) => ({...describe('Achievements', label || alt), media}),
   },
 })
 
@@ -196,11 +255,12 @@ export const videoHeroSection = defineType({
     }),
     defineField({name: 'heading', type: 'string'}),
     ...videoBehaviourFields('primary'),
+    labelField(),
   ],
   fieldsets: videoFieldsets('primary'),
   preview: {
-    select: {title: 'heading', subtitle: 'url'},
-    prepare: ({title, subtitle}) => ({title: title || 'Video Hero', subtitle}),
+    select: {label: 'label', heading: 'heading', url: 'url'},
+    prepare: ({label, heading, url}) => describe('Video Hero', label || heading, url),
   },
 })
 
@@ -265,10 +325,11 @@ export const aestheticRangeSection = defineType({
         },
       ],
     }),
+    labelField(),
   ],
   preview: {
-    select: {title: 'heading'},
-    prepare: ({title}) => ({title: title || 'Aesthetic Range', subtitle: 'Icon tray'}),
+    select: {label: 'label', heading: 'heading'},
+    prepare: ({label, heading}) => describe('Aesthetic Range', label || heading, 'Icon tray'),
   },
 })
 
@@ -428,6 +489,7 @@ export const mediaRowSection = defineType({
         'want one imposed - Tall for a row of phone-shaped video, Landscape ' +
         'across several rows of photography that should all match.',
     }),
+    labelField(),
   ],
   /*
     Counts the videos, because "3 item(s)" does not tell you a row contains
@@ -435,13 +497,13 @@ export const mediaRowSection = defineType({
     page while being listed under a name that does not say so.
   */
   preview: {
-    select: {heading: 'heading', items: 'items'},
-    prepare: ({heading, items}) => {
+    select: {label: 'label', heading: 'heading', items: 'items'},
+    prepare: ({label, heading, items}) => {
       const n = items?.length ?? 0
       const videos = (items ?? []).filter((i: any) => i?._type === 'mediaVideo').length
-      const parts = [`${n} item${n === 1 ? '' : 's'}`]
-      if (videos) parts.push(`${videos} video${videos === 1 ? '' : 's'}`)
-      return {title: heading || 'Media Row', subtitle: parts.join(' · ')}
+      const count = `${n} item${n === 1 ? '' : 's'}`
+      const clips = videos ? `${videos} video${videos === 1 ? '' : 's'}` : undefined
+      return describe('Media Row', label || heading, count, clips)
     },
   },
 })
@@ -484,6 +546,7 @@ export const mediaTextSection = defineType({
         'above - the image is not shown. Leave empty for an image.',
     }),
     ...videoBehaviourFields('optional'),
+    labelField(),
   ],
   fieldsets: videoFieldsets('optional'),
   /*
@@ -497,16 +560,21 @@ export const mediaTextSection = defineType({
   */
   preview: {
     select: {
-      title: 'heading',
+      label: 'label',
+      heading: 'heading',
+      alt: 'image.alt',
       media: 'image',
       url: 'videoUrl',
       src: 'videoSrc',
       file: 'videoFile.asset._ref',
       webm: 'videoWebm.asset._ref',
     },
-    prepare: ({title, media, url, src, file, webm}) => ({
-      title: title || 'Media + Text',
-      subtitle: url || src || file || webm ? 'Video (plays instead of the image)' : undefined,
+    prepare: ({label, heading, alt, media, url, src, file, webm}) => ({
+      ...describe(
+        'Media + Text',
+        label || heading || alt,
+        url || src || file || webm ? 'video plays instead of the image' : undefined,
+      ),
       media,
     }),
   },

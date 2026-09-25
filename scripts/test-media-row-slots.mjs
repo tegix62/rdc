@@ -51,6 +51,28 @@ const fail = (message) => {
   problems += 1
 }
 
+/*
+  What src/lib/measure.ts assumes, resolved at THIS viewport.
+
+  The build warning predicts a block's width from these tokens, and nothing at
+  build time has a layout to read them from - so they are a second copy of
+  numbers that live in global.css, which is how two mechanisms for one job
+  drift apart. This is the thing that stops them: change a token in the
+  stylesheet without changing the module and the check fails naming both.
+
+  Custom properties do not resolve through getPropertyValue - it hands back
+  '76vh', not pixels - so each one is measured by giving a probe element that
+  width and reading the box.
+*/
+const ASSUMED = {
+  '--plate-fit': 684, // 76vh of 900
+  '--space-3': 24, // 1.5rem
+  '--space-4': 32, // 2rem
+  '--wide-room': 1448, // min(100vw - 2 * --space-4, 100rem) at 1512
+  'row-max, two-up': 612, // min(68vh, 44rem)
+  'row-max, three-up': 558, // min(62vh, 40rem)
+}
+
 const browser = await chromium.launch()
 const page = await browser.newPage({viewport: WIDTH})
 
@@ -182,10 +204,55 @@ for (const path of PATHS) {
   }
 }
 
+/*
+  The tokens themselves, measured once - on whichever page loaded last, since
+  they are declared on :root and the band and are the same everywhere.
+*/
+console.log('\n=== layout tokens, against what the build warning assumes ===')
+const measured = await page.evaluate((expressions) => {
+  const host = document.querySelector('.work-band__inner') ?? document.body
+  const probe = document.createElement('div')
+  probe.style.position = 'absolute'
+  probe.style.visibility = 'hidden'
+  host.appendChild(probe)
+  const read = (value) => {
+    probe.style.width = value
+    return probe.getBoundingClientRect().width
+  }
+  const out = {
+    '--plate-fit': read('var(--plate-fit)'),
+    '--space-3': read('var(--space-3)'),
+    '--space-4': read('var(--space-4)'),
+    // --wide-room is declared on the band, which is why the probe lives there.
+    '--wide-room': read('var(--wide-room)'),
+    // Not tokens but literals in rowMaxFor() - written into the style
+    // attribute rather than the sheet, so they are read the same way.
+    'row-max, two-up': read('min(68vh, 44rem)'),
+    'row-max, three-up': read('min(62vh, 40rem)'),
+  }
+  probe.remove()
+  return out
+}, null)
+
+for (const [name, expected] of Object.entries(ASSUMED)) {
+  const actual = measured[name]
+  if (!Number.isFinite(actual) || actual === 0) {
+    fail(`${name}: could not be resolved on this page`)
+  } else if (Math.abs(actual - expected) > 1) {
+    fail(
+      `${name}: global.css resolves to ${actual.toFixed(0)}px, ` +
+        `src/lib/measure.ts assumes ${expected}px - the build warning is now predicting ` +
+        `widths from a stale token. Change both.`,
+    )
+  } else {
+    console.log(`  ok ${name.padEnd(20)} ${actual.toFixed(0)}px`)
+  }
+}
+
 console.log(
   problems
     ? `\n\n${problems} layout problem(s) found.`
-    : '\n\nEqual slots never distort, the slots are equal, and every picture block shares one centre.',
+    : '\n\nEqual slots never distort, the slots are equal, every picture block shares one centre,\nand the build warning is predicting from the tokens the stylesheet actually has.',
 )
 await browser.close()
 process.exit(problems ? 1 : 0)

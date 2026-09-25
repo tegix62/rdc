@@ -9,6 +9,7 @@ import { renderPortableText } from '../lib/portableText';
 import Video from './Video.astro';
 import { imageDimensions } from '../lib/image';
 import StripRule from './StripRule.astro';
+import { plateRowFill, singlePlateFill, fullPlateFill, fillWarning, FILLS, type Fill } from '../lib/measure';
 
 interface Props {
   sections: any[];
@@ -44,6 +45,35 @@ function aspect(image: any): number {
 }
 
 /*
+  Says so at build time when a block cannot reach its measure.
+
+  See lib/measure.ts for the arithmetic and for why this is worth saying: a
+  block bounded by its height is as wide as its shapes make it, so a portrait
+  source produces a small picture with space either side, and nothing about
+  authoring it shows that. Studio looks the same, the page builds, nothing
+  errors - and it turns up as "the widths look mixed up" in a screenshot weeks
+  later, which is exactly how it did turn up.
+
+  Warned, not failed. Every one of these can be the right call: a single 4:5
+  poster IS 38% of the measure and sometimes that is what the page wants. The
+  build's job here is to make the trade visible at the moment it is made.
+*/
+function warnIfIsland(where: string, ratios: number[], fill: Fill): void {
+  if (!ratios.length || fill.pct >= FILLS) return;
+  console.warn(fillWarning(where, fill, ratios));
+}
+
+/*
+  The ratios a block is actually laid out from - which is not simply "every
+  item". A self-hosted video sizes ITSELF and takes no share of the row (see
+  isSelfHostedVideo), so counting one would predict a width the row was never
+  going to have.
+*/
+function layoutRatios(items: any[]): number[] {
+  return items.filter((item) => !isSelfHostedVideo(item)).map(mediaAspect);
+}
+
+/*
   A TEXT HALF WITH NOTHING IN IT IS NOT A HALF.
 
   Image + Text and Media + Text are two-column blocks, and the text column was
@@ -67,6 +97,22 @@ function aspect(image: any): number {
 */
 function hasCopy(section: any): boolean {
   return Boolean(section?.heading || section?.text);
+}
+
+/*
+  A picture placed through Image + Text with nothing written is a single
+  plate, and single plates are where the shortfall is worst - a 4:5 poster
+  reaches 38% of the measure, a 3:4 shot 35%. With copy beside it the block is
+  a two-up by design and fills its half correctly, so there is nothing to say.
+*/
+function warnIfLonePlate(section: any, label: string): void {
+  if (hasCopy(section) || !section?.image) return;
+  const ratio = aspect(section.image);
+  warnIfIsland(
+    `${label} with no copy (a single plate) - pair it, or use a wider source`,
+    [ratio],
+    singlePlateFill(ratio),
+  );
 }
 
 /*
@@ -362,6 +408,18 @@ function rowStyle(images: any[]): string {
         reading of it.
       */
       const fit = section.plateFit !== 'fill';
+      /*
+        Only when the cap is on: with plateFit 'fill' the plate spans the
+        viewport by definition, and warning about a block that is doing
+        exactly what it was told is how warnings get ignored.
+      */
+      if (fit) {
+        warnIfIsland(
+          `Full Image (${section.heading ?? 'untitled'}) - set "Plate fit" to fill to let it span`,
+          [aspect(section.image)],
+          fullPlateFill(aspect(section.image)),
+        );
+      }
       return (
         <div class="work-section work-section--full" data-plate-fit={fit ? '' : undefined}>
           {/* No alt prop: it comes from the image's own field in Sanity now.
@@ -372,6 +430,11 @@ function rowStyle(images: any[]): string {
       );
     }
     case 'twoUpSection':
+      warnIfIsland(
+        'Two Up',
+        [section.imageLeft, section.imageRight].filter(Boolean).map(aspect),
+        plateRowFill([section.imageLeft, section.imageRight].filter(Boolean).map(aspect)),
+      );
       return (
         <div class="work-section work-section--two-up" style={rowStyle([section.imageLeft, section.imageRight])}>
           {[section.imageLeft, section.imageRight].map(
@@ -386,6 +449,7 @@ function rowStyle(images: any[]): string {
       );
     case 'threeUpSection': {
       const plates = [section.imageOne, section.imageTwo, section.imageThree].filter(Boolean);
+      warnIfIsland('Three Up', plates.map(aspect), plateRowFill(plates.map(aspect)));
       return (
         /*
           The outer div exists so the scroll indicator has somewhere to live.
@@ -422,6 +486,7 @@ function rowStyle(images: any[]): string {
       );
     }
     case 'imageTextSection':
+      warnIfLonePlate(section, 'Image + Text');
       return (
         <div
           class:list={[
@@ -564,6 +629,19 @@ function rowStyle(images: any[]): string {
       );
       if (items.length === 0) return null;
       /*
+        Equal slots fill the measure by construction - flex: 1 1 0 divides the
+        room rather than following the shapes - so the shortfall this warns
+        about cannot happen there. It is the aspect-driven row that is bounded
+        by its own shapes, and only that one is worth saying anything about.
+      */
+      if (!section.rowLayout || section.rowLayout === 'shape') {
+        warnIfIsland(
+          `Media Row (${section.heading ?? 'untitled'}) - or set Layout to "Equal slots"`,
+          layoutRatios(items),
+          plateRowFill(layoutRatios(items)),
+        );
+      }
+      /*
         Narrower slots want smaller files, so the srcset ceiling follows the
         item count.
 
@@ -652,6 +730,9 @@ function rowStyle(images: any[]): string {
       study hero.
     */
     case 'mediaTextSection':
+      // Only when it is an image standing alone - a video sizes itself against
+      // --video-fit and has no ratio here to predict from.
+      warnIfLonePlate(section, 'Media + Text');
       return (
         <div
           class:list={[

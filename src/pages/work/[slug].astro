@@ -104,6 +104,39 @@ const heroRatio =
   heroDims && heroDims.height > 0
     ? `--ar:${(heroDims.width / heroDims.height).toFixed(4)}`
     : undefined;
+
+/*
+  THE CLIENT MARK, SIZED BY AREA RATHER THAN BY HEIGHT.
+
+  The band capped the mark at 7rem tall and let the width fall out, which
+  treats a round seal and a long wordmark as the same size when they are not.
+  Measured against the real stylesheet, area rises linearly with the mark's
+  ratio:
+
+    1:1   round seal   112x112   12,544px²   1.00x
+    2:1   stacked      224x112   25,088px²   2.00x
+    4:1   wordmark     448x112   50,176px²   4.00x
+    6:1   long         672x112   75,264px²   6.00x
+
+  Six times the ink for the same nominal size. Two clients' marks sitting at
+  the same height in the same band therefore do not read as the same size,
+  which is the whole job of putting them in the same band.
+
+  Equal area means height x width constant, and width is height x ratio, so
+  area is height² x ratio - which makes the height 1/sqrt(ratio). Emitted as a
+  SCALE rather than a length so the phone's smaller cap scales with it and
+  there is still one number to change.
+
+  Clamped at 1, so this only ever shrinks a wide mark. A tall mark keeps
+  exactly the size it has today rather than growing into the band, which
+  would be a change nobody asked for in service of the arithmetic.
+*/
+const markDims = imageDimensions(caseStudy.clientLogo);
+const markRatio = markDims && markDims.height > 0 ? markDims.width / markDims.height : null;
+const markStyle =
+  markRatio && markRatio > 1
+    ? `--mark-scale:${(1 / Math.sqrt(markRatio)).toFixed(4)}`
+    : undefined;
 ---
 
 <Layout
@@ -197,7 +230,7 @@ const heroRatio =
       {(caseStudy.clientLogo || caseStudy.credits?.length > 0 || caseStudy.principalType) && (
         <div class="work-identity__aside">
           {caseStudy.clientLogo && (
-            <div class="work-identity__mark">
+            <div class="work-identity__mark" style={markStyle}>
               <Img image={caseStudy.clientLogo} alt={caseStudy.client ?? ''} field="clientLogo (Client's Logo)" width={340} sizes="170px" />
             </div>
           )}

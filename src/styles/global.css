@@ -2696,8 +2696,14 @@ main {
   flex-shrink: 0;
 }
 
+/*
+  --mark-scale carries the area correction - see markStyle in
+  work/[slug].astro for the arithmetic and the measurements behind it. Absent
+  (a tall or square mark, or one whose reference has no dimensions) it is 1
+  and the cap is what it always was.
+*/
 .work-identity__mark img {
-  max-height: 7rem;
+  max-height: calc(7rem * var(--mark-scale, 1));
   width: auto;
   filter: brightness(200%) grayscale(100%);
   mix-blend-mode: screen;
@@ -2705,7 +2711,9 @@ main {
 
 @media (max-width: 40rem) {
   .work-identity__mark img {
-    max-height: 4.5rem;
+    /* The same area correction, against the phone's smaller cap - which is
+       why it travels as a scale rather than as a length. */
+    max-height: calc(4.5rem * var(--mark-scale, 1));
     /* Sharing a row with the title now, so a wide mark must not squeeze it
        into a column of one word per line. */
     max-width: 30vw;

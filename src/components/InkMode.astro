@@ -38,29 +38,20 @@
   put in front of a client. Restoring the picker is a matter of rendering these
   as swatches again - nothing else has to change.
 */
-interface Props {
-  /*
-    Where to go when the switch turns ON, and when it turns OFF.
+/*
+  NO DESTINATION PROPS ANY MORE.
 
-    The archive view of the portfolio is not a restyle of the grid, it is a
-    different document - /catalog, which carries citations the grid never
-    fetches. So on the Portfolio page the switch navigates there rather than
-    trying to rearrange tiles Isotope has absolutely positioned, and on the
-    catalog it navigates back.
+  This briefly navigated: archive-on sent you to /catalog, a separate document
+  carrying citations the grid never fetches, and archive-off brought you back.
+  That page is gone, and with it the reason - the archive view is a restyle of
+  THIS grid, applied where you are standing, which is what it was before and
+  what it is again.
 
-    Direction matters, which is why these are two props rather than one URL.
-    On /portfolio only turning ON should move you; on /catalog only turning
-    OFF should. A single prop would send someone who lands on the catalog
-    with archive already off back to a page they did not ask for.
-
-    Both optional: everywhere else the switch is just a switch.
-  */
-  navigateOn?: string;
-  navigateOff?: string;
-}
-
-const {navigateOn, navigateOff} = Astro.props;
-
+  Rearranging tiles Isotope has absolutely positioned was the objection to
+  doing it in place, and it turned out to have an answer: the grid listens for
+  inkmodechange and re-arranges itself as ruled rows. One line in the page
+  that owns the grid, rather than this component knowing what a grid is.
+*/
 const PAPERS = [
   /*
     Press is the archive: plain white stock, black ink, no colour cast. Chris
@@ -109,7 +100,7 @@ const PAPERS = [
 </button>
 
 {/* Inline and un-bundled so it runs before the first paint. */}
-<script is:inline define:vars={{ PAPERS, navigateOn, navigateOff }}>
+<script is:inline define:vars={{ PAPERS }}>
   (() => {
     const root = document.documentElement;
     const KEY = 'rdc-ink';
@@ -216,23 +207,12 @@ const PAPERS = [
 
       toggle.addEventListener('click', () => {
         state.on = !state.on;
-
         /*
-          Save BEFORE navigating, and navigate before touching the DOM.
-
-          The destination reads this same localStorage key in its own
-          pre-paint script, so the new page comes up already in archive view
-          with no flash of the colour version. Repainting this page first
-          would only be a restyle the visitor sees for one frame on their way
-          out of it.
+          Saved so the choice survives a reload - the pre-paint script at the
+          top reads it back, which is what stops archive view flashing the
+          colour grid on the way in.
         */
         save();
-        const dest = state.on ? navigateOn : navigateOff;
-        if (dest) {
-          window.location.href = dest;
-          return;
-        }
-
         apply(state);
         swapArchive(state.on);
         sync();

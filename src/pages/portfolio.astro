@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import { pageDescription } from '../lib/meta';
 import Img from '../components/Img.astro';
-import ViewSwitch from '../components/ViewSwitch.astro';
+import InkMode from '../components/InkMode.astro';
 import Sections from '../components/Sections.astro';
 import { getPage, getAllGridItems } from '../lib/queries';
 // Shared with the homepage's miniature grid, so the two cannot disagree about
@@ -133,27 +133,33 @@ if (emptyFilters.length > 0) {
       </div>
 
       {/*
-        Archive: switches to /catalog, the same work arranged as a catalog.
+        Archive: the black-and-white view of this grid, in place.
 
         Last in the row and pushed to the far right on a wide screen - away
         from the filters, because it is not one.
 
-        The INK treatment behind this is shelved, not deleted: InkMode.astro,
-        the ink CSS and the authored archiveMark alternates all survive, along
-        with the inkmodechange listener further down this file. Two
-        half-formed ideas had ended up stacked on each other - a
-        black-and-white print treatment, and a catalog arrangement - and
-        neither could be judged while they were tied together. The catalog
-        stands on its own now; the ink treatment can come back on its own
-        terms.
+        THIS IS THE ORIGINAL IDEA, RESTORED. For a while the switch navigated
+        to /catalog instead - the same work arranged as a museum catalog -
+        because two half-formed ideas had ended up stacked on each other and
+        neither could be judged while they were tied together. Separating them
+        was right; the catalog was the one that turned out not to be worth
+        keeping, and it is gone.
 
-        Because InkMode no longer renders, its inline script does not run, and
-        that script is the only thing that applies data-ink - so a visitor
-        whose localStorage still says archive-on quietly returns to colour
-        rather than being stranded in a mode with no switch to leave it.
+        What comes back is the treatment that has something behind it: the
+        authored archiveMark alternates. Where a mark has been DRAWN in
+        black-and-white, archive view shows that file rather than a computed
+        approximation of it - see archiveCard() in lib/image.ts and the
+        data-archive-src swap in InkMode. Everything without one falls back to
+        the CSS threshold, so the view improves as more marks get drawn and
+        never breaks while they have not been. A catalog could not do that:
+        its citations were the same text in a different arrangement.
+
+        No destination props, so it toggles this page rather than leaving it -
+        which is what it was always meant to do. The inkmodechange listener
+        further down re-lays the grid out as ruled rows when it turns on.
       */}
       <div class="pf-group pf-group--view" role="group" aria-label="View">
-        <ViewSwitch href="/catalog" />
+        <InkMode />
       </div>
     </div>
 

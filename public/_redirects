@@ -29,3 +29,11 @@
 /home2026                            /              301
 /portfolio-copy-3                    /portfolio     301
 /case-studies/case-study-template    /portfolio     301
+
+# Not a Webflow leftover: /catalog was a page on THIS site for a while - the
+# work arranged as a museum catalog, reached by the Archive switch. Archive
+# view is a mode on /portfolio again rather than a second document, so the URL
+# has nothing behind it. It was noindex and out of the sitemap, so little
+# should point at it, but anyone holding the link lands on the page it was an
+# alternate view of rather than on a 404.
+/catalog                             /portfolio     301

@@ -207,68 +207,6 @@ export function getAllGridItems() {
 }
 
 /*
-  The catalog view (/catalog), an alternate presentation of the same work as
-  the Portfolio grid.
-
-  A separate projection rather than more fields on TILE: TILE is fetched for
-  the homepage and Portfolio on every build, and a catalog entry needs the
-  prose - client, summary - that a tile has no use for. Widening TILE would
-  put that text into two pages that never render it.
-
-  Deliberately CASE STUDIES ONLY, which is the difference from the Portfolio
-  grid. A catalog entry is a plate plus a description plus a citation, and a
-  derivative tile - a photo of one hoodie - has nothing to put in those
-  lines. Few things each worth a paragraph, rather than many things worth a
-  thumbnail.
-*/
-const CATALOG = `
-  _id, title, slug, pageType, category, assetType, client,
-  thumbnail, mainImage, oneLineSummary, summary,
-  "parentTitle": parentBrand->title,
-  "parentSlug": parentBrand->slug.current,
-  "parentType": parentBrand->pageType
-`;
-
-/*
-  The catalogued WORKS: the projects themselves, each getting a full citation.
-
-  order(title asc), deliberately, where the Portfolio grid shuffles each tier
-  on every build. A shuffle is right for a wall - it keeps the page feeling
-  alive and no tile is promised a position. It is wrong for a catalog, where
-  the number beside a work is a handle you can say out loud, and a handle
-  that changes every deploy is not a handle.
-*/
-export function getCatalogItems() {
-  return sanityClient.fetch(
-    `*[_type == "caseStudy" && pageType == "Case Study"
-       && (defined(thumbnail) || defined(mainImage))]{${CATALOG}}
-     | order(title asc)`,
-  );
-}
-
-/*
-  The PLATES: everything that is not itself a project - the individual pieces
-  a project is made of, plus the orphans.
-
-  Same content as tiers 2 and 3 of the Portfolio grid, presented as supporting
-  material rather than as equals. That distinction is the whole argument of
-  the catalog view: a photograph of one hoodie is evidence for the Adelante
-  project, not a thirteenth peer of it.
-
-  Ordered by parent so the plates cluster under the work they belong to. The
-  coalesce pushes parentless orphans to the end rather than letting a null
-  sort them to the front, which would open the section with the loosest
-  material on the site.
-*/
-export function getCatalogPlates() {
-  return sanityClient.fetch(
-    `*[_type == "caseStudy" && pageType == "Grid Item"
-       && (defined(thumbnail) || defined(mainImage))]{${CATALOG}}
-     | order(coalesce(parentBrand->title, "zzzz") asc, title asc)`,
-  );
-}
-
-/*
   The homepage work grid.
 
   Curated first: whatever is in Site Settings → Homepage Work Grid, in that

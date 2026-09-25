@@ -151,22 +151,54 @@ export const fullPlateFill = (ratio: number): Fill =>
 export const FILLS = 90;
 
 /*
-  How to say it. One line, naming the block, what it reaches, and the two ways
-  out - a different shape at this count, or more images of this shape - since
-  which one is available is a question only Chris can answer.
+  How to say it.
+
+  The first version of this said everything on every line, and the first real
+  run printed fourteen of them. Three things were wrong with that, and all
+  three are the difference between a warning that gets acted on and one that
+  gets scrolled past:
+
+    - it repeated the same paragraph of explanation fourteen times
+    - it called the viewport "the imagery measure" on full-bleed plates,
+      which are judged against a different number
+    - it offered "or 4 images of this shape" on a Full Image and on a Two Up,
+      which hold one and two images respectively. Advice that cannot be taken
+      teaches the reader the warning has not understood the block.
+
+  So: one line each, carrying only what is true of THAT block, and the
+  explanation once per build.
 */
-export function fillWarning(where: string, fill: Fill, ratios: number[]): string {
-  const shapes = ratios.map((r) => r.toFixed(2)).join(', ');
+let explained = false;
+
+export function fillWarning(
+  where: string,
+  fill: Fill,
+  ratios: number[],
+  options: {measure?: string; canHoldMore?: boolean} = {},
+): string {
+  const measure = options.measure ?? 'the imagery measure';
+  const shapes = ratios.map((r) => `${r.toFixed(2)}:1`).join(', ');
+  // Only where the block can actually take another image - a Media Row holds
+  // up to four; a Full Image, a Two Up and a lone plate hold what they hold.
   const more =
-    fill.neededCount > ratios.length && fill.neededCount <= 4
+    options.canHoldMore && fill.neededCount > ratios.length && fill.neededCount <= 4
       ? `, or ${fill.neededCount} images of this shape`
       : '';
-  return (
-    `[layout] ${where} reaches ${fill.pct.toFixed(0)}% of the imagery measure ` +
-    `(${fill.width.toFixed(0)}px of ${fill.room.toFixed(0)}px at ${REFERENCE.width}x${REFERENCE.height}), ` +
-    `so it sits as an island with space either side. Its images are ${shapes}:1; ` +
-    `filling the measure at this count needs ${fill.neededRatio.toFixed(2)}:1 each${more}. ` +
-    `A picture block is bounded by its HEIGHT, so width follows the shapes in it - ` +
-    `portrait work cannot fill a wide measure at any size.`
-  );
+
+  let line =
+    `[layout] ${where}: ${fill.pct.toFixed(0)}% of ${measure} ` +
+    `(${fill.width.toFixed(0)}px of ${fill.room.toFixed(0)}px). ` +
+    `Holds ${shapes}; fills at ${fill.neededRatio.toFixed(2)}:1 each${more}.`;
+
+  if (!explained) {
+    explained = true;
+    line +=
+      `\n         (Every picture block is bounded by its HEIGHT - --plate-fit for a ` +
+      `single plate, --row-max for a row - so a block is (sum of ratios) x that ` +
+      `height wide and its width follows the shapes in it. Measured at ` +
+      `${REFERENCE.width}x${REFERENCE.height}. Below ${FILLS}% a block reads as an ` +
+      `island with space either side; that is sometimes the right call, which is ` +
+      `why this warns and never fails. See src/lib/measure.ts.)`;
+  }
+  return line;
 }

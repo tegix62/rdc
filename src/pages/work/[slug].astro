@@ -231,7 +231,7 @@ const gated = !!caseStudy.accessPassword;
   {caseStudy.sections?.length > 0 ? (
     <div class="work-band full-bleed" style={bandStyle}>
       <div class="work-band__inner">
-        <Sections sections={caseStudy.sections} />
+        <Sections sections={caseStudy.sections} where={`/work/${caseStudy.slug?.current ?? caseStudy.title}`} />
       </div>
     </div>
   ) : (

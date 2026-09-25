@@ -13,9 +13,20 @@ import { plateRowFill, singlePlateFill, fullPlateFill, fillWarning, FILLS, type 
 
 interface Props {
   sections: any[];
+  /*
+    Which page these blocks belong to, for build warnings only. Never
+    rendered.
+
+    Exactly the reason Img takes a `field` prop: the first run of the layout
+    warning printed "Full Image (untitled)" eight times, which correctly
+    identified a problem and gave nobody any way to find it. fullImageSection
+    has no heading to name itself with, and this component has no idea which
+    document it is rendering - so the page has to say.
+  */
+  where?: string;
 }
 
-const { sections } = Astro.props;
+const { sections, where: pageLabel } = Astro.props;
 
 /*
   The one number a row of plates needs: each plate's aspect ratio.
@@ -58,9 +69,26 @@ function aspect(image: any): number {
   poster IS 38% of the measure and sometimes that is what the page wants. The
   build's job here is to make the trade visible at the moment it is made.
 */
-function warnIfIsland(where: string, ratios: number[], fill: Fill): void {
+function warnIfIsland(
+  where: string,
+  ratios: number[],
+  fill: Fill,
+  options: {measure?: string; canHoldMore?: boolean} = {},
+): void {
   if (!ratios.length || fill.pct >= FILLS) return;
-  console.warn(fillWarning(where, fill, ratios));
+  console.warn(fillWarning(where, fill, ratios, options));
+}
+
+/*
+  Where a warning points. The page, the block's position in the Page Builder,
+  and what kind of block it is - which together are enough to open Studio and
+  find it, and no fewer than that are.
+*/
+function blockLabel(index: number, kind: string, heading?: string): string {
+  return (
+    `${pageLabel ?? 'a page'} → block ${index + 1} (${kind}` +
+    `${heading ? `, "${heading}"` : ''})`
+  );
 }
 
 /*
@@ -109,7 +137,7 @@ function warnIfLonePlate(section: any, label: string): void {
   if (hasCopy(section) || !section?.image) return;
   const ratio = aspect(section.image);
   warnIfIsland(
-    `${label} with no copy (a single plate) - pair it, or use a wider source`,
+    `${label} with no copy, so a single plate - pair it, or use a wider source`,
     [ratio],
     singlePlateFill(ratio),
   );
@@ -377,7 +405,7 @@ function rowStyle(images: any[]): string {
   });
 </script>
 
-{sections?.map((section: any) => {
+{sections?.map((section: any, blockIndex: number) => {
   switch (section._type) {
     case 'fullImageSection': {
       if (!section.image) return null;
@@ -415,9 +443,12 @@ function rowStyle(images: any[]): string {
       */
       if (fit) {
         warnIfIsland(
-          `Full Image (${section.heading ?? 'untitled'}) - set "Plate fit" to fill to let it span`,
+          blockLabel(blockIndex, 'Full Image') + ' - set "Plate fit" to fill to let it span',
           [aspect(section.image)],
           fullPlateFill(aspect(section.image)),
+          // Full bleed is judged against the screen, not the imagery measure -
+          // it is a deliberately different register. And it holds one image.
+          {measure: 'the viewport'},
         );
       }
       return (
@@ -431,7 +462,7 @@ function rowStyle(images: any[]): string {
     }
     case 'twoUpSection':
       warnIfIsland(
-        'Two Up',
+        blockLabel(blockIndex, 'Two Up'),
         [section.imageLeft, section.imageRight].filter(Boolean).map(aspect),
         plateRowFill([section.imageLeft, section.imageRight].filter(Boolean).map(aspect)),
       );
@@ -449,7 +480,7 @@ function rowStyle(images: any[]): string {
       );
     case 'threeUpSection': {
       const plates = [section.imageOne, section.imageTwo, section.imageThree].filter(Boolean);
-      warnIfIsland('Three Up', plates.map(aspect), plateRowFill(plates.map(aspect)));
+      warnIfIsland(blockLabel(blockIndex, 'Three Up'), plates.map(aspect), plateRowFill(plates.map(aspect)));
       return (
         /*
           The outer div exists so the scroll indicator has somewhere to live.
@@ -486,7 +517,7 @@ function rowStyle(images: any[]): string {
       );
     }
     case 'imageTextSection':
-      warnIfLonePlate(section, 'Image + Text');
+      warnIfLonePlate(section, blockLabel(blockIndex, 'Image + Text'));
       return (
         <div
           class:list={[
@@ -636,9 +667,11 @@ function rowStyle(images: any[]): string {
       */
       if (!section.rowLayout || section.rowLayout === 'shape') {
         warnIfIsland(
-          `Media Row (${section.heading ?? 'untitled'}) - or set Layout to "Equal slots"`,
+          blockLabel(blockIndex, 'Media Row', section.heading) + ' - or set Layout to "Equal slots"',
           layoutRatios(items),
           plateRowFill(layoutRatios(items)),
+          // The one block here that can genuinely take another image: up to four.
+          {canHoldMore: true},
         );
       }
       /*
@@ -732,7 +765,7 @@ function rowStyle(images: any[]): string {
     case 'mediaTextSection':
       // Only when it is an image standing alone - a video sizes itself against
       // --video-fit and has no ratio here to predict from.
-      warnIfLonePlate(section, 'Media + Text');
+      warnIfLonePlate(section, blockLabel(blockIndex, 'Media + Text'));
       return (
         <div
           class:list={[

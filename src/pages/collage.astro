@@ -19,7 +19,7 @@ const hasSections = page?.sections?.length > 0;
   {hasBody && <div class="prose" set:html={renderPortableText(page.body)} />}
   {hasSections && (
     <div class="page-sections">
-      <Sections sections={page.sections} />
+      <Sections sections={page.sections} where="/collage" />
     </div>
   )}
   {!hasBody && !hasSections && (

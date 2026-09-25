@@ -67,7 +67,7 @@ const items = await getMerchItems();
 
   {page?.sections?.length > 0 && (
     <div class="page-sections">
-      <Sections sections={page.sections} />
+      <Sections sections={page.sections} where="/merchfolio" />
     </div>
   )}
 </Layout>

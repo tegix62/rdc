@@ -302,7 +302,7 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
   */}
   {page?.sections?.length > 0 && (
     <div class="page-sections">
-      <Sections sections={page.sections} />
+      <Sections sections={page.sections} where="/ (homepage)" />
     </div>
   )}
 

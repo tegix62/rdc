@@ -293,6 +293,43 @@ export default defineType({
         'The template already defaults a hero to autoplay, which is what a ' +
         'short silent loop wants. Autoplay only works on a self-hosted file.',
     }),
+    /*
+      HOW THE HERO IS SHOWN - the one image on the page that had no say.
+
+      Every picture inside the Page Builder can be told what to do with its
+      shape: a Full Image has "Plate fit", a Media Row has slots. The hero,
+      which is the biggest image on a case study, had nothing. Its CSS was
+      fixed at `max-height: 80vh; object-fit: cover`, so it was ALWAYS
+      cropped - which is why DumpStat opens on a fragment of the tee cut off
+      at both edges instead of the tee.
+
+      Cropping is right for a hero built from a wide detail, and wrong for one
+      that is a whole piece of work. That is a judgement about the picture, so
+      it belongs to whoever chose the picture.
+
+      The same two words a Full Image uses, deliberately: one vocabulary for
+      one question wherever it comes up.
+    */
+    defineField({
+      name: 'heroFit',
+      title: 'Hero image fit',
+      type: 'string',
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+      options: {
+        list: [
+          {title: 'Crop to a band across the top (default)', value: 'band'},
+          {title: 'Show the whole image', value: 'whole'},
+        ],
+        layout: 'radio',
+      },
+      initialValue: 'band',
+      description:
+        'A band is right when the hero is a wide detail - a crop is what ' +
+        'makes it a band. Choose "whole" when the hero IS the work and losing ' +
+        'its edges loses the point. A tall image shown whole still stops at ' +
+        '80% of the screen and centres, so it cannot run off the bottom.',
+    }),
     defineField({
       name: 'headline',
       title: 'Display Headline - overrides Title in the big heading',

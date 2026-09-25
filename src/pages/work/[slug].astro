@@ -4,7 +4,7 @@ import Img from '../../components/Img.astro';
 import Sections from '../../components/Sections.astro';
 import { sanityClient } from '../../lib/sanity';
 import { getCaseStudy, getGridItems, getOtherCaseStudies } from '../../lib/queries';
-import { socialCardUrl, fileUrl, archiveCard } from '../../lib/image';
+import { socialCardUrl, fileUrl, archiveCard, imageDimensions } from '../../lib/image';
 import { embedUrl } from '../../lib/video';
 import { renderPortableText } from '../../lib/portableText';
 import Video from '../../components/Video.astro';
@@ -85,6 +85,25 @@ const ogVideo =
   fileUrl(caseStudy.heroVideoFile) ??
   undefined;
 const gated = !!caseStudy.accessPassword;
+
+/*
+  The hero's own shape, handed to CSS - only needed when heroFit is "whole".
+
+  Capping a definite width by height squashes the picture, so the cap is
+  expressed on the WIDTH instead: width = height x ratio, so limiting the
+  width to (ceiling x ratio) limits the height to the ceiling exactly, with
+  the proportions intact. The same arithmetic .work-section--image-text uses,
+  and for the same reason.
+
+  Falls back to 3 when the reference carries no dimensions, which makes the
+  cap inert rather than wrong - a hero with an unreadable reference renders
+  as it always did.
+*/
+const heroDims = imageDimensions(caseStudy.mainImage);
+const heroRatio =
+  heroDims && heroDims.height > 0
+    ? `--ar:${(heroDims.width / heroDims.height).toFixed(4)}`
+    : undefined;
 ---
 
 <Layout
@@ -124,7 +143,20 @@ const gated = !!caseStudy.accessPassword;
     </div>
   ) : (
     caseStudy.mainImage && (
-      <div class="work-hero full-bleed">
+      /*
+        data-hero-fit carries the choice from Studio - see heroFit on the
+        caseStudy schema. Absent means the default band, so every document
+        written before the field existed keeps exactly the hero it had.
+
+        --ar is what lets "whole" cap the height without squashing: the CSS
+        caps the WIDTH at (ceiling x ratio), which caps the height at the
+        ceiling with the shape intact. Same trick as .work-section--image-text.
+      */
+      <div
+        class="work-hero full-bleed"
+        data-hero-fit={caseStudy.heroFit === 'whole' ? 'whole' : undefined}
+        style={heroRatio}
+      >
         <Img
           image={caseStudy.mainImage}
           field="mainImage (Main Project Image)"

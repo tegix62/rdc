@@ -27,6 +27,8 @@ interface Props {
 }
 
 const { sections, where: pageLabel } = Astro.props;
+// Named once so every warning can say "block 4 of 6" - see blockLabel.
+const blockCount = sections?.length ?? 0;
 
 /*
   The one number a row of plates needs: each plate's aspect ratio.
@@ -80,13 +82,22 @@ function warnIfIsland(
 }
 
 /*
-  Where a warning points. The page, the block's position in the Page Builder,
-  and what kind of block it is - which together are enough to open Studio and
-  find it, and no fewer than that are.
+  Where a warning points.
+
+  "block 4" on its own was ambiguous and Chris read it the way anyone would:
+  as the fourth thing DOWN THE PAGE. It is not. It is the fourth entry in the
+  Page Builder array, and a case study page opens with things that are not in
+  that array at all - the hero (mainImage / heroVideo) and the navy identity
+  band are document fields, so counting from the top of the page is always off
+  by at least two.
+
+  So the label says which list it is counting, and how long that list is -
+  "Page Builder block 4 of 6" can be found by scrolling the Page Builder and
+  nothing else, which is the point.
 */
-function blockLabel(index: number, kind: string, heading?: string): string {
+function blockLabel(index: number, total: number, kind: string, heading?: string): string {
   return (
-    `${pageLabel ?? 'a page'} → block ${index + 1} (${kind}` +
+    `${pageLabel ?? 'a page'} → Page Builder block ${index + 1} of ${total} (${kind}` +
     `${heading ? `, "${heading}"` : ''})`
   );
 }
@@ -99,6 +110,34 @@ function blockLabel(index: number, kind: string, heading?: string): string {
 */
 function layoutRatios(items: any[]): number[] {
   return items.filter((item) => !isSelfHostedVideo(item)).map(mediaAspect);
+}
+
+/*
+  The shape of an item, or null when nothing actually says.
+
+  DIFFERENT QUESTION FROM mediaAspect, AND THE DIFFERENCE IS THE BUG.
+
+  mediaAspect always returns a number, because the aspect-driven row needs one
+  for every plate it sizes - so a video with no poster comes back 16:9, a
+  guess that is documented as a guess and is fine there, since a self-hosted
+  clip is excluded from that arithmetic anyway.
+
+  An equal slot is the opposite case. The slot is a shape somebody is choosing
+  and every item in the row lands inside it, video included - has-slots gives
+  a clip `flex: 1 1 0` exactly like a picture. So the question here is not
+  "what number will do" but "does this row actually tell us its shape", and a
+  16:9 guess standing in for a portrait clip would decide the slot for the
+  whole row on no evidence.
+
+  A self-hosted video DOES have a knowable shape when it has a poster: the
+  poster is an image asset, and Sanity puts its pixel size in the reference.
+  That is the case this exists to reach - and the case that was being thrown
+  away, because cellAspect skipped self-hosted video wholesale.
+*/
+function knownAspect(item: any): number | null {
+  const source = item?._type === 'mediaVideo' ? item.videoPoster : item?.image;
+  const d = imageDimensions(source);
+  return d && d.height > 0 ? d.width / d.height : null;
 }
 
 /*
@@ -292,8 +331,20 @@ function mediaRowStyle(items: any[]): string {
 */
 function cellAspect(section: any, items: any[]): string {
   if (section.cellShape && section.cellShape !== 'auto') return section.cellShape;
-  const ratios = items.filter((item) => !isSelfHostedVideo(item)).map(mediaAspect);
-  if (!ratios.length) return '3 / 2';
+  const ratios = items.map(knownAspect).filter((r): r is number => r !== null);
+  /*
+    Nothing to go on: no image dimensions anywhere in the row, and no video
+    poster either. A square, not 3:2.
+
+    3:2 was the old fallback and it is what put black bands either side of
+    every panel in DumpStat's Clerics row - three self-hosted clips, "Slot
+    shape: Automatic", and an automatic that could not see them. A square is
+    the least-wrong guess when the row will not say: it mattes a landscape
+    piece and a portrait piece by similar amounts, where a landscape default
+    letterboxes portrait work badly and portrait work is most of what is
+    here.
+  */
+  if (!ratios.length) return '1 / 1';
   return Math.max(...ratios).toFixed(4);
 }
 
@@ -443,7 +494,7 @@ function rowStyle(images: any[]): string {
       */
       if (fit) {
         warnIfIsland(
-          blockLabel(blockIndex, 'Full Image') + ' - set "Plate fit" to fill to let it span',
+          blockLabel(blockIndex, blockCount, 'Full Image') + ' - set "Plate fit" to fill to let it span',
           [aspect(section.image)],
           fullPlateFill(aspect(section.image)),
           // Full bleed is judged against the screen, not the imagery measure -
@@ -462,7 +513,7 @@ function rowStyle(images: any[]): string {
     }
     case 'twoUpSection':
       warnIfIsland(
-        blockLabel(blockIndex, 'Two Up'),
+        blockLabel(blockIndex, blockCount, 'Two Up'),
         [section.imageLeft, section.imageRight].filter(Boolean).map(aspect),
         plateRowFill([section.imageLeft, section.imageRight].filter(Boolean).map(aspect)),
       );
@@ -480,7 +531,7 @@ function rowStyle(images: any[]): string {
       );
     case 'threeUpSection': {
       const plates = [section.imageOne, section.imageTwo, section.imageThree].filter(Boolean);
-      warnIfIsland(blockLabel(blockIndex, 'Three Up'), plates.map(aspect), plateRowFill(plates.map(aspect)));
+      warnIfIsland(blockLabel(blockIndex, blockCount, 'Three Up'), plates.map(aspect), plateRowFill(plates.map(aspect)));
       return (
         /*
           The outer div exists so the scroll indicator has somewhere to live.
@@ -517,7 +568,7 @@ function rowStyle(images: any[]): string {
       );
     }
     case 'imageTextSection':
-      warnIfLonePlate(section, blockLabel(blockIndex, 'Image + Text'));
+      warnIfLonePlate(section, blockLabel(blockIndex, blockCount, 'Image + Text'));
       return (
         <div
           class:list={[
@@ -666,13 +717,39 @@ function rowStyle(images: any[]): string {
         by its own shapes, and only that one is worth saying anything about.
       */
       if (!section.rowLayout || section.rowLayout === 'shape') {
-        warnIfIsland(
-          blockLabel(blockIndex, 'Media Row', section.heading) + ' - or set Layout to "Equal slots"',
-          layoutRatios(items),
-          plateRowFill(layoutRatios(items)),
-          // The one block here that can genuinely take another image: up to four.
-          {canHoldMore: true},
-        );
+        const label = blockLabel(blockIndex, blockCount, 'Media Row', section.heading);
+        /*
+          A SELF-HOSTED CLIP IN A SHAPE-SIZED ROW CANNOT BE PREDICTED.
+
+          It sizes itself against --video-fit and takes no share of the row -
+          mediaRowStyle leaves it out of the sum on purpose - so the row's
+          width is the images' arithmetic PLUS whatever the clips happen to
+          be, and nothing here models the second half. plateRowFill would
+          confidently report a percentage for the images alone, which is a
+          number that describes a row that does not exist.
+
+          This is also why DumpStat's Clerics row was never mentioned: three
+          self-hosted clips left no ratios at all, so the check returned
+          before saying anything. Silence read as approval.
+
+          So it says the true thing instead, with no figure attached.
+        */
+        if (items.some(isSelfHostedVideo)) {
+          console.warn(
+            `[layout] ${label}: holds self-hosted video, which sizes itself and ` +
+              `takes no share of the row - so the row stops wherever the clips ` +
+              `stop, and how far short that is cannot be worked out here. ` +
+              `"Equal slots" gives every clip a slot and fills the measure.`,
+          );
+        } else {
+          warnIfIsland(
+            label + ' - or set Layout to "Equal slots"',
+            layoutRatios(items),
+            plateRowFill(layoutRatios(items)),
+            // The one block here that can genuinely take another image: up to four.
+            {canHoldMore: true},
+          );
+        }
       }
       /*
         Narrower slots want smaller files, so the srcset ceiling follows the
@@ -765,7 +842,7 @@ function rowStyle(images: any[]): string {
     case 'mediaTextSection':
       // Only when it is an image standing alone - a video sizes itself against
       // --video-fit and has no ratio here to predict from.
-      warnIfLonePlate(section, blockLabel(blockIndex, 'Media + Text'));
+      warnIfLonePlate(section, blockLabel(blockIndex, blockCount, 'Media + Text'));
       return (
         <div
           class:list={[

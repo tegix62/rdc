@@ -88,7 +88,21 @@ const describe = (doc, label) => {
     // A Media Row holds its own items, each of which can independently be one.
     const items = (s.items ?? []).map((it, j) => {
       const iv = videoOf(it)
-      return `      item ${j}: ${it._type}${dims(it.image)}${iv.length ? '  <-- VIDEO  ' + iv.join(' ') : ''}`
+      /*
+        The POSTER's shape, for a video item.
+
+        A file asset carries no dimensions, so a clip's shape is unknowable
+        from the document - except through its poster, which is an ordinary
+        image asset with its size in the reference. That is the one thing an
+        equal slot can derive a video's shape from, so a row of clips with no
+        posters and a row of clips with posters behave completely differently
+        and look identical here without this.
+      */
+      const poster = it._type === 'mediaVideo' ? dims(it.videoPoster) : ''
+      return (
+        `      item ${j}: ${it._type}${dims(it.image)}${iv.length ? '  <-- VIDEO  ' + iv.join(' ') : ''}` +
+        (poster ? `\n         poster:${poster}` : it._type === 'mediaVideo' ? '\n         poster: (none - shape unknowable)' : '')
+      )
     })
     // The row's layout settings, which decide whether an image is sized by
     // its own shape, matted inside a slot, or cropped to fill one.

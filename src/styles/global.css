@@ -2603,6 +2603,31 @@ main {
   object-fit: cover;
 }
 
+/*
+  SHOW THE WHOLE IMAGE - the hero's one setting, from heroFit in Studio.
+
+  The default above is a band: a definite width, a height ceiling, and
+  object-fit: cover, so the picture is cropped to fill. That is right when the
+  hero is a wide detail and it is the only thing the hero could ever do, which
+  is the problem - DumpStat opens on a fragment of a tee cut off at both edges
+  because nothing could say otherwise.
+
+  Freeing the width is what uncrops it. With width:auto the image renders at
+  its own shape and whichever constraint binds first does the sizing: a wide
+  hero spans to 1600px, a tall one stops at the 80vh ceiling. Nothing is
+  squashed, because the ceiling is applied to the WIDTH as (ceiling x ratio) -
+  see heroRatio in work/[slug].astro.
+
+  object-fit goes back to `contain` rather than being removed: at width:auto
+  the box already IS the picture's shape, so contain is a no-op that cannot
+  crop even if some other rule sets a height later.
+*/
+.work-hero[data-hero-fit='whole'] img {
+  width: auto;
+  max-width: min(100%, calc(80vh * var(--ar, 3)));
+  object-fit: contain;
+}
+
 /* Navy identity band: project title, one-line description, and credits.
    Sits full-bleed directly under the hero image with no white gap. */
 .work-identity {

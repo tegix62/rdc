@@ -406,8 +406,17 @@ export const mediaRowSection = defineType({
           {title: 'Automatic - the shape of the widest image in this row', value: 'auto'},
           {title: 'Wide (2:1)', value: '2 / 1'},
           {title: 'Landscape (3:2)', value: '3 / 2'},
+          /*
+            5:4 and 2:3 were added when the house shapes were settled: a pair
+            fills the measure from 1.16:1 up, so 5:4 is the most portrait
+            landscape that still fills one, and 4:5 is the same rectangle
+            turned for a row of three. 2:3 is there for a row of four, and
+            because it is what a 35mm frame and most poster stock already are.
+          */
+          {title: 'Portrait-ish landscape (5:4) - the house pair shape', value: '5 / 4'},
           {title: 'Square (1:1)', value: '1 / 1'},
-          {title: 'Tall (4:5)', value: '4 / 5'},
+          {title: 'Tall (4:5) - the house shape for a row of three', value: '4 / 5'},
+          {title: 'Taller (2:3)', value: '2 / 3'},
         ],
         layout: 'radio',
       },

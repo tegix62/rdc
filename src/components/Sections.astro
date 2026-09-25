@@ -752,6 +752,39 @@ function rowStyle(images: any[]): string {
         }
       }
       /*
+        EQUAL SLOTS, AUTOMATIC, AND NOTHING TO BE AUTOMATIC FROM.
+
+        "Automatic - the shape of the widest image in this row" is an honest
+        promise only when the row contains something whose shape is readable.
+        A self-hosted clip with no poster is not: a file asset carries no
+        dimensions, so there is nothing to read, and the slot falls back to a
+        square that nobody chose.
+
+        DumpStat's Clerics row is exactly this - three clips, no posters - and
+        it is the row that started all of it, with the old 3:2 fallback
+        putting black bands either side of every panel. The square is a better
+        guess and it is still a guess, which is a thing the build should say
+        out loud rather than leave looking deliberate.
+
+        Only when it is ACTUALLY guessing: a row with one readable item has
+        something to go on, and a row told its shape was never asking.
+      */
+      if (
+        section.rowLayout &&
+        section.rowLayout !== 'shape' &&
+        (!section.cellShape || section.cellShape === 'auto') &&
+        !items.some((item: any) => knownAspect(item) !== null)
+      ) {
+        const clips = items.filter(isSelfHostedVideo).length;
+        console.warn(
+          `[layout] ${blockLabel(blockIndex, blockCount, 'Media Row', section.heading)}: ` +
+            `slot shape is "Automatic" but nothing here states a shape` +
+            `${clips ? ` - ${clips} self-hosted clip(s) with no poster, and a video file carries no dimensions` : ''}. ` +
+            `The slots are falling back to a square nobody chose. Give the clips a ` +
+            `poster, or pick the slot shape.`,
+        );
+      }
+      /*
         Narrower slots want smaller files, so the srcset ceiling follows the
         item count.
 

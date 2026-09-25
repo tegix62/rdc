@@ -1,0 +1,52 @@
+name: Check Media Row slots and block centres
+
+# Two bugs that shipped, looked fine in the code, and were found by eye:
+# equal slots letterboxing portrait posters into a landscape default, and a
+# single picture centring on half a block because the empty text column was
+# still there. Neither is visible to a screenshot diff - the first keeps the
+# picture's shape, the second keeps the block's box - so both are measured.
+#
+# See the header of scripts/test-media-row-slots.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to check'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+  push:
+    paths:
+      - 'scripts/test-media-row-slots.mjs'
+      - '.github/workflows/test-media-row-slots.yml'
+      - 'src/components/Sections.astro'
+      - 'src/styles/global.css'
+
+jobs:
+  slots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      # A push to these paths starts a preview deploy at the same moment, so
+      # without this the check measures the PREVIOUS build and reports it as
+      # this one. Same reason as test-overflow.yml.
+      - run: sleep 150
+      # set -o pipefail, or the exit status comes from tee and a failing check
+      # reports a green job.
+      - run: |
+          set -o pipefail
+          node scripts/test-media-row-slots.mjs "${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}" | tee /tmp/slots.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Media Row slots and block centres'
+            echo ''
+            echo '```'
+            cat /tmp/slots.txt 2>/dev/null || echo '(the check did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

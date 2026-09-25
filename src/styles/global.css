@@ -3349,6 +3349,32 @@ main {
     height: 100%;
   }
 
+  /*
+    IN A SLOT, THE SLOT IS THE AUTHORITY.
+
+    --video-fit caps a clip's height at 65vh so a video never takes the whole
+    screen, and that is right everywhere a video sizes itself. It is wrong
+    inside an equal slot, where the height is already decided by a shape
+    somebody authored - and max-height beats height, so the rule above was
+    quietly losing to it.
+
+    Measured at 1512x900: three clips in 9:16 slots got 467x830 cells and sat
+    467x585 inside them, 245px short, with the gap reading as a mistake.
+
+    How close this came to shipping unnoticed: the tallest shape the Studio
+    field offers is 4:5, and three across at 4:5 gives a 583px cell against a
+    585px cap. It fits by TWO PIXELS. Two clips across at 4:5 - the pair
+    Chris is most likely to make next - wants 890px and would have been
+    capped at 585.
+
+    Width goes with it. Its cap is expressed as --video-fit x 16/9, which is
+    the same number wearing a different hat.
+  */
+  .media-row__items.has-slots > .media-row__item .video__el {
+    max-height: none;
+    max-width: none;
+  }
+
   .media-row__items.has-slots[data-fit='fill'] > .media-row__item > img,
   .media-row__items.has-slots[data-fit='fill'] > .media-row__item .video__el {
     object-fit: cover;

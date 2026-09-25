@@ -93,6 +93,27 @@ for (const path of PATHS) {
     Array.from(document.querySelectorAll('.media-row__items.has-slots')).map((row) => ({
       fit: row.dataset.fit ?? null,
       cellAr: getComputedStyle(row).getPropertyValue('--cell-ar').trim(),
+      /*
+        Does the media actually FILL its slot?
+
+        Separate from the image checks below because the case that failed was
+        a video: --video-fit caps a clip at 65vh, max-height beats height, so
+        the media sat short inside a slot that was the right size. Three
+        across at 4:5 - the shape the Studio field offers - cleared that cap
+        by two pixels, so the whole class of bug was invisible at the one
+        setting anybody was using.
+      */
+      slots: Array.from(row.querySelectorAll('.media-row__item')).map((fig) => {
+        const media = fig.querySelector('img, video')
+        if (!media) return null
+        const cell = fig.getBoundingClientRect()
+        const box = media.getBoundingClientRect()
+        return {
+          cell: `${cell.width.toFixed(0)}x${cell.height.toFixed(0)}`,
+          box: `${box.width.toFixed(0)}x${box.height.toFixed(0)}`,
+          short: cell.height - box.height,
+        }
+      }).filter(Boolean),
       items: Array.from(row.querySelectorAll('img')).map((img) => {
         const box = img.getBoundingClientRect()
         const objectFit = getComputedStyle(img).objectFit
@@ -113,7 +134,13 @@ for (const path of PATHS) {
   console.log(`${rows.length} equal-slot row(s)`)
   rows.forEach((row, i) => {
     const label = `row ${i} (fit: ${row.fit ?? 'NONE'}, slots ${row.cellAr || 'unset'})`
-    if (!row.items.length) return
+    /*
+      `items` counts IMAGES, and a row can be all video - which is exactly the
+      row the slot-fill bug lived in. Returning on an empty image list skipped
+      it in silence, so the check reported "2 equal-slot rows" and then had
+      nothing to say about one of them.
+    */
+    if (!row.items.length && !row.slots.length) return
     // Counted from here, so the "ok" line below reports THIS row rather than
     // the run as a whole - an all-clear printed under a failure it does not
     // cover is how a red check gets read as green.
@@ -130,6 +157,20 @@ for (const path of PATHS) {
       }
     }
 
+    /*
+      A slot the media does not fill is a slot that is not doing its job -
+      and 1px of tolerance, because a cell whose height is an odd number of
+      device pixels rounds.
+    */
+    for (const slot of row.slots) {
+      if (slot.short > 1) {
+        fail(
+          `${label}: media sits ${slot.short.toFixed(0)}px short of its slot ` +
+            `(${slot.box} inside ${slot.cell}) - something is capping it above the slot`,
+        )
+      }
+    }
+
     // Equal slots, or they are not slots.
     const widths = row.items.map((it) => it.width)
     const spread = Math.max(...widths) - Math.min(...widths)
@@ -137,7 +178,10 @@ for (const path of PATHS) {
       fail(`${label}: slot widths differ by ${spread.toFixed(0)}px (${widths.map((w) => w.toFixed(0)).join(', ')})`)
     }
     if (problems === before) {
-      console.log(`  ok ${label}: ${row.items.length} equal slots, every image at its own shape`)
+      console.log(
+        `  ok ${label}: ${row.slots.length} equal slots, media fills each one` +
+          `${row.items.length ? ', every image at its own shape' : ' (all video)'}`,
+      )
     }
   })
 

@@ -147,10 +147,18 @@ for (const path of PATHS) {
           had to be picked out of the noise by hand.
         */
         const caption = fig.querySelector('figcaption')
-        // Measured to the TOP of the caption, not by subtracting its height:
-        // a caption carries a margin above it, and that margin is not slot
-        // either.
-        const slotH = caption ? caption.getBoundingClientRect().top - cell.top : cell.height
+        /*
+          Measured to where the caption's MARGIN begins, not to its box. A
+          caption sits 0.5rem below the picture, and that 0.5rem belongs to
+          the caption, not to the slot - measuring to the box turned a 25px
+          false alarm into an 8px one, which is the same mistake in smaller
+          type.
+        */
+        const slotH = caption
+          ? caption.getBoundingClientRect().top -
+            parseFloat(getComputedStyle(caption).marginTop || '0') -
+            cell.top
+          : cell.height
         return {
           cell: `${cell.width.toFixed(0)}x${slotH.toFixed(0)}`,
           box: `${box.width.toFixed(0)}x${box.height.toFixed(0)}`,

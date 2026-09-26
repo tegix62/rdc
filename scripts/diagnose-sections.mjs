@@ -107,7 +107,14 @@ const describe = (doc, label) => {
     // The row's layout settings, which decide whether an image is sized by
     // its own shape, matted inside a slot, or cropped to fill one.
     const layout = s._type === 'mediaRowSection'
-      ? `  [layout: ${s.rowLayout ?? 'shape (unset)'}${s.rowLayout && s.rowLayout !== 'shape' ? `, slots ${s.cellShape ?? '3 / 2 (unset)'}` : ''}]`
+      ? `  [layout: ${s.rowLayout ?? 'shape (unset)'}` +
+        `${s.rowLayout && s.rowLayout !== 'shape' ? `, slots ${s.cellShape ?? 'auto (unset)'}` : ''}` +
+        /*
+          The panel changes what "reaches the edge" even means for a row, so a
+          reading that leaves it out describes a different block. Added after
+          diagnosing a row's height without knowing its width was the panel's.
+        */
+        `${s.panel && s.panel !== 'none' ? `, ${s.panel} panel` : ''}]`
       : ''
     console.log(`    ${i}: ${s._type}${layout}${dims(s.image)}${vids.length ? '  <-- VIDEO  ' + vids.join(' ') : ''}`)
     items.forEach((l) => console.log(l))

@@ -220,6 +220,39 @@ const blockFixtures = [
     the old behaviour and the new one are indistinguishable on one - and it
     was the portrait pictures that showed it.
   */
+  /*
+    The panel, on the two cases it exists for.
+
+    Both of these reach the measure on the panel and nowhere near it without
+    one - measured at 1512x900, the poster alone is 31% and the clips 68%,
+    and the pictures are identical in both states. That is the whole claim:
+    the edge is reached by the ground, not by stretching the work.
+  */
+  {
+    _type: 'textSection',
+    _key: 'panel-label',
+    heading: 'Panel behind the row - a lone portrait plate, which reaches 31% on its own',
+  },
+  {
+    _type: 'mediaRowSection',
+    _key: 'row-panel-one',
+    panel: 'light',
+    items: [{_type: 'mediaImage', _key: 'a', image: {...ref(POSTER_750), alt: 'Poster, 3:4'}}],
+  },
+  {
+    _type: 'textSection',
+    _key: 'panel-label-dark',
+    heading: 'The same row on the dark ground',
+  },
+  {
+    _type: 'mediaRowSection',
+    _key: 'row-panel-dark',
+    panel: 'dark',
+    items: [
+      {_type: 'mediaImage', _key: 'a', image: {...ref(POSTER_800), alt: 'Poster, 4:5'}, caption: 'A caption on the dark ground'},
+      {_type: 'mediaImage', _key: 'b', image: {...ref(POSTER_750), alt: 'Poster, 3:4'}},
+    ],
+  },
   /* Labelled from outside, because the block being demonstrated is the one
      with no heading of its own to label it with. */
   {

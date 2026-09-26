@@ -507,6 +507,39 @@ export const mediaRowSection = defineType({
         'want one imposed - Tall for a row of phone-shaped video, Landscape ' +
         'across several rows of photography that should all match.',
     }),
+    /*
+      A PANEL BEHIND THE ROW.
+
+      The one answer to work whose shape cannot fill a wide column. A lone
+      4:5 poster reaches 38% of the measure and three 9:16 clips reach 68% -
+      measured - and no setting changes that, because a row bounded by its
+      height is as wide as its shapes make it. Cropping is the wrong trade
+      when the shape IS the work.
+
+      So the panel reaches the edge instead, and the pictures sit on it. The
+      space around them becomes part of the presentation rather than a
+      shortfall, which is what it already looks like on a page where every
+      other block spans.
+    */
+    defineField({
+      name: 'panel',
+      title: 'Panel behind the row',
+      type: 'string',
+      options: {
+        list: [
+          {title: 'None', value: 'none'},
+          {title: 'Light - a pale ground, the usual choice', value: 'light'},
+          {title: 'Dark', value: 'dark'},
+        ],
+        layout: 'radio',
+      },
+      initialValue: 'none',
+      description:
+        'For work that cannot fill the column on its own - phone-shaped ' +
+        'video, a single poster, anything tall. The panel spans the page and ' +
+        'the pictures sit on it at their own shape, so nothing is cropped and ' +
+        'the block still reaches both edges.',
+    }),
     labelField(),
   ],
   /*

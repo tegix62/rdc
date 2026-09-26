@@ -749,7 +749,13 @@ function rowStyle(images: any[]): string {
         by its own shapes, and only that one is worth saying anything about.
       */
       const rowLayout = setting(section.rowLayout);
-      if (!rowLayout || rowLayout === 'shape') {
+      /*
+        A panelled row is not trying to fill the measure - the panel does
+        that, and the picture sitting inside at its own shape is the point.
+        Warning about the shortfall there would be complaining about the
+        thing working, which is how a warning earns being ignored.
+      */
+      if ((!rowLayout || rowLayout === 'shape') && setting(section.panel) !== 'light' && setting(section.panel) !== 'dark') {
         const label = blockLabel(blockIndex, blockCount, 'Media Row', section.heading);
         /*
           A SELF-HOSTED CLIP IN A SHAPE-SIZED ROW CANNOT BE PREDICTED.
@@ -836,10 +842,31 @@ function rowStyle(images: any[]): string {
         has to travel with it - and mediaItemStyle above for the one kind of
         item that opts out.
       */
-      return (
-        <div class="work-section media-row" style={`--media-count: ${items.length}`}>
-          {/* h2 - see the comment on imageTextSection's heading above. */}
-          {section.heading && <h2 class="media-row__heading t-h3">{section.heading}</h2>}
+      /*
+        A PANEL BEHIND THE ROW, so odd-shaped work can still reach an edge.
+
+        The problem it answers: a lone portrait piece cannot fill the measure
+        at any size, and neither can three phone-shaped clips. Cropping them
+        is wrong - the shape IS the work - so the alternative on this site was
+        a small picture floating in the band, which is what makes a page stop
+        adding up.
+
+        The Pentagram page Chris sent solves it without cropping anything:
+        three portrait phone screenshots sit on a light panel that spans the
+        measure. The panel reaches the edges; the pictures sit inside it at
+        their own shape, and the space around them reads as presented rather
+        than as a shortfall. Same idea as videoPosterBackground padding a
+        small logomark inside a block.
+
+        It is a WRAPPER rather than a background on the row itself, because
+        the row's width is the thing being solved for. The panel takes the
+        measure and redefines --row-room to its own content box, so
+        everything inside keeps working unchanged: an aspect-driven row still
+        solves for a common height and centres, and an equal-slots row still
+        divides the room - only now the room is the panel.
+      */
+      const panel = setting(section.panel);
+      const items_el = (
           <div
             class:list={[
               'media-row__items',
@@ -896,6 +923,16 @@ function rowStyle(images: any[]): string {
               </figure>
             ))}
           </div>
+      );
+      return (
+        <div class="work-section media-row" style={`--media-count: ${items.length}`}>
+          {/* h2 - see the comment on imageTextSection's heading above. */}
+          {section.heading && <h2 class="media-row__heading t-h3">{section.heading}</h2>}
+          {panel && panel !== 'none' ? (
+            <div class="media-row__panel" data-panel={panel}>{items_el}</div>
+          ) : (
+            items_el
+          )}
           {isStripRow(items) && <StripRule />}
         </div>
       );

@@ -3329,6 +3329,73 @@ main {
 }
 
 /*
+  A PANEL BEHIND A ROW - how odd-shaped work reaches an edge.
+
+  A lone portrait piece cannot fill the measure at any size; neither can
+  three phone-shaped clips. Measured: 4:5 alone reaches 38%, 9:16 three
+  across reaches 68%. Cropping them is wrong, because the shape is the work.
+  So the picture stops short, and a page of blocks that stop short at
+  different places is the thing that stops adding up.
+
+  The panel moves the job. It takes the measure itself and the pictures sit
+  inside it at their own shape - so the EDGE is reached by the panel, and the
+  space around the work reads as presented rather than as a shortfall. It is
+  the device on the Pentagram case study Chris sent: three portrait phone
+  screenshots on a light ground, spanning the column.
+
+  --row-room is redefined to the panel's own content box, which is what makes
+  everything inside keep working untouched. An aspect-driven row still solves
+  for one height and centres itself; an equal-slots row still divides the
+  room. The room is simply the panel now. Nothing else had to learn about
+  this.
+
+  The width/margin pair is the same breakout arithmetic the rows do, for the
+  same reason: auto margins cannot go negative, so centring something wider
+  than its container means halving the difference by hand.
+*/
+.media-row__panel {
+  width: var(--wide-room, 100%);
+  margin-left: calc(50% - var(--wide-room, 100%) / 2);
+  margin-right: calc(50% - var(--wide-room, 100%) / 2);
+  padding: var(--space-4);
+  /* The row inside fills the panel's content box rather than the band's. */
+  --row-room: 100%;
+}
+
+/*
+  Two grounds, and they are deliberately not "a colour".
+
+  A case study band already carries the project's accent, so a panel that
+  took another hue would be a second colour decision competing with it. These
+  are a pale neutral and a near-black - the two that read as STOCK, a sheet
+  the work is presented on, at any accent behind them.
+*/
+.media-row__panel[data-panel='light'] {
+  background: var(--color-gray-light);
+}
+
+.media-row__panel[data-panel='dark'] {
+  background: var(--color-ink);
+}
+
+/*
+  A caption on a dark panel has to come with it, or it is grey on near-black.
+*/
+.media-row__panel[data-panel='dark'] .media-row__item figcaption {
+  color: color-mix(in srgb, var(--color-white) 70%, var(--color-ink));
+}
+
+@media (max-width: 40rem) {
+  /*
+    Less inset on a phone, where the panel's padding is a larger share of a
+    much narrower screen - 32px each side of a 390px screen is a sixth of it.
+  */
+  .media-row__panel {
+    padding: var(--space-3);
+  }
+}
+
+/*
   EQUAL SLOTS - the other way a row can divide its width.
 
   The default above gives each item a width from its own shape, so a wide

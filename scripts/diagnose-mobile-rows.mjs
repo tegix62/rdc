@@ -127,6 +127,17 @@ const measure = (vw) => {
                 videoFit: getComputedStyle(fig).getPropertyValue('--video-fit').trim(),
                 maxH: s.maxHeight,
                 maxW: s.maxWidth,
+                width: s.width,
+                height: s.height,
+                /*
+                  The one attribute that changes which rules apply: the cap
+                  in .video--self is written :not([autoplay]), so a looping
+                  clip carries no height ceiling at all. Reported because
+                  two clips in the same row came back with different
+                  ceilings and nothing said why.
+                */
+                autoplay: media.hasAttribute('autoplay'),
+                classes: media.closest('.video')?.className ?? '',
               }
             })()
           : null
@@ -283,7 +294,8 @@ for (const width of WIDTHS) {
           console.log(
             `         ceilings: shelf ${it.ceilings.stripH || '(none)'}  ` +
               `--video-fit ${it.ceilings.videoFit || '(none)'}  ` +
-              `max-height ${it.ceilings.maxH}  max-width ${it.ceilings.maxW}`,
+              `max-height ${it.ceilings.maxH}  max-width ${it.ceilings.maxW}` +
+              `  [${it.ceilings.autoplay ? 'autoplay' : 'not autoplay'}, ${it.ceilings.classes}]`,
           )
         }
       })

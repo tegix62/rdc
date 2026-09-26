@@ -3766,11 +3766,51 @@ main {
     Going one class deeper wins regardless of order.
   */
   .is-strip > .media-row__item--video .video--self .video__el {
-    /* 88vw, the same width ceiling the pictures take, for the same reason
-       the height ceiling is now shared: a landscape clip and a landscape
-       poster on one shelf should come out the same size, and two different
-       numbers here are two different sizes. */
+    /*
+      88vw, the same width ceiling the pictures take, for the same reason
+      the height ceiling is shared: a landscape clip and a landscape poster
+      on one shelf should come out the same size, and two different numbers
+      here are two different sizes.
+
+      AND THE HEIGHT CEILING SPELLED OUT, because .video--self's own cap is
+      written `:not([autoplay])` - right for the full-bleed looping heroes
+      it was written for, and wrong here, where it left a looping clip on a
+      shelf with no height ceiling at all. Measured on Two Point Oh: two
+      clips in the same row, one capped at 384px and one at `none`, and
+      nothing in the CSS said why. A 9:16 loop under that no-ceiling rule
+      stands 672px tall beside a 384px poster.
+
+      width:auto is what makes a height cap do anything to a <video>: with
+      width:100% the box spans its container and object-fit letterboxes the
+      picture inside it, so max-height shrinks the picture and leaves the
+      box. See the long note on .video--self .video__el:not([autoplay]).
+    */
+    width: auto;
     max-width: 88vw;
+    height: auto;
+    max-height: var(--strip-h);
+    margin-inline: auto;
+  }
+
+  /*
+    ON A SHELF, SHORT THINGS STAND IN THE MIDDLE.
+
+    Every item here is capped by height AND by 88vw, so a wide item hits
+    the width ceiling first and comes out shorter than its neighbours - a
+    16:9 clip beside a square poster is 193px against 343px, and that is
+    the deliberate trade that keeps a panorama from being wider than the
+    screen. What was not deliberate is where the difference went: items
+    hang from a common top edge, so all 150px of it pooled underneath the
+    shorter one, which reads as a picture that failed to load rather than
+    a picture of a different shape. Chris photographed that pool.
+
+    Centred, the same difference becomes even space above and below, which
+    reads as a shelf. Only in a strip: a fitted row solves for one height,
+    so its items are already level and the top edge is what the captions
+    hang from.
+  */
+  .is-strip > .media-row__item {
+    align-self: center;
   }
 
   /*

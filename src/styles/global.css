@@ -3806,7 +3806,8 @@ main {
       19rem   fitted row, plates at thumbnail size
       24rem   once the strip existed and nothing had to fit
       30rem   a phone-shaped clip read as shrunken at 24
-      34rem   now
+      34rem   the vh term turned out to be the one that binds
+      36rem   now, with 84svh doing the actual work
 
     A phone-shaped clip is what forced the last two. It is the one shape a
     height cap bites hardest on, because for a 9:16 video height IS the long
@@ -3827,16 +3828,26 @@ main {
     it is the fallback for anything too old to know the unit, where the
     behaviour is what it already was.
 
-    76svh puts that clip near 274x488 - about 70% of the screen's width, with
-    84px of the next one still showing, which is what keeps it a shelf rather
-    than a slideshow. It matches --plate-fit (76vh) rather than staying under
-    it now; on a phone the full-bleed plate is full-WIDTH, so the two are not
-    competing for the same impression the way they do on a desktop.
+    76svh measured 281x491 on Chris's phone - 72% of the screen - and he
+    asked for a little more again, so 84. That is about 303px wide, and it
+    is close to the practical ceiling for a clip ON A PANEL: the sheet's
+    content box is 310px at this width, so anything taller stops making the
+    clip bigger and only eats the edge of the next one.
+
+    WHAT GETS SPENT TO BUY IT. The strip advertises itself with the cut edge
+    of the next item, and that edge is 13px now and will be about 7. The
+    scroll indicator under the row (StripRule) is what carries the job from
+    here, which is why it exists and why it renders for every row of three
+    or more.
+
+    It matches --plate-fit (76vh) and now passes it; on a phone the
+    full-bleed plate is full-WIDTH, so the two are not competing for the
+    same impression the way they do on a desktop.
   */
   .is-strip > .work-section__plate,
   .is-strip > .media-row__item {
-    --strip-h: min(76vh, 34rem);
-    --strip-h: min(76svh, 34rem);
+    --strip-h: min(84vh, 36rem);
+    --strip-h: min(84svh, 36rem);
     flex: 0 0 auto;
     scroll-snap-align: start;
   }

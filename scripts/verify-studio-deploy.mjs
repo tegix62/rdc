@@ -114,6 +114,54 @@ const seen = new Set([new URL('/', STUDIO).href])
 console.log(`Studio: ${STUDIO}`)
 console.log(`index.html: ${index.length} bytes`)
 
+/*
+  THE DIRECT ANSWER, if it is there.
+
+  The deploy log says "Read manifest from studio/dist/static/create-manifest.json",
+  which means the schema is written into the Studio's own dist folder and
+  uploaded with everything else. Fetching that one file says what THIS
+  deployed Studio was built from - no crawling, no guessing which chunk
+  holds the schema, and it is the Studio's copy rather than the dataset's,
+  which is exactly the distinction the dataset manifest cannot make.
+*/
+let dist = null
+const distUrl = new URL('/static/create-manifest.json', STUDIO).href
+try {
+  const res = await fetch(distUrl)
+  if (res.ok) {
+    dist = await res.text()
+    console.log(`\n--- ${distUrl} ---`)
+    console.log(`  ${dist.length} bytes, last modified ${res.headers.get('last-modified') ?? '(not stated)'}`)
+    /*
+      create-manifest.json is an index: the schema itself sits in a hashed
+      sibling it names. Follow those, or the controls come back absent from
+      a file that never claimed to hold them.
+    */
+    for (const m of new Set([...dist.matchAll(/"([A-Za-z0-9._-]+\.json)"/g)].map((x) => x[1]))) {
+      const url = new URL(`/static/${m}`, STUDIO).href
+      try {
+        const part = await fetch(url)
+        if (!part.ok) continue
+        const body = await part.text()
+        dist += body
+        console.log(`  + ${m}  ${body.length} bytes`)
+      } catch {
+        // A named file that will not fetch simply adds nothing here.
+      }
+    }
+    for (const n of NEEDLES) {
+      console.log(`  ${dist.includes(n.text) ? 'PRESENT' : 'ABSENT '}  ${n.what}  (added in ${n.since})`)
+    }
+    for (const c of CONTROLS) {
+      console.log(`  ${dist.includes(c.text) ? 'PRESENT' : 'ABSENT '}  ${c.what}  [control]`)
+    }
+  } else {
+    console.log(`\n(${distUrl}: ${res.status} ${res.statusText})`)
+  }
+} catch (err) {
+  console.log(`\n(${distUrl}: ${err.message})`)
+}
+
 while (queue.length && files < MAX_FILES && bytes < BUDGET_BYTES) {
   const {url, text} = queue.shift()
   for (const n of [...NEEDLES, ...CONTROLS]) {

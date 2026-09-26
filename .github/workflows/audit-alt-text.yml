@@ -1,0 +1,39 @@
+name: Audit alt text
+
+# Where alt text is, where it is not, and whether writing it once per asset
+# saves anything over writing it once per use. See the header of
+# scripts/audit-alt-text.mjs.
+#
+# Read-only.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/audit-alt-text.mjs'
+      - '.github/workflows/audit-alt-text.yml'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Count it
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+        run: |
+          set -o pipefail
+          node scripts/audit-alt-text.mjs 2>&1 | tee alt.txt
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo '## Alt text'
+            echo ''
+            echo '```'
+            cat alt.txt 2>/dev/null || echo '(the script did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

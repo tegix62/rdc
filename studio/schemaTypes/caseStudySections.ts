@@ -88,8 +88,11 @@ export const fullImageSection = defineType({
     labelField(),
   ],
   preview: {
-    select: {label: 'label', alt: 'image.alt', media: 'image'},
-    prepare: ({label, alt, media}) => ({...describe('Full Image', label || alt), media}),
+    select: {label: 'label', alt: 'image.alt', assetAlt: 'image.asset.altText', media: 'image'},
+    prepare: ({label, alt, assetAlt, media}) => ({
+      ...describe('Full Image', label || alt || assetAlt),
+      media,
+    }),
   },
 })
 
@@ -99,8 +102,11 @@ export const twoUpSection = defineType({
   type: 'object',
   fields: [image('imageLeft', 'Left Image'), image('imageRight', 'Right Image'), labelField()],
   preview: {
-    select: {label: 'label', alt: 'imageLeft.alt', media: 'imageLeft'},
-    prepare: ({label, alt, media}) => ({...describe('Two Images', label || alt), media}),
+    select: {label: 'label', alt: 'imageLeft.alt', assetAlt: 'imageLeft.asset.altText', media: 'imageLeft'},
+    prepare: ({label, alt, assetAlt, media}) => ({
+      ...describe('Two Images', label || alt || assetAlt),
+      media,
+    }),
   },
 })
 
@@ -115,8 +121,11 @@ export const threeUpSection = defineType({
     labelField(),
   ],
   preview: {
-    select: {label: 'label', alt: 'imageOne.alt', media: 'imageOne'},
-    prepare: ({label, alt, media}) => ({...describe('Three Images', label || alt), media}),
+    select: {label: 'label', alt: 'imageOne.alt', assetAlt: 'imageOne.asset.altText', media: 'imageOne'},
+    prepare: ({label, alt, assetAlt, media}) => ({
+      ...describe('Three Images', label || alt || assetAlt),
+      media,
+    }),
   },
 })
 
@@ -138,9 +147,15 @@ export const imageTextSection = defineType({
     labelField(),
   ],
   preview: {
-    select: {label: 'label', heading: 'heading', alt: 'image.alt', media: 'image'},
-    prepare: ({label, heading, alt, media}) => ({
-      ...describe('Image + Text', label || heading || alt),
+    select: {
+      label: 'label',
+      heading: 'heading',
+      alt: 'image.alt',
+      assetAlt: 'image.asset.altText',
+      media: 'image',
+    },
+    prepare: ({label, heading, alt, assetAlt, media}) => ({
+      ...describe('Image + Text', label || heading || alt || assetAlt),
       media,
     }),
   },
@@ -234,8 +249,11 @@ export const achievementsSection = defineType({
     labelField(),
   ],
   preview: {
-    select: {label: 'label', alt: 'imageLeft.alt', media: 'imageLeft'},
-    prepare: ({label, alt, media}) => ({...describe('Achievements', label || alt), media}),
+    select: {label: 'label', alt: 'imageLeft.alt', assetAlt: 'imageLeft.asset.altText', media: 'imageLeft'},
+    prepare: ({label, alt, assetAlt, media}) => ({
+      ...describe('Achievements', label || alt || assetAlt),
+      media,
+    }),
   },
 })
 
@@ -563,16 +581,17 @@ export const mediaTextSection = defineType({
       label: 'label',
       heading: 'heading',
       alt: 'image.alt',
+      assetAlt: 'image.asset.altText',
       media: 'image',
       url: 'videoUrl',
       src: 'videoSrc',
       file: 'videoFile.asset._ref',
       webm: 'videoWebm.asset._ref',
     },
-    prepare: ({label, heading, alt, media, url, src, file, webm}) => ({
+    prepare: ({label, heading, alt, assetAlt, media, url, src, file, webm}) => ({
       ...describe(
         'Media + Text',
-        label || heading || alt,
+        label || heading || alt || assetAlt,
         url || src || file || webm ? 'video plays instead of the image' : undefined,
       ),
       media,

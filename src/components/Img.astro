@@ -16,6 +16,7 @@
 */
 import { imageUrl, imageDimensions, buildSrcSet, originalUrl, isPassThrough, cappedWidth, hasAsset, hotspotPosition } from '../lib/image';
 import { isAnimatedSource } from '../lib/animated';
+import { assetAlt } from '../lib/assetText';
 
 interface Props {
   image: any;
@@ -93,7 +94,15 @@ const {
   class: className,
 } = Astro.props;
 
-const alt = altProp || image?.alt || '';
+/*
+  Three places alt text can come from, most specific first - see
+  lib/assetText.ts for why the asset's own text is last and why that makes
+  this safe to adopt without touching a single existing document.
+
+  The await costs one query for the whole build, not one per image: the
+  module resolves a single lookup table and every caller shares it.
+*/
+const alt = altProp || image?.alt || (await assetAlt(image)) || '';
 
 /*
   How an image is named in a build warning. The document title alone is not

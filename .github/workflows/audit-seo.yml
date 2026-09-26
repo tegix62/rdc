@@ -20,6 +20,11 @@ on:
 jobs:
   audit:
     runs-on: ubuntu-latest
+    # No timeout means GitHub's 360-minute default. test-media-row-slots hung
+    # for four hours on a single stalled image before anyone noticed it had
+    # never reported, so every browser check and audit now fails loudly rather
+    # than sitting mute for most of a day.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

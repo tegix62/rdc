@@ -83,11 +83,37 @@ for (const path of PATHS) {
     fail(`${path} -> HTTP ${response ? response.status() : 'no response'}`)
     continue
   }
-  // Images size their boxes from width/height attributes, but object-fit is
-  // only observable once there are pixels to fit.
-  await page.evaluate(() =>
-    Promise.all(Array.from(document.images).map((i) => (i.complete ? null : i.decode().catch(() => {})))),
-  )
+  /*
+    Images size their boxes from width/height attributes, but object-fit is
+    only observable once there are pixels to fit.
+
+    EVERY WAIT HERE IS RACED AGAINST A CLOCK, and that is not caution.
+
+    The first version of this line was `Promise.all(... i.decode().catch())`,
+    and it hung this check for four hours on a GitHub runner without reporting
+    anything. decode() rejects when an image FAILS, which the catch handled -
+    but an image whose request simply never completes leaves the promise
+    pending forever, and page.evaluate does not take the default timeout, so
+    there was nothing anywhere to end it. One stalled request on /style-guide
+    was enough.
+
+    A check that can hang is worse than no check: it reports nothing while
+    looking like it is still working, so its silence reads as "not finished
+    yet" rather than "never ran". Both of tonight's layout commits went out
+    with this thing sitting green-ish and mute.
+  */
+  await page.evaluate(() => {
+    const within = (ms, promise) =>
+      Promise.race([promise, new Promise((resolve) => setTimeout(resolve, ms))])
+    return within(
+      8000,
+      Promise.all(
+        Array.from(document.images).map((i) =>
+          i.complete ? null : within(3000, i.decode().catch(() => {})),
+        ),
+      ),
+    )
+  })
 
   const rows = await page.evaluate(() =>
     Array.from(document.querySelectorAll('.media-row__items.has-slots')).map((row) => ({

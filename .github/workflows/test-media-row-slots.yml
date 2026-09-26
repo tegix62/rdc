@@ -24,6 +24,12 @@ on:
 jobs:
   slots:
     runs-on: ubuntu-latest
+    # A workflow with no timeout inherits GitHub's 360-minute default. This
+    # check hung for four hours on a stalled image before anyone noticed it
+    # had never reported - so it now fails loudly in ten minutes instead of
+    # sitting mute for six hours. The script races its own waits as well;
+    # this is the backstop for the hang nobody predicted.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

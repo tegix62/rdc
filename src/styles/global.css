@@ -2818,6 +2818,33 @@ main {
 }
 
 @media (max-width: 40rem) {
+  /*
+    TIGHTENING THE BAND, measured rather than eyeballed.
+
+    At 390 it stood 411px tall, and the content in it came to about 220:
+    96px of that was the band's own padding and 96 more was the four 24px
+    gaps between blocks, so nearly half the band was space. On a desktop
+    that space is proportionate to a 1448px measure; on a phone the same
+    numbers against a 358px column read as a page that has not started yet.
+
+      padding   48 -> 32 each side
+      row-gap   24 -> 16
+      kicker    16 -> 8 under it, since it belongs to the title beneath it
+                rather than floating between two blocks
+
+    Which lands the band around 347px for the same content - a sixth
+    shorter, with nothing made smaller. The type is untouched on purpose:
+    what read as loose here was the space, and shrinking the words to fix
+    space is how a phone layout ends up unreadable as well as tight.
+  */
+  .work-identity {
+    padding: var(--space-4) 0;
+  }
+
+  .work-identity__kicker {
+    margin-bottom: var(--space-1);
+  }
+
   .work-identity__inner {
     padding: 0 var(--space-2);
   }
@@ -2844,7 +2871,7 @@ main {
   .work-identity__inner {
     grid-template-columns: minmax(0, 1fr) minmax(0, auto);
     column-gap: var(--space-3);
-    row-gap: var(--space-3);
+    row-gap: var(--space-2);
   }
 
   .work-identity__main,

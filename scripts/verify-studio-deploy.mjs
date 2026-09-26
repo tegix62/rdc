@@ -56,6 +56,19 @@ const NEEDLES = [
   {text: 'Phone video (9:16)', since: '1fd6210', what: 'the 9:16 slot shape'},
 ]
 
+/*
+  CONTROLS: strings that have been in the schema for months. If the crawl
+  cannot find these either, it is not reaching the schema at all and the
+  result above them means nothing - which is the difference between "the
+  deploy is stale" and "this script is looking in the wrong place". The
+  first two runs had no control and confidently reported the former.
+*/
+const CONTROLS = [
+  {text: 'Slot shape', what: 'the Slot shape field title'},
+  {text: 'Page Builder', what: 'the Page Builder field title'},
+  {text: 'mediaRowSection', what: 'a section type name'},
+]
+
 const BUDGET_BYTES = 80 * 1024 * 1024
 const MAX_FILES = 400
 
@@ -90,7 +103,7 @@ const chunkRefs = (text, base) => {
   return [...out]
 }
 
-const found = new Map(NEEDLES.map((n) => [n.text, null]))
+const found = new Map([...NEEDLES, ...CONTROLS].map((n) => [n.text, null]))
 let bytes = 0
 let files = 0
 
@@ -103,7 +116,9 @@ console.log(`index.html: ${index.length} bytes`)
 
 while (queue.length && files < MAX_FILES && bytes < BUDGET_BYTES) {
   const {url, text} = queue.shift()
-  for (const n of NEEDLES) if (!found.get(n.text) && text.includes(n.text)) found.set(n.text, url)
+  for (const n of [...NEEDLES, ...CONTROLS]) {
+    if (!found.get(n.text) && text.includes(n.text)) found.set(n.text, url)
+  }
   for (const ref of chunkRefs(text, url)) {
     if (seen.has(ref)) continue
     seen.add(ref)
@@ -139,6 +154,12 @@ for (const n of NEEDLES) {
   const hit = found.get(n.text)
   console.log(`  ${hit ? 'PRESENT' : 'ABSENT '}  ${n.what}  (added in ${n.since})`)
 }
+console.log('  --- controls, months old, must be present for any of the above to mean anything ---')
+for (const c of CONTROLS) {
+  const hit = found.get(c.text)
+  console.log(`  ${hit ? 'PRESENT' : 'ABSENT '}  ${c.what}`)
+}
+const blind = CONTROLS.every((c) => !found.get(c.text))
 
 let manifest = null
 if (TOKEN) {
@@ -174,8 +195,9 @@ if (manifest) {
 const missing = NEEDLES.filter((n) => !found.get(n.text))
 const manifestMissing = manifest ? NEEDLES.filter((n) => !manifest.includes(n.text)) : null
 console.log('\n--- verdict ---')
-if (!files) {
-  console.log('  The bundle could not be read, so it says nothing either way.')
+if (!files || blind) {
+  console.log('  The bundle says nothing either way: the crawl never reached the')
+  console.log('  schema, since even the controls are missing from what it read.')
   if (manifestMissing && !manifestMissing.length) {
     console.log('  The schema manifest in the dataset does carry every change, and')
     console.log('  only a deploy writes that - so the deploy ran and landed. What is')
@@ -197,4 +219,4 @@ if (!files) {
 
 // A crawl that read nothing is inconclusive, not a failure; a crawl that
 // read the bundle and could not find the schema in it is the real red.
-process.exit(files && missing.length ? 1 : 0)
+process.exit(files && !blind && missing.length ? 1 : 0)

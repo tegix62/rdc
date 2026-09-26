@@ -3805,24 +3805,38 @@ main {
 
       19rem   fitted row, plates at thumbnail size
       24rem   once the strip existed and nothing had to fit
-      30rem   now
+      30rem   a phone-shaped clip read as shrunken at 24
+      34rem   now
 
-    A phone-shaped clip is what forced this one. At 24rem a 9:16 video is
-    216px wide on a 390px screen - just over half of it, which is what Chris
-    called shrunken, and he is right: it is the one shape where a height cap
-    bites hardest, because height is the long side. At 30rem the same clip is
-    270px, about 69% of the screen, and a 4:5 poster goes from 307 to 343
-    where the 88vw width cap takes over.
+    A phone-shaped clip is what forced the last two. It is the one shape a
+    height cap bites hardest on, because for a 9:16 video height IS the long
+    side: every other shape spends the ceiling on its short dimension and has
+    width left over.
 
-    The ceiling stays well under --plate-fit (76vh), because a plate on a
-    shelf should not rival the full-bleed plate that is the biggest thing on
-    the page. min() against 62vh so a short screen shortens it rather than
-    letting one item fill the viewport with no sign there is a page around
-    it.
+    AND THE VH TERM IS THE ONE THAT BINDS, which is only obvious from a
+    photograph of a real phone. Measured off Chris's screenshot, scaling from
+    the panel's known 358px: at min(62vh, 30rem) his clip came out 224x398,
+    not the 270x480 the rem cap predicts - because Safari resolved vh against
+    about 642px, the space between its toolbars, not the 844 a desktop
+    browser would report. So 30rem never applied at all, and every number
+    reasoned from it was describing a phone nobody has.
+
+    svh, not vh, for the same reason from the other side: svh is defined as
+    the SMALL viewport, the one with the toolbars showing, so the shelf stays
+    put instead of growing as they slide away mid-scroll. The vh line above
+    it is the fallback for anything too old to know the unit, where the
+    behaviour is what it already was.
+
+    76svh puts that clip near 274x488 - about 70% of the screen's width, with
+    84px of the next one still showing, which is what keeps it a shelf rather
+    than a slideshow. It matches --plate-fit (76vh) rather than staying under
+    it now; on a phone the full-bleed plate is full-WIDTH, so the two are not
+    competing for the same impression the way they do on a desktop.
   */
   .is-strip > .work-section__plate,
   .is-strip > .media-row__item {
-    --strip-h: min(62vh, 30rem);
+    --strip-h: min(76vh, 34rem);
+    --strip-h: min(76svh, 34rem);
     flex: 0 0 auto;
     scroll-snap-align: start;
   }
@@ -3873,9 +3887,9 @@ main {
     --video-fit is the cap the clip already sizes itself against, so
     overriding it needs one declaration and no fight with .video--self's own
     rule. Room for real controls is part of what the shelf height has to
-    buy: a video is a control as well as a picture, and at the current
-    30rem a 9:16 clip is 270px wide, which is room for a play button, a
-    scrubber and a volume control at once.
+    buy: a video is a control as well as a picture, and at the current shelf
+    height a 9:16 clip is around 274px wide, which is room for a play
+    button, a scrubber and a volume control at once.
 
     AND IT IS THE SHELF'S HEIGHT, not a number of its own. It used to be
     min(64vh, 30rem) against the pictures' min(50vh, 24rem), which put a

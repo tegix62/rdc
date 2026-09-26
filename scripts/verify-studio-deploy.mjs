@@ -68,17 +68,24 @@ const get = async (url) => {
 /*
   Vite writes the chunk graph as ordinary string literals - `import"./x.js"`,
   `modulepreload href="/static/y.js"`, `import("./z.js")`. Reading them back
-  out of the text is enough to walk it without a bundler, and catching both
-  the relative and rooted forms is what keeps the walk from stopping at the
-  entry chunk.
+  out of the text is enough to walk it without a bundler.
+
+  The first version of this matched only `/static/...`, found nothing, and
+  reported the deploy dead - because an auto-updating Studio does not serve
+  its code from its own origin at all: index.html points at sanity-cdn.com
+  and the application is assembled from there. So the match has to be any
+  quoted path ending in .js, resolved against whatever document named it,
+  and the crawl has to be willing to leave the Studio's own host.
 */
 const chunkRefs = (text, base) => {
   const out = new Set()
-  for (const m of text.matchAll(/["'(]((?:\.{0,2}\/)?static\/[A-Za-z0-9._\-/]+\.js)["')]/g)) {
-    out.add(new URL(m[1].replace(/^\.?\//, '/'), base).href)
-  }
-  for (const m of text.matchAll(/["'](\.\/[A-Za-z0-9._-]+\.js)["']/g)) {
-    out.add(new URL(m[1], base).href)
+  for (const m of text.matchAll(/["'(]([^"'()\s<>]+\.js(?:\?[^"'()\s<>]*)?)["')]/g)) {
+    try {
+      const url = new URL(m[1], base)
+      if (url.protocol === 'http:' || url.protocol === 'https:') out.add(url.href)
+    } catch {
+      // A .js inside a template literal or a regex is not a URL. Skip it.
+    }
   }
   return [...out]
 }
@@ -113,7 +120,20 @@ while (queue.length && files < MAX_FILES && bytes < BUDGET_BYTES) {
   }
 }
 
-console.log(`crawled ${files} chunk(s), ${(bytes / 1024 / 1024).toFixed(1)} MB\n`)
+console.log(`crawled ${files} chunk(s), ${(bytes / 1024 / 1024).toFixed(1)} MB`)
+console.log(`hosts: ${[...new Set([...seen].map((u) => new URL(u).host))].join(', ')}`)
+/*
+  A crawl that reaches nothing proves nothing, and silently reads as every
+  needle being absent - which is exactly how the first run of this script
+  declared a working deploy dead. Say so loudly instead.
+*/
+if (!files) {
+  console.log('\n  NOTHING WAS CRAWLED. index.html named no JavaScript this could')
+  console.log('  follow, so the bundle result below is meaningless. First 1200')
+  console.log('  characters of index.html, to see what it actually names:\n')
+  console.log(index.slice(0, 1200))
+}
+console.log('')
 console.log('--- in the JavaScript the Studio serves ---')
 for (const n of NEEDLES) {
   const hit = found.get(n.text)
@@ -152,8 +172,16 @@ if (manifest) {
 }
 
 const missing = NEEDLES.filter((n) => !found.get(n.text))
+const manifestMissing = manifest ? NEEDLES.filter((n) => !manifest.includes(n.text)) : null
 console.log('\n--- verdict ---')
-if (!missing.length) {
+if (!files) {
+  console.log('  The bundle could not be read, so it says nothing either way.')
+  if (manifestMissing && !manifestMissing.length) {
+    console.log('  The schema manifest in the dataset does carry every change, and')
+    console.log('  only a deploy writes that - so the deploy ran and landed. What is')
+    console.log('  unproven is which JavaScript the Studio hands a browser.')
+  }
+} else if (!missing.length) {
   console.log('  The deployed bundle carries every recent schema change. A Studio')
   console.log('  that is missing one of them is a stale copy in the browser, not a')
   console.log('  failed deploy: the service worker and the open tab both keep the')
@@ -167,4 +195,6 @@ if (!missing.length) {
   console.log('  That is a deploy that half-landed, and worth reading the deploy log for.')
 }
 
-process.exit(missing.length ? 1 : 0)
+// A crawl that read nothing is inconclusive, not a failure; a crawl that
+// read the bundle and could not find the schema in it is the real red.
+process.exit(files && missing.length ? 1 : 0)

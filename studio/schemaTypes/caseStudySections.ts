@@ -496,6 +496,13 @@ export const mediaRowSection = defineType({
           {title: 'Square (1:1)', value: '1 / 1'},
           {title: 'Tall (4:5) - the house shape for a row of three', value: '4 / 5'},
           {title: 'Taller (2:3)', value: '2 / 3'},
+          /*
+            Phone video, exactly. Added because it is the shape Chris shoots
+            most and the list could not say it: his Two Point Oh clips are
+            9:16, the tallest slot on offer was 2:3, and the gap between them
+            is the matting he was looking at.
+          */
+          {title: 'Phone video (9:16)', value: '9 / 16'},
         ],
         layout: 'radio',
       },

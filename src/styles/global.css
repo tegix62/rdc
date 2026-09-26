@@ -3385,6 +3385,27 @@ main {
   color: color-mix(in srgb, var(--color-white) 70%, var(--color-ink));
 }
 
+/*
+  ON A PANEL, THE PANEL IS THE MATTE.
+
+  .work-video-frame stands a black ground behind a clip, which is right
+  everywhere else: against a project's accent colour, black framing reads as
+  a screen. Inside a panel it is a second ground fighting the first - Chris's
+  three Two Point Oh clips came out as black boxes sitting on a light grey
+  sheet, with the portrait video letterboxed inside the black.
+
+  Two grounds is one too many, and the panel is the one that was chosen. So
+  the frame stops painting and the panel shows through: a clip narrower than
+  its slot is matted by the sheet it is presented on, which is the entire
+  idea of putting it on a sheet.
+
+  Scoped to the panel deliberately. A video row with no panel keeps the black
+  frame it has always had.
+*/
+.media-row__panel .work-video-frame {
+  background: transparent;
+}
+
 @media (max-width: 40rem) {
   /*
     Less inset on a phone, where the panel's padding is a larger share of a

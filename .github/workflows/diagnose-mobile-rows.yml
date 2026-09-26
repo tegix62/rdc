@@ -1,0 +1,43 @@
+name: Diagnose mobile rows
+
+# Every layout check here runs at 1512x900, which is the one width at which
+# the things Chris photographed on his phone do not happen. This measures a
+# case study at 390x844 instead: what sticks out past the screen, how wide
+# the gaps between items really are, and where a block's height goes.
+#
+# See the header of scripts/diagnose-mobile-rows.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to measure'
+        default: 'https://rumeaudesign.co'
+      paths:
+        description: 'Space-separated paths, or blank for every case study'
+        default: ''
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          set -o pipefail
+          node scripts/diagnose-mobile-rows.mjs "${{ inputs.base_url || 'https://rumeaudesign.co' }}" ${{ inputs.paths }} | tee /tmp/mobile.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Mobile rows at 390x844'
+            echo ''
+            echo '```'
+            cat /tmp/mobile.txt 2>/dev/null || echo '(the check did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

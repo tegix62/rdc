@@ -3446,6 +3446,16 @@ main {
   from a shared shelf height and lets the row overflow, so imposing a slot
   there would fight its own sizing.
 
+  BUT A STRIP IS ONLY A STRIP ON A PHONE. The class is in the markup at
+  every width; the rules that make it scroll sideways all live inside
+  `@media (max-width: 40rem)`. So `:not(.is-strip)` alone took equal slots
+  away from three- and four-item rows on the DESKTOP too, where they are
+  ordinary rows and the class means nothing - measured, a four-up at 1512
+  went from four equal slots to 342, 330, 352, 352. The block below hands
+  them back above the breakpoint, which is the one place the exclusion was
+  never meant to reach. Caught by test-media-row-slots, which is what it is
+  for.
+
   This used to be `@media (min-width: 40.0625rem)`, which said something
   different and wrong: that equal slots are a desktop idea. A pair stays a
   pair on a phone - it is the one row that neither stacks nor becomes a
@@ -3474,6 +3484,47 @@ main {
 .media-row__items.has-slots:not(.is-strip) > .media-row__item .video__el {
   width: 100%;
   height: 100%;
+}
+
+/*
+  Above the phone breakpoint a strip is not a strip, so the exclusion above
+  has nothing to exclude and the row is an ordinary equal-slots row. Same
+  declarations, and they are repeated rather than shared because the only
+  way to share them would be to write the exclusion into a media query the
+  strip's own sizing does not live in.
+*/
+@media (min-width: 40.0625rem) {
+  .media-row__items.has-slots.is-strip {
+    --row-w: var(--row-room);
+  }
+
+  .media-row__items.has-slots.is-strip > .media-row__item {
+    flex: 1 1 0;
+    aspect-ratio: var(--cell-ar, 3 / 2);
+  }
+
+  .media-row__items.has-slots.is-strip > .media-row__item > img,
+  .media-row__items.has-slots.is-strip > .media-row__item .work-video-frame,
+  .media-row__items.has-slots.is-strip > .media-row__item .video,
+  .media-row__items.has-slots.is-strip > .media-row__item .video__el {
+    width: 100%;
+    height: 100%;
+  }
+
+  .media-row__items.has-slots.is-strip > .media-row__item .video__el {
+    max-height: none;
+    max-width: none;
+  }
+
+  .media-row__items.has-slots.is-strip[data-fit='fill'] > .media-row__item > img,
+  .media-row__items.has-slots.is-strip[data-fit='fill'] > .media-row__item .video__el {
+    object-fit: cover;
+  }
+
+  .media-row__items.has-slots.is-strip[data-fit='fit'] > .media-row__item > img,
+  .media-row__items.has-slots.is-strip[data-fit='fit'] > .media-row__item .video__el {
+    object-fit: contain;
+  }
 }
 
 /*

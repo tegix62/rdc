@@ -134,10 +134,27 @@ for (const path of PATHS) {
         if (!media) return null
         const cell = fig.getBoundingClientRect()
         const box = media.getBoundingClientRect()
+        /*
+          THE CAPTION IS NOT PART OF THE SLOT.
+
+          A figure's height is its media plus its caption - by design, so
+          captions of different lengths cannot push the pictures above them
+          out of line. Measuring the media against the whole figure
+          therefore reported every captioned slot as 25px short, which is
+          the caption, and this check spent the evening failing on two of
+          them. A red that is always red is a check nobody reads: it was
+          still failing when a real regression arrived, and the real one
+          had to be picked out of the noise by hand.
+        */
+        const caption = fig.querySelector('figcaption')
+        // Measured to the TOP of the caption, not by subtracting its height:
+        // a caption carries a margin above it, and that margin is not slot
+        // either.
+        const slotH = caption ? caption.getBoundingClientRect().top - cell.top : cell.height
         return {
-          cell: `${cell.width.toFixed(0)}x${cell.height.toFixed(0)}`,
+          cell: `${cell.width.toFixed(0)}x${slotH.toFixed(0)}`,
           box: `${box.width.toFixed(0)}x${box.height.toFixed(0)}`,
-          short: cell.height - box.height,
+          short: slotH - box.height,
         }
       }).filter(Boolean),
       items: Array.from(row.querySelectorAll('img')).map((img) => {

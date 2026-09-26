@@ -3795,9 +3795,34 @@ main {
     shorter because someone is on a phone with a short screen and the browser
     chrome is showing.
   */
+  /*
+    THE SHELF HEIGHT, and it is the only size knob a strip has.
+
+    Every item on a shelf is sized from this and capped at 88vw, so raising
+    it makes the whole shelf bigger and nothing on it uneven. Raised twice
+    now, both times for the same reason: the number was set when a row still
+    had to FIT the screen, and a shelf does not.
+
+      19rem   fitted row, plates at thumbnail size
+      24rem   once the strip existed and nothing had to fit
+      30rem   now
+
+    A phone-shaped clip is what forced this one. At 24rem a 9:16 video is
+    216px wide on a 390px screen - just over half of it, which is what Chris
+    called shrunken, and he is right: it is the one shape where a height cap
+    bites hardest, because height is the long side. At 30rem the same clip is
+    270px, about 69% of the screen, and a 4:5 poster goes from 307 to 343
+    where the 88vw width cap takes over.
+
+    The ceiling stays well under --plate-fit (76vh), because a plate on a
+    shelf should not rival the full-bleed plate that is the biggest thing on
+    the page. min() against 62vh so a short screen shortens it rather than
+    letting one item fill the viewport with no sign there is a page around
+    it.
+  */
   .is-strip > .work-section__plate,
   .is-strip > .media-row__item {
-    --strip-h: min(50vh, 24rem);
+    --strip-h: min(62vh, 30rem);
     flex: 0 0 auto;
     scroll-snap-align: start;
   }
@@ -3805,13 +3830,10 @@ main {
   /*
     Sized by height - and by width where height alone would run away.
 
-    --strip-h is the shelf height and gives every plate in a row the same one.
-    Raised from 19rem now that the strip exists: fitting the row into 390px
-    was what forced plates down to thumbnail size, and once nothing has to
-    fit, the only reason to keep them small is gone. A 4:5 poster goes from
-    243px wide to 307px, which is about 80% of the screen - big enough to
-    read, with the next plate's edge still showing so the row still says it
-    continues.
+    --strip-h is the shelf height and gives every plate in a row the same
+    one - see the note on it above for what it is and why it has moved
+    twice. Whatever it is set to, the next plate's edge still shows, which
+    is what says the row continues.
 
     THE WIDTH TERM. Height alone is the wrong handle for a wide plate: a 16:9
     image on the same shelf would be 683px on a 390px screen, so it could
@@ -3848,11 +3870,12 @@ main {
     was also the expensive option: three portrait clips at full width are
     three near-full screens of scrolling for one idea.
 
-    A taller ceiling than a plate gets, because a video is a control as well
-    as a picture: 24rem puts a 9:16 clip at about 216px wide, near the 243px
-    an adjacent poster gets, which is room for real controls. --video-fit is
-    the existing cap the clip already sizes itself against, so overriding it
-    needs one declaration and no fight with .video--self's own rule.
+    --video-fit is the cap the clip already sizes itself against, so
+    overriding it needs one declaration and no fight with .video--self's own
+    rule. Room for real controls is part of what the shelf height has to
+    buy: a video is a control as well as a picture, and at the current
+    30rem a 9:16 clip is 270px wide, which is room for a play button, a
+    scrubber and a volume control at once.
 
     AND IT IS THE SHELF'S HEIGHT, not a number of its own. It used to be
     min(64vh, 30rem) against the pictures' min(50vh, 24rem), which put a
@@ -3870,11 +3893,12 @@ main {
     And a width ceiling, which a plate does not need but a video does.
 
     --video-fit caps the HEIGHT, and height alone is the wrong handle for a
-    landscape clip: measured, three 16:9 videos at a 24rem ceiling came out
-    683px wide on a 390px screen - 1.75 screens each, so you could never see
-    one whole player, let alone judge it against its neighbours. A portrait
-    clip has the opposite problem and needs the height cap, so both apply and
-    whichever binds first wins.
+    landscape clip: measured, three 16:9 videos at the then-24rem ceiling
+    came out 683px wide on a 390px screen - 1.75 screens each, so you could
+    never see one whole player, let alone judge it against its neighbours.
+    Raising the shelf only makes that worse, which is why the width ceiling
+    is not optional. A portrait clip has the opposite problem and needs the
+    height cap, so both apply and whichever binds first wins.
 
     The video keeps width:auto and height:auto, so the two ceilings bound a
     replaced element without distorting it - the ratio is preserved and the

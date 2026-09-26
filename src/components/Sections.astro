@@ -10,6 +10,37 @@ import Video from './Video.astro';
 import { imageDimensions } from '../lib/image';
 import StripRule from './StripRule.astro';
 import { plateRowFill, singlePlateFill, fullPlateFill, fillWarning, FILLS, type Fill } from '../lib/measure';
+import { stripStegaKey } from '../lib/stega';
+
+/*
+  EVERY SETTING READ FROM SANITY GOES THROUGH HERE FIRST.
+
+  Visual editing hides zero-width characters inside every string it returns so
+  Studio can map the page back to the field. Prose survives that; a value
+  compared against a literal does not - "fit" plus invisible characters is not
+  "fit" - and there is nothing to see in the data, the markup or the page.
+
+  lib/stega.ts says this "silently broke the Portfolio filters", and it did it
+  again here, to the feature built tonight. Measured on the preview build:
+
+    row 0 (fit: NONE, slots "4 / 5<zero-width run>")
+      has the has-slots class and no data-fit, so its images are stretched
+
+  rowLayout came back as "fit" plus markers - truthy, and not "shape", so the
+  row took the has-slots class; but `=== 'fit'` and `=== 'fill'` both failed,
+  so data-fit was never set and nothing applied object-fit. cellShape went
+  into --cell-ar carrying the same markers, making the aspect-ratio invalid.
+
+  Which is very probably what Chris actually saw at the start of the evening:
+  distorted images on preview, correct ones on production. I explained that as
+  a slot-shape default, and the default was real - but stega is why PREVIEW
+  stretched them, and production, where visual editing is off, did not.
+
+  stripStegaKey rather than stripStega: this is the strict one, for values
+  used as keys, compared against literals, or written into CSS, where a single
+  stray character is already fatal.
+*/
+const setting = (value: unknown): string => stripStegaKey(value);
 
 interface Props {
   sections: any[];
@@ -330,7 +361,8 @@ function mediaRowStyle(items: any[]): string {
   dimensions, so its ratio here would be a guess that then sized every slot.
 */
 function cellAspect(section: any, items: any[]): string {
-  if (section.cellShape && section.cellShape !== 'auto') return section.cellShape;
+  const shape = setting(section.cellShape);
+  if (shape && shape !== 'auto') return shape;
   const ratios = items.map(knownAspect).filter((r): r is number => r !== null);
   /*
     Nothing to go on: no image dimensions anywhere in the row, and no video
@@ -486,7 +518,7 @@ function rowStyle(images: any[]): string {
         holding the old 'auto' value gets capped, which is now the sane
         reading of it.
       */
-      const fit = section.plateFit !== 'fill';
+      const fit = setting(section.plateFit) !== 'fill';
       /*
         Only when the cap is on: with plateFit 'fill' the plate spans the
         viewport by definition, and warning about a block that is doing
@@ -574,7 +606,7 @@ function rowStyle(images: any[]): string {
           class:list={[
             'work-section',
             'work-section--image-text',
-            section.imagePosition === 'Right' && 'is-reversed',
+            setting(section.imagePosition) === 'Right' && 'is-reversed',
             !hasCopy(section) && 'is-alone',
           ]}
           style={ratioStyle(section.image)}
@@ -716,7 +748,8 @@ function rowStyle(images: any[]): string {
         about cannot happen there. It is the aspect-driven row that is bounded
         by its own shapes, and only that one is worth saying anything about.
       */
-      if (!section.rowLayout || section.rowLayout === 'shape') {
+      const rowLayout = setting(section.rowLayout);
+      if (!rowLayout || rowLayout === 'shape') {
         const label = blockLabel(blockIndex, blockCount, 'Media Row', section.heading);
         /*
           A SELF-HOSTED CLIP IN A SHAPE-SIZED ROW CANNOT BE PREDICTED.
@@ -770,9 +803,9 @@ function rowStyle(images: any[]): string {
         something to go on, and a row told its shape was never asking.
       */
       if (
-        section.rowLayout &&
-        section.rowLayout !== 'shape' &&
-        (!section.cellShape || section.cellShape === 'auto') &&
+        rowLayout &&
+        rowLayout !== 'shape' &&
+        (!setting(section.cellShape) || setting(section.cellShape) === 'auto') &&
         !items.some((item: any) => knownAspect(item) !== null)
       ) {
         const clips = items.filter(isSelfHostedVideo).length;
@@ -824,9 +857,9 @@ function rowStyle(images: any[]): string {
                 does when its shape is not the slot's, because those are two
                 different questions and CSS reads them in different places.
               */
-              section.rowLayout && section.rowLayout !== 'shape' && 'has-slots',
+              rowLayout && rowLayout !== 'shape' && 'has-slots',
             ]}
-            data-fit={section.rowLayout === 'fill' || section.rowLayout === 'fit' ? section.rowLayout : undefined}
+            data-fit={rowLayout === 'fill' || rowLayout === 'fit' ? rowLayout : undefined}
             style={`${mediaRowStyle(items)};--cell-ar:${cellAspect(section, items)}`}
           >
             {items.map((item: any, i: number) => (
@@ -881,7 +914,7 @@ function rowStyle(images: any[]): string {
           class:list={[
             'work-section',
             'work-section--image-text',
-            section.mediaPosition === 'Right' && 'is-reversed',
+            setting(section.mediaPosition) === 'Right' && 'is-reversed',
             !hasCopy(section) && 'is-alone',
           ]}
           style={ratioStyle(section.image)}

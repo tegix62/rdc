@@ -7,6 +7,7 @@ import { getCaseStudy, getGridItems, getOtherCaseStudies } from '../../lib/queri
 import { socialCardUrl, fileUrl, archiveCard, imageDimensions } from '../../lib/image';
 import { embedUrl } from '../../lib/video';
 import { renderPortableText } from '../../lib/portableText';
+import { stripStegaKey } from '../../lib/stega';
 import Video from '../../components/Video.astro';
 import { caseStudyNode } from '../../lib/structuredData';
 import { caseStudyDescription } from '../../lib/meta';
@@ -187,7 +188,7 @@ const markStyle =
       */
       <div
         class="work-hero full-bleed"
-        data-hero-fit={caseStudy.heroFit === 'whole' ? 'whole' : undefined}
+        data-hero-fit={stripStegaKey(caseStudy.heroFit) === 'whole' ? 'whole' : undefined}
         style={heroRatio}
       >
         <Img

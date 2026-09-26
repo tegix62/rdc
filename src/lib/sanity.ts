@@ -42,6 +42,33 @@ const NON_TEXT_FIELDS = new Set([
   'tileTreatment',
   'inkMode',
   /*
+    The layout settings, added after they broke the same way and were caught
+    by the check rather than by eye.
+
+    `rowLayout` came back as "fit" plus invisible characters, which is truthy
+    and is not "shape" - so a Media Row took the has-slots class - but failed
+    `=== 'fit'`, so data-fit was never written and nothing applied object-fit.
+    Every image in that row was stretched to its slot. `cellShape` went
+    straight into --cell-ar still carrying the markers, making the
+    aspect-ratio invalid on top of it.
+
+    Which is the likeliest explanation for what Chris reported the first
+    evening this shipped: distorted pictures on preview, correct ones on
+    production, where visual editing is off and none of this happens.
+
+    Sections.astro also strips these on the way in. Both, deliberately: this
+    list is the fix, and the strip is the second line of defence for the day
+    someone adds a fourth setting and does not find this comment.
+  */
+  'rowLayout',
+  'cellShape',
+  'plateFit',
+  'heroFit',
+  'imagePosition',
+  'mediaPosition',
+  'videoPlayback',
+  'heroVideoPlayback',
+  /*
     Alt text lands in an attribute, not in visible prose, and a screen reader
     reads the attribute verbatim - including the zero-width characters stega
     hides in it. Same class of bug as the Portfolio filters above, except the

@@ -4005,6 +4005,29 @@ main {
   }
 
   /*
+    AND THE SHEET GIVES UP ITS SIDE MARGIN, so the shelf has room to show
+    there is more.
+
+    A strip says it scrolls with the cut edge of the next item. On a panel
+    that edge was being paid for twice: 24px of sheet either side, out of a
+    358px block, leaving the next clip a 7px sliver once the clips were as
+    big as Chris wanted them. Which is a row that scrolls and does not look
+    like it does - his words, and the same complaint as the missing
+    indicator, arriving by a different route.
+
+    Horizontal padding only. The sheet keeps its top and bottom, so it still
+    reads as something the work is presented ON rather than a background
+    that happens to be there - and the clips now start where the text above
+    them starts, which is what the unpanelled strips already do.
+
+    Measured at 390: the room goes 310 -> 358, and a 303px clip leaves 39px
+    of the next one showing instead of 7.
+  */
+  .media-row__panel:has(.is-strip) {
+    padding-inline: 0;
+  }
+
+  /*
     The scroll indicator. See StripRule.astro for why it exists and
     Sections.astro for what drives it.
 

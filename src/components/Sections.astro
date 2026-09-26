@@ -438,7 +438,21 @@ function rowStyle(images: any[]): string {
   const ROWS = '.work-section--three-up.is-strip, .media-row__items.is-strip';
 
   function wire(row: HTMLElement) {
-    const rule = row.parentElement?.querySelector<HTMLElement>(':scope > .strip-rule');
+    /*
+      The rule lives at the top of the block, not beside the row.
+
+      This used to read row.parentElement, which was the same thing until a
+      Media Row could be wrapped in a panel - then the row's parent is the
+      panel and the rule is the panel's sibling, so the lookup returned null
+      and the whole indicator silently never wired. Chris found it: a row of
+      four clips that scrolled with nothing at all saying so.
+
+      Going up to the block and back down is what both shapes have in common,
+      and it stays true if anything else is ever wrapped around a row.
+    */
+    const rule = row
+      .closest('.work-section')
+      ?.querySelector<HTMLElement>(':scope > .strip-rule');
     if (!rule) return;
 
     let queued = false;

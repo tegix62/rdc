@@ -159,9 +159,25 @@ const measure = (vw) => {
       const prev = items[i - 1].fig
       gaps.push(round(items[i].fig.x - (prev.x + prev.w)))
     }
+    /*
+      THE SCROLL INDICATOR, for a row that has something to scroll.
+
+      A hidden indicator looks exactly like a row that does not need one, so
+      nothing here could tell them apart - and a panelled row scrolled with
+      no sign of it for as long as panels have existed, because the script
+      looked for the rule beside the row and a panel had come between them.
+      Reported as three separate facts: whether the markup has one, whether
+      the script found something to scroll, and how far the row can travel.
+    */
+    const block = row.closest('.work-section')
+    const rule = block ? block.querySelector(':scope > .strip-rule') : null
+    const travel = round(row.scrollWidth - row.clientWidth)
+
     return {
       strip: row.classList.contains('is-strip'),
       pair: row.classList.contains('is-pair'),
+      travel,
+      indicator: rule ? (rule.classList.contains('is-active') ? 'active' : 'present but inert') : 'MISSING',
       /*
         Whether the items actually ended up one under the other. The class
         says what was asked for; this says what happened, and the gap
@@ -320,6 +336,14 @@ for (const width of WIDTHS) {
         `    row ${i}: ${row.items.length} item(s)${how ? ` [${how}]` : ''}  ` +
           `box x${row.box.x} y${row.box.y} ${row.box.w}x${row.box.h}  scrollW ${row.scrollWidth}  css gap ${row.cssGap}`,
       )
+      if (row.travel > 1 || row.strip) {
+        console.log(
+          `      scrolls ${row.travel}px  -  indicator ${row.indicator}` +
+            (row.travel > 1 && row.indicator !== 'active'
+              ? '   <-- IT SCROLLS AND NOTHING SAYS SO'
+              : ''),
+        )
+      }
       if (row.panel) {
         console.log(
           `      panel x${row.panel.box.x} y${row.panel.box.y} ${row.panel.box.w}x${row.panel.box.h}` +

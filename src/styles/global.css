@@ -3684,34 +3684,103 @@ main {
   }
 
   /*
-    A PAIR STAYS A PAIR. Two-up and Achievements keep the fitted row: a two-up
-    is a comparison, and a strip means never seeing both at once. Measured at
-    390px, a landscape pair sized by height came out 405px wide EACH - wider
-    than the screen, so the second plate was never on it.
+    A PAIR STACKS. Chris's rule, and it retires two others.
+
+    A phone already scrolls one way. A pair side by side gives each picture
+    half of 358px and asks the reader to judge two things at about 175px
+    each; a pair in a sideways strip gives them 300px but puts the second
+    one behind a crosswise gesture, for a comparison the page could simply
+    have shown. Stacked, each picture gets the full column - 358px, twice
+    the area - and the second is where a phone reader already expects the
+    next thing to be.
+
+    So a strip is now THREE OR MORE, and a pair is a stack, whatever is in
+    it. A pair holding a self-hosted video used to go to the strip because
+    a clip needs room for its controls; the full column is more room than
+    the shelf ever gave it.
+
+    What this gives up, honestly: two things on one screen. That was the
+    argument for the fitted pair and it was a real one - but it was being
+    made at 175px a picture, which is a size you cannot judge a photograph
+    at. Both readings survive on the desktop, where the pair is 712px each.
+
+    display:block rather than a flex column, for the reason the plate rows
+    already use it: in a column, flex-basis and flex-grow act on the HEIGHT,
+    and grow is written inline per item where this stylesheet cannot reach
+    it. Which also means no `gap`, so the space goes on as a margin.
   */
+  .media-row__items.is-pair,
   .work-section--two-up,
   .work-section--achievements__images {
+    display: block;
     width: auto;
     margin-left: 0;
     margin-right: 0;
-    gap: var(--space-1);
+  }
+
+  .media-row__items.is-pair > .media-row__item + .media-row__item,
+  .work-section--two-up > .work-section__plate + .work-section__plate,
+  .work-section--achievements__images > .work-section__plate + .work-section__plate {
+    margin-top: var(--space-3);
   }
 
   /*
-    AND A MEDIA ROW'S PAIR IS THE SAME PAIR.
+    The slot shape comes off with the row.
+
+    Equal slots give every item one shape so a ROW reads as a grid. Stacked,
+    there is no row to be equal across - and keeping the shape would crop or
+    letterbox a full-width picture to settle an argument that is no longer
+    being had. Natural height instead, which is what a stacked picture on a
+    phone has always been.
+  */
+  .media-row__items.is-pair > .media-row__item,
+  .media-row__items.is-pair.has-slots > .media-row__item {
+    width: 100%;
+    aspect-ratio: auto;
+  }
+
+  .media-row__items.is-pair > .media-row__item > img,
+  .media-row__items.is-pair.has-slots > .media-row__item > img,
+  .work-section--two-up > .work-section__plate img,
+  .work-section--achievements__images > .work-section__plate img {
+    width: 100%;
+    height: auto;
+    max-width: none;
+    max-height: none;
+  }
+
+  /*
+    A stacked clip keeps its own ceiling.
+
+    An equal-slots row takes --video-fit off, because in a slot the slot is
+    the authority. Stacked there is no slot, so the ceiling that stops a
+    video from being the whole screen comes back - and it is stated here
+    rather than left to .video--self, whose cap is written `:not([autoplay])`
+    and so misses exactly the looping clips this is most likely to hold.
+
+    width:auto is what makes a height cap do anything to a <video>: at
+    width:100% the box spans the column and object-fit letterboxes the
+    picture inside it, so the cap shrinks the picture and leaves the box.
+  */
+  .media-row__items.is-pair > .media-row__item .video__el,
+  .media-row__items.is-pair.has-slots > .media-row__item .video__el {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: var(--video-fit);
+    margin-inline: auto;
+  }
+
+  /*
+    A STRIP'S GAP IS A STRIP'S GAP.
 
     24px between two pictures is a quiet 1.6% of a 1448px measure and 6.7%
-    of a 358px one - the same number doing a completely different job. The
-    rule above has given two-up rows 8px here since it was written; Media
-    Row, which is the block Chris actually builds pairs with, never got it,
-    so his two photographs sat with a gap you could fit a third of a
-    picture into. Measured at 390: 24px of gap for 334px of photograph.
-
-    Strips keep their own 16px. A gap that has to read as a break between
-    swipeable items is doing a different job again, and 8px would run them
-    together.
+    of a 358px one - the same number doing a completely different job. Rows
+    that still sit side by side here (three or more, now always strips) keep
+    16px, which has to read as a break between swipeable items; anything
+    else fitted gets 8px.
   */
-  .media-row__items:not(.is-strip) {
+  .media-row__items:not(.is-strip):not(.is-pair) {
     gap: var(--space-1);
   }
 

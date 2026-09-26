@@ -157,6 +157,14 @@ const measure = (vw) => {
     }
     return {
       strip: row.classList.contains('is-strip'),
+      pair: row.classList.contains('is-pair'),
+      /*
+        Whether the items actually ended up one under the other. The class
+        says what was asked for; this says what happened, and the gap
+        arithmetic below is horizontal, so a stacked row would otherwise
+        report a nonsense negative gap and nothing would explain it.
+      */
+      stacked: items.length > 1 && items[1].fig.y > items[0].fig.y + 1,
       slots: row.classList.contains('has-slots'),
       fit: row.dataset.fit ?? null,
       cssGap: getComputedStyle(row).columnGap,
@@ -264,6 +272,7 @@ for (const width of WIDTHS) {
     found.rows.forEach((row, i) => {
       const how = [
         row.strip && 'strip',
+        row.pair && (row.stacked ? 'pair, stacked' : 'pair, NOT STACKED'),
         row.slots && `slots ${row.fit ?? 'NO FIT'}`,
         row.panel && `${row.panel.kind} panel`,
       ]
@@ -280,7 +289,10 @@ for (const width of WIDTHS) {
             (row.panelFit.inside ? 'the row is ON the sheet' : 'the row has BROKEN OUT of the sheet'),
         )
       }
-      if (row.gaps.length) {
+      if (row.stacked) {
+        const gap = row.items[1].fig.y - (row.items[0].fig.y + row.items[0].fig.h)
+        console.log(`      stacked: ${gap}px between them, each ${row.items[0].fig.w}px wide`)
+      } else if (row.gaps.length) {
         const share = ((row.gaps[0] / Math.max(row.box.w, 1)) * 100).toFixed(1)
         console.log(`      gaps between items: ${row.gaps.join(', ')}px  (${share}% of the row)`)
       }

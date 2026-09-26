@@ -312,16 +312,19 @@ function mediaItemStyle(item: any): string | undefined {
   Three or more of anything: a set rather than a pair, and fitting three into
   390px costs more than it buys.
 
-  TWO, when either is a self-hosted video. A video needs more room than a
-  picture does, because it carries controls: measured, a pair of portrait
-  clips fitted side by side comes out about 175px wide each, where the same
-  pair in a strip is 216px and neither is squeezed. A pair of PICTURES at
-  175px is simply a smaller picture, which is why the image rule stays at
-  three - the point of a two-up is seeing both at once.
+  A PAIR NEVER DOES, whatever is in it. It stacks instead - see .is-pair in
+  global.css. Chris's rule, and it is the better one: a phone already
+  scrolls vertically, so a pair in a sideways strip asks for a second,
+  crosswise gesture to see something the page could simply have shown. Two
+  full-width pictures, one under the other, are both bigger than either half
+  of a fitted row and neither is a swipe away.
+
+  This used to send a pair containing a self-hosted video to the strip, on
+  the reasoning that a clip needs room for its controls - true, and stacking
+  gives it the whole column rather than 216px of a shelf.
 */
 function isStripRow(items: any[]): boolean {
-  if (items.length > 2) return true;
-  return items.length > 1 && items.some(isSelfHostedVideo);
+  return items.length > 2;
 }
 
 function mediaRowStyle(items: any[]): string {
@@ -550,7 +553,7 @@ function rowStyle(images: any[]): string {
         plateRowFill([section.imageLeft, section.imageRight].filter(Boolean).map(aspect)),
       );
       return (
-        <div class="work-section work-section--two-up" style={rowStyle([section.imageLeft, section.imageRight])}>
+        <div class="work-section work-section--two-up is-pair" style={rowStyle([section.imageLeft, section.imageRight])}>
           {[section.imageLeft, section.imageRight].map(
             (img: any) =>
               img && (
@@ -686,7 +689,7 @@ function rowStyle(images: any[]): string {
               treatment rather than a third copy of the equal-width columns
               that were wrong in twoUpSection and in Media Row. */}
           <div
-            class="work-section--achievements__images"
+            class="work-section--achievements__images is-pair"
             style={rowStyle([section.imageLeft, section.imageRight])}
           >
             {[section.imageLeft, section.imageRight].map(
@@ -878,6 +881,13 @@ function rowStyle(images: any[]): string {
                 pair, and at that count fitting them costs more than it buys.
               */
               isStripRow(items) && 'is-strip',
+              /*
+                A pair stacks on a phone rather than splitting the screen in
+                half. The class carries the count so the stylesheet does not
+                have to ask `:has()` about it, and so the same word means the
+                same thing on a plate row - see .is-pair in global.css.
+              */
+              items.length === 2 && 'is-pair',
               /*
                 Equal slots, from the row's own setting. The class carries
                 only the fact that slots are equal; data-fit says what an item

@@ -1,0 +1,92 @@
+{
+  "live": [
+    "/",
+    "/portfolio",
+    "/about",
+    "/video",
+    "/collage",
+    "/merchfolio",
+    "/blog",
+    "/blog/category/brand-identity",
+    "/blog/category/merch-apparel",
+    "/blog/category/typography",
+    "/blog/category/illustration",
+    "/blog/category/process",
+    "/privacy-policy",
+    "/image-license-info",
+    "/contact",
+    "/work/dumpstat",
+    "/work/adelante-barbell-club",
+    "/work/hug-a-mug",
+    "/work/chateau-seven",
+    "/work/two-point-oh",
+    "/blog/logo-design-worth-paying-for",
+    "/blog/brand-identity-cost-why-400-is-too-low",
+    "/blog/how-i-overworked-a-flyer"
+  ],
+  "built": [
+    "/",
+    "/portfolio",
+    "/about",
+    "/video",
+    "/collage",
+    "/merchfolio",
+    "/blog",
+    "/privacy-policy",
+    "/work/dumpstat",
+    "/work/adelante-barbell-club",
+    "/work/hug-a-mug",
+    "/work/chateau-seven",
+    "/work/two-point-oh",
+    "/blog/logo-design-worth-paying-for",
+    "/blog/brand-identity-cost-why-400-is-too-low",
+    "/blog/how-i-overworked-a-flyer"
+  ],
+  "missing": [
+    "/blog/category/brand-identity",
+    "/blog/category/merch-apparel",
+    "/blog/category/typography",
+    "/blog/category/illustration",
+    "/blog/category/process",
+    "/image-license-info",
+    "/contact"
+  ],
+  "added": [],
+  "rules": [
+    {
+      "from": "/blog/category/brand-identity",
+      "to": "/blog",
+      "why": "post not carried over"
+    },
+    {
+      "from": "/blog/category/merch-apparel",
+      "to": "/blog",
+      "why": "post not carried over"
+    },
+    {
+      "from": "/blog/category/typography",
+      "to": "/blog",
+      "why": "post not carried over"
+    },
+    {
+      "from": "/blog/category/illustration",
+      "to": "/blog",
+      "why": "post not carried over"
+    },
+    {
+      "from": "/blog/category/process",
+      "to": "/blog",
+      "why": "post not carried over"
+    },
+    {
+      "from": "/image-license-info",
+      "to": "/",
+      "why": "unedited Webflow boilerplate, not ported"
+    },
+    {
+      "from": "/contact",
+      "to": "/portfolio",
+      "why": "NEEDS A DECISION - defaulting to the grid"
+    }
+  ]
+}

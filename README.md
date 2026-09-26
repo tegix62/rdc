@@ -1,9 +1,7 @@
-# Reference gallery study
-
-Generated 2026-08-11T23-17-43Z from ``.
+# URL map
 
 ```
 git fetch origin study-reports
-git show origin/study-reports:latest/gallery.json
-git show origin/study-reports:latest/gallery-fold.png > /tmp/fold.png
+git show origin/study-reports:urls/report.txt
+git show origin/study-reports:urls/_redirects
 ```

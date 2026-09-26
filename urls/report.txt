@@ -1,0 +1,21 @@
+live: https://rumeaudesign.co
+
+Webflow publishes 23 URLs
+This site builds   16 URLs (8 static, 5 case studies, 3 posts)
+
+7 live URL(s) have no equivalent here:
+
+    5  post not carried over
+         /blog/category/brand-identity  ->  /blog
+         /blog/category/merch-apparel  ->  /blog
+         /blog/category/typography  ->  /blog
+         /blog/category/illustration  ->  /blog
+         ... and 1 more
+    1  unedited Webflow boilerplate, not ported
+         /image-license-info  ->  /
+    1  NEEDS A DECISION - defaulting to the grid
+         /contact  ->  /portfolio
+
+wrote urls/_redirects (7 rules) and urls/urls.json
+
+1 rule(s) marked "# review" - those are guesses.

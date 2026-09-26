@@ -237,7 +237,51 @@ const measure = (vw) => {
     return {el: name(el), box, tail: bottom === null ? null : round(box.y + box.h - bottom)}
   })
 
-  return {scrollWidth: round(document.documentElement.scrollWidth), overflow, painted, rows, blocks}
+  /*
+    THE NAVY BAND at the top of a case study.
+
+    Its own measurement because it is a different kind of object from a row:
+    nothing in it is a picture, so what makes it feel loose or tight is type
+    size and the space between blocks, and neither is visible in a box dump
+    of the rows below it. Reported as the band's own padding, then each
+    block with its type and the gap above it - a gap being the distance from
+    the previous block's bottom, which is what the eye actually reads,
+    rather than whichever of margin or row-gap happened to produce it.
+  */
+  const identity = document.querySelector('.work-identity')
+  let band = null
+  if (identity) {
+    const s = getComputedStyle(identity)
+    const parts = Array.from(
+      identity.querySelectorAll(
+        '.work-identity__kicker, .work-identity__head h1, .work-identity__summary, .work-identity__stat, .work-identity__mark, .work-identity__credits',
+      ),
+    )
+      .map((el) => {
+        const cs = getComputedStyle(el)
+        return {
+          el: name(el),
+          box: boxOf(el),
+          font: `${cs.fontSize}/${cs.lineHeight}`,
+          text: (el.textContent || '').trim().slice(0, 28),
+        }
+      })
+      .sort((a, b) => a.box.y - b.box.y)
+    for (let i = 1; i < parts.length; i += 1) {
+      const prev = parts[i - 1].box
+      parts[i].gapAbove = round(parts[i].box.y - (prev.y + prev.h))
+    }
+    band = {
+      box: boxOf(identity),
+      padding: `${s.paddingTop} / ${s.paddingBottom}`,
+      inner: identity.querySelector('.work-identity__inner')
+        ? getComputedStyle(identity.querySelector('.work-identity__inner')).rowGap
+        : null,
+      parts,
+    }
+  }
+
+  return {scrollWidth: round(document.documentElement.scrollWidth), overflow, painted, rows, blocks, band}
 }
 
 for (const width of WIDTHS) {
@@ -319,6 +363,18 @@ for (const width of WIDTHS) {
       console.log(`  ${found.painted.length} painted background(s) in the band:`)
       for (const p of found.painted.slice(0, 14)) {
         console.log(`    ${p.bg.padEnd(22)} ${p.el}  x${p.box.x} y${p.box.y} ${p.box.w}x${p.box.h}`)
+      }
+    }
+
+    if (found.band) {
+      console.log(
+        `  navy band: ${found.band.box.w}x${found.band.box.h}  padding ${found.band.padding}  row-gap ${found.band.inner}`,
+      )
+      for (const p of found.band.parts) {
+        console.log(
+          `    ${p.gapAbove === undefined ? '   -' : String(p.gapAbove).padStart(4)}px above  ` +
+            `${p.el.padEnd(34)} ${String(p.box.w) + 'x' + p.box.h}  ${p.font}  "${p.text}"`,
+        )
       }
     }
 

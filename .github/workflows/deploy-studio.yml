@@ -57,3 +57,18 @@ jobs:
           code=$(curl -sSL -o /dev/null -w "%{http_code}" https://rumeau-design-co.sanity.studio)
           echo "studio responded with HTTP $code"
           test "$code" = "200"
+
+      # Reachable is not deployed. The check above passed on 26 September
+      # while Chris was looking at a Studio without the Slot shape option
+      # that deploy had just shipped, and could not have caught it either
+      # way: it never reads what the Studio serves.
+      #
+      # This compares the schema this job just built (studio/dist, still on
+      # disk) against the schema the Studio is now serving. Identical or the
+      # deploy did not land. Nothing to keep up to date, because neither
+      # side is a string this repo has to remember to change.
+      - name: The Studio serves what this job built
+        working-directory: ${{ github.workspace }}
+        run: node scripts/verify-studio-deploy.mjs
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}

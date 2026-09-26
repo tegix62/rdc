@@ -1,47 +1,63 @@
 /*
-  Is the Studio that Chris opens actually the Studio we last deployed?
+  Is the Studio Chris opens the Studio we last deployed?
 
   WHY THIS EXISTS
 
-  deploy-studio ends with:
+  deploy-studio ended with:
 
       code=$(curl -sSL -o /dev/null -w "%{http_code}" https://...sanity.studio)
       test "$code" = "200"
 
-  which proves the address answers. It cannot tell a bundle built five
-  minutes ago from one built in June, so the job has been reporting green
-  for "deployed" while only ever checking "reachable". That gap surfaced
-  when a Slot shape option shipped, the deploy ran, the check passed, and
-  the option was not in the Studio - and nothing in the repo could say
-  whether the fault was the deploy or a cached tab in the browser.
+  which proves the address answers. It cannot tell a Studio built five
+  minutes ago from one built in June, so the job reported green for
+  "deployed" while only ever checking "reachable". The gap surfaced when a
+  Slot shape option shipped, the deploy ran, the check passed, and the
+  option was not in Chris's Studio - and nothing here could say whether
+  the deploy had failed or his browser was holding an old copy.
 
-  WHAT IT DOES
+  WHAT IT READS
 
-  Looks for strings that only exist in the new schema, in the two places
-  they would have to appear if the deploy worked:
+    1. https://<studio>/static/create-manifest.json and the hashed schema
+       it names. This is the Studio's OWN copy of the schema, uploaded
+       with the rest of the build, so it says what this deployed Studio
+       was built from. Carries a Last-Modified, which dates the deploy.
 
-    1. The JavaScript the Studio actually serves. Crawls the chunk graph
-       from index.html - the schema is buried several imports deep, so a
-       single fetch of the entry chunk finds nothing and proves nothing.
+    2. The schema manifest `sanity deploy` writes into the DATASET - the
+       "Deployed 1/1 schemas" line. Only a deploy writes it, so it says a
+       deploy ran, which is a different claim from what is being served.
 
-    2. The schema manifest `sanity deploy` writes into the dataset (the
-       "Deployed 1/1 schemas" line in the deploy log). Needs a token;
-       skipped without one, since the bundle is the answer that matters.
+  Two modes:
 
-  Each needle is dated by the commit that introduced it, so a partial
-  result reads as a timeline: if 5:4 is there and 9:16 is not, the deploy
-  is stuck at a known commit. If none of them are there, the deploy never
-  took. If all of them are there, the bundle is current and a browser is
-  holding an old one.
+    DIAGNOSTIC (no local build): looks for strings only the recent schema
+    contains, each dated by the commit that added it, so a partial result
+    reads as a timeline rather than a yes/no.
+
+    VERIFICATION (run in the deploy job, where studio/dist still exists):
+    compares the schema just built against the schema now being served. No
+    strings to maintain, and it fails when they differ - which is the
+    check the HTTP 200 was standing in for.
+
+  WHAT IT DOES NOT DO ANY MORE: crawl the JavaScript. It did, matching
+  only /static paths at first - found nothing, and reported a working
+  deploy dead. Widened to follow any .js across origins, it read 93 chunks
+  and 3.9MB and still found nothing, including three strings that have
+  been in the schema for months. That control is what showed the walk was
+  never reaching the schema, and the manifest above answers the same
+  question without guessing which chunk holds it.
 
   READ-ONLY. Reports; changes nothing.
 
   Usage: [SANITY_API_TOKEN=...] node scripts/verify-studio-deploy.mjs
 */
+import {readFile, readdir} from 'node:fs/promises'
+import {createHash} from 'node:crypto'
+import path from 'node:path'
+
 const STUDIO = process.env.STUDIO_URL || 'https://rumeau-design-co.sanity.studio'
 const PROJECT_ID = '8337vjtf'
 const DATASET = 'production'
 const TOKEN = process.env.SANITY_API_TOKEN
+const DIST = process.env.STUDIO_DIST || 'studio/dist/static'
 
 /*
   Ordered oldest first, each naming the commit that put it in the schema.
@@ -57,11 +73,11 @@ const NEEDLES = [
 ]
 
 /*
-  CONTROLS: strings that have been in the schema for months. If the crawl
-  cannot find these either, it is not reaching the schema at all and the
-  result above them means nothing - which is the difference between "the
-  deploy is stale" and "this script is looking in the wrong place". The
-  first two runs had no control and confidently reported the former.
+  CONTROLS: strings that have been in the schema for months. If these are
+  missing, the file being read is not the schema and nothing above it
+  means anything - the difference between "the deploy is stale" and "this
+  script is looking in the wrong place", which two runs could not tell
+  apart for want of exactly this.
 */
 const CONTROLS = [
   {text: 'Slot shape', what: 'the Slot shape field title'},
@@ -69,202 +85,124 @@ const CONTROLS = [
   {text: 'mediaRowSection', what: 'a section type name'},
 ]
 
-const BUDGET_BYTES = 80 * 1024 * 1024
-const MAX_FILES = 400
+const digest = (text) => createHash('sha256').update(text).digest('hex').slice(0, 12)
 
-const get = async (url) => {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText} for ${url}`)
-  return await res.text()
-}
+// --- 1. what the deployed Studio serves -------------------------------
 
-/*
-  Vite writes the chunk graph as ordinary string literals - `import"./x.js"`,
-  `modulepreload href="/static/y.js"`, `import("./z.js")`. Reading them back
-  out of the text is enough to walk it without a bundler.
-
-  The first version of this matched only `/static/...`, found nothing, and
-  reported the deploy dead - because an auto-updating Studio does not serve
-  its code from its own origin at all: index.html points at sanity-cdn.com
-  and the application is assembled from there. So the match has to be any
-  quoted path ending in .js, resolved against whatever document named it,
-  and the crawl has to be willing to leave the Studio's own host.
-*/
-const chunkRefs = (text, base) => {
-  const out = new Set()
-  for (const m of text.matchAll(/["'(]([^"'()\s<>]+\.js(?:\?[^"'()\s<>]*)?)["')]/g)) {
-    try {
-      const url = new URL(m[1], base)
-      if (url.protocol === 'http:' || url.protocol === 'https:') out.add(url.href)
-    } catch {
-      // A .js inside a template literal or a regex is not a URL. Skip it.
-    }
-  }
-  return [...out]
-}
-
-const found = new Map([...NEEDLES, ...CONTROLS].map((n) => [n.text, null]))
-let bytes = 0
-let files = 0
-
-const index = await get(STUDIO)
-const queue = [{url: new URL('/', STUDIO).href, text: index}]
-const seen = new Set([new URL('/', STUDIO).href])
-
+const manifestUrl = new URL('/static/create-manifest.json', STUDIO).href
 console.log(`Studio: ${STUDIO}`)
-console.log(`index.html: ${index.length} bytes`)
 
-/*
-  THE DIRECT ANSWER, if it is there.
-
-  The deploy log says "Read manifest from studio/dist/static/create-manifest.json",
-  which means the schema is written into the Studio's own dist folder and
-  uploaded with everything else. Fetching that one file says what THIS
-  deployed Studio was built from - no crawling, no guessing which chunk
-  holds the schema, and it is the Studio's copy rather than the dataset's,
-  which is exactly the distinction the dataset manifest cannot make.
-*/
-let dist = null
-const distUrl = new URL('/static/create-manifest.json', STUDIO).href
-try {
-  const res = await fetch(distUrl)
-  if (res.ok) {
-    dist = await res.text()
-    console.log(`\n--- ${distUrl} ---`)
-    console.log(`  ${dist.length} bytes, last modified ${res.headers.get('last-modified') ?? '(not stated)'}`)
-    /*
-      create-manifest.json is an index: the schema itself sits in a hashed
-      sibling it names. Follow those, or the controls come back absent from
-      a file that never claimed to hold them.
-    */
-    for (const m of new Set([...dist.matchAll(/"([A-Za-z0-9._-]+\.json)"/g)].map((x) => x[1]))) {
-      const url = new URL(`/static/${m}`, STUDIO).href
-      try {
-        const part = await fetch(url)
-        if (!part.ok) continue
-        const body = await part.text()
-        dist += body
-        console.log(`  + ${m}  ${body.length} bytes`)
-      } catch {
-        // A named file that will not fetch simply adds nothing here.
-      }
-    }
-    for (const n of NEEDLES) {
-      console.log(`  ${dist.includes(n.text) ? 'PRESENT' : 'ABSENT '}  ${n.what}  (added in ${n.since})`)
-    }
-    for (const c of CONTROLS) {
-      console.log(`  ${dist.includes(c.text) ? 'PRESENT' : 'ABSENT '}  ${c.what}  [control]`)
-    }
-  } else {
-    console.log(`\n(${distUrl}: ${res.status} ${res.statusText})`)
+const fetchServed = async (quiet = false) => {
+  const res = await fetch(`${manifestUrl}?t=${Date.now()}`)
+  if (!res.ok) {
+    console.error(`\n${manifestUrl}: ${res.status} ${res.statusText}`)
+    console.error('Without this there is nothing to check against. Stopping.')
+    process.exit(2)
   }
-} catch (err) {
-  console.log(`\n(${distUrl}: ${err.message})`)
+  const text = await res.text()
+  if (!quiet) {
+    const at = res.headers.get('last-modified') ?? '(not stated)'
+    console.log(`create-manifest.json: ${text.length} bytes, last modified ${at}`)
+  }
+  for (const name of new Set([...text.matchAll(/"([A-Za-z0-9._-]+\.json)"/g)].map((m) => m[1]))) {
+    if (!name.includes('create-schema')) continue
+    const part = await fetch(new URL(`/static/${name}?t=${Date.now()}`, STUDIO).href)
+    if (!part.ok) continue
+    const body = await part.text()
+    if (!quiet) console.log(`served schema: ${name}  ${body.length} bytes  sha ${digest(body)}`)
+    return body
+  }
+  return null
 }
 
-while (queue.length && files < MAX_FILES && bytes < BUDGET_BYTES) {
-  const {url, text} = queue.shift()
-  for (const n of [...NEEDLES, ...CONTROLS]) {
-    if (!found.get(n.text) && text.includes(n.text)) found.set(n.text, url)
-  }
-  for (const ref of chunkRefs(text, url)) {
-    if (seen.has(ref)) continue
-    seen.add(ref)
-    let body
-    try {
-      body = await get(ref)
-    } catch {
-      continue // a hashed chunk that 404s is a dead reference, not a failure
-    }
-    files += 1
-    bytes += body.length
-    queue.push({url: ref, text: body})
-    if (files >= MAX_FILES || bytes >= BUDGET_BYTES) break
-  }
+let servedSchema = await fetchServed()
+
+if (!servedSchema) {
+  console.error('\ncreate-manifest.json named no schema file. Stopping.')
+  process.exit(2)
 }
 
-console.log(`crawled ${files} chunk(s), ${(bytes / 1024 / 1024).toFixed(1)} MB`)
-console.log(`hosts: ${[...new Set([...seen].map((u) => new URL(u).host))].join(', ')}`)
-/*
-  A crawl that reaches nothing proves nothing, and silently reads as every
-  needle being absent - which is exactly how the first run of this script
-  declared a working deploy dead. Say so loudly instead.
-*/
-if (!files) {
-  console.log('\n  NOTHING WAS CRAWLED. index.html named no JavaScript this could')
-  console.log('  follow, so the bundle result below is meaningless. First 1200')
-  console.log('  characters of index.html, to see what it actually names:\n')
-  console.log(index.slice(0, 1200))
-}
-console.log('')
-console.log('--- in the JavaScript the Studio serves ---')
+console.log('\n--- in the schema the deployed Studio serves ---')
 for (const n of NEEDLES) {
-  const hit = found.get(n.text)
-  console.log(`  ${hit ? 'PRESENT' : 'ABSENT '}  ${n.what}  (added in ${n.since})`)
+  console.log(`  ${servedSchema.includes(n.text) ? 'PRESENT' : 'ABSENT '}  ${n.what}  (added in ${n.since})`)
 }
-console.log('  --- controls, months old, must be present for any of the above to mean anything ---')
 for (const c of CONTROLS) {
-  const hit = found.get(c.text)
-  console.log(`  ${hit ? 'PRESENT' : 'ABSENT '}  ${c.what}`)
+  console.log(`  ${servedSchema.includes(c.text) ? 'PRESENT' : 'ABSENT '}  ${c.what}  [control]`)
 }
-const blind = CONTROLS.every((c) => !found.get(c.text))
+const blind = CONTROLS.every((c) => !servedSchema.includes(c.text))
+const missing = NEEDLES.filter((n) => !servedSchema.includes(n.text))
 
-let manifest = null
+// --- 2. the schema this checkout just built, if it is here ------------
+
+let built = null
+try {
+  const names = (await readdir(DIST)).filter((f) => f.includes('create-schema') && f.endsWith('.json'))
+  if (names.length) built = await readFile(path.join(DIST, names[0]), 'utf8')
+  if (built) console.log(`\nlocal build: ${names[0]}  ${built.length} bytes  sha ${digest(built)}`)
+} catch {
+  // No dist folder. That is the ordinary case outside the deploy job.
+}
+
+// --- 3. a deploy ran at all -------------------------------------------
+
 if (TOKEN) {
   // The whole document, not a projection: the needles are buried deep in
   // the serialised schema and there is nothing to project them out by.
   const query = '*[_id in path("_.schemas.**")]'
   try {
-    const res = await fetch(
+    const r = await fetch(
       `https://${PROJECT_ID}.api.sanity.io/v2024-01-01/data/query/${DATASET}?query=${encodeURIComponent(query)}`,
       {headers: {Authorization: `Bearer ${TOKEN}`}},
     )
-    if (res.ok) {
-      const result = (await res.json()).result ?? []
-      manifest = JSON.stringify(result)
-      for (const doc of result) console.log(`\nmanifest ${doc._id} updated ${doc._updatedAt}`)
+    if (r.ok) {
+      for (const doc of (await r.json()).result ?? []) {
+        console.log(`\ndataset manifest ${doc._id} updated ${doc._updatedAt}`)
+      }
     } else {
-      console.log(`\n(schema manifest query: ${res.status} ${res.statusText})`)
+      console.log(`\n(dataset manifest query: ${r.status} ${r.statusText})`)
     }
   } catch (err) {
-    console.log(`\n(schema manifest query failed: ${err.message})`)
-  }
-} else {
-  console.log('\n(no SANITY_API_TOKEN - skipped the schema manifest)')
-}
-
-if (manifest) {
-  console.log('\n--- in the schema manifest stored in the dataset ---')
-  for (const n of NEEDLES) {
-    console.log(`  ${manifest.includes(n.text) ? 'PRESENT' : 'ABSENT '}  ${n.what}`)
+    console.log(`\n(dataset manifest query failed: ${err.message})`)
   }
 }
 
-const missing = NEEDLES.filter((n) => !found.get(n.text))
-const manifestMissing = manifest ? NEEDLES.filter((n) => !manifest.includes(n.text)) : null
+// --- verdict ----------------------------------------------------------
+
 console.log('\n--- verdict ---')
-if (!files || blind) {
-  console.log('  The bundle says nothing either way: the crawl never reached the')
-  console.log('  schema, since even the controls are missing from what it read.')
-  if (manifestMissing && !manifestMissing.length) {
-    console.log('  The schema manifest in the dataset does carry every change, and')
-    console.log('  only a deploy writes that - so the deploy ran and landed. What is')
-    console.log('  unproven is which JavaScript the Studio hands a browser.')
+let bad = false
+if (blind) {
+  console.log('  The file read is not the schema - even the controls are missing.')
+  console.log('  This says nothing either way; fix the reading before believing it.')
+  bad = true
+} else if (built) {
+  /*
+    A CDN does not finish serving the new file the instant the upload
+    returns, and a check that fails on that would be a check the next
+    person learns to re-run rather than read. Give it a minute, saying so,
+    before calling a difference a difference.
+  */
+  let same = built === servedSchema
+  for (let attempt = 1; !same && attempt <= 6; attempt += 1) {
+    console.log(`  still serving the older schema, waiting 10s (${attempt}/6)`)
+    await new Promise((r) => setTimeout(r, 10_000))
+    servedSchema = (await fetchServed(true)) ?? servedSchema
+    same = built === servedSchema
+  }
+  console.log(`  Built and served schemas are ${same ? 'IDENTICAL' : 'DIFFERENT'}.`)
+  if (!same) {
+    console.log('  The Studio is serving something other than what was just built.')
+    console.log('  That is a deploy that did not land, whatever it reported.')
+    bad = true
   }
 } else if (!missing.length) {
-  console.log('  The deployed bundle carries every recent schema change. A Studio')
-  console.log('  that is missing one of them is a stale copy in the browser, not a')
-  console.log('  failed deploy: the service worker and the open tab both keep the')
-  console.log('  old JavaScript alive across an ordinary reload.')
-} else if (missing.length === NEEDLES.length) {
-  console.log('  None of the recent changes are in the deployed bundle. The deploy')
-  console.log('  is not landing at all, whatever the job reported.')
+  console.log('  The deployed Studio serves every recent schema change. A Studio')
+  console.log('  missing one of them in the browser is a cached copy, not a failed')
+  console.log('  deploy: an open tab keeps running the JavaScript it loaded earlier,')
+  console.log('  and an ordinary reload can be served the same index.html again.')
 } else {
-  console.log(`  The bundle stops at ${missing[0].since}: it has everything before`)
-  console.log(`  that and none of ${missing.map((m) => m.what).join(', ')}.`)
-  console.log('  That is a deploy that half-landed, and worth reading the deploy log for.')
+  console.log(`  The served schema is missing: ${missing.map((m) => m.what).join(', ')}.`)
+  console.log(`  It predates ${missing[0].since}, so the deploy is genuinely behind.`)
+  bad = true
 }
 
-// A crawl that read nothing is inconclusive, not a failure; a crawl that
-// read the bundle and could not find the schema in it is the real red.
-process.exit(files && !blind && missing.length ? 1 : 0)
+process.exit(bad ? 1 : 0)

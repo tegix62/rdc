@@ -138,6 +138,10 @@ const measure = (vw) => {
                 */
                 autoplay: media.hasAttribute('autoplay'),
                 classes: media.closest('.video')?.className ?? '',
+                // The clip's own pixels, once metadata has arrived. 0x0
+                // means it never did, and the box above is the HTML default
+                // rather than anything this page decided.
+                intrinsic: `${media.videoWidth || 0}x${media.videoHeight || 0}`,
               }
             })()
           : null
@@ -235,6 +239,40 @@ for (const width of WIDTHS) {
       console.log(`=== ${path} === HTTP ${response ? response.status() : 'no response'}`)
       continue
     }
+    /*
+      MAKE THE CLIPS DECLARE THEMSELVES.
+
+      A <video> with no metadata reports 300x150 - the HTML default - and
+      lays out at that size, so every measurement of a video row so far has
+      been a measurement of that default. On Chris's phone the clip loads
+      and the row is sized by its real shape, so forcing metadata here makes
+      the probe more faithful, not less.
+
+      Raced, like every other wait in this file: a clip whose request never
+      completes must not be able to hang the run.
+    */
+    await page.evaluate(() => {
+      const within = (ms, p) => Promise.race([p, new Promise((r) => setTimeout(r, ms))])
+      return within(
+        10000,
+        Promise.all(
+          Array.from(document.querySelectorAll('video')).map(
+            (v) =>
+              new Promise((resolve) => {
+                if (v.readyState >= 1) return resolve()
+                v.preload = 'metadata'
+                v.addEventListener('loadedmetadata', resolve, {once: true})
+                try {
+                  v.load()
+                } catch {
+                  resolve()
+                }
+                setTimeout(resolve, 5000)
+              }),
+          ),
+        ),
+      )
+    })
     // Same raced waits as test-media-row-slots: an image whose request never
     // completes must not be able to hang this.
     await page.evaluate(() => {
@@ -304,7 +342,7 @@ for (const width of WIDTHS) {
         )
         if (it.ceilings) {
           console.log(
-            `         ceilings: shelf ${it.ceilings.stripH || '(none)'}  ` +
+            `         clip ${it.ceilings.intrinsic}  ceilings: shelf ${it.ceilings.stripH || '(none)'}  ` +
               `--video-fit ${it.ceilings.videoFit || '(none)'}  ` +
               `max-height ${it.ceilings.maxH}  max-width ${it.ceilings.maxW}` +
               `  [${it.ceilings.autoplay ? 'autoplay' : 'not autoplay'}, ${it.ceilings.classes}]`,

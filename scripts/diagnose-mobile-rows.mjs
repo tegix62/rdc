@@ -107,10 +107,34 @@ const measure = (vw) => {
   const rows = Array.from(document.querySelectorAll('.media-row__items')).map((row) => {
     const items = Array.from(row.querySelectorAll('.media-row__item')).map((fig) => {
       const media = fig.querySelector('img, video')
+      /*
+        THE CEILINGS, not just the box.
+
+        A <video> whose metadata has not arrived reports the HTML default
+        of 300x150, and in a headless browser it usually has not - so the
+        measured box of a clip says nothing about how it was sized. What
+        can be read either way is what the stylesheet is telling it: the
+        shelf height the row hands out, and the two ceilings the clip
+        itself carries. A picture and a clip on one shelf should be under
+        the same numbers, and that is checkable with nothing loaded.
+      */
+      const ceilings =
+        media && media.tagName === 'VIDEO'
+          ? (() => {
+              const s = getComputedStyle(media)
+              return {
+                stripH: getComputedStyle(fig).getPropertyValue('--strip-h').trim(),
+                videoFit: getComputedStyle(fig).getPropertyValue('--video-fit').trim(),
+                maxH: s.maxHeight,
+                maxW: s.maxWidth,
+              }
+            })()
+          : null
       return {
         fig: boxOf(fig),
         media: media ? boxOf(media) : null,
         tag: media ? media.tagName.toLowerCase() : null,
+        ceilings,
         caption: fig.querySelector('figcaption')?.textContent?.trim().slice(0, 34) ?? null,
       }
     })
@@ -129,15 +153,33 @@ const measure = (vw) => {
       scrollWidth: round(row.scrollWidth),
       panel: panel ? {box: boxOf(panel), kind: panel.dataset.panel ?? null} : null,
       /*
-        THE PANEL'S JOB, as a number. A panel is a sheet the work sits on,
-        so anything sitting outside it is the panel failing to be one -
-        and in a sideways strip that is most of the row.
+        THE PANEL'S JOB, as a number.
+
+        The first version of this counted items whose box fell outside the
+        panel's, which is a fair question for a fitted row and a
+        meaningless one for a strip: everything past the first screen of a
+        scroller is "outside" whatever contains it, before and after any
+        fix. It reported 3 of 4 either way and could not have told them
+        apart.
+
+        What actually distinguishes them is where the SCROLLER sits. If
+        the row's own box is the panel's content box, the sheet is under
+        the work the whole way across and the rest is scrolling. If it is
+        the viewport, the row has broken out of the sheet.
       */
-      outsidePanel: panel
-        ? items.filter((it) => {
+      panelFit: panel
+        ? (() => {
             const p = boxOf(panel)
-            return it.fig.x + it.fig.w > p.x + p.w + 1 || it.fig.x < p.x - 1
-          }).length
+            const s = getComputedStyle(panel)
+            const contentX = p.x + parseFloat(s.paddingLeft || '0')
+            const contentW = p.w - parseFloat(s.paddingLeft || '0') - parseFloat(s.paddingRight || '0')
+            const b = boxOf(row)
+            return {
+              content: `x${round(contentX)} ${round(contentW)}`,
+              row: `x${b.x} ${b.w}`,
+              inside: Math.abs(b.x - contentX) <= 1 && b.w <= contentW + 1,
+            }
+          })()
         : null,
       gaps,
       items,
@@ -223,7 +265,8 @@ for (const width of WIDTHS) {
       if (row.panel) {
         console.log(
           `      panel x${row.panel.box.x} y${row.panel.box.y} ${row.panel.box.w}x${row.panel.box.h}` +
-            `  -  ${row.outsidePanel} of ${row.items.length} item(s) sit OUTSIDE it`,
+            `  content ${row.panelFit.content}  row ${row.panelFit.row}  ` +
+            (row.panelFit.inside ? 'the row is ON the sheet' : 'the row has BROKEN OUT of the sheet'),
         )
       }
       if (row.gaps.length) {
@@ -236,6 +279,13 @@ for (const width of WIDTHS) {
             (it.media ? `  media ${it.media.w}x${it.media.h}` : '  (no media)') +
             (it.caption ? `  "${it.caption}"` : ''),
         )
+        if (it.ceilings) {
+          console.log(
+            `         ceilings: shelf ${it.ceilings.stripH || '(none)'}  ` +
+              `--video-fit ${it.ceilings.videoFit || '(none)'}  ` +
+              `max-height ${it.ceilings.maxH}  max-width ${it.ceilings.maxW}`,
+          )
+        }
       })
     })
 

@@ -3442,36 +3442,42 @@ main {
            the same idea as videoPosterBackground padding a small logomark
            inside a block so it reads as presented rather than as a crop.
 
-  ABOVE THE PHONE BREAKPOINT ONLY. Below it a row is either stacked full-width
-  or a swipeable strip, and both already give every item the same width - so
-  equal slots is a question that only arises once items share a line, and
-  applying it inside .is-strip would fight the strip's own sizing.
+  NOT IN A STRIP, AND THAT IS THE ONLY EXCEPTION. A strip sizes every item
+  from a shared shelf height and lets the row overflow, so imposing a slot
+  there would fight its own sizing.
+
+  This used to be `@media (min-width: 40.0625rem)`, which said something
+  different and wrong: that equal slots are a desktop idea. A pair stays a
+  pair on a phone - it is the one row that neither stacks nor becomes a
+  strip - so a pair with Equal slots set was silently falling back to
+  aspect-driven widths at 390px. Measured on Two Point Oh: two photographs
+  set to fill came out 178 and 156 wide, side by side, unequal, on a page
+  whose whole point is that they are not. Chris photographed it.
 */
-@media (min-width: 40.0625rem) {
-  .media-row__items.has-slots {
-    /* --row-cap exists to stop an aspect-driven row running away vertically.
-       Here the height comes from the slot shape, so there is nothing to cap
-       and the row simply takes the room it is given. */
-    --row-w: var(--row-room);
-  }
+.media-row__items.has-slots:not(.is-strip) {
+  /* --row-cap exists to stop an aspect-driven row running away vertically.
+     Here the height comes from the slot shape, so there is nothing to cap
+     and the row simply takes the room it is given. */
+  --row-w: var(--row-room);
+}
 
-  /* Names the parent so it outranks both .media-row__item's aspect-driven
-     grow and .media-row__item--video's flex: 0 1 auto. */
-  .media-row__items.has-slots > .media-row__item {
-    flex: 1 1 0;
-    aspect-ratio: var(--cell-ar, 3 / 2);
-  }
+/* Names the parent so it outranks both .media-row__item's aspect-driven
+   grow and .media-row__item--video's flex: 0 1 auto. */
+.media-row__items.has-slots:not(.is-strip) > .media-row__item {
+  flex: 1 1 0;
+  aspect-ratio: var(--cell-ar, 3 / 2);
+}
 
-  .media-row__items.has-slots > .media-row__item > img,
-  .media-row__items.has-slots > .media-row__item .work-video-frame,
-  .media-row__items.has-slots > .media-row__item .video,
-  .media-row__items.has-slots > .media-row__item .video__el {
-    width: 100%;
-    height: 100%;
-  }
+.media-row__items.has-slots:not(.is-strip) > .media-row__item > img,
+.media-row__items.has-slots:not(.is-strip) > .media-row__item .work-video-frame,
+.media-row__items.has-slots:not(.is-strip) > .media-row__item .video,
+.media-row__items.has-slots:not(.is-strip) > .media-row__item .video__el {
+  width: 100%;
+  height: 100%;
+}
 
-  /*
-    IN A SLOT, THE SLOT IS THE AUTHORITY.
+/*
+  IN A SLOT, THE SLOT IS THE AUTHORITY.
 
     --video-fit caps a clip's height at 65vh so a video never takes the whole
     screen, and that is right everywhere a video sizes itself. It is wrong
@@ -3479,32 +3485,31 @@ main {
     somebody authored - and max-height beats height, so the rule above was
     quietly losing to it.
 
-    Measured at 1512x900: three clips in 9:16 slots got 467x830 cells and sat
-    467x585 inside them, 245px short, with the gap reading as a mistake.
+  Measured at 1512x900: three clips in 9:16 slots got 467x830 cells and sat
+  467x585 inside them, 245px short, with the gap reading as a mistake.
 
-    How close this came to shipping unnoticed: the tallest shape the Studio
-    field offers is 4:5, and three across at 4:5 gives a 583px cell against a
-    585px cap. It fits by TWO PIXELS. Two clips across at 4:5 - the pair
-    Chris is most likely to make next - wants 890px and would have been
-    capped at 585.
+  How close this came to shipping unnoticed: the tallest shape the Studio
+  field offers is 4:5, and three across at 4:5 gives a 583px cell against a
+  585px cap. It fits by TWO PIXELS. Two clips across at 4:5 - the pair
+  Chris is most likely to make next - wants 890px and would have been
+  capped at 585.
 
-    Width goes with it. Its cap is expressed as --video-fit x 16/9, which is
-    the same number wearing a different hat.
-  */
-  .media-row__items.has-slots > .media-row__item .video__el {
-    max-height: none;
-    max-width: none;
-  }
+  Width goes with it. Its cap is expressed as --video-fit x 16/9, which is
+  the same number wearing a different hat.
+*/
+.media-row__items.has-slots:not(.is-strip) > .media-row__item .video__el {
+  max-height: none;
+  max-width: none;
+}
 
-  .media-row__items.has-slots[data-fit='fill'] > .media-row__item > img,
-  .media-row__items.has-slots[data-fit='fill'] > .media-row__item .video__el {
-    object-fit: cover;
-  }
+.media-row__items.has-slots:not(.is-strip)[data-fit='fill'] > .media-row__item > img,
+.media-row__items.has-slots:not(.is-strip)[data-fit='fill'] > .media-row__item .video__el {
+  object-fit: cover;
+}
 
-  .media-row__items.has-slots[data-fit='fit'] > .media-row__item > img,
-  .media-row__items.has-slots[data-fit='fit'] > .media-row__item .video__el {
-    object-fit: contain;
-  }
+.media-row__items.has-slots:not(.is-strip)[data-fit='fit'] > .media-row__item > img,
+.media-row__items.has-slots:not(.is-strip)[data-fit='fit'] > .media-row__item .video__el {
+  object-fit: contain;
 }
 
 /* Content-sized, taking no share of the row. Was an inline `flex: 0 1 auto`,
@@ -3642,6 +3647,24 @@ main {
   }
 
   /*
+    AND A MEDIA ROW'S PAIR IS THE SAME PAIR.
+
+    24px between two pictures is a quiet 1.6% of a 1448px measure and 6.7%
+    of a 358px one - the same number doing a completely different job. The
+    rule above has given two-up rows 8px here since it was written; Media
+    Row, which is the block Chris actually builds pairs with, never got it,
+    so his two photographs sat with a gap you could fit a third of a
+    picture into. Measured at 390: 24px of gap for 334px of photograph.
+
+    Strips keep their own 16px. A gap that has to read as a break between
+    swipeable items is doing a different job again, and 8px would run them
+    together.
+  */
+  .media-row__items:not(.is-strip) {
+    gap: var(--space-1);
+  }
+
+  /*
     Sized by height, so every plate in the strip is the same height and as
     wide as its own proportions make it - the same rule the desktop row
     follows, solved from the other side. flex-grow goes to 0 because there is
@@ -3710,9 +3733,17 @@ main {
     an adjacent poster gets, which is room for real controls. --video-fit is
     the existing cap the clip already sizes itself against, so overriding it
     needs one declaration and no fight with .video--self's own rule.
+
+    AND IT IS THE SHELF'S HEIGHT, not a number of its own. It used to be
+    min(64vh, 30rem) against the pictures' min(50vh, 24rem), which put a
+    portrait clip at 480px beside a 384px poster - two items on one shelf
+    standing at different heights, and the row as tall as the taller one.
+    What that looks like is the clip sitting in a pool of empty space, which
+    is what Chris photographed and described as the video not being that
+    big. Same ceiling for both and the shelf is a shelf.
   */
   .is-strip > .media-row__item--video {
-    --video-fit: min(64vh, 30rem);
+    --video-fit: var(--strip-h);
   }
 
   /*
@@ -3735,7 +3766,33 @@ main {
     Going one class deeper wins regardless of order.
   */
   .is-strip > .media-row__item--video .video--self .video__el {
-    max-width: 78vw;
+    /* 88vw, the same width ceiling the pictures take, for the same reason
+       the height ceiling is now shared: a landscape clip and a landscape
+       poster on one shelf should come out the same size, and two different
+       numbers here are two different sizes. */
+    max-width: 88vw;
+  }
+
+  /*
+    A PANEL IS A SHEET THE WORK SITS ON, INCLUDING WHILE IT MOVES.
+
+    A strip breaks out to 100vw so it can run edge to edge. Inside a panel
+    that arithmetic is measured from the PANEL, so the row started left of
+    the sheet and ran 1280px across a 358px one: measured on Two Point Oh at
+    390, three of the four clips sat entirely outside the panel they were
+    put on, and the sheet was a grey rectangle with one clip on it and
+    nothing beside it.
+
+    So a panelled strip does not break out. It scrolls inside the panel's
+    own content box, the sheet stays under the work the whole way across,
+    and the panel keeps doing the one thing it exists to do.
+  */
+  .media-row__panel .is-strip {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    padding-inline: 0;
+    scroll-padding-inline: 0;
   }
 
   /*

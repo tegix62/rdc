@@ -3,7 +3,8 @@ import {structureTool} from 'sanity/structure'
 import {presentationTool} from 'sanity/presentation'
 import {visionTool} from '@sanity/vision'
 import {schemaTypes} from './schemaTypes'
-import structure from './structure'
+import structure, {defaultDocumentNode} from './structure'
+import {openLiveAction, passwordBadge, pageTypeBadge} from './documentActions'
 
 // Which site the Presentation tab loads in its preview panel.
 //
@@ -29,7 +30,7 @@ export default defineConfig({
   dataset: 'production',
 
   plugins: [
-    structureTool({structure}),
+    structureTool({structure, defaultDocumentNode}),
     presentationTool({
       previewUrl: {
         initial: PREVIEW_URL,
@@ -51,5 +52,17 @@ export default defineConfig({
 
   schema: {
     types: schemaTypes,
+  },
+
+  /*
+    Appended to what Sanity already provides rather than replacing it: the
+    default actions are publish, unpublish, duplicate, delete and discard
+    changes, and every one of them is load-bearing. `prev` first, ours after.
+
+    See documentActions.ts for what each one is for.
+  */
+  document: {
+    actions: (prev) => [...prev, openLiveAction],
+    badges: (prev) => [...prev, pageTypeBadge, passwordBadge],
   },
 })

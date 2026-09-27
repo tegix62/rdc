@@ -1,6 +1,7 @@
 import {defineField, defineType} from 'sanity'
 import {imageSpec} from './imageFields'
 import {VideoUpload} from '../components/VideoUpload'
+import {SearchLengthInput} from '../components/CharacterCount'
 
 const CATEGORIES = ['Brand Identity', 'Merch & Apparel', 'Typography', 'Illustration', 'Photography']
 const ASSET_TYPES = [
@@ -505,6 +506,7 @@ export default defineType({
       title: 'Search blurb (one line)',
       type: 'string',
       group: 'seo',
+      components: {input: SearchLengthInput},
       hidden: onlyOnCaseStudies,
       /*
         MOVED OFF THE PROJECT PAGE TAB, because it is not on the page.
@@ -546,6 +548,7 @@ export default defineType({
       type: 'text',
       rows: 2,
       group: 'seo',
+      components: {input: SearchLengthInput},
       hidden: onlyOnCaseStudies,
       description:
         'Leave empty and the short blurb is used. Fill it in when the line ' +

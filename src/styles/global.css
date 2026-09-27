@@ -2764,6 +2764,24 @@ main {
   line-height: 1.55;
 }
 
+/*
+  The summary is a container now, not a paragraph.
+
+  It became rich text so it could hold a link, and rich text arrives as one
+  or more <p> elements. Those inherit the colour and size set above; what
+  they bring with them is the browser's default paragraph margin, which
+  would space the block out twice - once by the margin above and once
+  inside. So the gap between paragraphs is stated here, and the last one
+  does not add to whatever follows the summary.
+*/
+.work-identity__summary p {
+  margin: 0 0 var(--space-2);
+}
+
+.work-identity__summary p:last-child {
+  margin-bottom: 0;
+}
+
 /* The one number a prospective client scans for, so it reads at heading
    weight rather than as another line of the summary. Sits on the same
    left edge as everything else in the column. */

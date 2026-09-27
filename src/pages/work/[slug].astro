@@ -69,6 +69,34 @@ const filmEmbed = embedUrl(caseStudy.filmEmbed);
 */
 const description = caseStudyDescription(caseStudy);
 
+/*
+  THE INTRO PARAGRAPH, from whichever field has one and in whichever shape.
+
+  Two independent reasons this cannot be a single expression any more:
+
+  1. `summary` is becoming rich text so it can hold a link. Documents convert
+     one at a time, so for a while some hold a string and some hold blocks.
+  2. The fallback, `oneLineSummary`, is a plain string and is staying one.
+
+  So the page has to render both shapes for good, not just during the
+  migration. A string is escaped rather than trusted - it is CMS input going
+  into set:html - and rich text goes through the same serialiser the rest of
+  the site's prose uses.
+*/
+const escapeHtml = (s: string) =>
+  s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+const intro = caseStudy.summary ?? caseStudy.oneLineSummary;
+const summaryHtml = Array.isArray(intro)
+  ? renderPortableText(intro)
+  : typeof intro === 'string' && intro.trim()
+    ? `<p>${escapeHtml(intro)}</p>`
+    : '';
+
 // Social previews need an absolute URL and a predictable crop. socialCardUrl
 // holds the shape and the forced JPEG - see lib/image.ts. It was three
 // duplicated chains, one of which would eventually have drifted.
@@ -217,9 +245,21 @@ const markStyle =
           {caseStudy.subtitle && <p class="work-identity__kicker">{caseStudy.subtitle}</p>}
           <h1>{caseStudy.headline ?? caseStudy.title}</h1>
         </div>
-        {(caseStudy.summary || caseStudy.oneLineSummary) && (
-          <p class="work-identity__summary">{caseStudy.summary ?? caseStudy.oneLineSummary}</p>
-        )}
+        {/*
+          THE SUMMARY, WHICHEVER SHAPE IT IS IN.
+
+          It is being converted from a plain string to rich text so it can
+          carry a link, and a conversion has three states, not two: before,
+          after, and the window in between where some documents have moved
+          and some have not. This renders both, so the page is correct in
+          all three - and it stays tolerant afterwards on purpose, because
+          the blurb it falls back to is still a plain string and always will
+          be.
+
+          summaryHtml is computed above; it escapes a string and serialises
+          rich text, so `set:html` here is never handed raw CMS input.
+        */}
+        {summaryHtml && <div class="work-identity__summary" set:html={summaryHtml} />}
         {/*
           Result Stat was in the schema and read by nothing - the CMS audit
           found it dead. It's the one number on the page a prospective client

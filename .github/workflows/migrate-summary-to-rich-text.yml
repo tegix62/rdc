@@ -1,0 +1,43 @@
+name: Migrate summary to rich text
+
+# Converts every case study's `summary` from a plain string to portable text,
+# so it can carry links. Dry run unless "apply" is ticked - the dry run prints
+# the exact blocks it would write.
+#
+# Order matters and is not enforceable from here: the SITE must already render
+# both shapes (it does, since cb24775) before this runs, and the SCHEMA must
+# change only after it. See the header of the script.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Write the changes (off = dry run)'
+        type: boolean
+        default: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: |
+          set -o pipefail
+          node scripts/migrate-summary-to-rich-text.mjs | tee /tmp/migrate.txt
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          APPLY: ${{ inputs.apply && '1' || '0' }}
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Summary → rich text'
+            echo ''
+            echo '```'
+            cat /tmp/migrate.txt 2>/dev/null || echo '(the migration did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

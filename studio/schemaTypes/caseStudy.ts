@@ -47,7 +47,57 @@ export default defineType({
     {name: 'tile', title: 'Tile', default: true},
     {name: 'page', title: 'Project page'},
     {name: 'credits', title: 'Credits'},
+    {name: 'seo', title: 'Search'},
     {name: 'legacy', title: 'Legacy'},
+  ],
+  /*
+    WHAT FOLDS AWAY ON THE PROJECT PAGE TAB.
+
+    Chris's workflow, in his words: open a project, click Project page,
+    scroll all the way down to the Page Builder. Everything above it was
+    between him and the only field he opens the tab for - so the Page
+    Builder is now first and these three panels hold what he passes on the
+    way.
+
+    Which fields those are is measured, not assumed
+    (scripts/audit-case-study-fields.mjs, across the published case
+    studies):
+
+      accessPassword     0 uses
+      heroVideoSrc       0        heroVideoFile  0     heroVideoWebm  0
+      heroVideoPlayback  0        heroFit        0
+      heroVideo          2 (hug-a-mug, two-point-oh)
+
+    So the whole hero-video apparatus is six fields for one occasionally
+    used link, and the password is a field nobody has ever filled sitting
+    at the very top of the form.
+
+    Collapsed rather than removed, and collapsed rather than conditionally
+    hidden: the fields that would reveal the panel are the ones inside it,
+    which is the trap videoFields.ts documents at length. A shut panel with
+    a clear title is a thing you can open; a hidden one is a thing you
+    cannot find.
+  */
+  fieldsets: [
+    {
+      name: 'hero',
+      title: 'Video at the top of the page',
+      options: {collapsible: true, collapsed: true},
+      description:
+        'Optional, and only for a video. The hero IMAGE is "Main Project ' +
+        'Image" on the Tile tab. Anything set here plays instead of it.',
+    },
+    {
+      name: 'heroUploads',
+      title: 'Upload the hero through Sanity instead (slow)',
+      options: {collapsible: true, collapsed: true},
+    },
+    {
+      name: 'access',
+      title: 'Password protection',
+      options: {collapsible: true, collapsed: true},
+      description: 'For NDA work. Leave alone for a public page.',
+    },
   ],
   fields: [
     // --- Tile: what every one of the 75 documents needs ---------------------
@@ -203,229 +253,6 @@ export default defineType({
       them.
     */
     defineField({
-      name: 'accessPassword',
-      title: 'Password Protection',
-      type: 'string',
-      group: 'page',
-      hidden: onlyOnCaseStudies,
-      description:
-        'Set a password to gate this case study. Visitors see a prompt before ' +
-        'the content. Leave empty for a public page. This is a casual gate ' +
-        'for NDA work, not encryption.',
-    }),
-    defineField({
-      name: 'heroVideo',
-      title: 'Video at the top of the page (replaces Main Image)',
-      type: 'url',
-      group: 'page',
-      hidden: onlyOnCaseStudies,
-      description:
-        'A YouTube or Vimeo link. When this is set it plays as the page hero ' +
-        'INSTEAD of Main Project Image - the image is not shown above it. For a ' +
-        'video further down the page, use the field near the bottom of this tab.',
-    }),
-    /*
-      THE SELF-HOSTED HERO, which the template has been reading for months
-      from fields that existed in no schema.
-
-      work/[slug].astro reads heroVideoFile, heroVideoWebm and
-      heroVideoPlayback, and none of the three was declared anywhere - so a
-      hero video set as an uploaded file would render on the page with no
-      field in Studio to edit it through. Undeclared is also unsettable, so
-      in practice the branch was simply dead.
-
-      heroVideoSrc is new, and it is the one that matters. `heroVideo` above
-      is a url, and Video.astro only treats a source as self-hosted when it
-      arrives as an uploaded file or through the videoSrc prop - so pasting an
-      R2 link into heroVideo produced no video at all: not an embed, because
-      it is not YouTube or Vimeo, and not a file, because a url is not one.
-      The hero was the only place on the site with no R2 path.
-
-      Same order as a section's video block: the R2 field first as the one to
-      reach for, the slow Sanity uploads folded behind it.
-    */
-    defineField({
-      name: 'heroVideoSrc',
-      title: 'Or a self-hosted hero video (R2)',
-      type: 'url',
-      group: 'page',
-      hidden: onlyOnCaseStudies,
-      components: {input: VideoUpload},
-      description:
-        'Drop a video or paste a URL. Uploads go straight to R2 - no Sanity ' +
-        'upload stalls. Use this for a short silent loop; use the YouTube or ' +
-        'Vimeo field above for anything long or with sound.',
-    }),
-    defineField({
-      name: 'heroVideoFile',
-      title: 'Or upload the hero via Sanity (MP4) - slow for large files',
-      type: 'file',
-      group: 'page',
-      hidden: onlyOnCaseStudies,
-      options: {accept: '.mp4,.mov,.m4v,video/mp4,video/quicktime'},
-      description: 'Prefer the R2 field above; this uploads through Sanity and can stall.',
-    }),
-    defineField({
-      name: 'heroVideoWebm',
-      title: 'Or upload the hero via Sanity (WebM)',
-      type: 'file',
-      group: 'page',
-      hidden: onlyOnCaseStudies,
-      options: {accept: '.webm,video/webm'},
-      description: 'Same clip as WebM - usually smaller than MP4.',
-    }),
-    defineField({
-      name: 'heroVideoPlayback',
-      title: 'Hero playback',
-      type: 'string',
-      group: 'page',
-      hidden: onlyOnCaseStudies,
-      options: {
-        list: [
-          {title: 'Autoplay, silent, looping (default)', value: 'autoplay'},
-          {title: 'Click to play (centered button)', value: 'click'},
-          {title: 'Poster with corner play button', value: 'poster'},
-        ],
-        layout: 'radio',
-      },
-      initialValue: 'autoplay',
-      description:
-        'The template already defaults a hero to autoplay, which is what a ' +
-        'short silent loop wants. Autoplay only works on a self-hosted file.',
-    }),
-    /*
-      HOW THE HERO IS SHOWN - the one image on the page that had no say.
-
-      Every picture inside the Page Builder can be told what to do with its
-      shape: a Full Image has "Plate fit", a Media Row has slots. The hero,
-      which is the biggest image on a case study, had nothing. Its CSS was
-      fixed at `max-height: 80vh; object-fit: cover`, so it was ALWAYS
-      cropped - which is why DumpStat opens on a fragment of the tee cut off
-      at both edges instead of the tee.
-
-      Cropping is right for a hero built from a wide detail, and wrong for one
-      that is a whole piece of work. That is a judgement about the picture, so
-      it belongs to whoever chose the picture.
-
-      The same two words a Full Image uses, deliberately: one vocabulary for
-      one question wherever it comes up.
-    */
-    defineField({
-      name: 'heroFit',
-      title: 'Hero image fit',
-      type: 'string',
-      group: 'page',
-      hidden: onlyOnCaseStudies,
-      options: {
-        list: [
-          {title: 'Crop to a band across the top (default)', value: 'band'},
-          {title: 'Show the whole image', value: 'whole'},
-        ],
-        layout: 'radio',
-      },
-      initialValue: 'band',
-      description:
-        'A band is right when the hero is a wide detail - a crop is what ' +
-        'makes it a band. Choose "whole" when the hero IS the work and losing ' +
-        'its edges loses the point. A tall image shown whole still stops at ' +
-        '80% of the screen and centres, so it cannot run off the bottom.',
-    }),
-    defineField({
-      name: 'headline',
-      title: 'Display Headline - overrides Title in the big heading',
-      type: 'string',
-      group: 'page',
-      hidden: onlyOnCaseStudies,
-      description:
-        'Only if the project needs a different heading on its page than the ' +
-        'name it goes by everywhere else. Left empty, Title is used.',
-    }),
-    defineField({
-      name: 'subtitle',
-      title: 'Kicker - small line ABOVE the heading',
-      type: 'string',
-      group: 'page',
-      hidden: onlyOnCaseStudies,
-    }),
-    defineField({
-      name: 'oneLineSummary',
-      title: 'Short blurb (one line) - also the page meta description',
-      type: 'string',
-      group: 'page',
-      hidden: onlyOnCaseStudies,
-      description:
-        'One sentence. Doubles as the search-result and social-share ' +
-        'description for this page, so write it for a stranger. Overlaps with ' +
-        'Full Summary below - these two are due to be merged into one field.',
-    }),
-    /*
-      The search-result line, when it should differ from anything on the page.
-
-      Every other description on a project page is page copy doing double duty:
-      the short blurb and the full summary both APPEAR, so rewriting one to read
-      better in Google changes the design. This field appears nowhere. It exists
-      for the case where the honest thing to show a visitor who already clicked
-      and the honest thing to show a stranger deciding whether to are not the
-      same sentence.
-
-      Left empty, the page falls back to the blurb, then the summary, then a
-      line assembled from category and client - see caseStudyDescription in
-      src/lib/meta.ts. So this is an override, never a requirement.
-    */
-    defineField({
-      name: 'seoDescription',
-      title: 'Search description (optional) - shown in Google, not on the page',
-      type: 'text',
-      rows: 2,
-      group: 'page',
-      hidden: onlyOnCaseStudies,
-      description:
-        'Leave empty and the short blurb is used. Fill it in when the line ' +
-        'that should pull a stranger in differs from the line that belongs on ' +
-        'the page. Around 150 characters is what Google shows; longer is ' +
-        'trimmed at a word boundary.',
-      validation: (Rule) =>
-        Rule.max(300).warning(
-          'Google renders about 150 characters. This will be cut off - which is ' +
-            'fine if the first 150 stand on their own.',
-        ),
-    }),
-    defineField({
-      name: 'summary',
-      title: 'Full Summary (paragraph) - wins over the short blurb on the page',
-      type: 'text',
-      rows: 3,
-      group: 'page',
-      hidden: onlyOnCaseStudies,
-      description:
-        'A longer version shown at the top of the project page. When this is ' +
-        'filled the short blurb above is still used for search and sharing, ' +
-        'but this is what visitors read.',
-    }),
-    defineField({
-      name: 'resultStat',
-      title: 'Result Stat - the one number a client scans for',
-      type: 'string',
-      group: 'page',
-      hidden: onlyOnCaseStudies,
-      description:
-        'One headline number for this project, e.g. "3x merch sell-through in ' +
-        'the first week". Shown on its own line under the summary.',
-    }),
-    defineField({
-      name: 'client',
-      title: 'Client Name',
-      type: 'string',
-      group: 'page',
-      hidden: onlyOnCaseStudies,
-    }),
-    imageSpec({
-      name: 'clientLogo',
-      title: "Client's Logo - shown beside the project intro",
-      group: 'page',
-      hidden: onlyOnCaseStudies,
-    }),
-    defineField({
       name: 'sections',
       title: 'Page Builder - the body of the project page',
       type: 'array',
@@ -464,6 +291,272 @@ export default defineType({
         {type: 'threeUpSection', title: 'Three Images (use Media Row)'},
         {type: 'imageTextSection', title: 'Image + Text (use Media + Text)'},
       ],
+    }),
+    defineField({
+      name: 'summary',
+      title: 'Project summary - the paragraph under the title',
+      type: 'text',
+      rows: 4,
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+      description:
+        'What a visitor reads at the top of the page. Two or three sentences, ' +
+        'around 250 characters - which is the length of the ones already ' +
+        'written here, not a rule from anywhere else. The search blurb on the ' +
+        'Search tab is a different job: this one is for someone already ' +
+        'reading, that one is for a stranger deciding whether to.',
+      /*
+        A ceiling rather than a target, and a warning rather than an error.
+
+        Chris asked for "a character limit to aim for". The ones he has
+        written run 236 to 508 with a median of 257
+        (scripts/audit-case-study-fields.mjs), so a hard limit at any of
+        those numbers would reject copy already on the site. A warning at
+        600 says "this is longer than anything you have written" and lets
+        him publish anyway, which is the honest shape for advice about
+        writing.
+      */
+      validation: (Rule) =>
+        Rule.max(600).warning(
+          'Longer than any summary on the site so far. The band this sits in ' +
+            'is sized for two or three sentences - past that it starts to ' +
+            'compete with the work below it.',
+        ),
+    }),
+    defineField({
+      name: 'headline',
+      title: 'Display Headline - overrides Title in the big heading',
+      type: 'string',
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+      description:
+        'Only if the project needs a different heading on its page than the ' +
+        'name it goes by everywhere else. Left empty, Title is used.',
+    }),
+    defineField({
+      name: 'subtitle',
+      title: 'Kicker - small line ABOVE the heading',
+      type: 'string',
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+    }),
+    defineField({
+      name: 'resultStat',
+      title: 'Result Stat - the one number a client scans for',
+      type: 'string',
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+      description:
+        'One headline number for this project, e.g. "3x merch sell-through in ' +
+        'the first week". Shown on its own line under the summary.',
+    }),
+    defineField({
+      name: 'client',
+      title: 'Client Name',
+      type: 'string',
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+    }),
+    imageSpec({
+      name: 'clientLogo',
+      title: "Client's Logo - shown beside the project intro",
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+    }),
+    defineField({
+      name: 'heroVideo',
+      title: 'Video at the top of the page (replaces Main Image)',
+      type: 'url',
+      group: 'page',
+      fieldset: 'hero',
+      hidden: onlyOnCaseStudies,
+      description:
+        'A YouTube or Vimeo link. When this is set it plays as the page hero ' +
+        'INSTEAD of Main Project Image - the image is not shown above it. For a ' +
+        'video further down the page, use the field near the bottom of this tab.',
+    }),
+    /*
+      THE SELF-HOSTED HERO, which the template has been reading for months
+      from fields that existed in no schema.
+
+      work/[slug].astro reads heroVideoFile, heroVideoWebm and
+      heroVideoPlayback, and none of the three was declared anywhere - so a
+      hero video set as an uploaded file would render on the page with no
+      field in Studio to edit it through. Undeclared is also unsettable, so
+      in practice the branch was simply dead.
+
+      heroVideoSrc is new, and it is the one that matters. `heroVideo` above
+      is a url, and Video.astro only treats a source as self-hosted when it
+      arrives as an uploaded file or through the videoSrc prop - so pasting an
+      R2 link into heroVideo produced no video at all: not an embed, because
+      it is not YouTube or Vimeo, and not a file, because a url is not one.
+      The hero was the only place on the site with no R2 path.
+
+      Same order as a section's video block: the R2 field first as the one to
+      reach for, the slow Sanity uploads folded behind it.
+    */
+    defineField({
+      name: 'heroVideoSrc',
+      title: 'Or a self-hosted hero video (R2)',
+      type: 'url',
+      group: 'page',
+      fieldset: 'hero',
+      hidden: onlyOnCaseStudies,
+      components: {input: VideoUpload},
+      description:
+        'Drop a video or paste a URL. Uploads go straight to R2 - no Sanity ' +
+        'upload stalls. Use this for a short silent loop; use the YouTube or ' +
+        'Vimeo field above for anything long or with sound.',
+    }),
+    defineField({
+      name: 'heroVideoPlayback',
+      title: 'Hero playback',
+      type: 'string',
+      group: 'page',
+      fieldset: 'hero',
+      hidden: onlyOnCaseStudies,
+      options: {
+        list: [
+          {title: 'Autoplay, silent, looping (default)', value: 'autoplay'},
+          {title: 'Click to play (centered button)', value: 'click'},
+          {title: 'Poster with corner play button', value: 'poster'},
+        ],
+        layout: 'radio',
+      },
+      initialValue: 'autoplay',
+      description:
+        'The template already defaults a hero to autoplay, which is what a ' +
+        'short silent loop wants. Autoplay only works on a self-hosted file.',
+    }),
+    /*
+      HOW THE HERO IS SHOWN - the one image on the page that had no say.
+
+      Every picture inside the Page Builder can be told what to do with its
+      shape: a Full Image has "Plate fit", a Media Row has slots. The hero,
+      which is the biggest image on a case study, had nothing. Its CSS was
+      fixed at `max-height: 80vh; object-fit: cover`, so it was ALWAYS
+      cropped - which is why DumpStat opens on a fragment of the tee cut off
+      at both edges instead of the tee.
+
+      Cropping is right for a hero built from a wide detail, and wrong for one
+      that is a whole piece of work. That is a judgement about the picture, so
+      it belongs to whoever chose the picture.
+
+      The same two words a Full Image uses, deliberately: one vocabulary for
+      one question wherever it comes up.
+    */
+    defineField({
+      name: 'heroFit',
+      title: 'Hero image fit',
+      type: 'string',
+      group: 'page',
+      fieldset: 'hero',
+      hidden: onlyOnCaseStudies,
+      options: {
+        list: [
+          {title: 'Crop to a band across the top (default)', value: 'band'},
+          {title: 'Show the whole image', value: 'whole'},
+        ],
+        layout: 'radio',
+      },
+      initialValue: 'band',
+      description:
+        'A band is right when the hero is a wide detail - a crop is what ' +
+        'makes it a band. Choose "whole" when the hero IS the work and losing ' +
+        'its edges loses the point. A tall image shown whole still stops at ' +
+        '80% of the screen and centres, so it cannot run off the bottom.',
+    }),
+    defineField({
+      name: 'heroVideoFile',
+      title: 'Or upload the hero via Sanity (MP4) - slow for large files',
+      type: 'file',
+      group: 'page',
+      fieldset: 'heroUploads',
+      hidden: onlyOnCaseStudies,
+      options: {accept: '.mp4,.mov,.m4v,video/mp4,video/quicktime'},
+      description: 'Prefer the R2 field above; this uploads through Sanity and can stall.',
+    }),
+    defineField({
+      name: 'heroVideoWebm',
+      title: 'Or upload the hero via Sanity (WebM)',
+      type: 'file',
+      group: 'page',
+      fieldset: 'heroUploads',
+      hidden: onlyOnCaseStudies,
+      options: {accept: '.webm,video/webm'},
+      description: 'Same clip as WebM - usually smaller than MP4.',
+    }),
+    defineField({
+      name: 'accessPassword',
+      title: 'Password Protection',
+      type: 'string',
+      group: 'page',
+      fieldset: 'access',
+      hidden: onlyOnCaseStudies,
+      description:
+        'Set a password to gate this case study. Visitors see a prompt before ' +
+        'the content. Leave empty for a public page. This is a casual gate ' +
+        'for NDA work, not encryption.',
+    }),
+
+    // --- Search: written for a stranger, shown on no page ----------------
+    defineField({
+      name: 'oneLineSummary',
+      title: 'Search blurb (one line)',
+      type: 'string',
+      group: 'seo',
+      hidden: onlyOnCaseStudies,
+      /*
+        MOVED OFF THE PROJECT PAGE TAB, because it is not on the page.
+
+        Chris said he did not think this showed up anywhere, and the count
+        says he is right about every page as it stands: three case studies
+        have a blurb and all three also have a summary, which wins. So
+        today this field is purely the search and social description.
+
+        It is still a fallback, which is why it moved rather than went: the
+        page renders `summary ?? oneLineSummary`, so clearing a summary
+        would put this back on the page. The description says so, because a
+        field that is usually invisible and occasionally not is exactly the
+        kind that gets written carelessly.
+      */
+      description:
+        'Written for a stranger in a search result, not for someone already ' +
+        'reading the page. Sanity keeps it off the page as long as the ' +
+        'project summary is filled in - clear that and this becomes the ' +
+        'paragraph under the title.',
+    }),
+    /*
+      The search-result line, when it should differ from anything on the page.
+
+      Every other description on a project page is page copy doing double duty:
+      the short blurb and the full summary both APPEAR, so rewriting one to read
+      better in Google changes the design. This field appears nowhere. It exists
+      for the case where the honest thing to show a visitor who already clicked
+      and the honest thing to show a stranger deciding whether to are not the
+      same sentence.
+
+      Left empty, the page falls back to the blurb, then the summary, then a
+      line assembled from category and client - see caseStudyDescription in
+      src/lib/meta.ts. So this is an override, never a requirement.
+    */
+    defineField({
+      name: 'seoDescription',
+      title: 'Search description (optional) - shown in Google, not on the page',
+      type: 'text',
+      rows: 2,
+      group: 'seo',
+      hidden: onlyOnCaseStudies,
+      description:
+        'Leave empty and the short blurb is used. Fill it in when the line ' +
+        'that should pull a stranger in differs from the line that belongs on ' +
+        'the page. Around 150 characters is what Google shows; longer is ' +
+        'trimmed at a word boundary.',
+      validation: (Rule) =>
+        Rule.max(300).warning(
+          'Google renders about 150 characters. This will be cut off - which is ' +
+            'fine if the first 150 stand on their own.',
+        ),
     }),
 
     // --- Credits -----------------------------------------------------------

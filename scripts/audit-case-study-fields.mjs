@@ -69,6 +69,28 @@ const FIELDS = [
   ['sections', 'Page Builder'],
 ]
 
+/*
+  WHAT THE DATASET ACTUALLY HOLDS.
+
+  The schema's own comment says 13 case studies and 62 grid items, and the
+  first run of this audit found 5 case studies - so one of those numbers is
+  stale, and the argument for splitting caseStudy into two document types
+  rests entirely on which. Counted rather than quoted.
+*/
+const census = await groq(`{
+  "total": count(*[_type == "caseStudy" && !(_id in path("drafts.**"))]),
+  "byPageType": *[_type == "caseStudy" && !(_id in path("drafts.**"))]{"t": coalesce(pageType, "(unset)")} | {"t": t},
+  "drafts": count(*[_type == "caseStudy" && _id in path("drafts.**")])
+}`)
+const counts = {}
+for (const row of census.byPageType) counts[row.t] = (counts[row.t] ?? 0) + 1
+console.log('--- what the dataset holds ---')
+console.log(`  ${census.total} caseStudy documents published, ${census.drafts} draft(s)`)
+for (const [type, n] of Object.entries(counts).sort((a, b) => b[1] - a[1])) {
+  console.log(`    ${String(n).padStart(3)}  pageType: ${type}`)
+}
+console.log('')
+
 const studies = await groq(
   `*[_type == "caseStudy" && pageType == "Case Study" && !(_id in path("drafts.**"))]{
     _id, title, "slug": slug.current,

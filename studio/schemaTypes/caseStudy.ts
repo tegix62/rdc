@@ -296,33 +296,91 @@ export default defineType({
     defineField({
       name: 'summary',
       title: 'Project summary - the paragraph under the title',
-      type: 'text',
-      rows: 4,
+      /*
+        RICH TEXT, for one reason: it can hold a link.
+
+        Chris asked for this directly - "this should have more text
+        capabilities like hyperlinking". It was a plain string, so a
+        collaborator's name or a client's site in the opening paragraph was
+        a name you could read and not a place you could go, while the same
+        credit three fields down in Credits was a real link.
+
+        DELIBERATELY NOT THE FULL EDITOR. No headings, no lists, no images,
+        no block quotes. This is one paragraph in a coloured band: a heading
+        inside it would compete with the h1 directly above, and a list would
+        break a shape that is sized and coloured to be prose. Bold, italic
+        and a link are what a sentence needs; everything else here would be
+        a way to make the band look like something it is not.
+
+        The five summaries already written were converted first, in one
+        transaction, with the site already rendering both shapes - see
+        scripts/migrate-summary-to-rich-text.mjs for why that order.
+      */
+      type: 'array',
+      of: [
+        {
+          type: 'block',
+          styles: [{title: 'Paragraph', value: 'normal'}],
+          lists: [],
+          marks: {
+            decorators: [
+              {title: 'Bold', value: 'strong'},
+              {title: 'Italic', value: 'em'},
+            ],
+            annotations: [
+              {
+                name: 'link',
+                type: 'object',
+                title: 'Link',
+                fields: [
+                  {
+                    name: 'href',
+                    type: 'url',
+                    title: 'URL',
+                    validation: (Rule: any) =>
+                      Rule.uri({scheme: ['http', 'https', 'mailto']}).required(),
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
       group: 'page',
       hidden: onlyOnCaseStudies,
       description:
         'What a visitor reads at the top of the page. Two or three sentences, ' +
         'around 250 characters - which is the length of the ones already ' +
-        'written here, not a rule from anywhere else. The search blurb on the ' +
-        'Search tab is a different job: this one is for someone already ' +
-        'reading, that one is for a stranger deciding whether to.',
+        'written here, not a rule from anywhere else. Select any words and ' +
+        'press the link button to link them. The search blurb on the Search ' +
+        'tab is a different job: this one is for someone already reading, ' +
+        'that one is for a stranger deciding whether to.',
       /*
-        A ceiling rather than a target, and a warning rather than an error.
+        The character ceiling has to count differently now.
 
-        Chris asked for "a character limit to aim for". The ones he has
-        written run 236 to 508 with a median of 257
-        (scripts/audit-case-study-fields.mjs), so a hard limit at any of
-        those numbers would reject copy already on the site. A warning at
-        600 says "this is longer than anything you have written" and lets
-        him publish anyway, which is the honest shape for advice about
-        writing.
+        Rule.max() on an array counts BLOCKS, not characters - so the old
+        max(600) would have silently become "no more than 600 paragraphs",
+        which is not a rule, it is a joke. Counting the text out of the
+        blocks is the only way to keep saying the thing that was meant.
+
+        Still a warning, and still 600, for the reason it always was: the
+        summaries already written run 236 to 508, so a hard limit anywhere
+        in that range would reject copy that is on the site right now.
       */
       validation: (Rule) =>
-        Rule.max(600).warning(
-          'Longer than any summary on the site so far. The band this sits in ' +
-            'is sized for two or three sentences - past that it starts to ' +
-            'compete with the work below it.',
-        ),
+        Rule.custom((blocks: any) => {
+          if (!Array.isArray(blocks)) return true
+          const length = blocks
+            .filter((b) => b?._type === 'block')
+            .flatMap((b) => (Array.isArray(b.children) ? b.children : []))
+            .map((span: any) => (typeof span?.text === 'string' ? span.text : ''))
+            .join(' ').length
+          return length <= 600
+            ? true
+            : `${length} characters. Longer than any summary on the site so far - the band ` +
+                'this sits in is sized for two or three sentences, and past that it starts ' +
+                'to compete with the work below it.'
+        }).warning(),
     }),
     defineField({
       name: 'headline',

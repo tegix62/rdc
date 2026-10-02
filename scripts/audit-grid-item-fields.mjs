@@ -80,7 +80,7 @@ const ALL = [...TILE_FIELDS, ...PAGE_ONLY]
 
 const tiles = await groq(
   `*[_type == "caseStudy" && pageType != "Case Study" && !(_id in path("drafts.**"))]{
-    _id, title, "slug": slug.current,
+    _id, title, "path": slug.current,
     ${ALL.map(([f]) => f).join(', ')}
   } | order(title asc)`,
 )
@@ -126,7 +126,7 @@ for (const [field, what] of PAGE_ONLY) {
   if (!users.length) continue
   surprises += 1
   console.log(`  ${String(users.length).padStart(3)}/${n}  ${field.padEnd(15)} ${what}`)
-  console.log(`         ${users.slice(0, 6).map((t) => t.slug ?? t._id).join(', ')}${users.length > 6 ? ' …' : ''}`)
+  console.log(`         ${users.slice(0, 6).map((t) => t.path ?? t._id).join(', ')}${users.length > 6 ? ' …' : ''}`)
 }
 if (!surprises) console.log('  none - every page-only field is empty on every tile.')
 
@@ -153,13 +153,15 @@ const neither = tiles.filter((t) => !filled(t.thumbnail) && !filled(t.mainImage)
 console.log(`  ${thumb} use Grid Thumbnail`)
 console.log(`  ${fallback} fall back to Main Project Image`)
 console.log(`  ${neither.length} have NO image at all${neither.length ? ':' : ''}`)
-for (const t of neither) console.log(`      ${t.slug ?? t._id}`)
+for (const t of neither) console.log(`      ${t.path ?? t._id}`)
 
 console.log('\n--- parent brand, which is how a tile is reached ---')
 const orphans = tiles.filter((t) => !filled(t.parentBrand))
 console.log(`  ${n - orphans.length}/${n} point at a project.`)
 if (orphans.length) {
-  console.log(`  ${orphans.length} do not, so clicking them goes nowhere:`)
-  for (const t of orphans.slice(0, 20)) console.log(`      ${t.slug ?? t._id}`)
+  console.log(`  ${orphans.length} do not. Checked in portfolio.astro: the jump link is`)
+  console.log('  rendered only when there is a parent, so these show a picture and')
+  console.log('  offer no way through - inert rather than broken:')
+  for (const t of orphans.slice(0, 20)) console.log(`      ${t.path ?? t._id}`)
   if (orphans.length > 20) console.log(`      … and ${orphans.length - 20} more`)
 }

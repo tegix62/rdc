@@ -94,6 +94,14 @@ export default defineType({
       options: {collapsible: true, collapsed: true},
     },
     {
+      name: 'tileOptions',
+      title: 'How this tile sits in the grid',
+      options: {collapsible: true, collapsed: true},
+      description:
+        'Rarely needed. Measured across the 68 grid items: Hero Tile 0, Tile ' +
+        'Layout 2, Archive Mark 10 - everything else is inferred or falls back.',
+    },
+    {
       name: 'access',
       title: 'Password protection',
       options: {collapsible: true, collapsed: true},
@@ -101,20 +109,22 @@ export default defineType({
     },
   ],
   fields: [
-    // --- Tile: what every one of the 75 documents needs ---------------------
-    defineField({
-      name: 'title',
-      type: 'string',
-      group: 'tile',
-      validation: (Rule) => Rule.required(),
-    }),
-    defineField({
-      name: 'slug',
-      type: 'slug',
-      group: 'tile',
-      options: {source: 'title'},
-      validation: (Rule) => Rule.required(),
-    }),
+    // --- Tile: what every document is, in the order a tile is built -------
+    /*
+      ORDERED BY WHAT A TILE ACTUALLY USES, measured across the 68 published
+      grid items (scripts/audit-grid-item-fields.mjs):
+
+        68  title, slug, pageType      67  thumbnail        63  category
+        46  parentBrand                35  assetType        10  archiveMark
+         7  mainImage (never as the tile image)              2  tileTreatment
+         0  heroTile
+
+      This tab was written when every document was a project, so its order
+      was a project's priorities. 67 of the 72 published documents are
+      tiles, and this is the order one of them is actually filled in.
+
+      Page Type leads because it decides which other tabs apply at all.
+    */
     defineField({
       name: 'pageType',
       title: 'Page Type',
@@ -128,11 +138,17 @@ export default defineType({
       initialValue: 'Case Study',
     }),
     defineField({
-      name: 'category',
-      title: 'Category - drives the Portfolio filters',
+      name: 'title',
       type: 'string',
       group: 'tile',
-      options: {list: CATEGORIES},
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: 'slug',
+      type: 'slug',
+      group: 'tile',
+      options: {source: 'title'},
+      validation: (Rule) => Rule.required(),
     }),
     imageSpec({
       name: 'thumbnail',
@@ -144,9 +160,99 @@ export default defineType({
         'grids. If you leave it empty the grid falls back to Main Project Image.',
     }),
     imageSpec({
+      name: 'mainImage',
+      title: 'Main Project Image - page hero, and tile fallback',
+      group: 'tile',
+      tile: true,
+      description:
+        'The big image at the top of the project page. Also stands in as the ' +
+        'grid tile when Grid Thumbnail is empty.',
+    }),
+    defineField({
+      name: 'category',
+      title: 'Category - drives the Portfolio filters',
+      type: 'string',
+      group: 'tile',
+      options: {list: CATEGORIES},
+    }),
+    defineField({
+      name: 'parentBrand',
+      title: 'Parent Brand - the project this belongs to',
+      type: 'reference',
+      to: [{type: 'caseStudy'}],
+      group: 'tile',
+      // The inverse condition: a Case Study IS the parent, so it has none.
+      hidden: onlyOnGridItems,
+      description:
+        'Which Case Study this tile is a piece of - the tile then offers a ' +
+        'link through to that project. Optional, and deliberately so: 22 of ' +
+        'the 68 tiles are standalone assets rather than part of a documented ' +
+        'piece of work, and those simply show the picture with no link.',
+    }),
+
+    /*
+      In the Tile tab, and NOT hidden on a Grid Item, despite being the project
+      page's hero. The grid falls back to it when there is no thumbnail
+      (`item.thumbnail || item.mainImage`), so on some Grid Items it is the only
+      image there is - hiding it would have taken their tile away.
+    */
+    defineField({
+      name: 'assetType',
+      title: 'Asset Type - what kind of artefact',
+      type: 'string',
+      group: 'tile',
+      description:
+        'What this piece physically is. Also the fallback for Tile Layout ' +
+        'below when that is left empty: Identity / Brand Sheet and Vinyl / ' +
+        'Record are treated as logomarks, everything else fills its tile.',
+      options: {list: ASSET_TYPES},
+    }),
+    /*
+      Tile treatment, which is the idea Chris's Adobe Portfolio gallery is built
+      on: a logomark strong enough to speak for itself gets room and no caption,
+      while a photograph or poster fills its frame. It is a presentation choice,
+      not a subject taxonomy, which is why it has two values rather than six.
+    */
+    defineField({
+      name: 'heroTile',
+      title: 'Hero Tile - spans two columns',
+      type: 'boolean',
+      group: 'tile',
+      fieldset: 'tileOptions',
+      description:
+        'Spans two columns AND crops to landscape, so it reads as a spread ' +
+        'among the usual vertical tiles. Works on the Portfolio grid and the ' +
+        'homepage grid alike. Clicking it does not grow it further. ' +
+        'IMPORTANT: set the hotspot on the thumbnail, and turn Compression OFF ' +
+        'on it - cropping needs the CDN, so a pass-through image ignores the ' +
+        'crop and keeps its own shape. Without a hotspot Sanity crops from the ' +
+        'centre, which cuts the top off a logo or a face. Use sparingly; one or ' +
+        'two per screenful is what makes them work.',
+    }),
+    defineField({
+      name: 'tileTreatment',
+      title: 'Tile Layout - override how it sits in the grid',
+      type: 'string',
+      group: 'tile',
+      fieldset: 'tileOptions',
+      options: {
+        list: [
+          {title: 'Logomark - floats, with air around it', value: 'mark'},
+          {title: 'Image - fills the tile edge to edge', value: 'bleed'},
+        ],
+        layout: 'radio',
+      },
+      description:
+        'Only needed when Asset Type above gets it wrong. A logomark gets ' +
+        'padding so the mark reads on its own; an image or poster is cropped to ' +
+        'fill. Left empty it is inferred, so work already tagged with an Asset ' +
+        'Type needs no re-entry.',
+    }),
+    imageSpec({
       name: 'archiveMark',
       title: 'Archive Mark - hand-drawn B&W alternate',
       group: 'tile',
+      fieldset: 'tileOptions',
       description:
         'A hand-thresholded black-and-white version of this tile, shown instead ' +
         'of the colour image whenever a visitor switches the Portfolio grid to ' +
@@ -166,85 +272,6 @@ export default defineType({
       nothing left to warn about - only the crop to explain, which is the part
       that still catches people out.
     */
-    defineField({
-      name: 'heroTile',
-      title: 'Hero Tile - spans two columns',
-      type: 'boolean',
-      group: 'tile',
-      description:
-        'Spans two columns AND crops to landscape, so it reads as a spread ' +
-        'among the usual vertical tiles. Works on the Portfolio grid and the ' +
-        'homepage grid alike. Clicking it does not grow it further. ' +
-        'IMPORTANT: set the hotspot on the thumbnail, and turn Compression OFF ' +
-        'on it - cropping needs the CDN, so a pass-through image ignores the ' +
-        'crop and keeps its own shape. Without a hotspot Sanity crops from the ' +
-        'centre, which cuts the top off a logo or a face. Use sparingly; one or ' +
-        'two per screenful is what makes them work.',
-    }),
-    defineField({
-      name: 'assetType',
-      title: 'Asset Type - what kind of artefact',
-      type: 'string',
-      group: 'tile',
-      description:
-        'What this piece physically is. Also the fallback for Tile Layout ' +
-        'below when that is left empty: Identity / Brand Sheet and Vinyl / ' +
-        'Record are treated as logomarks, everything else fills its tile.',
-      options: {list: ASSET_TYPES},
-    }),
-    /*
-      Tile treatment, which is the idea Chris's Adobe Portfolio gallery is built
-      on: a logomark strong enough to speak for itself gets room and no caption,
-      while a photograph or poster fills its frame. It is a presentation choice,
-      not a subject taxonomy, which is why it has two values rather than six.
-    */
-    defineField({
-      name: 'tileTreatment',
-      title: 'Tile Layout - override how it sits in the grid',
-      type: 'string',
-      group: 'tile',
-      options: {
-        list: [
-          {title: 'Logomark - floats, with air around it', value: 'mark'},
-          {title: 'Image - fills the tile edge to edge', value: 'bleed'},
-        ],
-        layout: 'radio',
-      },
-      description:
-        'Only needed when Asset Type above gets it wrong. A logomark gets ' +
-        'padding so the mark reads on its own; an image or poster is cropped to ' +
-        'fill. Left empty it is inferred, so work already tagged with an Asset ' +
-        'Type needs no re-entry.',
-    }),
-    defineField({
-      name: 'parentBrand',
-      title: 'Parent Brand - the project this belongs to',
-      type: 'reference',
-      to: [{type: 'caseStudy'}],
-      group: 'tile',
-      // The inverse condition: a Case Study IS the parent, so it has none.
-      hidden: onlyOnGridItems,
-      description:
-        'Which Case Study this tile is a piece of. Clicking the tile takes a ' +
-        'visitor to that project. Grid Items only.',
-    }),
-
-    /*
-      In the Tile tab, and NOT hidden on a Grid Item, despite being the project
-      page's hero. The grid falls back to it when there is no thumbnail
-      (`item.thumbnail || item.mainImage`), so on some Grid Items it is the only
-      image there is - hiding it would have taken their tile away.
-    */
-    imageSpec({
-      name: 'mainImage',
-      title: 'Main Project Image - page hero, and tile fallback',
-      group: 'tile',
-      tile: true,
-      description:
-        'The big image at the top of the project page. Also stands in as the ' +
-        'grid tile when Grid Thumbnail is empty.',
-    }),
-
     // --- Project page: nothing below here exists on a Grid Item -------------
     /*
       The two video fields were the most confusable pair in this schema: both

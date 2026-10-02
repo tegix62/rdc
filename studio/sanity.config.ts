@@ -52,6 +52,33 @@ export default defineConfig({
 
   schema: {
     types: schemaTypes,
+    /*
+      WHAT "NEW" MEANS IN EACH LIST.
+
+      pageType decides which two thirds of the form apply, and it defaults to
+      'Case Study' - so every one of the 67 grid items was created as a
+      project and then changed. That is a step per tile, and a step that is
+      easy to forget: a tile left as a Case Study gets a page at /work/… with
+      nothing on it.
+
+      These templates let the Structure lists create the thing they list. See
+      structure.ts, where each list names the one it uses.
+    */
+    templates: (prev) => [
+      ...prev,
+      {
+        id: 'caseStudy-project',
+        title: 'Project page',
+        schemaType: 'caseStudy',
+        value: {pageType: 'Case Study'},
+      },
+      {
+        id: 'caseStudy-grid-item',
+        title: 'Grid Item',
+        schemaType: 'caseStudy',
+        value: {pageType: 'Grid Item'},
+      },
+    ],
   },
 
   /*

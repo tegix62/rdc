@@ -31,7 +31,10 @@ const structure: StructureResolver = (S) =>
             .title('Projects')
             .schemaType('caseStudy')
             .filter('_type == "caseStudy" && pageType == "Case Study"')
-            .defaultOrdering([{field: 'title', direction: 'asc'}]),
+            .defaultOrdering([{field: 'title', direction: 'asc'}])
+            // So "+" here makes a project rather than something that has to
+            // be corrected afterwards - see the templates in sanity.config.ts.
+            .initialValueTemplates([S.initialValueTemplateItem('caseStudy-project')]),
         ),
       S.listItem()
         .title('Grid Items')
@@ -41,7 +44,8 @@ const structure: StructureResolver = (S) =>
             .title('Grid Items')
             .schemaType('caseStudy')
             .filter('_type == "caseStudy" && pageType != "Case Study"')
-            .defaultOrdering([{field: 'title', direction: 'asc'}]),
+            .defaultOrdering([{field: 'title', direction: 'asc'}])
+            .initialValueTemplates([S.initialValueTemplateItem('caseStudy-grid-item')]),
         ),
       S.divider(),
       ...S.documentTypeListItems().filter(

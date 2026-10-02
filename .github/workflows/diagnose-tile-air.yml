@@ -1,0 +1,39 @@
+name: Diagnose tile air
+
+# Whether the explicit "Logomark" inset reaches the tiles that asked for it,
+# measured in real Chromium: the class, the padding the browser computed,
+# and how much of the tile the artwork ends up covering.
+#
+# See the header of scripts/diagnose-tile-air.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to measure'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+
+jobs:
+  air:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          set -o pipefail
+          node scripts/diagnose-tile-air.mjs "${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}" | tee /tmp/air.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Logomark inset'
+            echo ''
+            echo '```'
+            cat /tmp/air.txt 2>/dev/null || echo '(the check did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

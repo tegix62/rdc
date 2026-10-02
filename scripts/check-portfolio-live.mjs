@@ -70,19 +70,63 @@ if (expected !== null) console.log(`  tiles in dataset ${expected}`)
   with no parent is last by construction, and "I cannot see it" and "it is
   at the bottom of eighty tiles" look identical from a browser.
 */
-const needles = (process.env.NEEDLES ?? '').split(',').map((n) => n.trim()).filter(Boolean)
-if (needles.length) {
-  console.log('\n  looking for:')
-  const positions = [...html.matchAll(/class="[^"]*\bpf-item\b/g)].map((m) => m.index)
-  for (const needle of needles) {
-    const at = html.indexOf(needle)
-    if (at === -1) {
-      console.log(`    MISSING   ${needle}`)
+const positions = [...html.matchAll(/class="[^"]*\bpf-item\b/g)].map((m) => m.index)
+
+/*
+  SLUGS, not guessed titles.
+
+  The first version of this took titles typed from memory and matched them
+  case-sensitively, which reported three tiles missing that were sitting
+  right there under a different capitalisation. A slug is exact and the
+  title comes from the dataset, so the only thing being tested is whether
+  the page contains it.
+
+  The title is compared against HTML-escaped markup, because a title with
+  an ampersand or an apostrophe does not appear in the source as typed.
+*/
+const escapeHtml = (t) =>
+  t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+const slugs = (process.env.SLUGS ?? '').split(',').map((n) => n.trim()).filter(Boolean)
+if (slugs.length && TOKEN) {
+  const list = slugs.map((s) => `"${s}"`).join(', ')
+  const res2 = await fetch(
+    `https://${PROJECT_ID}.api.sanity.io/v2024-01-01/data/query/${DATASET}?query=${encodeURIComponent(
+      `*[_type == "caseStudy" && slug.current in [${list}] && !(_id in path("drafts.**"))]{
+         "path": slug.current, title, "hasThumb": defined(thumbnail), "hasMain": defined(mainImage), _updatedAt
+       }`,
+    )}`,
+    {headers: {Authorization: `Bearer ${TOKEN}`}},
+  )
+  const docs = res2.ok ? (await res2.json()).result : []
+  console.log('\n  looking for, by slug:')
+  for (const slug of slugs) {
+    const doc = docs.find((d) => d.path === slug)
+    if (!doc) {
+      console.log(`    NOT PUBLISHED  ${slug}`)
+      continue
+    }
+    const title = String(doc.title ?? '')
+    const at = [title, escapeHtml(title)].map((t) => html.indexOf(t)).find((i) => i !== -1)
+    const image = doc.hasThumb ? 'thumbnail' : doc.hasMain ? 'mainImage' : 'NO IMAGE'
+    if (at === undefined) {
+      console.log(`    MISSING        ${slug}  "${title}"  [${image}, published ${doc._updatedAt}]`)
       continue
     }
     const nth = positions.filter((p) => p < at).length
-    console.log(`    present   ${needle.padEnd(40)} tile ${nth} of ${tiles}`)
+    console.log(`    present        ${slug}  tile ${nth} of ${tiles}  [${image}]`)
   }
+}
+
+const needles = (process.env.NEEDLES ?? '').split(',').map((n) => n.trim()).filter(Boolean)
+for (const needle of needles) {
+  const at = html.toLowerCase().indexOf(needle.toLowerCase())
+  if (at === -1) {
+    console.log(`    MISSING   ${needle}`)
+    continue
+  }
+  const nth = positions.filter((p) => p < at).length
+  console.log(`    present   ${needle.padEnd(40)} tile ${nth} of ${tiles}`)
 }
 
 if (expected !== null && tiles !== expected) {

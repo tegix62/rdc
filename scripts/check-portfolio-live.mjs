@@ -129,6 +129,51 @@ for (const needle of needles) {
   console.log(`    present   ${needle.padEnd(40)} tile ${nth} of ${tiles}`)
 }
 
+/*
+  THE TWO LISTS, SIDE BY SIDE.
+
+  Counting tiles and searching for a few names kept producing results that
+  contradicted each other - a matching total of 80, three names absent, and
+  a fourth present at a position that might be a different document with a
+  similar name. All of that is guesswork about a set, so this prints the
+  set: every title the page renders, against every title the dataset says
+  it should.
+
+  Each tile's alt text is its title, so the alts inside the grid ARE the
+  page's list.
+*/
+if (process.env.LIST === '1' && TOKEN) {
+  const res3 = await fetch(
+    `https://${PROJECT_ID}.api.sanity.io/v2024-01-01/data/query/${DATASET}?query=${encodeURIComponent(
+      `*[_type == "caseStudy" && pageType in ["Case Study", "Grid Item"]
+         && (defined(thumbnail) || defined(mainImage))
+         && !(_id in path("drafts.**"))].title`,
+    )}`,
+    {headers: {Authorization: `Bearer ${TOKEN}`}},
+  )
+  const wanted = res3.ok ? (await res3.json()).result : []
+
+  const unescape = (t) =>
+    t.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+  // Only the alts inside the grid: the page has other images (the logo row,
+  // the footer) and counting those would inflate the comparison.
+  const gridStart = html.indexOf('id="pf-grid"')
+  const grid = gridStart === -1 ? html : html.slice(gridStart)
+  const onPageTitles = [...grid.matchAll(/alt="([^"]*)"/g)].map((m) => unescape(m[1])).filter(Boolean)
+
+  const norm = (t) => t.replace(/\s+/g, ' ').trim().toLowerCase()
+  const have = new Set(onPageTitles.map(norm))
+  const missing = wanted.filter((t) => !have.has(norm(String(t ?? ''))))
+  const wantedSet = new Set(wanted.map((t) => norm(String(t ?? ''))))
+  const extra = onPageTitles.filter((t) => !wantedSet.has(norm(t)))
+
+  console.log(`\n  the page renders ${onPageTitles.length} tile alt(s); the dataset wants ${wanted.length}`)
+  console.log(`\n  in the dataset, NOT on the page (${missing.length}):`)
+  for (const t of missing) console.log(`    ${t}`)
+  console.log(`\n  on the page, not in the dataset's list (${extra.length}):`)
+  for (const t of extra) console.log(`    ${t}`)
+}
+
 if (expected !== null && tiles !== expected) {
   console.log(
     `\nThe page is ${expected - tiles} tile(s) behind the dataset. The build ran before the` +

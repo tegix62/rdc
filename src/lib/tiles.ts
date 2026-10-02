@@ -33,9 +33,32 @@ export const MARK_ASSET_TYPES = new Set(['Identity / Brand Sheet', 'Vinyl / Reco
 
 export type Treatment = 'mark' | 'bleed';
 
-export function treatmentOf(item: {tileTreatment?: unknown; assetType?: unknown}): Treatment {
+/*
+  The treatment Chris CHOSE, as opposed to the one inferred for him.
+
+  These are different claims and the grid now acts on them differently, so
+  they get different functions rather than one function and a convention.
+
+  Why the distinction earns its keep: `mark` means "give this air", and air in
+  the normal grid was tried once and reverted, because the treatment is
+  inferred from Asset Type on 14 tiles and insetting all of them turns a dense
+  grid into a sparse one - a redesign, not a setting. Measured today, only 3
+  documents have the radio set by hand. So an explicit choice is rare, pointed
+  and safe to honour fully, while an inferred one stays what it always was: a
+  hint that only ink mode acts on.
+
+  Returns null when nothing is set, which is not the same as 'bleed' - that is
+  the whole point, and treating the two as equal is what would quietly give
+  every inferred mark air again.
+*/
+export function explicitTreatment(item: {tileTreatment?: unknown}): Treatment | null {
   const explicit = cleanKey(item?.tileTreatment);
-  if (explicit === 'mark' || explicit === 'bleed') return explicit;
+  return explicit === 'mark' || explicit === 'bleed' ? explicit : null;
+}
+
+export function treatmentOf(item: {tileTreatment?: unknown; assetType?: unknown}): Treatment {
+  const explicit = explicitTreatment(item);
+  if (explicit) return explicit;
   return MARK_ASSET_TYPES.has(cleanKey(item?.assetType)) ? 'mark' : 'bleed';
 }
 

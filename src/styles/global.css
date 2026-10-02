@@ -2319,6 +2319,37 @@ main {
 }
 
 /*
+  AIR IN THE NORMAL GRID, BUT ONLY WHERE CHRIS ASKED FOR IT.
+
+  The rule above gives every mark room in ink mode and the note with it
+  explains why the normal grid was left dense: the treatment is INFERRED from
+  Asset Type on 14 tiles, so insetting marks there is a redesign of the grid
+  rather than a setting on a tile.
+
+  That reasoning turns on the inference, not on the inset. A treatment Chris
+  SET BY HAND is a different thing - three documents have one today - and
+  honouring those is the difference between a grid that quietly drifts sparse
+  and a wordmark he deliberately gave room to. So .pf-item--air is emitted
+  only for an explicit choice, and the inferred ones keep ink mode to
+  themselves.
+
+  No background declared. The page is #ffffff and so is this padding, so a
+  mark simply floats on the page; painting white on white would only be a
+  thing to forget about when the grid's background changes.
+
+  The ink rule above still wins inside [data-ink] on specificity (0,4,0 against
+  0,2,0), so an explicit mark keeps the archive's 14% there rather than
+  getting two different insets in the two views.
+
+  Percentages resolve against the tile's WIDTH, including the vertical ones, so
+  the inset stays square as the column count changes with the +/- control -
+  the same reason the ink rule uses them.
+*/
+.pf-item--air .pf-item__img {
+  padding: var(--pf-air-inset, 10%);
+}
+
+/*
   No padding by default. The grid's spacing is exactly what it always was -
   tight, dense, images nearly touching, which is the look it is for.
 

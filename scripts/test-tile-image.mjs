@@ -130,5 +130,61 @@ check(
 check('hasAsset is false for a shell', hasAsset(shell()) === false)
 check('hasAsset is true for a file', hasAsset(file('x')) === true)
 
+/*
+  EXPLICIT vs INFERRED TREATMENT.
+
+  .pf-item--air gives a mark room in the normal grid, and it is emitted for an
+  explicit choice only. The distinction is doing real work: 14 tiles are
+  inferred marks from their Asset Type, and if explicitTreatment ever starts
+  answering for those, the dense grid Chris wants goes sparse in one deploy
+  and nothing here would notice. So the inferred case is asserted, not just
+  the explicit one.
+*/
+const tiles = await import(await (async () => {
+  const out = path.join(outdir, 'tiles.mjs')
+  await build({
+    entryPoints: [path.join(root, 'src/lib/tiles.ts')],
+    outfile: out,
+    bundle: true,
+    format: 'esm',
+    platform: 'node',
+    packages: 'external',
+    logLevel: 'error',
+  })
+  return out
+})())
+
+check(
+  'an explicit mark is explicit',
+  tiles.explicitTreatment({tileTreatment: 'mark'}) === 'mark',
+)
+check(
+  'an explicit bleed is explicit',
+  tiles.explicitTreatment({tileTreatment: 'bleed'}) === 'bleed',
+)
+check(
+  'an INFERRED mark is not explicit - no air in the normal grid',
+  tiles.explicitTreatment({assetType: 'Identity / Brand Sheet'}) === null,
+  'the 14 Asset Type marks must not gain air',
+)
+check(
+  'an inferred mark is still a mark for ink mode',
+  tiles.treatmentOf({assetType: 'Identity / Brand Sheet'}) === 'mark',
+)
+check(
+  'nothing set is not explicit',
+  tiles.explicitTreatment({}) === null && tiles.explicitTreatment(undefined) === null,
+)
+check(
+  'an explicit bleed beats a mark-ish asset type',
+  tiles.treatmentOf({tileTreatment: 'bleed', assetType: 'Identity / Brand Sheet'}) === 'bleed',
+  'DumpStat - Lich Sketch relies on this',
+)
+check(
+  'an unknown treatment value falls back to inference rather than sticking',
+  tiles.explicitTreatment({tileTreatment: 'nonsense'}) === null &&
+    tiles.treatmentOf({tileTreatment: 'nonsense', assetType: 'Apparel'}) === 'bleed',
+)
+
 console.log(failures === 0 ? '\nAll tile image checks passed.' : `\n${failures} check(s) failed.`)
 process.exit(failures === 0 ? 0 : 1)

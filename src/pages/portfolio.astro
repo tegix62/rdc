@@ -7,7 +7,7 @@ import Sections from '../components/Sections.astro';
 import { getPage, getAllGridItems } from '../lib/queries';
 // Shared with the homepage's miniature grid, so the two cannot disagree about
 // what counts as a logomark or how wide a hero tile is. See lib/tiles.ts.
-import { cleanKey, treatmentOf, tileHref, heroHeight, HERO_RATIO_PORTFOLIO } from '../lib/tiles';
+import { cleanKey, treatmentOf, explicitTreatment, tileHref, heroHeight, HERO_RATIO_PORTFOLIO } from '../lib/tiles';
 import { tileImage } from '../lib/image';
 
 const page = await getPage('portfolio');
@@ -200,6 +200,10 @@ if (emptyFilters.length > 0) {
               'pf-item',
               cat,
               treatmentOf(item) === 'mark' && 'pf-item--mark',
+              // Air in the NORMAL grid, for a treatment Chris set by hand.
+              // Separate from --mark because an inferred mark must not gain
+              // it: see explicitTreatment() in lib/tiles.ts.
+              explicitTreatment(item) === 'mark' && 'pf-item--air',
               item.heroTile && 'pf-item--hero',
             ]}
             data-category={cat}

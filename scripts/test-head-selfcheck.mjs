@@ -127,7 +127,12 @@ const build = async (name, overrides = {}) => {
   }
   for (const [file, props] of Object.entries(pages)) {
     if (props === null) continue
-    await writeFile(path.join(dir, file), page(props))
+    // Each override brings its own directory. Without this a fixture could
+    // only ever add a page under one of the three folders created above,
+    // which is a limit on what can be tested rather than on what can break.
+    const target = path.join(dir, file)
+    await mkdir(path.dirname(target), {recursive: true})
+    await writeFile(target, page(props))
   }
   return dir
 }
@@ -263,15 +268,36 @@ await expectCaught(
   'Organization, WebSite and WebPage',
 )
 await expectCaught(
-  'a project page that lost its CreativeWork',
+  'a project page that lost its work node',
   await build('fx-nowork', {'work/a-project/index.html': {
     title: 'A Project | Rumeau Design Co',
     description: 'A project page.',
     canonical: 'https://rumeaudesign.co/work/a-project',
     ogTitle: 'A Project',
   }}),
-  'states a CreativeWork',
+  'states one of',
 )
+/*
+  THE EXCLUSION, PROVED RATHER THAN ASSERTED.
+
+  /blog/category/* pages were failing "every blog post states a BlogPosting"
+  because the route pattern counted them as posts. They are listings, so the
+  check now skips them - and an exclusion nobody tests is how a check quietly
+  stops covering the thing it was written for. This fixture is a category
+  page with no post node and no breadcrumb: silence is the correct answer,
+  and if the exclusion is ever widened to swallow real posts, the fixture
+  below still fails.
+*/
+await expectSilent(
+  'a blog category listing with no BlogPosting',
+  await build('fx-category', {'blog/category/typography/index.html': {
+    title: 'Typography | Rumeau Design Co',
+    description: 'Posts about typography.',
+    canonical: 'https://rumeaudesign.co/blog/category/typography',
+    ogTitle: 'Typography',
+  }}),
+)
+
 await expectCaught(
   'a project page with no breadcrumb trail',
   await build('fx-nocrumb', {'work/a-project/index.html': {

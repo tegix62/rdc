@@ -318,10 +318,28 @@ if (emptyFilters.length > 0) {
       disagree about how wide a row is. The arrow keys were already reading a
       hardcoded 3 while the grid could be showing something else entirely
       after a zoom.
+
+      SEVEN ON A WIDE SCREEN, which is what Chris asked for: a landscape
+      laptop or desktop should show seven across rather than six. The
+      threshold is 1280 because that is where a seventh column stops costing
+      the tiles anything worth noticing - at 1280 each tile is about 178px
+      wide against 208 at six, and by 1920 it is 270 against 315. Below
+      1280 a seventh column is taking width off a tile that is already the
+      smallest thing on the page.
+
+      Width rather than orientation, deliberately. A landscape iPad is 1024
+      and would get 146px tiles, which is a thumbnail of a logomark - the
+      grid's constraint is how wide a tile ends up, and orientation only
+      predicts that indirectly.
     */
     const MOBILE_COLS = 4;
     const DESKTOP_COLS = 6;
-    const defaultCols = () => (window.innerWidth < 768 ? MOBILE_COLS : DESKTOP_COLS);
+    const WIDE_COLS = 7;
+    const WIDE_FROM = 1280;
+    const defaultCols = () => {
+      if (window.innerWidth < 768) return MOBILE_COLS;
+      return window.innerWidth >= WIDE_FROM ? WIDE_COLS : DESKTOP_COLS;
+    };
 
     let cols = defaultCols();
     // Once the visitor uses +/- the count is theirs, and a resize must not

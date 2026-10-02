@@ -30,3 +30,6 @@ jobs:
       # test isn't run against the previous build.
       - run: sleep 150
       - run: node scripts/test-portfolio-filters.mjs
+      # The column count is JavaScript, so it appears in no stylesheet and no
+      # CSS diff shows it changing. Four widths, four branches.
+      - run: node scripts/test-portfolio-columns.mjs

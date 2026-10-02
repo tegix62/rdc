@@ -1,0 +1,35 @@
+name: Audit grid item fields
+
+# Which fields the 67 grid items actually use, so the Tile tab can be
+# reorganised around evidence rather than around the order it was written in
+# when every document was a project.
+#
+# See the header of scripts/audit-grid-item-fields.mjs.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: |
+          set -o pipefail
+          node scripts/audit-grid-item-fields.mjs | tee /tmp/tiles.txt
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Grid item field usage'
+            echo ''
+            echo '```'
+            cat /tmp/tiles.txt 2>/dev/null || echo '(the audit did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

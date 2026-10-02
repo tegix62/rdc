@@ -59,6 +59,32 @@ console.log(`  cf-cache-status  ${cf ?? '(none)'}${age ? `, age ${age}s` : ''}`)
 console.log(`  tiles in HTML    ${tiles}`)
 if (expected !== null) console.log(`  tiles in dataset ${expected}`)
 
+/*
+  A matching TOTAL is not the same as a given tile being present - one
+  could be missing while another arrived. NEEDLES names specific tiles to
+  look for; each tile's alt text is its title, so the title is what to
+  search the markup for.
+
+  It also reports WHERE each one sits, because the grid groups projects
+  first, then tiles that link to a project, then the rest - so a new tile
+  with no parent is last by construction, and "I cannot see it" and "it is
+  at the bottom of eighty tiles" look identical from a browser.
+*/
+const needles = (process.env.NEEDLES ?? '').split(',').map((n) => n.trim()).filter(Boolean)
+if (needles.length) {
+  console.log('\n  looking for:')
+  const positions = [...html.matchAll(/class="[^"]*\bpf-item\b/g)].map((m) => m.index)
+  for (const needle of needles) {
+    const at = html.indexOf(needle)
+    if (at === -1) {
+      console.log(`    MISSING   ${needle}`)
+      continue
+    }
+    const nth = positions.filter((p) => p < at).length
+    console.log(`    present   ${needle.padEnd(40)} tile ${nth} of ${tiles}`)
+  }
+}
+
 if (expected !== null && tiles !== expected) {
   console.log(
     `\nThe page is ${expected - tiles} tile(s) behind the dataset. The build ran before the` +

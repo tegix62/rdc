@@ -1,0 +1,40 @@
+name: Diagnose new tiles
+
+# Why a newly uploaded grid item is not on the Portfolio: the query drops it,
+# it is still a draft, or the site has not rebuilt since. All three look
+# identical from outside.
+#
+# See the header of scripts/diagnose-new-tiles.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'How many recently touched documents to report'
+        default: '25'
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: |
+          set -o pipefail
+          node scripts/diagnose-new-tiles.mjs | tee /tmp/tiles.txt
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          LIMIT: ${{ inputs.limit }}
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## New tiles'
+            echo ''
+            echo '```'
+            cat /tmp/tiles.txt 2>/dev/null || echo '(it did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

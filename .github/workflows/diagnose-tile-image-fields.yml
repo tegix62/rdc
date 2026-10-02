@@ -1,0 +1,21 @@
+name: Diagnose tile image fields
+
+# Which image field each Portfolio tile is actually drawn from, and which
+# fields are present but empty. "The field exists" and "the field holds a
+# file" are different claims, and the blank-tile bug lived in the gap.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/diagnose-tile-image-fields.mjs
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}

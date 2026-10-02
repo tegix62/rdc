@@ -1,0 +1,42 @@
+name: Clear dead tile fields
+
+# The project-only fields some grid items still carry - a Search blurb and a
+# Client's Logo, hidden from their form and read by nothing for a tile.
+# Dry run unless "apply" is ticked.
+#
+# See the header of scripts/clear-dead-tile-fields.mjs for which reads were
+# checked before calling them dead.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Write the changes (off = dry run)'
+        type: boolean
+        default: false
+
+jobs:
+  clear:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: |
+          set -o pipefail
+          node scripts/clear-dead-tile-fields.mjs | tee /tmp/clear.txt
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          APPLY: ${{ inputs.apply && '1' || '0' }}
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Dead tile fields'
+            echo ''
+            echo '```'
+            cat /tmp/clear.txt 2>/dev/null || echo '(it did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,25 @@
+name: Check portfolio live
+
+# Counts tiles in the SERVED HTML against what the dataset says there should
+# be. "In Sanity" and "on the page" are different claims for a static site,
+# and the gap between them is a stale build or a cached page.
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Page to check'
+        default: 'https://rumeaudesign.co/portfolio'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/check-portfolio-live.mjs "${{ inputs.url || 'https://rumeaudesign.co/portfolio' }}"
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}

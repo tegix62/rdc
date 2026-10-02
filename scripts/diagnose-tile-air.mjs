@@ -64,8 +64,15 @@ const tiles = await page.evaluate(() => {
     */
     const padL = parseFloat(cs.paddingLeft) || 0
     const padT = parseFloat(cs.paddingTop) || 0
+    /*
+      Strip the stega markers out of the alt text. Visual editing encodes the
+      document path into the string as zero-width characters, which are
+      invisible in a browser and roughly 2KB of noise per title in a CI log -
+      enough to bury the numbers this check exists to report.
+    */
+    const clean = (s) => String(s ?? '').replace(/[​-‏⁠-⁤﻿]/g, '')
     out.push({
-      alt: img.getAttribute('alt') ?? '',
+      alt: clean(img.getAttribute('alt')),
       classes: el.className,
       air: el.classList.contains('pf-item--air'),
       mark: el.classList.contains('pf-item--mark'),

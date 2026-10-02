@@ -146,9 +146,25 @@ for (const f of ['heroVideo', 'heroVideoSrc', 'heroVideoFile', 'heroVideoWebm'])
   target to aim at. A target invented from nothing is a target that fights
   what is already written.
 */
+/*
+  The summary is rich text now, so its length is the text INSIDE the
+  blocks. Measuring String(value) on an array gives "[object Object]" -
+  15 characters for every project, which this audit duly reported once
+  and which is how a number that means nothing gets into a report.
+*/
+const plainLength = (value) => {
+  if (typeof value === 'string') return value.trim().length
+  if (!Array.isArray(value)) return 0
+  return value
+    .flatMap((b) => (Array.isArray(b?.children) ? b.children : []))
+    .map((span) => (typeof span?.text === 'string' ? span.text : ''))
+    .join(' ')
+    .trim().length
+}
+
 const lengths = studies
   .filter((s) => filled(s.summary))
-  .map((s) => ({slug: s.slug, n: String(s.summary).trim().length}))
+  .map((s) => ({slug: s.slug, n: plainLength(s.summary)}))
   .sort((a, b) => a.n - b.n)
 if (lengths.length) {
   const median = lengths[Math.floor(lengths.length / 2)].n

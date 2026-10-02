@@ -6,6 +6,7 @@ import Sections from '../components/Sections.astro';
 import { getPage, getMerchItems } from '../lib/queries';
 import { renderPortableText } from '../lib/portableText';
 import { tileHref } from '../lib/tiles';
+import { tileImage } from '../lib/image';
 
 const page = await getPage('merchfolio');
 const items = await getMerchItems();
@@ -24,7 +25,9 @@ const items = await getMerchItems();
   {items.length > 0 ? (
     <div class="grid">
       {items.map((item: any) => {
-        const image = item.thumbnail || item.mainImage;
+        // tileImage, not `thumbnail || mainImage`: an empty Grid Thumbnail is
+        // truthy and used to swallow the real picture. See lib/image.ts.
+        const image = tileImage(item);
         /*
           tileHref, not a local copy of the rule.
 
@@ -41,7 +44,7 @@ const items = await getMerchItems();
             {image && (
               <Img
                 image={image}
-                field={item.thumbnail ? 'thumbnail (Tile Image)' : 'mainImage (Main Project Image)'}
+                field={image === item.thumbnail ? 'thumbnail (Tile Image)' : 'mainImage (Main Project Image)'}
                 alt={item.title}
                 width={600}
                 height={600}

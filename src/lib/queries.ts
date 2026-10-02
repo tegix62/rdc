@@ -1,4 +1,5 @@
 import { sanityClient } from './sanity';
+import { tileImage } from './image';
 
 /*
   Uploaded video files have to be projected explicitly.
@@ -248,12 +249,15 @@ export const cellsUsedBy = (items: any[]) =>
   shorter tidy grid still beats a ragged full one.
 */
 /*
-  The image a tile actually SHOWS. The grid renders `thumbnail || mainImage`, so
-  that is what has to be unique - two documents can be perfectly distinct and
-  still put the same picture on screen twice.
+  The image a tile actually SHOWS. The grids render tileImage(), so that is
+  what has to be unique - two documents can be perfectly distinct and still put
+  the same picture on screen twice.
+
+  Derived from tileImage rather than reaching for the refs itself, so the
+  duplicate check can never disagree with what the grid puts on screen.
 */
 export const displayedRef = (item: any): string | null =>
-  item?.thumbnail?.asset?._ref ?? item?.mainImage?.asset?._ref ?? null;
+  tileImage(item)?.asset?._ref ?? null;
 
 export function fitToRows(items: any[], filler: any[] = [], columns = PEEK_COLUMNS) {
   const cells = cellsUsedBy(items);
@@ -322,7 +326,10 @@ export async function getFeaturedWork(limit = 8) {
   const curated: any[] | null = await sanityClient.fetch(
     `*[_type == "siteSettings"][0].featuredWork[]->{${TILE}}`,
   );
-  const picked = (curated ?? []).filter((item) => item && (item.thumbnail || item.mainImage));
+  // tileImage, so a pick whose Grid Thumbnail is an empty shell is kept and
+  // drawn from its Main Project Image, instead of counting as a tile and
+  // rendering blank. See lib/image.ts.
+  const picked = (curated ?? []).filter((item) => item && tileImage(item));
   // A curated list is a decision, so it is shown exactly as picked - ragged
   // last row included. Only the automatic fallback gets tidied below.
   if (picked.length) return picked;

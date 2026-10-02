@@ -120,6 +120,13 @@ jobs:
       # just come away thinking the site is a bit amateur.
       - run: node scripts/test-peek-grid.mjs
 
+      # Which picture a tile draws. Eight of Chris's grid items rendered as
+      # blank boxes because an empty Grid Thumbnail shell is truthy and beat
+      # the Main Project Image behind it - and every count-based check passed
+      # while it happened, because the boxes were all present. This is the one
+      # check that looks at what is IN the box.
+      - run: node scripts/test-tile-image.mjs
+
       # The budget slider's clamp/snap/format arithmetic - the one function
       # standing between a dragged handle and a number written to the database,
       # and it runs on both the client and functions/api/contact.ts. Wrong here

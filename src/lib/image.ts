@@ -157,6 +157,40 @@ export function hasAsset(source: any): boolean {
 }
 
 /*
+  THE picture a tile shows, anywhere a tile is drawn.
+
+  Grid Thumbnail wins over Main Project Image, which is the intent: the
+  thumbnail field exists precisely to override the project's hero with
+  something that reads at 150px. But "wins" has to mean "wins when it holds a
+  file", and for a long time this was written as `thumbnail || mainImage` in
+  five places, which means "wins when it is truthy".
+
+  Those are different claims, and the gap between them cost Chris eight tiles.
+  He uploaded a batch of grid items, put each picture in Main Project Image,
+  and never touched Grid Thumbnail - except that opening that field in Studio
+  had saved its crop/hotspot settings with no file behind them. An empty shell
+  like that is an object, so it is truthy, so it won the `||`; then Img saw no
+  asset and skipped it (correctly - urlFor() throws on a shell). The result is
+  the worst shape a bug can take: a `pf-item` box renders, the grid counts 80
+  tiles against the dataset's 80, every check passes, and eight of them are
+  blank. "It is in Sanity and the page has the right number of tiles" and "I
+  can see it" turn out to be three separate claims.
+
+  hasAsset on BOTH fields, so a shell falls through to the real image instead
+  of swallowing it. Returns null when neither holds a file, which is what the
+  callers already test for - a tile with no picture is not a tile.
+
+  One function rather than five expressions: the first version of this fixed
+  /portfolio and left WorkGrid, merchfolio and the homepage picks reading the
+  old way, which is how half a site ends up correct.
+*/
+export function tileImage(item: any): any | null {
+  if (hasAsset(item?.thumbnail)) return item.thumbnail;
+  if (hasAsset(item?.mainImage)) return item.mainImage;
+  return null;
+}
+
+/*
   Which picture a related-work card shows, and how to treat it.
 
   The "More Work" and "See the work" grids draw each project as an archive
@@ -185,7 +219,7 @@ export function hasAsset(source: any): boolean {
 */
 export function archiveCard(item: any): {image: any; mode: 'drawn' | 'inked'} {
   if (hasAsset(item?.archiveMark)) return {image: item.archiveMark, mode: 'drawn'};
-  return {image: item?.thumbnail || item?.mainImage, mode: 'inked'};
+  return {image: tileImage(item), mode: 'inked'};
 }
 
 /*

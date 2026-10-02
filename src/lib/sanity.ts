@@ -94,27 +94,27 @@ export const sanityClient = createClient({
   dataset: 'production',
   apiVersion: '2024-01-01',
   /*
-    NEVER THE CDN, AND THIS WAS MEASURED.
+    NEVER THE CDN.
 
     This read `!VISUAL_EDITING`, so preview builds bypassed the CDN and
     PRODUCTION builds used it. The reasoning was that the CDN is right for
     the real site - which would be true if this client ran on the real
     site. It does not: every call happens at build time, the output is
-    static HTML, and a visitor never touches Sanity at all. So the CDN was
-    buying nothing and costing correctness.
+    static HTML, and a visitor never touches Sanity at all. The CDN was
+    buying nothing, and a cached response per query is a real way for a
+    build to disagree with the dataset it was told to rebuild from.
 
-    What it cost, on 2 October: Chris uploaded eight grid items, published
-    each one, and they did not appear. A fresh production deploy - twenty
-    minutes after the last publish - still built a page without them, while
-    the dataset plainly had them. The pattern made no sense until the cause
-    did: a cached response per query, so one tile published at 19:16 was in
-    the build and another published at 19:15 was not.
+    Honest about why this changed, since the comment first shipped claiming
+    more than it had: it was changed while chasing eight grid items of
+    Chris's that were missing from /portfolio, on the theory that the build
+    was reading a stale cache. That theory was wrong - the tiles were
+    missing because each had an empty Grid Thumbnail shell that beat its
+    real Main Project Image, which is fixed in tileImage() in image.ts.
+    Nothing here was ever shown to serve a stale read.
 
-    The trade is a slower build and more API requests against the quota,
-    for a build that runs a few times a day. Against a site that silently
-    disagrees with the CMS, that is not a close call - and it is the same
-    failure the sanity-publish webhook was added to prevent, arriving by a
-    different route.
+    It stays `false` on its own merits, not as that fix: build-time-only
+    reads get nothing from the CDN, and the cost is a slower build and more
+    API requests on a build that runs a few times a day.
   */
   useCdn: false,
   stega: {

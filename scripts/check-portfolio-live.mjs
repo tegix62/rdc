@@ -153,8 +153,27 @@ if (process.env.LIST === '1' && TOKEN) {
   )
   const wanted = res3.ok ? (await res3.json()).result : []
 
+  /*
+    Numeric entities too, not just the five named ones.
+
+    Astro writes `&` as `&#38;` and `"` as `&#34;`, so the named list alone
+    reported "DumpStat, a D&D Podcast" and '"Isolate" by blxckfeather' as
+    missing from a page that was rendering both - and listed them a few lines
+    below as unexpected EXTRAS, in escaped form, which is the signature of a
+    decoder gap rather than a missing tile. Three titles chased twice for that.
+
+    Decimal and hex, and `&amp;` last: unescaping it first would turn
+    `&amp;#38;` into a second round of decoding.
+  */
   const unescape = (t) =>
-    t.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    t
+      .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+      .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&amp;/g, '&')
   // Only the alts inside the grid: the page has other images (the logo row,
   // the footer) and counting those would inflate the comparison.
   const gridStart = html.indexOf('id="pf-grid"')

@@ -1,0 +1,41 @@
+name: Measure tile weight
+
+# What the Portfolio grid costs now, and what it would cost with every tile
+# requested at a larger width. See scripts/measure-tile-weight.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to measure'
+        default: 'https://rumeaudesign.co'
+      target_width:
+        description: 'Width to project the cost at'
+        default: '1600'
+
+jobs:
+  weight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          set -o pipefail
+          node scripts/measure-tile-weight.mjs \
+            "${{ inputs.base_url || 'https://rumeaudesign.co' }}" \
+            "${{ inputs.target_width || '1600' }}" | tee /tmp/weight.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Portfolio tile weight'
+            echo ''
+            echo '```'
+            cat /tmp/weight.txt 2>/dev/null || echo '(the check did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

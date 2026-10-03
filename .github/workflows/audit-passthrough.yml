@@ -1,0 +1,42 @@
+name: Audit pass-through images
+
+# Every "serve exactly as uploaded" image, with what it holds against what
+# the page paints. A list to decide from, not a recommendation.
+# See scripts/audit-passthrough.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to audit'
+        default: 'https://rumeaudesign.co'
+      paths:
+        description: 'Comma-separated pages to walk'
+        default: '/portfolio,/,/merchfolio,/collage,/video'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          set -o pipefail
+          node scripts/audit-passthrough.mjs \
+            "${{ inputs.base_url || 'https://rumeaudesign.co' }}" \
+            "${{ inputs.paths || '/portfolio,/,/merchfolio,/collage,/video' }}" | tee /tmp/pt.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Pass-through images'
+            echo ''
+            echo '```'
+            cat /tmp/pt.txt 2>/dev/null || echo '(the audit did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

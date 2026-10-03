@@ -86,17 +86,39 @@ const altField = defineField({
 })
 
 /*
-  On by default, because Chris optimises his own files and would rather the CDN
-  left them alone than second-guess him.
+  OFF by default, as of 3 October. It was on, and that was a deliberate
+  decision: Chris optimises his own files and would rather the CDN left them
+  alone than second-guess him. The reasoning was never wrong - the default
+  was.
 
-  That is a real trade and worth stating plainly rather than burying: a
-  pass-through image gets no srcset, so a phone downloads the same file a
-  desktop does, and no crop or hotspot can apply because cropping requires
-  re-encoding. Turn it OFF on anything that needs responsive sizes or a crop -
-  photography, hero tiles, anything wide and detailed.
+  The same note already said the other half: a pass-through image gets no
+  srcset, so a phone downloads the file a desktop does, and no crop can apply
+  because cropping requires re-encoding. "Turn it OFF for photography, hero
+  tiles, anything wide and detailed" is advice that nothing enforced, because
+  an image arrived with the switch already on. An audit of the five main pages
+  found 32 pass-through images holding 13.1 MB, about 4.6 MB of which is
+  pixels no screen displays:
 
-  initialValue only affects images added from now on. The ~120 already in the
-  dataset keep whatever they have.
+    5.1x   Slaanesh/Midgard Tees        2673px wide, painted at 264px
+    3.8x   Collage - Red Kettle 2025    2000px
+    3.8x   Chateau Seven                2000px
+    2.0x   a run of 1080x1080 tee shots
+
+  None of those is a judgement anyone made. They are the default catching
+  ordinary artwork on its way past, which is what a default does.
+
+  Flipping it is safe for the case the switch was really protecting. An
+  animated file is detected by reading its header at build time, not from
+  this field - see isAnimatedSource in lib/animated.ts, and isPassThrough,
+  which ORs the two. A GIF uploaded with this off still ships untouched,
+  because re-encoding one is both worse and larger. So turning it ON is now
+  for one case only: a still image you have compressed yourself and want left
+  exactly as it is.
+
+  initialValue only affects images added from now on. Everything already in
+  the dataset keeps whatever it has - this does not re-encode a single
+  existing file, and the originals are untouched either way, since the switch
+  only governs what gets DELIVERED.
 */
 const noRecompressField = defineField({
   name: 'noRecompress',
@@ -111,11 +133,19 @@ const noRecompressField = defineField({
     unreadable in a sidebar - so the sentence that actually matters, that this
     switch disables cropping, was buried in the middle of it and got missed.
   */
+  /*
+    Rewritten for the default being off: the sentence that matters is no
+    longer "what turning it off costs you" but "why you would turn it on".
+
+    Still two sentences. The previous version ran to six clauses and buried
+    the one fact that mattered, which is how the crop behaviour got missed.
+  */
   description:
-    'On: your file ships untouched, exactly as you compressed it. ' +
-    'Turn it off if this image needs a crop or phone-sized versions - both ' +
-    'need re-encoding. The hotspot works either way.',
-  initialValue: true,
+    'Leave off and your file gets phone-sized versions and crops. ' +
+    'Turn it on only for a still image you have compressed yourself and want ' +
+    'shipped byte-for-byte - it disables both. Animations are detected and ' +
+    'left alone either way, and the hotspot always works.',
+  initialValue: false,
 })
 
 const inkModeField = defineField({

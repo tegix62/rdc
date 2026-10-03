@@ -96,19 +96,34 @@ let passthrough = 0
 let passthroughCount = 0
 let counted = 0
 
+/*
+  Fetched through Playwright's request context, not from inside the page.
+  An in-page fetch() to cdn.sanity.io is a cross-origin request and came back
+  blocked for every URL - which the first version of this silently counted as
+  zero bytes and reported as a 100% saving. A projection that cannot fail is
+  not a measurement.
+
+  Accept is set to match what Chromium asked for, because auto=format serves
+  AVIF or WebP by that header and comparing formats instead of widths would
+  make the answer meaningless.
+*/
+let failures = 0
 for (const [url] of all) {
   const bigger = url.replace(/([?&])w=\d+/, `$1w=${TARGET}`)
   const noWidth = !/[?&]w=\d+/.test(url)
-  const bytes = await page.evaluate(async (u) => {
-    try {
-      const r = await fetch(u, {cache: 'no-store'})
-      const b = await r.blob()
-      return b.size
-    } catch {
-      return null
-    }
-  }, bigger)
-  if (bytes === null) continue
+  let bytes = null
+  try {
+    const res = await page.request.get(bigger, {
+      headers: {accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8'},
+    })
+    if (res.ok()) bytes = (await res.body()).length
+  } catch {
+    /* counted below rather than ignored */
+  }
+  if (bytes === null) {
+    failures += 1
+    continue
+  }
   if (noWidth) {
     // Served exactly as uploaded; the width parameter does nothing for these.
     passthrough += bytes
@@ -120,6 +135,14 @@ for (const [url] of all) {
 }
 
 console.log(`  ${counted} resizable image(s): ${mb(projected)}`)
+if (failures) {
+  console.log(`\n  ${failures} image(s) could not be fetched - the projection below is incomplete.`)
+  if (!counted) {
+    console.log('  Nothing was measured, so there is no answer here. Fix the fetch, not the page.')
+    await browser.close()
+    process.exit(1)
+  }
+}
 if (passthroughCount) {
   console.log(`  ${passthroughCount} pass-through image(s): ${mb(passthrough)} (unchanged - they ignore w=)`)
 }

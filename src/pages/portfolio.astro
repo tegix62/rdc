@@ -377,6 +377,65 @@ if (emptyFilters.length > 0) {
       transitionDuration: 0,
     });
 
+    /*
+      KEEP AN EXPANDED TILE IN ITS OWN COLUMNS.
+
+      Masonry places a two-column item in the leftmost column pair with the
+      lowest bottom edge. Where the item already was is not an input, so
+      clicking a tile in column 5 threw it across the grid - measured on the
+      live page, 12 of 14 tiles moved more than half a column.
+
+      Worth being precise about what is wrong, because it is narrower than it
+      looks: items are placed in DOM order, so an item's column depends only
+      on the items BEFORE it. A tile that merely grows taller keeps its column
+      for free. It is going from one column to two that triggers the search,
+      and only for the item doing it.
+
+      So the search is what gets constrained, for that one item, rather than
+      the reflow being removed. An earlier attempt removed the reflow instead:
+      the tile stayed put and sat on top of its neighbours, which is a worse
+      fault than the one it fixed.
+
+      This overrides a method on the layout mode instance. Normally that would
+      be too clever to live, and here it is defensible for two reasons: the
+      library is vendored at a pinned 3.0.6 in public/vendor, so the shape
+      cannot change under us without someone editing that file; and the
+      override falls through to the original whenever no preferred column is
+      set, which is every item except the one being expanded.
+
+      The tile can still move DOWN. Its two columns may have different bottom
+      edges and masonry seats a spanning item below the lower of them. That is
+      the grid making room, which is what was asked for - it is sideways
+      travel that made the click feel wrong.
+    */
+    const masonry: any = (iso as any).modes?.masonry;
+    if (masonry && typeof masonry._getItemLayoutPosition === 'function') {
+      const original = masonry._getItemLayoutPosition.bind(masonry);
+      masonry._getItemLayoutPosition = function (item: any) {
+        const preferred = item?.element?.__pfCol;
+        if (typeof preferred !== 'number') return original(item);
+
+        item.getSize();
+        const colSpan = Math.max(
+          1,
+          Math.min(Math.ceil(item.size.outerWidth / this.columnWidth), this.cols),
+        );
+        // Clamped so a tile in the last column spans the final pair rather
+        // than running off the right-hand edge.
+        const col = Math.max(0, Math.min(preferred, this.cols - colSpan));
+
+        let y = 0;
+        for (let i = 0; i < colSpan; i++) y = Math.max(y, this.colYs[col + i]);
+        const setY = y + item.size.outerHeight;
+        for (let i = 0; i < colSpan; i++) this.colYs[col + i] = setY;
+
+        return {x: this.columnWidth * col, y};
+      };
+    } else {
+      // Not fatal: without it the grid behaves as it did before, which jumps.
+      console.warn('[portfolio] masonry layout mode not found; expanded tiles will re-pack freely');
+    }
+
     // Isotope has positioned everything, so the tiles can be shown. Anything
     // after this point is a deliberate rearrangement the visitor asked for.
     grid.classList.remove('is-laying-out');
@@ -528,8 +587,13 @@ if (emptyFilters.length > 0) {
 
         // An expanded tile that gets filtered away would keep its expanded
         // state (and its double width) for when it returns, which reads as a
-        // glitch. Collapse on any filter change.
-        grid.querySelectorAll('.pf-item.is-expanded').forEach((el) => el.classList.remove('is-expanded'));
+        // glitch. Collapse on any filter change - including the column hint,
+        // which would otherwise pin the tile to a column that means something
+        // different once the grid holds a different set of tiles.
+        grid.querySelectorAll<HTMLElement>('.pf-item.is-expanded').forEach((el) => {
+          el.classList.remove('is-expanded');
+          delete (el as any).__pfCol;
+        });
         if (filterVal === '*') {
           document.querySelectorAll('.pf-btn[data-filter]').forEach((b) => b.classList.remove('is-active'));
           btn.classList.add('is-active');
@@ -649,8 +713,25 @@ if (emptyFilters.length > 0) {
       const item = target.closest<HTMLElement>('.pf-item');
       if (!item) return;
       const wasExpanded = item.classList.contains('is-expanded');
-      grid.querySelectorAll('.pf-item.is-expanded').forEach((el) => el.classList.remove('is-expanded'));
+      grid.querySelectorAll<HTMLElement>('.pf-item.is-expanded').forEach((el) => {
+        el.classList.remove('is-expanded');
+        // Clear the hint with the state it belongs to, or the tile keeps
+        // being pinned to a column it is no longer expanded in.
+        delete (el as any).__pfCol;
+      });
       if (!wasExpanded) {
+        /*
+          Record which column the tile is in BEFORE the class is added, since
+          that is the one it should open in - read from the painted box
+          rather than from an index, because masonry's own choices are the
+          only thing that knows where a tile ended up.
+        */
+        const gridBox = grid.getBoundingClientRect();
+        const colW = sizer.offsetWidth;
+        if (colW > 0) {
+          const left = item.getBoundingClientRect().left - gridBox.left;
+          (item as any).__pfCol = Math.max(0, Math.round(left / colW));
+        }
         item.classList.add('is-expanded');
         // Before the reflow below, so the request is in flight while the tile
         // is still growing rather than starting after it has settled.

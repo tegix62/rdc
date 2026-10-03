@@ -447,6 +447,28 @@ if (emptyFilters.length > 0) {
     */
     let resizePending = false;
 
+    /*
+      COLLAPSING, IN ONE PLACE.
+
+      Expanding leaves inline state on the tile - a negative margin, when it
+      had to grow leftwards - and a class on the grid, so "remove
+      is-expanded" is no longer the whole job. Three places collapse tiles:
+      clicking, filtering and resizing. Two of them used to do it with a
+      one-line querySelectorAll, and leaving either behind would strand a
+      tile at double width with a margin still pulling it sideways.
+
+      Declared up here rather than beside the click handler because
+      remeasure() below calls it, and a reader should not have to prove to
+      themselves that the resize cannot fire before the definition.
+    */
+    const collapseAll = () => {
+      grid.querySelectorAll<HTMLElement>('.pf-item.is-expanded').forEach((el) => {
+        el.classList.remove('is-expanded');
+        el.style.marginLeft = '';
+      });
+      grid.classList.remove('has-expanded');
+    };
+
     function remeasure() {
       if (resizePending) return;
       resizePending = true;
@@ -468,6 +490,11 @@ if (emptyFilters.length > 0) {
           setColWidth();
         }
         lastSizerW = sizer.offsetWidth;
+        // Isotope measured this tile at one column and is about to place it
+        // on that assumption, so an expanded tile has to come down first -
+        // otherwise it is re-packed at double width into a single-column
+        // slot and overlaps its neighbour permanently.
+        collapseAll();
         iso.layout();
       });
     }
@@ -527,9 +554,9 @@ if (emptyFilters.length > 0) {
         const allBtn = document.querySelector<HTMLElement>('.pf-btn[data-filter="*"]');
 
         // An expanded tile that gets filtered away would keep its expanded
-        // state (and its double width) for when it returns, which reads as a
-        // glitch. Collapse on any filter change.
-        grid.querySelectorAll('.pf-item.is-expanded').forEach((el) => el.classList.remove('is-expanded'));
+        // state (and its double width, and its shift margin) for when it
+        // returns, which reads as a glitch. Collapse on any filter change.
+        collapseAll();
         if (filterVal === '*') {
           document.querySelectorAll('.pf-btn[data-filter]').forEach((b) => b.classList.remove('is-active'));
           btn.classList.add('is-active');
@@ -620,6 +647,34 @@ if (emptyFilters.length > 0) {
       still has to do the work for phones - this is an optimisation for
       pointers, not the mechanism.
     */
+    /*
+      WHICH WAY A TILE GROWS.
+
+      A tile doubles in width, and the obvious direction is rightwards. In the
+      last column there is nothing to the right, so it grows left instead -
+      which is also the one case where "snapping left" is correct rather than
+      a bug: there is nowhere else to go.
+
+      Measured against the grid's own box rather than the viewport, because
+      the grid is not full-bleed and the right edge that matters is its own.
+      The margin does the shifting: Isotope positions these with a transform,
+      so adding another would overwrite its placement, while a margin offsets
+      the box and leaves the transform alone.
+
+      The guard matters on a phone. At four columns a tile can still be in the
+      last column, but if there is less than a column to its left, shifting
+      would push it off the screen - so it stays put and overflows instead,
+      which is visible rather than gone.
+    */
+    const growDirection = (el: HTMLElement, colW: number) => {
+      const gridBox = grid.getBoundingClientRect();
+      const box = el.getBoundingClientRect();
+      const leftInGrid = box.left - gridBox.left;
+      const overflowsRight = leftInGrid + colW * 2 > gridBox.width + 1;
+      const roomOnLeft = leftInGrid >= colW - 1;
+      return overflowsRight && roomOnLeft ? -colW : 0;
+    };
+
     let hoverTimer: ReturnType<typeof setTimeout> | undefined;
     grid.addEventListener(
       'pointerenter',
@@ -649,19 +704,38 @@ if (emptyFilters.length > 0) {
       const item = target.closest<HTMLElement>('.pf-item');
       if (!item) return;
       const wasExpanded = item.classList.contains('is-expanded');
-      grid.querySelectorAll('.pf-item.is-expanded').forEach((el) => el.classList.remove('is-expanded'));
+      collapseAll();
       if (!wasExpanded) {
+        /*
+          OPEN WHERE IT WAS CLICKED, NOT WHERE MASONRY WANTS IT.
+
+          This used to add the class and call iso.layout(), which re-packed
+          the grid - and masonry places a two-column item in the leftmost
+          column pair with the lowest bottom edge, with no reference to where
+          the item already was. Measured on the live grid: 12 of 14 tiles
+          moved more than half a column on click, so the tile you clicked
+          jumped out from under your cursor.
+
+          No option fixes that, because it is what masonry means. So the
+          layout call is gone and the tile grows where it stands, over its
+          neighbours, on a raised z-index. Nothing else on the grid moves.
+
+          That makes the click cheaper as well as steadier: the old path
+          re-measured and re-placed all eighty tiles to show one of them
+          bigger.
+
+          Anything that DOES re-pack - a filter, a resize, archive mode -
+          collapses first, because Isotope has no idea this tile is currently
+          twice its measured size.
+        */
         item.classList.add('is-expanded');
-        // Before the reflow below, so the request is in flight while the tile
-        // is still growing rather than starting after it has settled.
+        grid.classList.add('has-expanded');
+        const shift = growDirection(item, sizer.offsetWidth);
+        if (shift) item.style.marginLeft = `${shift}px`;
+        // Before the browser paints the larger box, so the request is in
+        // flight while the tile is still growing rather than after it settles.
         sharpen(item);
       }
-
-      // The button becoming visible changes the tile's height, so Isotope has
-      // to re-measure. Two frames: one for the class to apply and the browser
-      // to reflow, then layout against real heights. A single synchronous
-      // call here measures the pre-reveal height and leaves tiles overlapping.
-      requestAnimationFrame(() => requestAnimationFrame(() => iso.layout()));
     });
 
     /*

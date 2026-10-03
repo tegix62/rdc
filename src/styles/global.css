@@ -2091,6 +2091,21 @@ main {
 }
 
 /*
+  An expanded tile grows over its neighbours instead of making the grid
+  re-pack around it - see the click handler in portfolio.astro for why - and
+  a tile in the bottom row grows past the container's own height, which
+  masonry sets to fit the tiles it placed. `overflow: hidden` would slice
+  that one in half.
+
+  Only while something is open, because the clip is doing a real job the rest
+  of the time: the tiles are floated before Isotope takes over, and the
+  container has to contain them.
+*/
+.pf-grid.has-expanded {
+  overflow: visible;
+}
+
+/*
   THE PRE-JAVASCRIPT COLUMN WIDTH.
 
   The column count is decided in portfolio.astro and written as an inline
@@ -2150,6 +2165,14 @@ main {
 
 .pf-item.is-expanded {
   width: calc(var(--pf-col-w, 16.666%) * 2);
+  /*
+    Over its neighbours, not beside them. The grid no longer re-packs on
+    click, so the tile overlaps whatever it grows across and has to be the
+    one on top. Isotope places these with a transform, which makes each tile
+    its own stacking context, so a z-index here is enough - no positioning
+    change, and nothing to undo on collapse beyond the class.
+  */
+  z-index: 2;
 }
 
 /*

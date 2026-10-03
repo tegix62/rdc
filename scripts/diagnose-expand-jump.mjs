@@ -96,6 +96,22 @@ for (const r of results) {
 const jumps = results.filter((r) => Math.abs(r.dxPx) > colW * 0.5)
 console.log(`\n  ${jumps.length} of ${results.length} tiles move more than half a column.`)
 
+/*
+  THE VERDICT, not just the description.
+
+  A tile should now open where it stands. The one legitimate exception is the
+  last column: there is nothing to its right, so it grows leftwards by exactly
+  one column - which is a deliberate shift, not masonry re-packing, and the
+  numbers tell them apart. Anything else is the bug this was written for.
+*/
+const tolerance = 2
+const strays = results.filter((r) => {
+  const moved = Math.abs(r.dxPx)
+  if (moved <= tolerance) return false
+  const oneColumnLeft = r.dxPx < 0 && Math.abs(moved - colW) <= tolerance
+  return !oneColumnLeft
+})
+
 const byCol = {}
 for (const r of results) {
   byCol[r.beforeCol] ??= []
@@ -107,4 +123,15 @@ for (const [col, list] of Object.entries(byCol).sort((a, b) => Number(a[0]) - Nu
   console.log(`    column ${String(col).padStart(2)}   ${Math.round(avg)}px  (${list.length} tile(s))`)
 }
 
+console.log('\n  VERDICT')
+if (!strays.length) {
+  console.log('  Every tile opened where it was, or shifted exactly one column left at the edge.')
+} else {
+  console.log(`  ${strays.length} tile(s) moved for no good reason:`)
+  for (const r of strays) {
+    console.log(`    ${r.alt.padEnd(38)} col ${r.beforeCol} -> ${r.afterCol}, ${r.dxPx}px`)
+  }
+}
+
 await browser.close()
+process.exit(strays.length ? 1 : 0)

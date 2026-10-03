@@ -166,27 +166,57 @@ const browser = await chromium.launch()
     const tile = handle.asElement()
 
     if (tile) {
-      const baseline = (await tile.screenshot()).length
+      /*
+      BYTES PER PIXEL, NOT BYTES.
+
+      The first version compared PNG byte size against the frame before the
+      click, and on the re-packing grid it reported a 9 KB frame as a blank.
+      It is not necessarily one: the grid now re-flows on click, so the tile
+      is being moved and resized while these are captured, and a screenshot
+      taken mid-move is of a SMALLER BOX. A small picture and an empty one
+      are both small files.
+
+      Density tells them apart. A blank or flat frame costs very little per
+      pixel however large it is; a photograph costs a lot however small the
+      crop. So each frame is measured against its own area, and the verdict
+      is whether any frame's density collapsed against the baseline's.
+    */
+      const shot = async () => {
+        const box = await tile.boundingBox()
+        const bytes = (await tile.screenshot()).length
+        const px = Math.max(1, (box?.width ?? 1) * (box?.height ?? 1))
+        return {bytes, px, density: bytes / px, w: Math.round(box?.width ?? 0), h: Math.round(box?.height ?? 0)}
+      }
+
+      const baseline = await shot()
       // Click without hovering first, so this is the cold path - the one a
       // touch device and a fast click both take.
       await tile.evaluate((n) => n.click())
       const frames = []
       for (let i = 0; i < 10; i++) {
         try {
-          frames.push((await tile.screenshot()).length)
+          frames.push(await shot())
         } catch {
           break
         }
       }
-      const smallest = Math.min(...frames)
-      const ratio = baseline ? smallest / baseline : 1
+
+      const leanest = frames.reduce((a, b) => (b.density < a.density ? b : a), frames[0])
+      const ratio = baseline.density ? leanest.density / baseline.density : 1
       console.log(`\n  PIXELS DURING THE SWAP (cold click, no hover)`)
-      console.log(`    frame before the click   ${(baseline / 1024).toFixed(0)} KB of PNG`)
-      console.log(`    smallest frame during    ${(smallest / 1024).toFixed(0)} KB (${(ratio * 100).toFixed(0)}% of it)`)
+      console.log(
+        `    before the click   ${baseline.w}x${baseline.h}, ${(baseline.bytes / 1024).toFixed(0)} KB ` +
+          `(${(baseline.density * 1000).toFixed(1)} bytes per 1000px)`,
+      )
+      console.log(
+        `    leanest frame      ${leanest.w}x${leanest.h}, ${(leanest.bytes / 1024).toFixed(0)} KB ` +
+          `(${(leanest.density * 1000).toFixed(1)} bytes per 1000px)`,
+      )
+      console.log(`    density ratio      ${(ratio * 100).toFixed(0)}% of the frame before the click`)
       check(
         'the tile never went blank for the viewer',
         ratio > 0.4,
-        `a blank frame would compress to a small fraction; this stayed at ${(ratio * 100).toFixed(0)}%`,
+        `a blank frame costs almost nothing per pixel; this held ${(ratio * 100).toFixed(0)}% of its density`,
       )
     }
     await page2.close()

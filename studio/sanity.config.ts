@@ -5,6 +5,7 @@ import {visionTool} from '@sanity/vision'
 import {schemaTypes} from './schemaTypes'
 import structure, {defaultDocumentNode} from './structure'
 import {openLiveAction, passwordBadge, pageTypeBadge} from './documentActions'
+import {altTextTool} from './tools/AltTextTool'
 
 // Which site the Presentation tab loads in its preview panel.
 //
@@ -92,4 +93,12 @@ export default defineConfig({
     actions: (prev) => [...prev, openLiveAction],
     badges: (prev) => [...prev, pageTypeBadge, passwordBadge],
   },
+
+  /*
+    A tab of its own for alt text, because it is a backlog rather than an
+    edit: 145 images in use with none described, and the media library edits
+    one asset at a time. Appended to the default tools - Structure, Vision
+    and Presentation all stay where they are.
+  */
+  tools: (prev) => [...prev, altTextTool],
 })

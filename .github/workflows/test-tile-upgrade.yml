@@ -1,0 +1,49 @@
+name: Test tile upgrade
+
+# Whether click-to-sharpen is seamless: no blank frame, no aspect jump, and
+# a genuinely larger file. See scripts/test-tile-upgrade.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to test'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+      match:
+        description: 'Match a tile by part of its title'
+        default: 'Luna Tee'
+  push:
+    paths:
+      - 'scripts/test-tile-upgrade.mjs'
+      - '.github/workflows/test-tile-upgrade.yml'
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      # A push to src/ starts a preview deploy at the same moment, so without
+      # this the test measures the PREVIOUS build. Same reason as
+      # test-media-row-slots.yml.
+      - run: sleep 150
+      - run: |
+          set -o pipefail
+          node scripts/test-tile-upgrade.mjs \
+            "${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}" \
+            "${{ inputs.match || 'Luna Tee' }}" | tee /tmp/upgrade.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Tile upgrade'
+            echo ''
+            echo '```'
+            cat /tmp/upgrade.txt 2>/dev/null || echo '(the test did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

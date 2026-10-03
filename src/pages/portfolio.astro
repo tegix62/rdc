@@ -242,6 +242,17 @@ if (emptyFilters.length > 0) {
                 width={item.heroTile ? 1600 : 800}
                 height={item.heroTile ? heroHeight(1600, HERO_RATIO_PORTFOLIO) : undefined}
                 sizes={item.heroTile ? '(max-width: 48rem) 66vw, 34vw' : '(max-width: 48rem) 33vw, 17vw'}
+                {...(item.heroTile
+                  ? {}
+                  : {
+                      // Clicking a tile doubles its width, and `sizes` above
+                      // promises the single-column size - so the file chosen
+                      // for 17vw is the one that gets stretched across 34vw.
+                      // These ship as attributes and cost nothing until the
+                      // handler below assigns them. See Img.astro.
+                      upgradeWidth: 2000,
+                      upgradeSizes: '(max-width: 48rem) 66vw, 34vw',
+                    })}
               />
               {parentHref && (
                 <a class="pf-item__jump" href={parentHref}>
@@ -561,6 +572,73 @@ if (emptyFilters.length > 0) {
       }
     });
 
+    /*
+      SHARPEN A TILE THAT IS ABOUT TO BE, OR HAS JUST BEEN, ENLARGED.
+
+      A tile is served a file for 17vw and then doubled to 34vw on click, so
+      the picture is stretched about 1.3x on a 2x screen - measured on Two
+      Point Oh - Luna Tee, a 2000px upload shown as 800px across 1056 device
+      pixels. Declaring the big size for everyone would fix it and cost +9.5
+      MB across the grid's 87 images, so instead Img.astro ships a larger
+      srcset in data attributes and this assigns it for the one tile involved.
+
+      Both attributes are assigned, and `sizes` FIRST. Setting srcset alone
+      re-runs the browser's selection against the old 17vw promise, which can
+      pick the same file again - a swap that looks implemented and changes
+      nothing.
+
+      Nothing is reverted on collapse. The larger file is in the cache by
+      then, so putting the small one back would be a second decode to make the
+      tile worse.
+
+      Idempotent via the flag: hover and click both call it, and a tile that
+      has no upgrade to offer - pass-through, or an upload no bigger than the
+      base - is marked done so it is not re-checked on every pointer move.
+    */
+    const sharpen = (item: HTMLElement) => {
+      const img = item.querySelector<HTMLImageElement>('img');
+      if (!img || img.dataset.upgraded) return;
+      const next = img.dataset.upgradeSrcset;
+      if (!next) {
+        img.dataset.upgraded = 'none';
+        return;
+      }
+      img.dataset.upgraded = '1';
+      if (img.dataset.upgradeSizes) img.sizes = img.dataset.upgradeSizes;
+      img.srcset = next;
+    };
+
+    /*
+      Start on intent rather than on the click, so the larger file is usually
+      decoded before the tile opens and the swap is invisible.
+
+      A dwell timer, because a pointer crossing the grid enters dozens of
+      tiles on its way somewhere else and each one would start a download. A
+      pause is what separates "looking at this" from "passing over it".
+
+      Touch never fires pointerenter ahead of the tap, so the click path below
+      still has to do the work for phones - this is an optimisation for
+      pointers, not the mechanism.
+    */
+    let hoverTimer: ReturnType<typeof setTimeout> | undefined;
+    grid.addEventListener(
+      'pointerenter',
+      (e) => {
+        const pe = e as PointerEvent;
+        if (pe.pointerType === 'touch') return;
+        const item = (e.target as HTMLElement)?.closest<HTMLElement>('.pf-item');
+        if (!item) return;
+        clearTimeout(hoverTimer);
+        hoverTimer = setTimeout(() => sharpen(item), 150);
+      },
+      true,
+    );
+    grid.addEventListener(
+      'pointerleave',
+      () => clearTimeout(hoverTimer),
+      true,
+    );
+
     grid.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
 
@@ -572,7 +650,12 @@ if (emptyFilters.length > 0) {
       if (!item) return;
       const wasExpanded = item.classList.contains('is-expanded');
       grid.querySelectorAll('.pf-item.is-expanded').forEach((el) => el.classList.remove('is-expanded'));
-      if (!wasExpanded) item.classList.add('is-expanded');
+      if (!wasExpanded) {
+        item.classList.add('is-expanded');
+        // Before the reflow below, so the request is in flight while the tile
+        // is still growing rather than starting after it has settled.
+        sharpen(item);
+      }
 
       // The button becoming visible changes the tile's height, so Isotope has
       // to re-measure. Two frames: one for the class to apply and the browser

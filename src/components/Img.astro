@@ -49,6 +49,29 @@ interface Props {
   */
   archive?: any;
   /*
+    A SECOND, LARGER srcset that the page can switch to later.
+
+    Some images are displayed small and then made bigger by an interaction -
+    a Portfolio tile doubles in width when it is clicked. `sizes` is a promise
+    the author makes about display width, and the browser never re-reads it
+    against the element's real box, so the file chosen for the small state is
+    the file you keep in the large one. Measured on Two Point Oh - Luna Tee:
+    a 2000px upload, served at 800, shown across 1056 device pixels.
+
+    Declaring the BIG size up front would fix the sharpness and cost every
+    visitor the larger file whether or not they ever interact - measured at
+    +9.5 MB across the Portfolio's 87 images, to sharpen the one tile someone
+    might click. So the larger set ships as data attributes instead, exactly
+    like `archive` above and for the same reason: a URL in an attribute is not
+    fetched until something assigns it.
+
+    Emitted as a pair, srcset AND sizes, because assigning one without the
+    other re-runs the browser's choice against the OLD promise and can select
+    the same file again - a swap that appears to work and changes nothing.
+  */
+  upgradeWidth?: number;
+  upgradeSizes?: string;
+  /*
     Which Studio field this image came from, for build warnings only. Never
     rendered.
 
@@ -92,6 +115,8 @@ const {
   loading = 'lazy',
   fetchpriority,
   class: className,
+  upgradeWidth,
+  upgradeSizes,
 } = Astro.props;
 
 /*
@@ -306,6 +331,24 @@ if (builtSrc && cropped) builtSrc = builtSrc.height(Math.round((askWidth * heigh
 const src = original ?? builtSrc?.url() ?? '';
 const srcset = imageOk && !passThrough ? buildSrcSet(image, width, aspect) : undefined;
 
+/*
+  The larger set, built by the SAME function as the one above so the two
+  cannot drift in crop, quality or format - the one rule this file keeps
+  repeating, and the reason the upgrade is built here rather than in the page
+  that wants it.
+
+  cappedWidth inside buildSrcSet already clamps to what the upload holds, so
+  asking for 2000 on a 900px file produces no phantom candidates. And it is
+  only worth emitting when it can actually offer more than the base set:
+  a pass-through file ignores width entirely, and an upload no bigger than
+  the base width has nothing further to give. In both cases the attributes
+  are left off, so the click handler finds nothing and does nothing.
+*/
+const upgradeSrcset =
+  imageOk && !passThrough && upgradeWidth && upgradeWidth > width && (intrinsic?.width ?? 0) > width
+    ? buildSrcSet(image, upgradeWidth, aspect)
+    : undefined;
+
 // A pass-through file is delivered at its full size to every device, so an
 // oversized one is a cost the CDN can no longer absorb. Flag it at build
 // time rather than letting it quietly land on phones.
@@ -347,6 +390,8 @@ if (manualPassThrough && image?.crop) {
   data-mark={markMode}
   srcset={srcset}
   sizes={srcset ? sizes : undefined}
+  data-upgrade-srcset={upgradeSrcset}
+  data-upgrade-sizes={upgradeSrcset ? (upgradeSizes ?? sizes) : undefined}
   width={ratio.width}
   height={ratio.height}
   alt={alt}

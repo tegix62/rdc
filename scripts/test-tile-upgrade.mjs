@@ -126,12 +126,72 @@ const browser = await chromium.launch()
     `needs ${result.after.cssW * 2}px, has ${wAfter}px`,
   )
   check('sizes was updated alongside srcset', result.after.sizes !== result.before.sizes)
-  check('the picture never blanked during the swap', !result.everIncomplete)
+  /*
+    `complete` is NOT a blank.
+
+    The first version of this failed here and the failure was the check's,
+    not the code's: assigning srcset starts a load, so img.complete goes
+    false - but the HTML spec keeps the current frame painted until the
+    pending one has decoded, so nothing disappears. Reporting that as "the
+    picture blanked" would have sent me rewriting working code.
+
+    So complete is reported as information, and the verdict comes from the
+    pixels: screenshots of the tile across the swap window, compared by PNG
+    byte size against the frame before the click. A blank or near-uniform
+    frame compresses to a small fraction of a photograph's size, so a
+    collapse in that number is the gap a visitor would see. Crude, but it
+    measures the thing asked about rather than something correlated with it.
+  */
+  console.log(`  img.complete went false at some point: ${result.everIncomplete} (expected; not a blank)`)
   check(
     'no aspect change, so the tile did not jump',
     Math.abs(result.before.aspect - result.after.aspect) < 0.02,
     `${result.before.aspect.toFixed(3)} -> ${result.after.aspect.toFixed(3)}`,
   )
+  /* ---------- did a visitor actually see a gap? ---------- */
+  {
+    const page2 = await browser.newPage({viewport: {width: 1920, height: 1080}, deviceScaleFactor: 2})
+    await page2.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+    await page2.waitForSelector('.pf-grid .pf-item', {state: 'visible', timeout: 30_000}).catch(() => {})
+    await page2.waitForTimeout(3000)
+
+    const handle = await page2.evaluateHandle((wanted) => {
+      const strip = (s) => String(s ?? '').replace(/[​-‏⁠-⁤﻿]/g, '')
+      for (const el of document.querySelectorAll('.pf-grid .pf-item')) {
+        const img = el.querySelector('img')
+        if (img && strip(img.getAttribute('alt')).toLowerCase().includes(wanted)) return el
+      }
+      return null
+    }, WANTED)
+    const tile = handle.asElement()
+
+    if (tile) {
+      const baseline = (await tile.screenshot()).length
+      // Click without hovering first, so this is the cold path - the one a
+      // touch device and a fast click both take.
+      await tile.evaluate((n) => n.click())
+      const frames = []
+      for (let i = 0; i < 10; i++) {
+        try {
+          frames.push((await tile.screenshot()).length)
+        } catch {
+          break
+        }
+      }
+      const smallest = Math.min(...frames)
+      const ratio = baseline ? smallest / baseline : 1
+      console.log(`\n  PIXELS DURING THE SWAP (cold click, no hover)`)
+      console.log(`    frame before the click   ${(baseline / 1024).toFixed(0)} KB of PNG`)
+      console.log(`    smallest frame during    ${(smallest / 1024).toFixed(0)} KB (${(ratio * 100).toFixed(0)}% of it)`)
+      check(
+        'the tile never went blank for the viewer',
+        ratio > 0.4,
+        `a blank frame would compress to a small fraction; this stayed at ${(ratio * 100).toFixed(0)}%`,
+      )
+    }
+    await page2.close()
+  }
+
   await page.close()
 }
 

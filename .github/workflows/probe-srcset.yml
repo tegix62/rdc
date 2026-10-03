@@ -1,0 +1,41 @@
+name: Probe srcset
+
+# Which candidate the browser picks and what that URL really returns.
+# See the header of scripts/probe-srcset.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to probe'
+        default: 'https://rumeaudesign.co'
+      match:
+        description: 'Match a tile by part of its title'
+        default: 'Luna Tee'
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          set -o pipefail
+          node scripts/probe-srcset.mjs \
+            "${{ inputs.base_url || 'https://rumeaudesign.co' }}" \
+            "${{ inputs.match || 'Luna Tee' }}" | tee /tmp/probe.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## srcset probe'
+            echo ''
+            echo '```'
+            cat /tmp/probe.txt 2>/dev/null || echo '(the probe did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -668,8 +668,51 @@ if (emptyFilters.length > 0) {
         return;
       }
       img.dataset.upgraded = '1';
-      if (img.dataset.upgradeSizes) img.sizes = img.dataset.upgradeSizes;
-      img.srcset = next;
+
+      /*
+        DECODE FIRST, THEN SWAP.
+
+        Assigning srcset directly is enough on a grid that does not reflow,
+        and it was: the overlay version measured 356% of the original pixel
+        density through the swap, meaning nothing ever disappeared. Putting
+        the re-pack back changed that - measured on production, one frame
+        came back 544x584 at 29 bytes per 1000 pixels against a baseline of
+        2116. A full-size box with nothing in it.
+
+        Reflowing and decoding at the same time is what does it: the element
+        is resized and repositioned while its new file is still arriving, and
+        for a frame there is nothing to paint at the new size.
+
+        So the file is fetched into a detached image first and only assigned
+        once it has decoded, by which point it is in cache and the swap is
+        immediate. Until then the tile keeps showing what it already had,
+        slightly soft at the larger size, which is the correct thing to show.
+
+        This is also why hovering never flickered - it was already doing this
+        by accident, just with the decode happening 150ms before the click.
+
+        `sizes` is assigned to the detached image too. It has no layout, so a
+        viewport-relative value is what makes it choose the same candidate the
+        real one will; without it the preload would warm the wrong file and
+        the swap would still have to fetch.
+
+        decode() is not everywhere, and a failed decode must not strand the
+        tile on its small file, so both paths end in the same assignment.
+      */
+      const apply = () => {
+        if (img.dataset.upgradeSizes) img.sizes = img.dataset.upgradeSizes;
+        img.srcset = next;
+      };
+
+      const pre = new Image();
+      if (img.dataset.upgradeSizes) pre.sizes = img.dataset.upgradeSizes;
+      pre.srcset = next;
+      if (typeof pre.decode === 'function') {
+        pre.decode().then(apply, apply);
+      } else {
+        pre.addEventListener('load', apply, {once: true});
+        pre.addEventListener('error', apply, {once: true});
+      }
     };
 
     /*

@@ -1,0 +1,41 @@
+name: Probe YouTube posters
+
+# Which thumbnail sizes actually exist for each YouTube video on the site.
+# See scripts/probe-youtube-posters.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to read'
+        default: 'https://rumeaudesign.co'
+      paths:
+        description: 'Comma-separated pages to scan'
+        default: '/video,/'
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          set -o pipefail
+          node scripts/probe-youtube-posters.mjs \
+            "${{ inputs.base_url || 'https://rumeaudesign.co' }}" \
+            "${{ inputs.paths || '/video,/' }}" | tee /tmp/yt.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## YouTube poster sizes'
+            echo ''
+            echo '```'
+            cat /tmp/yt.txt 2>/dev/null || echo '(the probe did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -24,6 +24,7 @@
 */
 import {embedUrl} from '../lib/video';
 import {imageUrl} from '../lib/image';
+import {youTubePoster} from '../lib/youtubePoster';
 import Img from './Img.astro';
 
 interface Props {
@@ -128,13 +129,22 @@ const youTubeId = embed?.includes('youtube.com/embed/')
   ? embed.split('/embed/')[1]?.split(/[?&]/)[0]
   : null;
 /*
-  sddefault (640x480) rather than hqdefault (480x360): a facade poster can be
-  standing in for a full-bleed hero, and 480px wide is visibly soft at that
-  size. Deliberately not maxresdefault - that only exists for videos uploaded
-  at 1080p or above and 404s for the rest, which would leave a broken image
-  where the poster should be.
+  The largest thumbnail YouTube actually has, asked for rather than assumed.
+
+  This used to be sddefault (640x480) unconditionally, on the grounds that
+  maxresdefault 404s for videos not uploaded at 1080p and a broken image is
+  worse than a soft one. True, and about the wrong thing: Chris sets CUSTOM
+  thumbnails, which YouTube stores at 1280x720 whatever the video's own
+  resolution is. Measured on /video, the poster was painting 640px across
+  1104 CSS pixels - a 3.5x stretch at 2x - with a 1280px version sitting
+  there unused.
+
+  So lib/youtubePoster.ts probes it, falls back to sddefault when it is
+  genuinely missing, and never throws: an unreachable i.ytimg.com returns
+  the old URL and the page renders as before. See its header for why the
+  check is on size and not just on status.
 */
-const fallbackPoster = youTubeId ? `https://i.ytimg.com/vi/${youTubeId}/sddefault.jpg` : null;
+const fallbackPoster = youTubeId ? await youTubePoster(youTubeId) : null;
 const posterUrl = imageUrl(poster)?.width(width).url() ?? null;
 /*
   posterUrl, not the raw poster object. An image field can save its

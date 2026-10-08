@@ -1,0 +1,263 @@
+---
+/*
+  A ROUGH CUT, TO TEST A RHYTHM.
+
+  Chris is considering building a scrolling piece out of one collage -
+  cutting regions out of the original in Photoshop and letting them carry
+  sections of a page. The expensive parts of that are rescanning, cutting,
+  and inventing a section type. The cheap part is finding out whether moving
+  from the whole piece to a fragment and back actually reads, which is the
+  only thing that decides whether the rest is worth doing.
+
+  So this is deliberately provisional:
+
+    - it crops the 2000px web copy rather than the 6000px+ scan, because the
+      question is about sequence, not sharpness. The fragments WILL be soft.
+      Chris knows; that is the trade being made on purpose.
+    - the rectangles are eyeballed from the composition, not authored in
+      Studio. A real version would use the crop tool per section, or real
+      cut-outs from the original document.
+    - it is one hard-coded page rather than a section type, so nothing in
+      the Page Builder or the dataset changes and deleting this file undoes
+      all of it.
+    - noindex, because a soft rough cut should not be the thing Google finds.
+
+  WHY THESE FOUR REGIONS
+
+  The piece is unusually text-dense - "Chasm of Aesthetic Reliability",
+  "between liminal transit", the book paragraph about a healthy mind in an
+  unsound body - and none of that is legible at tile size or even full-bleed
+  at 2000px. So roughly a third of the work is invisible on the site today.
+  That makes the cut lines fall on TEXT CLUSTERS rather than on visual
+  quadrants: each region is one thought you can actually read.
+
+  The captions are the artwork's own words. Nothing here is written about
+  the piece, which would be a different and much worse page.
+*/
+import Layout from '../../layouts/Layout.astro';
+import {sanityClient} from '../../lib/sanity';
+import {imageUrl, tileImage} from '../../lib/image';
+
+const piece = await sanityClient.fetch(
+  `*[_type == "caseStudy" && slug.current == "collage-red-kettle-2025"][0]{
+     title, thumbnail, mainImage
+   }`,
+);
+
+const art = tileImage(piece);
+
+/*
+  Source rectangles in the 2000x2004 original, as [left, top, width, height].
+
+  Eyeballed, and they will be a few percent out. That is tolerable for a
+  question about rhythm and intolerable for anything that ships, which is
+  part of why this page is not the Page Builder.
+*/
+const REGIONS = [
+  {
+    rect: [170, 50, 760, 1230] as const,
+    line: 'How did it come to this?',
+    note: 'Buddha Sought The Bluebird',
+  },
+  {
+    rect: [830, 60, 1150, 650] as const,
+    line: 'but then it returns…',
+    note: 'between liminal transit',
+  },
+  {
+    rect: [540, 620, 1440, 560] as const,
+    line: 'neither above nor below',
+    note: 'Red Kettle',
+  },
+  {
+    rect: [100, 1180, 1800, 810] as const,
+    line: 'joy as an act of resistance',
+    note: 'storm on the rain',
+  },
+];
+
+const whole = art ? imageUrl(art)?.width(1800).url() : null;
+const crops = art
+  ? REGIONS.map((r) => ({
+      ...r,
+      src: imageUrl(art)
+        ?.rect(r.rect[0], r.rect[1], r.rect[2], r.rect[3])
+        .width(1800)
+        .url(),
+    }))
+  : [];
+---
+
+<Layout
+  title="Red Kettle"
+  description="A collage read in sequence - the whole piece, then the fragments it is made of."
+  noindex
+>
+  {!art ? (
+    <p>
+      Could not find <code>collage-red-kettle-2025</code>, or it has no image attached.
+    </p>
+  ) : (
+    <article class="plate">
+      <header class="plate__open">
+        <p class="plate__eyebrow">Collage</p>
+        <h1 class="plate__title">Red Kettle</h1>
+        <p class="plate__sub">Norfolk island pine &middot; 2026</p>
+      </header>
+
+      <figure class="plate__whole">
+        <img src={whole} alt="Red Kettle, a square mixed-media collage on kraft cardboard" />
+      </figure>
+
+      {crops.map((c, i) => (
+        /*
+          The flip is a class, not :nth-child. The regions are not the only
+          children of .plate - the header, the opening plate and the closing
+          one are in there too - so nth-child would count those and alternate
+          off the wrong parity. It happens to land correctly today, which is
+          the worst kind of correct.
+        */
+        <section class:list={['plate__region', i % 2 === 1 && 'plate__region--flip']}>
+          <figure class="plate__fig">
+            <img src={c.src} alt={`Detail from Red Kettle: ${c.note}`} loading="lazy" />
+          </figure>
+          <div class="plate__words">
+            <p class="plate__line">{c.line}</p>
+            <p class="plate__note">{c.note}</p>
+          </div>
+        </section>
+      ))}
+
+      <figure class="plate__whole plate__whole--close">
+        <img src={whole} alt="Red Kettle, the complete collage" loading="lazy" />
+      </figure>
+
+      <footer class="plate__close">
+        <p class="plate__line plate__line--big">who is waiting on the other line?</p>
+      </footer>
+    </article>
+  )}
+</Layout>
+
+<style>
+  /*
+    The kraft ground, taken from the cardboard the pieces are made on.
+
+    This is the cheapest "design the site around the work" move available:
+    the site's field becomes the collage's field, so a fragment sits on the
+    page as though it were pasted there rather than floating in a gallery.
+    Scoped to this page while it is a prototype - if it earns its place it
+    belongs in global.css as a token.
+  */
+  .plate {
+    --kraft: #b4946f;
+    --kraft-deep: #9c7c57;
+    --ink: #1a1613;
+    --flag: #e24a24;
+
+    background: var(--kraft);
+    color: var(--ink);
+    margin: 0 calc(50% - 50vw);
+    padding: clamp(2rem, 6vw, 5rem) clamp(1rem, 4vw, 3rem);
+  }
+
+  .plate__open,
+  .plate__close {
+    max-width: 48rem;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .plate__eyebrow {
+    margin: 0 0 0.5rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .plate__title {
+    margin: 0;
+    font-size: clamp(2.5rem, 9vw, 5.5rem);
+    line-height: 0.95;
+    color: var(--flag);
+    text-wrap: balance;
+  }
+
+  .plate__sub {
+    margin: 0.75rem 0 0;
+    font-size: 0.875rem;
+    letter-spacing: 0.08em;
+  }
+
+  .plate__whole {
+    max-width: min(46rem, 100%);
+    margin: clamp(2rem, 7vw, 5rem) auto;
+  }
+
+  .plate__whole img,
+  .plate__fig img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /*
+    One region per screenful, alternating which side the words sit on, so
+    scrolling has a pulse rather than a march. The fragment is given the
+    larger share because it is the thing being read.
+  */
+  .plate__region {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+    gap: clamp(1rem, 4vw, 3rem);
+    align-items: center;
+    max-width: 72rem;
+    margin: 0 auto clamp(3rem, 10vw, 7rem);
+  }
+
+  .plate__region--flip {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
+  }
+
+  .plate__region--flip .plate__fig {
+    order: 2;
+  }
+
+  .plate__line {
+    margin: 0;
+    font-size: clamp(1.125rem, 2.2vw, 1.75rem);
+    line-height: 1.25;
+    text-wrap: balance;
+  }
+
+  .plate__line--big {
+    font-size: clamp(1.5rem, 4vw, 3rem);
+    color: var(--flag);
+  }
+
+  .plate__note {
+    margin: 0.75rem 0 0;
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    /* Dark enough to read as a margin annotation rather than as a second
+       voice competing with the artwork's own line. A colour, not a filter -
+       filter would darken the whole element and is a roundabout way of
+       saying something CSS can say directly. */
+    color: #5f4a33;
+  }
+
+  /* One column on a phone, words under the fragment, order never flipped -
+     an alternating layout at this width just reads as inconsistent. */
+  @media (max-width: 48rem) {
+    .plate__region,
+    .plate__region--flip {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .plate__region--flip .plate__fig {
+      order: 0;
+    }
+  }
+</style>

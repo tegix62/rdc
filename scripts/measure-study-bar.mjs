@@ -98,6 +98,29 @@ for (const d of data) {
   )
 }
 
+/*
+  The verdict, so this stops being a report and starts being a check.
+
+  Below 40rem the bar is a corner mark: no label, absolutely positioned, so
+  it adds no height. Both numbers are asserted because fixing one and not the
+  other was the obvious half-job here - hiding the text would have left a
+  full-width navy strip under five tiles, and slimming the strip would have
+  left the broken words in it.
+*/
+const labelled = data.filter((d) => d.labelW > 0)
+const tall = data.filter((d) => d.imgH > 0 && d.barH / d.imgH > 0.2)
+let failed = false
+if (WIDTH <= 640) {
+  if (labelled.length) {
+    console.log(`\n  ${labelled.length} tile(s) still render the title at this width.`)
+    failed = true
+  }
+  if (tall.length) {
+    console.log(`\n  ${tall.length} tile(s) have a mark taller than a fifth of the image.`)
+    failed = true
+  }
+}
+
 const widest = Math.max(...data.map((d) => d.oneLine))
 const room = data[0].labelW
 const tallest = Math.max(...data.map((d) => d.barH))
@@ -112,3 +135,8 @@ console.log(
       : `  Fits on one line already; the wrap rule is breaking it for no reason.`,
 )
 console.log(`  the bar is ${tallest}px against a ${img}px image - ${Math.round((tallest / img) * 100)}% of the picture.`)
+
+if (failed) {
+  console.log('\nThe phone treatment is not applied as intended.')
+  process.exit(1)
+}

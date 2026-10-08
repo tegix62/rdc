@@ -127,6 +127,12 @@ jobs:
       # check that looks at what is IN the box.
       - run: node scripts/test-tile-image.mjs
 
+      # The order the grid is dealt in. Its only symptom when wrong is a grid
+      # that feels clumped - four tiles from one project in a row, reading as
+      # a dumped folder rather than a body of work - and nobody files a bug
+      # for a feeling.
+      - run: node scripts/test-grid-order.mjs
+
       # The budget slider's clamp/snap/format arithmetic - the one function
       # standing between a dragged handle and a number written to the database,
       # and it runs on both the client and functions/api/contact.ts. Wrong here

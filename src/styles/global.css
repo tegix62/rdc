@@ -2386,7 +2386,28 @@ main {
   because that one is separation from the image rather than inset from the
   frame - without it the navy touches the artwork.
 */
-.pf-item.is-expanded .pf-item__jump {
+/*
+  Shown on expand, and permanently on a case study.
+
+  WHY A CASE STUDY WEARS IT AT REST
+
+  The five case studies are the curated work and about 6% of eighty-two
+  tiles, and at rest they looked identical to every offshoot - the only sign
+  one was a project at all appeared AFTER a click. So a visitor scanning the
+  grid had no way to know the written-up work was in there, and reaching it
+  took two clicks: expand, then this bar.
+
+  Wearing the bar fixes all three at once with furniture that already
+  existed. It marks the tile while scanning, says what it is, and makes it
+  one click. Seventy-seven tiles are untouched, so the grid still reads as
+  everything-at-once rather than as a page with a featured strip bolted on.
+
+  Deliberately the same rule rather than a second style: a case study that
+  is ALSO expanded must not get two different-looking bars, and the way to
+  guarantee that is for there to be one declaration.
+*/
+.pf-item.is-expanded .pf-item__jump,
+.pf-item--study .pf-item__jump {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2405,7 +2426,9 @@ main {
 }
 
 .pf-item.is-expanded .pf-item__jump:hover,
-.pf-item.is-expanded .pf-item__jump:focus-visible {
+.pf-item.is-expanded .pf-item__jump:focus-visible,
+.pf-item--study .pf-item__jump:hover,
+.pf-item--study .pf-item__jump:focus-visible {
   background: var(--color-navy-dark);
 }
 

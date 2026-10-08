@@ -31,11 +31,20 @@ const tiles = await page.evaluate(() => {
   const strip = (s) => String(s ?? '').replace(/[​-‏⁠-⁤﻿]/g, '').trim()
   // DOM order, which is the order the build dealt - not visual order, which
   // masonry decides from heights.
-  return [...document.querySelectorAll('.pf-grid .pf-item')].map((el) => ({
-    project: strip(el.querySelector('.pf-item__jump-label')?.textContent) || null,
-    alt: strip(el.querySelector('img')?.getAttribute('alt')) || '(no alt)',
-    isCaseStudy: !!el.querySelector('.pf-item__jump') && false,
-  }))
+  return [...document.querySelectorAll('.pf-grid .pf-item')].map((el) => {
+    const jump = el.querySelector('.pf-item__jump')
+    return {
+      project: strip(el.querySelector('.pf-item__jump-label')?.textContent) || null,
+      alt: strip(el.querySelector('img')?.getAttribute('alt')) || '(no alt)',
+      study: el.classList.contains('pf-item--study'),
+      hasJump: !!jump,
+      // Computed, not inferred from the class - the point is whether a
+      // visitor can SEE it without clicking, which is a question about the
+      // cascade rather than about the markup.
+      jumpVisible: !!jump && getComputedStyle(jump).display !== 'none',
+      href: jump?.getAttribute('href') ?? null,
+    }
+  })
 })
 
 await browser.close()
@@ -82,8 +91,47 @@ if (bySize.length) {
 console.log(`\n  adjacent same-project pairs: ${clashes.length}`)
 for (const c of clashes) console.log(`    position ${c.at}: ${c.project}`)
 
+/*
+  THE CASE STUDY BAR.
+
+  A case study wears its "View project" bar at rest so the curated work is
+  findable while scanning. Two ways that silently fails and neither shows up
+  in a screenshot of a working page:
+
+    - a case study with no slug gets the class and renders no bar at all,
+      so the tile looks marked in the markup and plain on screen;
+    - an offshoot picking up the class would put a navy bar under
+      seventy-seven tiles, which is the clutter this was supposed to avoid.
+
+  Visibility is read from the computed style rather than from the class,
+  because the question is whether a visitor can see it without clicking.
+*/
+const studies = tiles.filter((t) => t.study)
+const bare = studies.filter((t) => !t.jumpVisible)
+const leaked = tiles.filter((t) => !t.study && t.jumpVisible)
+
+console.log(`\n  case study tiles: ${studies.length}`)
+for (const s of studies) {
+  console.log(`    ${s.jumpVisible ? 'bar shown' : 'NO BAR   '}  ${s.href ?? '(no link)'}  ${s.alt.slice(0, 40)}`)
+}
+
+let failed = false
 if (clashes.length) {
   console.log('\nThe served grid puts tiles from one project side by side.')
-  process.exit(1)
+  failed = true
 }
-console.log('\nNo tile on the served page sits beside one from the same project.')
+if (!studies.length) {
+  console.log('\nNo tile carries pf-item--study, so no case study is marked at rest.')
+  failed = true
+}
+if (bare.length) {
+  console.log(`\n${bare.length} case study tile(s) are marked but show no bar - check they have a slug.`)
+  failed = true
+}
+if (leaked.length) {
+  console.log(`\n${leaked.length} non-case-study tile(s) show the bar at rest; it should be case studies only.`)
+  failed = true
+}
+if (failed) process.exit(1)
+
+console.log('\nNo tile sits beside one from the same project, and every case study wears its bar.')

@@ -8,7 +8,7 @@ import { getPage, getAllGridItems } from '../lib/queries';
 // Shared with the homepage's miniature grid, so the two cannot disagree about
 // what counts as a logomark or how wide a hero tile is. See lib/tiles.ts.
 import { cleanKey, treatmentOf, explicitTreatment, tileHref, heroHeight, HERO_RATIO_PORTFOLIO } from '../lib/tiles';
-import { orderTiles } from '../lib/gridOrder';
+import { orderTiles, isCaseStudy } from '../lib/gridOrder';
 import { tileImage } from '../lib/image';
 
 const page = await getPage('portfolio');
@@ -211,6 +211,10 @@ if (emptyFilters.length > 0) {
               // Separate from --mark because an inferred mark must not gain
               // it: see explicitTreatment() in lib/tiles.ts.
               explicitTreatment(item) === 'mark' && 'pf-item--air',
+              // Wears its "View project" bar at rest rather than on expand,
+              // so the curated work is findable while scanning and is one
+              // click away instead of two. See .pf-item--study in global.css.
+              isCaseStudy(item) && 'pf-item--study',
               item.heroTile && 'pf-item--hero',
             ]}
             data-category={cat}

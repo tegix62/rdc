@@ -2148,6 +2148,41 @@ main {
   cursor: pointer;
 }
 
+/*
+  THE CONSTELLATION: everything from one project lit, the rest dropped back.
+
+  While a tile is open, its project's other pieces keep full strength and
+  the rest of the grid falls to a fifth. The page reorganises into "this
+  project" against "everything else" for as long as it is open, which turns
+  a wall of eighty-two tiles into a map of what belongs to what - and leaves
+  the case study's navy bar as the only saturated thing on screen.
+
+  Opacity alone, deliberately. Archive mode's threshold would be more on
+  brand, but it swaps image sources through InkMode and is far too heavy to
+  fire on every tap. This is one property, GPU-composited, and cannot
+  half-apply.
+
+  Applied to .pf-item rather than the image, so a case study's bar dims with
+  its tile - a bright blue bar on a faded tile would advertise the one thing
+  the dimming is saying to ignore.
+
+  The transition lives on the base rule rather than inside .has-focus, or
+  tiles would snap back instantly on collapse and only fade on the way in.
+*/
+.pf-grid .pf-item {
+  transition: opacity 160ms ease;
+}
+
+.pf-grid.has-focus .pf-item:not(.is-sibling) {
+  opacity: 0.2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-grid .pf-item {
+    transition: none;
+  }
+}
+
 .pf-item.is-expanded {
   width: calc(var(--pf-col-w, 16.666%) * 2);
 }

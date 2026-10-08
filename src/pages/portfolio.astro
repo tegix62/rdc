@@ -605,6 +605,10 @@ if (emptyFilters.length > 0) {
           el.classList.remove('is-expanded');
           delete (el as any).__pfCol;
         });
+        // And the lit set, which would otherwise survive into a filtered view
+        // where most of its members are hidden - dimming a grid around tiles
+        // that are no longer on it.
+        clearFamily();
         if (filterVal === '*') {
           document.querySelectorAll('.pf-btn[data-filter]').forEach((b) => b.classList.remove('is-active'));
           btn.classList.add('is-active');
@@ -783,6 +787,63 @@ if (emptyFilters.length > 0) {
       true,
     );
 
+    /*
+      THE CONSTELLATION.
+
+      Expanding a tile also lights up every other piece from the same project
+      and drops the rest back, so for as long as the tile is open the grid
+      reads as "this project" against "everything else". One tap tells you
+      three things without any text: these pieces belong together, this is how
+      much work that brand represents, and the only blue object left on a
+      dimmed page is the way to read about it.
+
+      The grouping key is already in the markup. Every tile that belongs to a
+      project carries that project's URL in its jump link - hidden until
+      expanded, but present - and a case study carries its own. So siblings
+      are "same href", with no data change and no second source of truth
+      about what belongs to what.
+
+      Opacity, not the ink treatment. Archive mode would be more on-brand but
+      it swaps image sources through InkMode, which is far too heavy for
+      something that fires on every tap and can visibly half-apply. Opacity
+      is instant and atomic.
+
+      Nothing here relayouts. It is one class on the grid and one on each
+      sibling, so Isotope never runs and the placement work is untouched.
+    */
+    const FAMILY_MIN = 4;
+
+    const projectOf = (el: Element) =>
+      el.querySelector('.pf-item__jump')?.getAttribute('href') ?? null;
+
+    const clearFamily = () => {
+      grid.classList.remove('has-focus');
+      grid.querySelectorAll('.pf-item.is-sibling').forEach((el) => el.classList.remove('is-sibling'));
+    };
+
+    const markFamily = (item: HTMLElement) => {
+      const href = projectOf(item);
+      // A standalone piece has no project, so there is no constellation to
+      // show. Dimming the page around a lone tile would read as a fault.
+      if (!href) return;
+
+      const family = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item')).filter(
+        (el) => projectOf(el) === href,
+      );
+
+      /*
+        Below the threshold the effect is worse than nothing: Chateau Seven is
+        one piece plus its case study, and dimming eighty tiles to spotlight
+        two looks like a bug rather than a reveal. Four is the smallest group
+        where the lit tiles read as a set - it takes in DumpStat's nineteen,
+        Adelante's ten and Two Point Oh's seven, and leaves the pairs alone.
+      */
+      if (family.length < FAMILY_MIN) return;
+
+      for (const el of family) el.classList.add('is-sibling');
+      grid.classList.add('has-focus');
+    };
+
     grid.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
 
@@ -799,6 +860,10 @@ if (emptyFilters.length > 0) {
         // being pinned to a column it is no longer expanded in.
         delete (el as any).__pfCol;
       });
+      // Always, including when collapsing and when moving to another tile -
+      // the lit set belongs to whichever tile is open, and leaving the old
+      // one lit would say two projects are one.
+      clearFamily();
       if (!wasExpanded) {
         /*
           Record which column the tile is in BEFORE the class is added, since
@@ -813,6 +878,7 @@ if (emptyFilters.length > 0) {
           (item as any).__pfCol = Math.max(0, Math.round(left / colW));
         }
         item.classList.add('is-expanded');
+        markFamily(item);
         // Before the reflow below, so the request is in flight while the tile
         // is still growing rather than starting after it has settled.
         sharpen(item);

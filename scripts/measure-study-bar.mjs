@@ -73,6 +73,8 @@ const data = await page.evaluate(() => {
       barH: Math.round(jr.height),
       labelW: Math.round(lr.width),
       oneLine: Math.round(oneLine),
+      barPos: getComputedStyle(jump).position,
+      barW2: Math.round(jr.width),
       clamped: label.scrollHeight > label.clientHeight + 1,
       fontSize: cs.fontSize,
     })
@@ -89,10 +91,10 @@ if (!data.length) {
 }
 
 console.log(`  tile ${data[0].tileW}px wide, label font ${data[0].fontSize}\n`)
-console.log('  bar    image   label box   needs 1 line   clipped   title')
+console.log('  mark      image   label box   needs 1 line   clipped   title')
 for (const d of data) {
   console.log(
-    `  ${String(d.barH + 'px').padStart(5)}  ${String(d.imgH + 'px').padStart(5)}  ` +
+    `  ${String(d.barW2 + 'x' + d.barH).padStart(8)}  ${String(d.imgH + 'px').padStart(5)}  ` +
       `${String(d.labelW + 'px').padStart(9)}  ${String(d.oneLine + 'px').padStart(12)}  ` +
       `${(d.clamped ? 'yes' : 'no').padStart(7)}   ${d.text}`,
   )
@@ -108,15 +110,39 @@ for (const d of data) {
   left the broken words in it.
 */
 const labelled = data.filter((d) => d.labelW > 0)
-const tall = data.filter((d) => d.imgH > 0 && d.barH / d.imgH > 0.2)
+/*
+  Out of flow is the assertion, not a height ratio.
+
+  The first version of this compared the mark's height to the image's and
+  failed at 24% - which measured the wrong thing twice over. The mark is a
+  fixed-size chip, so that ratio says more about how short the tile is than
+  about the mark: on Two Point Oh's 55px image the same 24px chip scores 44%
+  and on a tall one it scores 15%. And a chip laid OVER the picture adds no
+  layout height at all, which is the property that actually mattered.
+
+  So: absolutely positioned, and a chip rather than a strip - both
+  dimensions small and similar. Plus a floor, because a 24px target is mean
+  for a thumb.
+*/
+const inFlow = data.filter((d) => d.barPos !== 'absolute')
+const strips = data.filter((d) => d.barW2 > d.tileW * 0.6)
+const tiny = data.filter((d) => d.barH < 30 || d.barW2 < 26)
 let failed = false
 if (WIDTH <= 640) {
   if (labelled.length) {
     console.log(`\n  ${labelled.length} tile(s) still render the title at this width.`)
     failed = true
   }
-  if (tall.length) {
-    console.log(`\n  ${tall.length} tile(s) have a mark taller than a fifth of the image.`)
+  if (inFlow.length) {
+    console.log(`\n  ${inFlow.length} mark(s) are in flow, so they add height to the tile.`)
+    failed = true
+  }
+  if (strips.length) {
+    console.log(`\n  ${strips.length} mark(s) span most of the tile - that is a strip, not a chip.`)
+    failed = true
+  }
+  if (tiny.length) {
+    console.log(`\n  ${tiny.length} mark(s) are too small to tap comfortably.`)
     failed = true
   }
 }

@@ -2492,7 +2492,14 @@ main {
     bottom: 0;
     width: auto;
     margin: 0;
-    padding: 0.3125rem 0.4375rem;
+    /*
+      Sized as a tap target, not as text. At the bar's old padding the chip
+      came out 24px square, which is small for a thumb - Apple asks for 44
+      and this is a secondary affordance, since tapping the picture still
+      expands the tile, but 24 is mean. This brings it to roughly 34px while
+      keeping it a chip rather than a strip.
+    */
+    padding: 0.625rem;
   }
 
   .pf-item--study:not(.is-expanded) .pf-item__jump-label {

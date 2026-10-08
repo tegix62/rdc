@@ -1,0 +1,42 @@
+name: Measure study bar
+
+# How the case-study bar behaves at phone width - whether the title could fit
+# if words were allowed to stay whole, or whether the tile is simply too
+# narrow for text. See scripts/measure-study-bar.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to measure'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+      width:
+        description: 'Viewport width'
+        default: '390'
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          set -o pipefail
+          node scripts/measure-study-bar.mjs \
+            "${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}" \
+            "${{ inputs.width || '390' }}" | tee /tmp/bar.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Case study bar at phone width'
+            echo ''
+            echo '```'
+            cat /tmp/bar.txt 2>/dev/null || echo '(the measurement did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,46 @@
+name: Check grid spacing
+
+# Whether the SERVED Portfolio grid alternates projects, read back out of the
+# HTML in DOM order. See scripts/check-grid-spacing.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to check'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+  push:
+    paths:
+      - 'src/lib/gridOrder.ts'
+      - 'src/pages/portfolio.astro'
+      - 'scripts/check-grid-spacing.mjs'
+      - '.github/workflows/check-grid-spacing.yml'
+
+jobs:
+  spacing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      # A push to those paths starts a preview deploy at the same moment, so
+      # without this the check measures the PREVIOUS build. Same reason as
+      # test-media-row-slots.yml.
+      - run: sleep 150
+      - run: |
+          set -o pipefail
+          node scripts/check-grid-spacing.mjs "${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}" | tee /tmp/spacing.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Grid spacing'
+            echo ''
+            echo '```'
+            cat /tmp/spacing.txt 2>/dev/null || echo '(the check did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

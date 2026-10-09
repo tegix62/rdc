@@ -115,4 +115,75 @@ console.log(`  filter works:     ${probe.filterWorks} (${probe.filterShown} of $
 console.log(`\n  page errors after interaction: ${errors.length}`)
 for (const e of errors) console.log(`    ${e}`)
 
+/*
+  THE HYPOTHESIS: A DRAGGY TAP ON A TOUCH DEVICE.
+
+  Everything above passes on a desktop viewport, so the fault is in a
+  configuration not yet tested. The page deck's drag listeners transform
+  <main> while a horizontal gesture is in progress - and the portfolio
+  toolbar lives INSIDE <main>. A real thumb tap is never perfectly still,
+  so a tap that drifts past the 12px axis-lock threshold would move the
+  button out from under the finger mid-tap, and the browser does not fire
+  click when the element leaves the touch point.
+
+  That would look exactly like what Chris described: the button takes its
+  pressed styling and then nothing happens. It would also affect every
+  button and link on every page, not just these two.
+
+  Measured on a touch viewport, with a tap that drifts 20px - a slightly
+  unsteady thumb, not a swipe.
+*/
+const touch = await browser.newPage({viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true})
+const touchErrors = []
+touch.on('pageerror', (e) => touchErrors.push(`pageerror: ${e.message}`))
+await touch.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+await touch.waitForTimeout(3000)
+
+const draggyTap = await touch.evaluate(async (drift) => {
+  const btn = document.querySelector('#pf-shuffle')
+  if (!btn) return {error: 'no shuffle button'}
+  const r = btn.getBoundingClientRect()
+  const x0 = Math.round(r.left + r.width / 2)
+  const y0 = Math.round(r.top + r.height / 2)
+
+  let clicked = false
+  btn.addEventListener('click', () => (clicked = true), {once: true})
+
+  const mk = (x, y) => new Touch({identifier: 1, target: btn, clientX: x, clientY: y, pageX: x, pageY: y})
+  const fire = (type, x, y) => {
+    const t = mk(x, y)
+    btn.dispatchEvent(
+      new TouchEvent(type, {
+        touches: type === 'touchend' ? [] : [t],
+        targetTouches: type === 'touchend' ? [] : [t],
+        changedTouches: [t],
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+  }
+
+  fire('touchstart', x0, y0)
+  for (let i = 1; i <= 3; i++) {
+    await new Promise((res) => setTimeout(res, 16))
+    fire('touchmove', x0 - (drift * i) / 3, y0 + 2)
+  }
+  const mainShift = (() => {
+    const m = new DOMMatrixReadOnly(getComputedStyle(document.querySelector('main')).transform)
+    return Math.round(m.m41)
+  })()
+  fire('touchend', x0 - drift, y0 + 2)
+
+  await new Promise((res) => setTimeout(res, 500))
+  return {mainShift, clicked, barInsideMain: !!document.querySelector('main #pf-shuffle')}
+}, 20)
+
+console.log(`\n  --- touch viewport, a tap that drifts 20px ---`)
+console.log(`  the toolbar is inside <main>:        ${draggyTap.barInsideMain}`)
+console.log(`  <main> shifted mid-tap by:           ${draggyTap.mainShift}px`)
+console.log(`  (a non-zero shift means a tap moves the page under the finger)`)
+console.log(`  touch page errors: ${touchErrors.length}`)
+for (const e of touchErrors) console.log(`    ${e}`)
+
+await touch.close()
 await browser.close()

@@ -233,13 +233,52 @@ console.log('')
     return false
   })
 
-  if (!found) {
-    console.log('  (no sideways scroller found on either page - this refusal went untested)')
+  /*
+    No deck page carries a media row yet - /video has no content in it and
+    the real ones live on case study pages, which are not in the deck. That
+    makes this the one refusal with nothing natural to test against, and
+    "untested" is not good enough for the guard most likely to be hit: the
+    moment Chris puts a media row section on /video, every sideways flick
+    there is a candidate page change.
+
+    So a strip is built in the page instead. It is a faithful exercise of
+    what the guard actually does - walk up from the touch target looking for
+    an ancestor with overflow-x and more content than room - and it is
+    labelled as synthetic rather than passed off as the real thing.
+  */
+  const synthetic = !found
+  if (synthetic) {
+    await page.evaluate(() => {
+      const strip = document.createElement('div')
+      strip.setAttribute('data-probe-strip', '')
+      strip.style.cssText = 'overflow-x:auto;display:flex;width:300px;margin:2rem auto;'
+      for (let i = 0; i < 6; i++) {
+        const cell = document.createElement('div')
+        cell.style.cssText = 'flex:0 0 200px;height:160px;background:#ccc;'
+        strip.appendChild(cell)
+      }
+      document.querySelector('main')?.prepend(strip)
+    })
+    await page.waitForTimeout(200)
+  }
+
+  const usable = await page.evaluate(() => {
+    const el = document.querySelector('[data-probe-strip]')
+    return !!el && el.scrollWidth > el.clientWidth + 8
+  })
+
+  if (!usable) {
+    console.log('  (could not get a sideways scroller to swipe inside - this refusal went untested)')
+    failures += 1
   } else {
     const before = page.url()
     await page.evaluate(() => window.__swipe('[data-probe-strip]', -170, 0))
     const now = await landed(page, before, 1500)
-    check('a swipe starting inside a sideways strip scrolls it instead of navigating', now === null, now ? `it navigated to ${now}` : 'stayed put')
+    check(
+      `a swipe starting inside a sideways strip scrolls it instead of navigating${synthetic ? ' (synthetic strip)' : ''}`,
+      now === null,
+      now ? `it navigated to ${now}` : 'stayed put',
+    )
   }
   await page.close()
 }

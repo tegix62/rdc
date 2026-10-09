@@ -2204,11 +2204,16 @@ main {
   stroke: var(--color-navy);
   stroke-width: 1;
   /*
-    Faint on purpose. The line's job is to say "related", and it says that
-    at an opacity where you notice it without reading it - strong enough to
-    follow across the grid, weak enough that the lit tiles stay the subject.
+    Full strength, at Chris's call - the faint version was hard to see.
+
+    The reasoning behind 0.45 was that the lines should say "related"
+    without competing with the lit tiles, and that was sound when they were
+    masked into the gutters and fragmented. Now that a hop is one continuous
+    stroke over the dimmed field, a hairline at full opacity is still a
+    hairline: it is 1px against eighty tiles, and the thing keeping it
+    subordinate is its weight, not its transparency.
   */
-  stroke-opacity: 0.45;
+  stroke-opacity: 1;
   vector-effect: non-scaling-stroke;
 }
 

@@ -57,10 +57,31 @@ export default defineType({
       title: 'Page Sections',
       type: 'array',
       description:
-        'Freeform layout blocks for this page - mix and reorder full images, ' +
-        'split images, media rows and media+text blocks. Same block system as ' +
-        'Case Study pages.',
+        'Freeform layout blocks for this page - mix and reorder video heroes, ' +
+        'full images, split images, media rows, text and media+text blocks. ' +
+        'The same block system as Case Study pages, with the same blocks.',
+      /*
+        THE SAME MENU AS A CASE STUDY, NOT A SUBSET OF IT.
+
+        Chris, about /video: "if it can function essentially like a Case
+        Study page so I can plop stuff in, great." It already renders
+        through the same Sections component - what it did not have was the
+        full set of blocks to choose from.
+
+        Four were missing here and nowhere else: videoHeroSection,
+        textSection, statCalloutSection and achievementsSection. All four
+        have had working renderers in Sections.astro the whole time; they
+        were simply absent from this array, so they could be built but not
+        placed. The video hero is the one that matters for /video - a
+        full-bleed autoplay clip is the obvious way to open that page.
+
+        Listed explicitly rather than spread from caseStudySectionTypes
+        because that array also carries mediaImage and mediaVideo, which are
+        the item types INSIDE a media row and must not appear as things you
+        can drop straight onto a page.
+      */
       of: [
+        {type: 'videoHeroSection'},
         {type: 'fullImageSection'},
         {type: 'twoUpSection'},
         {type: 'threeUpSection'},
@@ -68,6 +89,9 @@ export default defineType({
         {type: 'videoSection'},
         {type: 'mediaRowSection'},
         {type: 'mediaTextSection'},
+        {type: 'textSection'},
+        {type: 'statCalloutSection'},
+        {type: 'achievementsSection'},
         {type: 'aestheticRangeSection'},
       ],
     }),

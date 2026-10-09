@@ -2236,19 +2236,34 @@ main {
     subordinate is its weight, not its transparency.
   */
   stroke-opacity: 1;
+  /*
+    The svg is drawn with preserveAspectRatio="none", so without this the
+    stroke is scaled along with the geometry and a 1px line comes out
+    thicker on one axis than the other.
+
+    It belongs here and spent two commits in the wrong place: adding the
+    hover-preview rule below split this declaration block and stranded this
+    line inside it, so the committed lines quietly lost it. Nothing looked
+    broken - a hairline distorted by a few percent is not something anyone
+    reports - which is exactly why it is worth a note.
+  */
+  vector-effect: non-scaling-stroke;
 }
 
 /*
-  The hover preview is quieter than the committed lines, and that is the
-  point rather than a compromise. On hover the lines are answering a
-  question nobody has asked out loud yet - what else is this - so they
-  should register without demanding to be read. Full strength is reserved
-  for the moment you actually click.
+  NO OPACITY OVERRIDE ON THE PREVIEW. Tried at 0.5, rejected.
+
+  The argument for a quieter preview was that it answers a question nobody
+  has asked out loud yet, so it should register without demanding to be
+  read. Chris tried it twice and said both times that the lines were hard
+  to see, so the reasoning was fine and the premise was wrong: a 1px
+  hairline across eighty tiles is already quiet, and discounting it further
+  just makes it invisible.
+
+  The preview is distinguished by how FAST it draws instead - which is a
+  difference you can perceive without squinting. The class is still applied,
+  because the hover path uses it to find and remove its own layer.
 */
-.pf-links--preview line {
-  stroke-opacity: 0.5;
-  vector-effect: non-scaling-stroke;
-}
 
 @media (prefers-reduced-motion: reduce) {
   .pf-grid .pf-item {

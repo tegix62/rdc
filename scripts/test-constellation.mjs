@@ -437,15 +437,31 @@ if (!links) {
           ),
         ),
         ms: Number((window.__pfPreviewMs ?? 0).toFixed(2)),
+        vectorEffect: getComputedStyle(
+          document.querySelector('.pf-links line') ?? document.body,
+        ).vectorEffect,
       }
     })
     console.log(`  hovering a tile from ${target}`)
     check('hovering draws the family', state.lines > 0, `${state.lines} line(s)`)
     check('and marks them as a preview', state.marked)
+    /*
+      Full strength, like the committed lines. The preview was faint at 0.5
+      and Chris reported it hard to see twice; what distinguishes it now is
+      the speed it draws at, not the ink.
+
+      Asserted rather than dropped, so a future attempt to quieten it again
+      has to argue with a failing test instead of sliding in.
+    */
     check(
-      'the preview is quieter than a committed line',
-      state.opacity > 0 && state.opacity < 1,
+      'the preview is drawn at full strength',
+      state.opacity === 1,
       `stroke-opacity ${state.opacity}`,
+    )
+    check(
+      'and the stroke does not distort with the scaled viewBox',
+      state.vectorEffect === 'non-scaling-stroke',
+      `vector-effect ${state.vectorEffect}`,
     )
     /*
       The two refusals that make it a preview rather than a second mode:

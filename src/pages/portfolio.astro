@@ -936,7 +936,11 @@ if (emptyFilters.length > 0) {
       work out, and the state it reads is guarded on the first line rather
       than assumed.
     */
-    function drawLinks(from: HTMLElement | null = focusItem, fam: HTMLElement[] = focusFamily) {
+    function drawLinks(
+      from: HTMLElement | null = focusItem,
+      fam: HTMLElement[] = focusFamily,
+      quick = false,
+    ) {
       /*
         Parameterised so the same drawing can serve two jobs.
 
@@ -1258,10 +1262,36 @@ if (emptyFilters.length > 0) {
         */
         if (!still) {
           const len = Math.hypot(to.x - from.x, to.y - from.y);
+          /*
+            TWO SPEEDS, BECAUSE THE TWO MOMENTS ARE NOT THE SAME MOMENT.
+
+            Chris: "I liked the original iteration's animation, but that
+            would get tiring over so many mouseovers. Any chance we could do
+            a MEGA fast animation, like hardly perceptible?"
+
+            The committed draw happens once, on a deliberate click, and can
+            afford to be a gesture - 320ms a hop with 90ms between rings,
+            so the thread visibly travels outward.
+
+            The preview happens every time a pointer settles on a tile,
+            dozens of times a minute. There the animation is not there to be
+            watched, it is there so the lines arrive FROM the tile under the
+            cursor rather than materialising around it. 70ms a hop and 14ms
+            between rings: the direction still registers, the motion barely
+            does, and the whole tree is complete in about a sixth of a
+            second however deep it goes.
+
+            Rings are capped tighter in preview too - six rather than eight -
+            so a long chain through DumpStat's eighteen pieces cannot quietly
+            become a half-second wait at the far end.
+            */
+          const span = quick ? 70 : 320;
+          const step = quick ? 14 : 90;
+          const rings = quick ? 6 : 8;
           line.style.strokeDasharray = String(len);
           line.style.strokeDashoffset = String(len);
           requestAnimationFrame(() => {
-            line.style.transition = `stroke-dashoffset 320ms ease-out ${Math.min(hop.ring - 1, 8) * 90}ms`;
+            line.style.transition = `stroke-dashoffset ${span}ms ease-out ${Math.min(hop.ring - 1, rings) * step}ms`;
             line.style.strokeDashoffset = '0';
           });
         }
@@ -1588,7 +1618,7 @@ if (emptyFilters.length > 0) {
         previewHref = href;
       }
 
-      drawLinks(tile, family);
+      drawLinks(tile, family, true);
       grid.querySelector('.pf-links')?.classList.add('pf-links--preview');
       (window as any).__pfPreviewMs = performance.now() - t0;
     };

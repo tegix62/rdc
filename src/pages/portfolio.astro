@@ -950,7 +950,25 @@ if (emptyFilters.length > 0) {
         crucially NOT routed through focusItem/focusFamily, because those
         also drive the dimming. A hover must not dim eighty tiles.
       */
-      if (!LINES || !from || fam.length < 2) return;
+      /*
+        `from` is normalised because the shape of this call is a trap I have
+        already fallen into.
+
+        This used to take no arguments, so `requestAnimationFrame(drawLinks)`
+        was harmless. Parameterising it for the hover preview turned that
+        into `drawLinks(1234.5)` - rAF hands its callback a timestamp - and
+        a number is truthy, so the guard below passed, no node matched it as
+        a root, and the function returned having drawn nothing. Three call
+        sites, all silent, which is how the committed lines stopped working
+        without anything erroring.
+
+        The call sites are fixed. This is here because the correct behaviour
+        for a caller that passes no real source IS the committed state, so
+        normalising is not papering over a mistake - it is the right answer
+        to the one wrong call shape that is easy to write.
+      */
+      const source = from instanceof HTMLElement ? from : focusItem;
+      if (!LINES || !source || fam.length < 2) return;
       grid.querySelector('.pf-links')?.remove();
 
       const gr = grid.getBoundingClientRect();
@@ -1173,7 +1191,7 @@ if (emptyFilters.length > 0) {
         per click. Clarity is worth more here than the heap.
       */
       const nodes = fam.map((el) => ({el, box: boxOf(el)}));
-      const root = nodes.find((n) => n.el === from);
+      const root = nodes.find((n) => n.el === source);
       if (!root) return;
 
       const reached = [root];
@@ -1751,7 +1769,7 @@ if (emptyFilters.length > 0) {
           } else {
             // A third frame: layout() moves tiles, and lines measured before
             // that settles point at where things USED to be.
-            requestAnimationFrame(drawLinks);
+            requestAnimationFrame(() => drawLinks());
           }
         }),
       );
@@ -1771,7 +1789,7 @@ if (emptyFilters.length > 0) {
       btn.textContent = `Gather: ${gatherMode ? 'on' : 'off'}`;
       restoreOrder();
       if (gatherMode) grid.querySelector('.pf-links')?.remove();
-      else if (focusItem) requestAnimationFrame(drawLinks);
+      else if (focusItem) requestAnimationFrame(() => drawLinks());
     });
 
     /*
@@ -1839,7 +1857,7 @@ if (emptyFilters.length > 0) {
           iso.layout();
           // A third frame: layout() moves tiles, and lines measured before
           // that settles point at where things USED to be.
-          requestAnimationFrame(drawLinks);
+          requestAnimationFrame(() => drawLinks());
         }),
       );
     });

@@ -335,7 +335,26 @@ const links = await page.evaluate(() => {
 
 console.log('')
 if (!links) {
-  console.log('  (no line layer - expected on production, where lines are gated off)')
+  /*
+    A FAILURE, NOT A NOTE.
+
+    This used to shrug and say "expected on production, where lines are
+    gated off" - and it printed exactly that against PREVIEW for two runs
+    while the committed lines were broken. I read it, said in writing that
+    the branch was unverified, and moved on. Chris found it instead.
+
+    This script is pointed at preview by its workflow and by its default
+    argument. Production's gating is proved elsewhere, by
+    check-prototype-hidden and by the explicit "production has no deck"
+    style assertions. So a missing line layer here is a broken feature, and
+    a check that cannot fail is worse than no check because it reads like
+    coverage.
+  */
+  check(
+    'the committed line layer exists after a click with gather off',
+    false,
+    'no .pf-links in the grid at all',
+  )
 } else {
   console.log(
     `  line layer: ${links.lines} line(s), ${links.ink}px of ink, longest hop ${links.longest}px`,

@@ -56,7 +56,12 @@ const toggle = await page.evaluate(() => {
 if (!toggle) {
   check('the Gather toggle is on the page', false, 'not found')
 } else {
-  check('the Gather toggle starts off', toggle.pressed === 'false', `reads "${toggle.text}"`)
+  /*
+    Starts ON now. Chris chose gather over the constellation as the default
+    once he could see it, so the toggle's job changed: it is no longer a way
+    to opt in to an experiment, it is a way back to the other one.
+  */
+  check('the Gather toggle starts on', toggle.pressed === 'true', `reads "${toggle.text}"`)
 }
 
 /*
@@ -113,7 +118,7 @@ await page.waitForTimeout(500)
 const pressed = await page.evaluate(
   () => document.querySelector('#pf-gather')?.getAttribute('aria-pressed'),
 )
-check('clicking it turns gather on', pressed === 'true')
+check('gather is active without having to be switched on', pressed === 'true')
 
 /*
   Pick a tile from a project big enough to gather, somewhere in the middle

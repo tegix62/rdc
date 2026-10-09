@@ -155,8 +155,8 @@ if (emptyFilters.length > 0) {
           decision aid, not navigation, and it must not ship.
         */}
         {PREVIEW && (
-          <button type="button" class="pf-btn" id="pf-gather" aria-pressed="false">
-            Gather: off
+          <button type="button" class="pf-btn" id="pf-gather" aria-pressed="true">
+            Gather: on
           </button>
         )}
         {/* nowrap: these two are one control in two halves. */}
@@ -1293,7 +1293,23 @@ if (emptyFilters.length > 0) {
       on the page instead of decided in the source. Preview only, so the
       toggle is not UI that ships.
     */
-    let gatherMode = false;
+    /*
+      GATHER IS THE DEFAULT NOW, where it exists at all.
+
+      Chris, having finally seen it work: "the Gather looks fantastic. I
+      think that's what we should do instead of the Constellation as
+      default."
+
+      Initialised from the preview flag rather than to a literal, so the
+      live site keeps exactly the behaviour it has today - a tile expands
+      and nothing else moves - until Chris says to ship it. Flipping this
+      to `true` is the whole of that change when he does.
+
+      The toggle stays so the constellation is still one press away, which
+      is what it is for: he has not decided to delete it, only to stop
+      leading with it.
+    */
+    let gatherMode = LINES;
     let preGather: HTMLElement[] | null = null;
 
     /* The deal as the build dealt it, kept so gather is undoable without

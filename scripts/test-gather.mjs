@@ -77,8 +77,30 @@ if (!toggle) {
 await page.evaluate(() => document.querySelector('#pf-gather')?.click())
 await page.waitForTimeout(300)
 
-await page.evaluate(() => window.scrollTo({top: 1600, behavior: 'instant'}))
-await page.waitForTimeout(400)
+/*
+  Scroll TO a gatherable tile rather than to a fixed depth and hoping one is
+  there. The fixed-depth version failed with "a gatherable tile is visible
+  to click": at 1600px down a 1080px window, every tile inside the
+  measurement band belonged to no project. Centring a known-good tile gives
+  both things this test needs - page above it, and a tile to click.
+*/
+const marked = await page.evaluate(() => {
+  const tiles = [...document.querySelectorAll('.pf-grid .pf-item')]
+  const hrefOf = (el) => el.querySelector('.pf-item__jump')?.getAttribute('href') ?? null
+  const sizes = {}
+  for (const el of tiles) {
+    const k = hrefOf(el)
+    if (k) sizes[k] = (sizes[k] ?? 0) + 1
+  }
+  // Skip the first few so there is always page above it to be thrown off.
+  const target = tiles.slice(6).find((el) => hrefOf(el) && sizes[hrefOf(el)] >= 4)
+  if (!target) return false
+  target.setAttribute('data-gather-probe', '')
+  target.scrollIntoView({block: 'center', behavior: 'instant'})
+  return true
+})
+if (!marked) check('a tile from a gatherable project exists', false)
+await page.waitForTimeout(500)
 
 const pressed = await page.evaluate(
   () => document.querySelector('#pf-gather')?.getAttribute('aria-pressed'),
@@ -97,13 +119,8 @@ const chosen = await page.evaluate(() => {
     const k = hrefOf(el)
     if (k) sizes[k] = (sizes[k] ?? 0) + 1
   }
-  const onScreen = tiles.filter((el) => {
-    const r = el.getBoundingClientRect()
-    return r.top > 100 && r.bottom < innerHeight - 100
-  })
-  const target = onScreen.find((el) => hrefOf(el) && sizes[hrefOf(el)] >= 4)
+  const target = document.querySelector('[data-gather-probe]')
   if (!target) return null
-  target.setAttribute('data-gather-probe', '')
   const href = hrefOf(target)
   /* Where its project's pieces sit in DOM order right now. */
   const idx = tiles.map((el, i) => [hrefOf(el), i]).filter(([k]) => k === href).map(([, i]) => i)
@@ -118,7 +135,7 @@ const chosen = await page.evaluate(() => {
 
 console.log('')
 if (!chosen) {
-  check('a gatherable tile is visible to click', false)
+  check('a gatherable tile was found and centred', false)
 } else {
   console.log(`  clicked a tile from ${chosen.href} (${chosen.family} pieces)`)
   console.log(`  it sat ${chosen.top}px down the viewport, page scrolled to ${chosen.scrollY}`)

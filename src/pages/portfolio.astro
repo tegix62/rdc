@@ -1515,59 +1515,118 @@ if (emptyFilters.length > 0) {
     const FINE_POINTER = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
     /*
-      A dwell, because a cursor crossing a grid is not a question.
+      INSTANT ON, LAZY OFF.
 
-      Moving diagonally across eighty tiles brushes a dozen of them, and
-      drawing for each one is a strobe. 140ms is long enough that the
-      pointer has stopped on something and short enough to feel immediate.
+      Chris: "that delay is significant". It was, and the dwell was the
+      wrong tool. It existed to stop a cursor crossing eighty tiles from
+      strobing - but it bought that by delaying the thing you actually
+      want, which is the one part that should never wait.
+
+      The flicker is caused by the preview turning OFF and on again as the
+      pointer crosses gaps and unaffiliated tiles. So only the off is
+      delayed. Landing on a project highlights it immediately; leaving it
+      holds for 120ms, so passing over a standalone tile or a gutter on the
+      way to a sibling does not drop the highlight and bring it back. This
+      is the hover-intent pattern menus use, and it reads as snappy and
+      stable at the same time, which a single delay cannot.
+
+      Moving between two tiles of the SAME project does not re-dim anything
+      either - only the lines are re-rooted, since the tree grows from
+      whichever tile you are on.
     */
-    const HOVER_DWELL = 140;
-    let previewTimer: number | undefined;
-    let previewTile: HTMLElement | null = null;
+    const PREVIEW_OFF_DELAY = 120;
+    let previewHref: string | null = null;
+    let offTimer: number | undefined;
 
-    const clearPreview = () => {
-      window.clearTimeout(previewTimer);
-      if (previewTile) {
-        grid.querySelector('.pf-links--preview')?.remove();
-        previewTile = null;
+    const dropPreview = () => {
+      window.clearTimeout(offTimer);
+      if (!previewHref) return;
+      previewHref = null;
+      grid.classList.remove('has-preview');
+      grid
+        .querySelectorAll('.pf-item.is-preview-sibling')
+        .forEach((el) => el.classList.remove('is-preview-sibling'));
+      grid.querySelector('.pf-links')?.remove();
+    };
+
+    const scheduleDrop = () => {
+      if (!previewHref) return;
+      window.clearTimeout(offTimer);
+      offTimer = window.setTimeout(dropPreview, PREVIEW_OFF_DELAY);
+    };
+
+    /*
+      The dimming is the whole reason this is worth doing.
+
+      Chris: "the lines are practically invisible, because they hide under
+      everything. In order for this to work, we'd have to do the opacity
+      trick on everything like the original constellation, but on
+      mouse-over."
+
+      Exactly right, and it is the same mechanism as the click path with a
+      separate pair of classes rather than the same ones. has-focus and
+      is-sibling belong to the expanded state, which clearFamily owns; a
+      hover borrowing them would leave the two paths fighting over who
+      clears what. Two class pairs, one stylesheet rule each, no shared
+      state.
+
+      How long the work takes is recorded on window for the test to read.
+      "Can this work but still be snappy" is a question with a number as
+      its answer, and the number should come from the browser rather than
+      from me asserting it feels fine.
+    */
+    const showPreview = (tile: HTMLElement, href: string, family: HTMLElement[]) => {
+      window.clearTimeout(offTimer);
+      const t0 = performance.now();
+
+      if (href !== previewHref) {
+        grid
+          .querySelectorAll('.pf-item.is-preview-sibling')
+          .forEach((el) => el.classList.remove('is-preview-sibling'));
+        for (const el of family) el.classList.add('is-preview-sibling');
+        grid.classList.add('has-preview');
+        previewHref = href;
       }
+
+      drawLinks(tile, family);
+      grid.querySelector('.pf-links')?.classList.add('pf-links--preview');
+      (window as any).__pfPreviewMs = performance.now() - t0;
     };
 
     if (LINES && FINE_POINTER) {
       grid.addEventListener('mouseover', (e) => {
-        const tile = (e.target as HTMLElement)?.closest<HTMLElement>('.pf-item');
-        if (!tile || tile === previewTile) return;
-
         /*
-          An expanded tile owns the grid. Previewing a different project
-          while one is gathered would draw lines across an arrangement they
-          do not describe.
+          An expanded tile owns the grid. Previewing another project over a
+          gathered arrangement would draw lines across a layout they do not
+          describe, and dim the very set the visitor just asked to see.
         */
         if (grid.querySelector('.pf-item.is-expanded')) return;
 
-        clearPreview();
+        const tile = (e.target as HTMLElement)?.closest<HTMLElement>('.pf-item');
+        if (!tile) return;
+
         const href = projectOf(tile);
-        if (!href) return;
+        if (!href) {
+          scheduleDrop();
+          return;
+        }
         const family = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item')).filter(
           (el) => projectOf(el) === href,
         );
-        // Same threshold as the committed version. A pair is not a set, and
-        // the two rules must agree or hovering teaches the wrong lesson
-        // about what clicking will do.
-        if (family.length < FAMILY_MIN) return;
+        // Same threshold as the click path. A pair is not a set, and the two
+        // must agree or hovering teaches the wrong lesson about clicking.
+        if (family.length < FAMILY_MIN) {
+          scheduleDrop();
+          return;
+        }
 
-        previewTile = tile;
-        previewTimer = window.setTimeout(() => {
-          if (previewTile !== tile) return;
-          drawLinks(tile, family);
-          grid.querySelector('.pf-links')?.classList.add('pf-links--preview');
-        }, HOVER_DWELL);
+        showPreview(tile, href, family);
       });
 
-      grid.addEventListener('mouseleave', clearPreview);
+      grid.addEventListener('mouseleave', scheduleDrop);
       // The grid can be left by a route that fires no mouseleave - a tile
       // relayout under a still cursor, or the window losing focus.
-      window.addEventListener('blur', clearPreview);
+      window.addEventListener('blur', dropPreview);
     }
 
     const markFamily = (item: HTMLElement) => {
@@ -1610,7 +1669,7 @@ if (emptyFilters.length > 0) {
         reset too or the tile stays marked as already-previewed and never
         draws again after the grid collapses.
       */
-      clearPreview();
+      dropPreview();
       const wasExpanded = item.classList.contains('is-expanded');
       grid.querySelectorAll<HTMLElement>('.pf-item.is-expanded').forEach((el) => {
         el.classList.remove('is-expanded');

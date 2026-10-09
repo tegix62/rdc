@@ -408,9 +408,12 @@ if (!links) {
     check('a tile from a big enough project exists to hover', false)
   } else {
     await hover.hover('[data-hover-probe]')
-    // Longer than the 140ms dwell, so this measures the preview rather
-    // than the delay that stops a cursor crossing the grid strobing.
-    await hover.waitForTimeout(500)
+    /*
+      Just past one 160ms fade. There is no dwell to wait out any more -
+      the preview engages on the first mouseover - so a long wait here
+      would hide a delay rather than measure one.
+    */
+    await hover.waitForTimeout(260)
 
     const state = await hover.evaluate(() => {
       const svg = document.querySelector('.pf-grid .pf-links')
@@ -420,6 +423,20 @@ if (!links) {
         opacity: Number(getComputedStyle(document.querySelector('.pf-links line') ?? document.body).strokeOpacity),
         dimmed: document.querySelector('.pf-grid')?.classList.contains('has-focus') ?? false,
         moved: !!document.querySelector('.pf-item.is-expanded'),
+        /* The point of the whole exercise: the rest of the grid drops back
+           so the lines are against something. */
+        previewing: document.querySelector('.pf-grid')?.classList.contains('has-preview') ?? false,
+        litMin: Math.min(
+          ...[...document.querySelectorAll('.pf-item.is-preview-sibling')].map((el) =>
+            Number(getComputedStyle(el).opacity),
+          ),
+        ),
+        outsiderMax: Math.max(
+          ...[...document.querySelectorAll('.pf-grid .pf-item:not(.is-preview-sibling)')].map((el) =>
+            Number(getComputedStyle(el).opacity),
+          ),
+        ),
+        ms: Number((window.__pfPreviewMs ?? 0).toFixed(2)),
       }
     })
     console.log(`  hovering a tile from ${target}`)
@@ -435,16 +452,54 @@ if (!links) {
       nothing dims and nothing moves. Either one would make a hover feel
       like a click that fired by accident.
     */
-    check('nothing dims on hover', !state.dimmed)
+    /*
+      The family stays lit and everything else drops back - the same
+      treatment as a click, which is what makes the lines readable at all.
+    */
+    check('the grid drops back behind the hovered family', state.previewing)
+    check('every piece of that project stays lit', state.litMin === 1, `dimmest sibling at ${state.litMin}`)
+    check(
+      'everything else fades',
+      state.outsiderMax < 0.5,
+      `brightest outsider at ${state.outsiderMax}`,
+    )
+    /*
+      It must not borrow the EXPANDED state's machinery. has-focus and an
+      expanded tile both belong to the click path; a hover that set either
+      would leave the two fighting over who clears what, and would move the
+      grid on a gesture that is supposed to only look.
+    */
+    check('it does not borrow the clicked state', !state.dimmed)
     check('nothing expands on hover', !state.moved)
+    /*
+      "Can this work but still be snappy" has a number for an answer, and
+      it should come from the browser. One frame at 60Hz is 16.7ms; drawing
+      the whole preview inside that budget means the highlight lands on the
+      next frame after the pointer arrives.
+    */
+    check(
+      'the whole preview is drawn inside one frame',
+      state.ms > 0 && state.ms < 16.7,
+      `${state.ms}ms to dim the grid and draw the tree`,
+    )
 
     /* Leaving must clear it, or the lines latch on. */
     await hover.mouse.move(5, 5)
     await hover.waitForTimeout(400)
-    const after = await hover.evaluate(
-      () => document.querySelectorAll('.pf-grid .pf-links line').length,
+    const after = await hover.evaluate(() => ({
+      lines: document.querySelectorAll('.pf-grid .pf-links line').length,
+      previewing: document.querySelector('.pf-grid')?.classList.contains('has-preview') ?? false,
+      dimmest: Math.min(
+        ...[...document.querySelectorAll('.pf-grid .pf-item')].map((el) =>
+          Number(getComputedStyle(el).opacity),
+        ),
+      ),
+    }))
+    check(
+      'leaving the grid clears the lines AND the dimming',
+      after.lines === 0 && !after.previewing && after.dimmest === 1,
+      `${after.lines} line(s), dimmest tile at ${after.dimmest}`,
     )
-    check('leaving the grid clears the preview', after === 0, `${after} line(s) left behind`)
   }
   await hover.close()
 }

@@ -2178,6 +2178,28 @@ main {
 }
 
 /*
+  The same drop back, on hover.
+
+  Chris: "the lines are practically invisible, because they hide under
+  everything. In order for this to work, we'd have to do the opacity trick
+  on everything like the original constellation, but on mouse-over."
+
+  A separate class pair rather than reusing has-focus and is-sibling, which
+  belong to the expanded state that clearFamily owns - a hover borrowing
+  them would leave the two paths arguing about who clears what.
+
+  Identical value on purpose. Hover and click are previewing and committing
+  to the same thing, so they should not look like two different effects;
+  the difference between them is the lines' weight, not the ground's.
+
+  The transition is inherited from the base .pf-item rule above, so a hover
+  fades in and out over the same 160ms as a click.
+*/
+.pf-grid.has-preview .pf-item:not(.is-preview-sibling) {
+  opacity: 0.2;
+}
+
+/*
   Lines from the clicked piece to its siblings, drawn BEHIND the grid.
 
   Clicking a tile is a request to see that piece, so anything the click adds

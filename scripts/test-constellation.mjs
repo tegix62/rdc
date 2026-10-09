@@ -108,26 +108,136 @@ if (!big) {
 }
 
 /*
-  THE LINES, AND THE MASK THAT KEEPS THEM OFF THE ARTWORK.
+  THE LINES: WHERE THEY ARE ALLOWED, AND WHAT THEY MUST NOT CROSS.
 
-  Preview only, so this is reported rather than required when absent. What
-  it asserts is the wiring that has gone wrong in this project before: a
+  Preview only, so this is reported rather than required when absent.
+
+  Two different kinds of claim here, and they fail in different ways.
+
+  The WIRING checks catch what has gone wrong in this project before: a
   layer that is present, correct, and attached to nothing. A mask with no
-  rects, or lines outside the masked group, both look exactly like a
-  working feature in the DOM and put strokes straight across the pictures.
+  rects, or lines sitting outside the masked group, both look exactly like
+  a working feature in the DOM while putting strokes across the artwork.
+
+  The GEOMETRY check is the one Chris actually asked for, and it cannot be
+  answered by reading the DOM. "Lines go through another highlighted image"
+  is a statement about segments and rectangles, so it is tested as one:
+  every segment is clipped against every lit frame, and a segment that
+  survives the clip is a line lying over a picture someone is looking at.
+
+  That check is what distinguishes the tree from the starburst it replaced.
+  Both shapes draw exactly n-1 lines, so counting them proves nothing - the
+  difference is only ever visible in where those lines go.
+
+  Deliberately asymmetric: lines over DIMMED tiles are allowed and expected
+  now, so the mask covering fewer rects than there are tiles is asserted as
+  correct rather than tolerated. A mask that grew back to every tile would
+  mean the invisible dashed version had returned.
 */
 const links = await page.evaluate(() => {
   const svg = document.querySelector('.pf-grid .pf-links')
   if (!svg) return null
+  const grid = document.querySelector('.pf-grid')
   const mask = svg.querySelector('mask')
   const group = svg.querySelector('g[mask]')
-  const tiles = document.querySelectorAll('.pf-grid .pf-item').length
+  const gr = grid.getBoundingClientRect()
+
+  const lit = [...grid.querySelectorAll('.pf-item.is-sibling')]
+  /*
+    Inset by 2px before testing. The ends are trimmed to each frame's edge
+    and pushed 3px clear, then rounded to whole pixels, so a line can finish
+    a hair inside its own target through rounding alone. Shrinking the test
+    rectangle keeps that from reading as a crossing, while a line genuinely
+    laid across a picture misses by far more than two pixels.
+  */
+  const frames = lit.map((el) => {
+    const r = (el.querySelector('.pf-item__frame') ?? el).getBoundingClientRect()
+    return {
+      x0: r.left - gr.left + 2,
+      y0: r.top - gr.top + 2,
+      x1: r.right - gr.left - 2,
+      y1: r.bottom - gr.top - 2,
+    }
+  })
+
+  /* Liang-Barsky: does the segment have any length inside the box? */
+  const crosses = (ax, ay, bx, by, b) => {
+    let t0 = 0
+    let t1 = 1
+    const dx = bx - ax
+    const dy = by - ay
+    for (const [p, q] of [
+      [-dx, ax - b.x0],
+      [dx, b.x1 - ax],
+      [-dy, ay - b.y0],
+      [dy, b.y1 - ay],
+    ]) {
+      if (p === 0) {
+        if (q < 0) return false
+      } else {
+        const r = q / p
+        if (p < 0) {
+          if (r > t1) return false
+          if (r > t0) t0 = r
+        } else {
+          if (r < t0) return false
+          if (r < t1) t1 = r
+        }
+      }
+    }
+    return t1 > t0
+  }
+
+  const segs = [...svg.querySelectorAll('line')].map((l) => ({
+    ax: +l.getAttribute('x1'),
+    ay: +l.getAttribute('y1'),
+    bx: +l.getAttribute('x2'),
+    by: +l.getAttribute('y2'),
+  }))
+
+  let over = 0
+  let longest = 0
+  let ink = 0
+  for (const s of segs) {
+    const len = Math.hypot(s.bx - s.ax, s.by - s.ay)
+    ink += len
+    longest = Math.max(longest, len)
+    if (frames.some((f) => crosses(s.ax, s.ay, s.bx, s.by, f))) over += 1
+  }
+
+  /*
+    What the starburst this replaced would have drawn: one spoke from the
+    clicked tile to each sibling. Same number of lines, so the only
+    measurable difference between the two shapes is total length. Computed
+    here rather than guessed at, because a fixed pixel threshold would be a
+    number I made up about a layout that changes with the viewport.
+  */
+  const hub = grid.querySelector('.pf-item.is-expanded')
+  const mid = (el) => {
+    const r = (el.querySelector('.pf-item__frame') ?? el).getBoundingClientRect()
+    return {x: r.left - gr.left + r.width / 2, y: r.top - gr.top + r.height / 2}
+  }
+  let starInk = 0
+  if (hub) {
+    const h = mid(hub)
+    for (const el of lit) {
+      if (el === hub) continue
+      const m = mid(el)
+      starInk += Math.hypot(m.x - h.x, m.y - h.y)
+    }
+  }
+
   return {
-    lines: svg.querySelectorAll('line').length,
+    starInk: Math.round(starInk),
+    lines: segs.length,
     linesInsideMaskedGroup: group ? group.querySelectorAll('line').length : 0,
     maskRects: mask ? mask.querySelectorAll('rect').length : 0,
-    tiles,
-    firstChild: document.querySelector('.pf-grid')?.firstElementChild?.classList.contains('pf-links') ?? false,
+    tiles: grid.querySelectorAll('.pf-item').length,
+    litTiles: lit.length,
+    over,
+    longest: Math.round(longest),
+    ink: Math.round(ink),
+    firstChild: grid.firstElementChild?.classList.contains('pf-links') ?? false,
   }
 })
 
@@ -135,12 +245,32 @@ console.log('')
 if (!links) {
   console.log('  (no line layer - expected on production, where lines are gated off)')
 } else {
-  console.log(`  line layer: ${links.lines} line(s), mask knocks out ${links.maskRects - 1} of ${links.tiles} pictures`)
+  console.log(
+    `  line layer: ${links.lines} line(s), ${links.ink}px of ink, longest hop ${links.longest}px`,
+  )
+  console.log(
+    `  mask knocks out ${links.maskRects - 1} lit frame(s); the other ${links.tiles - links.litTiles} tiles are left open on purpose`,
+  )
   check('every line sits inside the masked group', links.lines > 0 && links.lines === links.linesInsideMaskedGroup)
   check(
-    'the mask knocks out every tile, not just the lit ones',
-    links.maskRects === links.tiles + 1,
-    `${links.maskRects} rects for ${links.tiles} tiles plus the open field`,
+    'the mask covers the lit pictures',
+    links.maskRects === links.litTiles + 1,
+    `${links.maskRects} rects for ${links.litTiles} lit tiles plus the open field`,
+  )
+  check(
+    'the dimmed tiles are NOT masked, so the lines stay visible across them',
+    links.maskRects < links.tiles + 1,
+    `${links.tiles - links.litTiles} tile(s) left open`,
+  )
+  check(
+    'no line lies across a picture the visitor is looking at',
+    links.over === 0,
+    `${links.over} of ${links.lines} segment(s) cross a lit frame`,
+  )
+  check(
+    'the thread is shorter than the starburst it replaced',
+    links.starInk > 0 && links.ink < links.starInk,
+    `${links.ink}px of hops against ${links.starInk}px of spokes (${Math.round((1 - links.ink / links.starInk) * 100)}% less ink)`,
   )
   check('the line layer is the first child, so tiles paint over it', links.firstChild)
 }

@@ -933,24 +933,29 @@ if (emptyFilters.length > 0) {
       svg.setAttribute('aria-hidden', 'true');
 
       /*
-        NOT OVER ANY PICTURE, NOT EVEN BEHIND ONE.
+        OFF THE LIT PICTURES ONLY. OVER THE DIMMED ONES ON PURPOSE.
 
-        Trimming the ends stopped a line entering the tile it points at, and
-        Chris's screenshot shows what it did not fix: a line to a tile eight
-        columns away still crosses everything between. Drawing them behind
-        the grid was supposed to handle that, and it does not - a large part
-        of this portfolio is logos on transparent backgrounds, so "behind"
-        and "through" are the same thing. The dimmed tiles leak them too, at
-        a fifth opacity.
+        The first version masked every frame on the grid, and Chris's verdict
+        was the right one: "basically not visible". With 8px gutters, a line
+        allowed to exist only in the margins becomes a row of dashes, and a
+        row of dashes at 45% opacity is nothing at all.
 
-        So the lines are masked by every picture on the grid. White is drawn
-        through, black is knocked out; a rect per frame means a line can only
-        appear where it is over a gutter. Not a matter of degree - it becomes
-        geometrically impossible for a line to sit on artwork.
+        The mistake was treating all eighty-two tiles as artwork to protect.
+        They are not. A dimmed tile has already been pushed to a fifth
+        opacity and explicitly deprioritised - it is ground, not figure, and
+        a line crossing it is not a distraction but the thing that makes the
+        dimming legible. Behind the grid at 0.2 opacity, the stroke reads as
+        passing UNDER the ghosted pieces, which is a better effect than the
+        one I was protecting.
 
-        Every tile, not only the lit ones. A line crossing a dimmed tile is
-        the same distraction slightly fainter, and the rule is easier to
-        trust when it has no exceptions.
+        The pictures that matter are the lit ones: the piece clicked and its
+        siblings, at full opacity, which is what the visitor asked to see.
+        Those still need the knockout, because so much of this portfolio is
+        logos on transparent grounds - drawing "behind" them is drawing
+        through them.
+
+        So: white open field, one black rect per LIT frame. White is drawn
+        through, black is knocked out.
       */
       const mask = document.createElementNS(NS, 'mask');
       mask.setAttribute('id', 'pf-links-mask');
@@ -966,7 +971,7 @@ if (emptyFilters.length > 0) {
       open.setAttribute('fill', '#fff');
       mask.appendChild(open);
 
-      for (const tile of grid.querySelectorAll('.pf-item')) {
+      for (const tile of focusFamily) {
         const f = (tile.querySelector('.pf-item__frame') ?? tile).getBoundingClientRect();
         if (f.width < 2 || f.height < 2) continue;
         const cut = document.createElementNS(NS, 'rect');
@@ -986,12 +991,66 @@ if (emptyFilters.length > 0) {
       strokes.setAttribute('mask', 'url(#pf-links-mask)');
       svg.appendChild(strokes);
 
-      const source = boxOf(focusItem);
+      /*
+        A THREAD THROUGH THE SET, NOT A STARBURST FROM THE MIDDLE.
+
+        Chris: "what should we do about non-greyed if they're stacking". The
+        honest answer is that masking cannot fix it, and neither can routing.
+        A spoke from the clicked tile to a sibling nine columns away has to
+        get there, and if two lit siblings sit between them it crosses both.
+        Nine spokes from one hub across a seven-column masonry grid crossing
+        each other and the artwork is not a bug in the drawing - it is what a
+        hub-and-spoke diagram looks like at that density.
+
+        So the shape changes. Each piece connects to its NEAREST already
+        connected piece instead of to the hub, which is Prim's algorithm
+        grown from the clicked tile. What comes out is a tree of short hops
+        between neighbours: the total ink is the minimum that still touches
+        every piece, and a hop between two adjacent tiles has almost nothing
+        left to cross. The knockout above stops being the main event and
+        becomes the rare safety net it should have been.
+
+        Rooted at the clicked tile deliberately, not a free minimum spanning
+        tree. The root is what keeps Chris's first constraint intact - the
+        thread visibly STARTS at the piece you chose and travels outward, so
+        the clicked piece still reads as the subject rather than as one node
+        among equals. Same edge count either way; the difference is which
+        end the eye begins at.
+
+        O(n * n) per step with n at most a couple of dozen tiles, run once
+        per click. Clarity is worth more here than the heap.
+      */
+      const nodes = focusFamily.map((el) => ({el, box: boxOf(el)}));
+      const root = nodes.find((n) => n.el === focusItem);
+      if (!root) return;
+
+      const reached = [root];
+      const pending = nodes.filter((n) => n !== root);
+      /* Hops in growth order, each carrying how far it is from the root so
+         the animation can expand outward a ring at a time. */
+      const hops: Array<{from: typeof root; to: typeof root; ring: number}> = [];
+      const ringOf = new Map<typeof root, number>([[root, 0]]);
+
+      while (pending.length) {
+        let pick: {at: number; to: (typeof nodes)[number]; from: (typeof nodes)[number]; d: number} | null = null;
+        for (let i = 0; i < pending.length; i++) {
+          for (const have of reached) {
+            const d = Math.hypot(pending[i].box.x - have.box.x, pending[i].box.y - have.box.y);
+            if (!pick || d < pick.d) pick = {at: i, to: pending[i], from: have, d};
+          }
+        }
+        if (!pick) break;
+        hops.push({from: pick.from, to: pick.to, ring: (ringOf.get(pick.from) ?? 0) + 1});
+        ringOf.set(pick.to, (ringOf.get(pick.from) ?? 0) + 1);
+        reached.push(pick.to);
+        pending.splice(pick.at, 1);
+      }
+
       const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      for (const el of focusFamily) {
-        if (el === focusItem) continue;
-        const target = boxOf(el);
+      for (const hop of hops) {
+        const source = hop.from.box;
+        const target = hop.to.box;
 
         const from = edge(source, target);
         const to = edge(target, source);
@@ -1001,6 +1060,10 @@ if (emptyFilters.length > 0) {
           no line to draw - the gap between them is smaller than the two
           pushes away from their edges. Drawing it anyway produces a short
           stub pointing the wrong way, which reads as a glitch.
+
+          Far more common now that the hops are between neighbours, and
+          skipping one costs nothing: the tile is still lit, and the tree
+          still reaches everything through it.
         */
         const spanned = Math.hypot(to.x - from.x, to.y - from.y);
         const apart = Math.hypot(target.x - source.x, target.y - source.y);
@@ -1012,17 +1075,19 @@ if (emptyFilters.length > 0) {
         line.setAttribute('x2', String(Math.round(to.x)));
         line.setAttribute('y2', String(Math.round(to.y)));
         /*
-          Each line draws itself outward from the clicked tile. The order
-          matters more than the motion: the eye follows the growth from the
-          piece you chose to the ones it is related to, which is the
-          sentence the whole effect is trying to say.
+          Each hop draws itself away from the piece it grew out of, delayed
+          by its distance from the root, so the thread travels rather than
+          appearing all at once. The order matters more than the motion: the
+          eye follows the growth from the piece you chose to the ones it is
+          related to, which is the sentence the whole effect is trying to
+          say.
         */
         if (!still) {
           const len = Math.hypot(to.x - from.x, to.y - from.y);
           line.style.strokeDasharray = String(len);
           line.style.strokeDashoffset = String(len);
           requestAnimationFrame(() => {
-            line.style.transition = 'stroke-dashoffset 420ms ease-out';
+            line.style.transition = `stroke-dashoffset 320ms ease-out ${Math.min(hop.ring - 1, 8) * 90}ms`;
             line.style.strokeDashoffset = '0';
           });
         }

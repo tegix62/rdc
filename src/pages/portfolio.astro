@@ -1309,13 +1309,18 @@ if (emptyFilters.length > 0) {
       for (const el of rest) frag.appendChild(el);
       grid.appendChild(frag);
 
-      iso.reloadItems();
-      iso.layout();
-
       /*
         Correct the scroll once the tiles have actually landed. Isotope
         animates, so measuring before layoutComplete reads a position
         halfway through the move and corrects by the wrong amount.
+
+        SUBSCRIBED BEFORE layout() IS CALLED, which is the whole bug the
+        test caught. The first version subscribed afterwards, and when
+        Isotope settled without a transition - which it does whenever the
+        tiles barely move - layoutComplete had already fired by the time the
+        listener existed, so the correction never ran and the page drifted
+        122px. Nothing errored; the anchor simply did not happen, which is
+        the kind of failure that only shows up as "it feels jumpy".
 
         `once` rather than a standing listener: every filter, shuffle and
         expand fires layoutComplete too, and a scroll correction attached to
@@ -1335,6 +1340,9 @@ if (emptyFilters.length > 0) {
       */
       if (typeof (iso as any).once === 'function') (iso as any).once('layoutComplete', settle);
       else setTimeout(settle, 450);
+
+      iso.reloadItems();
+      iso.layout();
     };
 
     const markFamily = (item: HTMLElement) => {

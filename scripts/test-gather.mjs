@@ -92,9 +92,17 @@ const marked = await page.evaluate(() => {
     const k = hrefOf(el)
     if (k) sizes[k] = (sizes[k] ?? 0) + 1
   }
-  // Skip the first few so there is always page above it to be thrown off.
-  const target = tiles.slice(6).find((el) => hrefOf(el) && sizes[hrefOf(el)] >= 4)
-  if (!target) return false
+  /*
+    Well into the deal, not just past the first few. `slice(6)` picked a
+    tile still in the first row, so centring it barely scrolled the page -
+    the scroll-depth check failed, and the anchor had almost no room to
+    work. The affiliated pieces run to about position 43, so three quarters
+    of the way through them is comfortably down the page and still
+    gatherable.
+  */
+  const candidates = tiles.filter((el) => hrefOf(el) && sizes[hrefOf(el)] >= 4)
+  if (!candidates.length) return false
+  const target = candidates[Math.floor(candidates.length * 0.75)]
   target.setAttribute('data-gather-probe', '')
   target.scrollIntoView({block: 'center', behavior: 'instant'})
   return true

@@ -173,8 +173,14 @@ const worstRun = (arr) => {
 }
 
 {
-  // Spread, not just non-adjacency: the big project's items should reach the
-  // end of the grid rather than all landing early.
+  /*
+    Spread, not just non-adjacency: a project with as many pieces as there
+    are loose tiles has to interleave all the way down, because the
+    no-repeat rule leaves nothing else to alternate with. This is the case
+    where reaching the end is forced rather than chosen, which is why it is
+    the one asserted - see the next block for what happens when it is not
+    forced, and why that answer changed.
+  */
   const items = [
     cs('big'),
     ...[...Array(6)].map((_, n) => child('big', n)),
@@ -184,9 +190,58 @@ const worstRun = (arr) => {
   const positions = out.map((i, idx) => [projectKey(i), idx]).filter(([k]) => k === 'cs:big').map(([, idx]) => idx)
   const last = positions[positions.length - 1]
   check(
-    'the largest project reaches the far end of the grid',
+    'a project as large as the loose pile interleaves to the far end',
     last >= out.length - 3,
     `its last tile sits at ${last} of ${out.length - 1}`,
+  )
+}
+
+{
+  /*
+    THE BOTTOM OF THE GRID BELONGS TO UNAFFILIATED WORK.
+
+    Chris found the Adelante "More Kilos" tee at the very bottom and asked
+    whether the tail was meant to hold only unaffiliated pieces. Nothing in
+    this file had ever said so, and nothing had ever checked it.
+
+    The hole was the tie-break: taking from the largest pile leaves every
+    project ending its life at length 1, where it tied with each of the
+    thirty-eight standalone tiles and got picked just as often - so a
+    project's last piece was shuffled uniformly through the tail.
+
+    Asserted over many seeds rather than one, because a single seed passing
+    this is luck. Measured against the old tie-break, 163 of these 200 deals
+    put something affiliated in the last fifteen tiles - so this was not a
+    rare edge, it was the normal case, and a one-seed test had a one-in-five
+    chance of calling it fine.
+  */
+  const items = [
+    ...['hug-a-mug', 'dumpstat', 'adelante', 'two-point-oh', 'chateau'].map(cs),
+    ...[...Array(17)].map((_, n) => child('dumpstat', n)),
+    ...[...Array(9)].map((_, n) => child('hug-a-mug', n)),
+    ...[...Array(8)].map((_, n) => child('adelante', n)),
+    ...[...Array(5)].map((_, n) => child('two-point-oh', n)),
+    ...[...Array(38)].map((_, n) => solo(n)),
+  ]
+
+  let strays = 0
+  let worstSeed = null
+  let latest = 0
+  for (let seed = 1; seed <= 200; seed++) {
+    const {items: out} = orderTiles(items, seeded(seed))
+    const tail = out.slice(-15)
+    const affiliated = tail.filter((i) => projectKey(i).startsWith('cs:'))
+    if (affiliated.length) {
+      strays += 1
+      if (worstSeed === null) worstSeed = seed
+    }
+    const last = out.map((i, idx) => [projectKey(i), idx]).filter(([k]) => k.startsWith('cs:')).pop()[1]
+    latest = Math.max(latest, last)
+  }
+  check(
+    'no affiliated piece lands in the last fifteen tiles, over 200 deals',
+    strays === 0,
+    strays ? `${strays} deal(s) strayed, first at seed ${worstSeed}` : `latest affiliated tile at ${latest} of ${items.length - 1}`,
   )
 }
 

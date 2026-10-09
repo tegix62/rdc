@@ -1,0 +1,39 @@
+name: Check prototype hidden
+
+# The collage prototype answers on preview and 404s on production. Both
+# directions, because a check that only asserts the 404 would also pass if
+# the page were broken everywhere.
+# See scripts/check-prototype-hidden.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      path:
+        description: 'Prototype path to check'
+        default: '/collage/red-kettle'
+
+jobs:
+  hidden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: |
+          set -o pipefail
+          node scripts/check-prototype-hidden.mjs \
+            "https://rumeaudesign.co" \
+            "https://preview.rumeau-design-co.pages.dev" \
+            "${{ inputs.path || '/collage/red-kettle' }}" | tee /tmp/proto.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Prototype visibility'
+            echo ''
+            echo '```'
+            cat /tmp/proto.txt 2>/dev/null || echo '(the check did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

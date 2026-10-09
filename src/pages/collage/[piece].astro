@@ -38,6 +38,28 @@ import Layout from '../../layouts/Layout.astro';
 import {sanityClient} from '../../lib/sanity';
 import {imageUrl, tileImage} from '../../lib/image';
 
+/*
+  PREVIEW ONLY, AND NOT BY POLITENESS.
+
+  A rough cut with eyeballed crops should not be on rumeaudesign.co, and
+  `noindex` plus "nothing links to it" is not the same as not being there -
+  the URL would still answer, and anyone with the link would see provisional
+  work on the real site.
+
+  Returning an empty array emits NO page at all, so production builds the
+  route out of existence rather than shipping a hidden one. That is the
+  difference between a page that is hard to find and a page that does not
+  exist, and only the second is true here.
+
+  PUBLIC_IS_PREVIEW already distinguishes the two builds - true on the
+  preview deploy, unset on production - so this needs no new flag and
+  cannot drift from the thing it is meant to track.
+*/
+export function getStaticPaths() {
+  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
+  return [{params: {piece: 'red-kettle'}}];
+}
+
 const piece = await sanityClient.fetch(
   `*[_type == "caseStudy" && slug.current == "collage-red-kettle-2025"][0]{
      title, thumbnail, mainImage

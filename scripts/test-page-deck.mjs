@@ -249,6 +249,92 @@ console.log(`${BASE}\n`)
   await page.close()
 }
 
+/* ---------- the regression that shipped: a tap that drifts ---------- */
+{
+  /*
+    Chris: "Gather and Shuffle aren't doing anything past looking clicked-on
+    when clicked."
+
+    The drag listeners transform <main> during a horizontal gesture, and the
+    portfolio toolbar lives inside <main>. A tap that drifted 20px shifted
+    the page 20px, so the button moved out from under the finger and the
+    browser never fired click. No thumb tap is perfectly still, so this
+    broke every button and link on every page in the deck.
+
+    It passed every test here because each of them either swipes far enough
+    to be a real gesture or uses a mouse, which produces no touchmove at
+    all. The untested case was the one in between: a press that MEANT to be
+    a tap and wobbled.
+
+    Asserted on both sides, because either alone would pass on a broken
+    build. The page must not move - that is the actual fix - AND the click
+    must arrive, which is the thing Chris cares about.
+  */
+  const page = await phone()
+  await page.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.waitForTimeout(2500)
+
+  const tap = await page.evaluate(async (drift) => {
+    const btn = document.querySelector('#pf-shuffle')
+    if (!btn) return {missing: true}
+    const r = btn.getBoundingClientRect()
+    const x0 = Math.round(r.left + r.width / 2)
+    const y0 = Math.round(r.top + r.height / 2)
+
+    let clicked = false
+    btn.addEventListener('click', () => (clicked = true), {once: true})
+
+    const mk = (x, y) => new Touch({identifier: 1, target: btn, clientX: x, clientY: y, pageX: x, pageY: y})
+    const fire = (type, x, y) => {
+      const t = mk(x, y)
+      btn.dispatchEvent(
+        new TouchEvent(type, {
+          touches: type === 'touchend' ? [] : [t],
+          targetTouches: type === 'touchend' ? [] : [t],
+          changedTouches: [t],
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    }
+    const shift = () => {
+      const m = new DOMMatrixReadOnly(getComputedStyle(document.querySelector('main')).transform)
+      return Math.round(m.m41)
+    }
+
+    fire('touchstart', x0, y0)
+    let worst = 0
+    for (let i = 1; i <= 3; i++) {
+      await new Promise((res) => setTimeout(res, 16))
+      fire('touchmove', x0 - (drift * i) / 3, y0 + 2)
+      if (Math.abs(shift()) > Math.abs(worst)) worst = shift()
+    }
+    fire('touchend', x0 - drift, y0 + 2)
+    /* A real tap also produces a click; dispatch one as the browser would. */
+    btn.click()
+    await new Promise((res) => setTimeout(res, 300))
+    return {worst, clicked, inMain: !!document.querySelector('main #pf-shuffle')}
+  }, 20)
+
+  console.log('')
+  if (tap.missing) {
+    check('the Shuffle button is there to tap', false)
+  } else {
+    check(
+      'the toolbar is inside the element that moves, so this case is real',
+      tap.inMain,
+      `#pf-shuffle inside <main>: ${tap.inMain}`,
+    )
+    check(
+      'a tap that drifts 20px does not drag the page out from under it',
+      tap.worst === 0,
+      `<main> shifted ${tap.worst}px mid-tap`,
+    )
+    check('and the button still receives its click', tap.clicked === true)
+  }
+  await page.close()
+}
+
 /* ---------- the arrow keys, which are the desktop half ---------- */
 {
   const page = await browser.newPage({viewport: {width: 1440, height: 900}})

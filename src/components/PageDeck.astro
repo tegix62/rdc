@@ -261,6 +261,28 @@ const live = at >= 0 && (prev || next);
         let axis = null;
         let armed = false;
         let dragging = false;
+        let didDrag = false;
+
+        /*
+          A TAP ON A CONTROL IS NEVER A DRAG.
+
+          Chris: "Gather and Shuffle aren't doing anything past looking
+          clicked-on when clicked." Measured on a touch viewport: a tap that
+          drifts 20px shifted <main> by 20px, and the portfolio toolbar is
+          inside <main>. The button moved out from under the finger mid-tap,
+          so the browser never fired click - the element took its pressed
+          styling and nothing happened.
+
+          No thumb tap is perfectly still, so this was breaking every button
+          and link on every page in the deck, not the two Chris happened to
+          press. It passed every desktop test because a mouse click has no
+          touchmove at all.
+
+          Controls are now excluded at touchstart. Dragging from the page
+          body still works, which is the gesture; dragging from a thing you
+          can press does not, because that was never the gesture.
+        */
+        const CONTROLS = 'a, button, input, select, textarea, label, summary, [role="button"], [contenteditable]';
 
         /*
           A page pulled sideways is wider than the viewport, and without
@@ -295,6 +317,16 @@ const live = at >= 0 && (prev || next);
         addEventListener(
           'touchstart',
           (e) => {
+            /*
+              Cleared FIRST, before any of the guards below can return.
+
+              Put after them, a drag that sprang back would leave didDrag
+              true, and the very next tap on a button - which returns early
+              at the control guard - would have its click swallowed by the
+              suppressor. The fix for taps would have become a new way to
+              break them.
+            */
+            didDrag = false;
             armed = false;
             axis = null;
             dragging = false;
@@ -302,6 +334,8 @@ const live = at >= 0 && (prev || next);
             const t = e.touches[0];
             if (t.clientX < EDGE_GUARD || t.clientX > innerWidth - EDGE_GUARD) return;
             if (busy() || inSideScroller(e.target)) return;
+            const el = e.target instanceof Element ? e.target : null;
+            if (el && el.closest(CONTROLS)) return;
             sx = t.clientX;
             sy = t.clientY;
             armed = true;
@@ -323,7 +357,12 @@ const live = at >= 0 && (prev || next);
               navigating, which feels like the page is arguing.
             */
             if (!axis) {
-              if (Math.abs(dx) < 12 && Math.abs(dy) < 12) return;
+              /*
+                16px rather than 12. An unsteady thumb regularly covers a
+                dozen pixels on what the person meant as a tap, and every
+                one of those used to start a drag.
+              */
+              if (Math.abs(dx) < 16 && Math.abs(dy) < 16) return;
               axis = Math.abs(dx) > Math.abs(dy) * AXIS_RATIO ? 'x' : 'y';
               if (axis !== 'x') return;
             }
@@ -337,6 +376,7 @@ const live = at >= 0 && (prev || next);
             */
             const wanted = dx < 0 ? nextHref : prevHref;
             dragging = true;
+            didDrag = true;
             paint(wanted ? dx : dx * RESIST);
           },
           {passive: true},
@@ -374,6 +414,34 @@ const live = at >= 0 && (prev || next);
             release();
           },
           {passive: true},
+        );
+
+        /*
+          A DRAG THAT ENDS SHORT MUST NOT ALSO COUNT AS A TAP.
+
+          Controls are excluded above, but the tiles are not - dragging the
+          page while starting on the grid is the common case, and that is
+          most of the Portfolio page. Without this, a drag that springs back
+          would still deliver its click to whatever was under the finger
+          and expand a tile the visitor never meant to open.
+
+          Capture phase, so it runs before the grid's own handler. The
+          listener is permanent and gated on the flag rather than added and
+          removed per gesture, because a drag often produces no click at
+          all - a listener added on touchend would then still be waiting
+          when the next, unrelated click arrived. The flag is cleared on
+          the first line of every touchstart instead, so it can only ever
+          swallow a click from the gesture that set it.
+        */
+        addEventListener(
+          'click',
+          (e) => {
+            if (!didDrag) return;
+            didDrag = false;
+            e.preventDefault();
+            e.stopPropagation();
+          },
+          {capture: true},
         );
 
         /* A cancelled touch - a call, a notification - must not leave the

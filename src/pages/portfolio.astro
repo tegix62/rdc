@@ -698,8 +698,28 @@ if (emptyFilters.length > 0) {
       const frag = document.createDocumentFragment();
       for (const el of [...tiles.slice(offset), ...tiles.slice(0, offset)]) frag.appendChild(el);
       grid.appendChild(frag);
+      /*
+        arrange(), NOT layout(). This is the bug Chris reported twice.
+
+        reloadItems() rebuilds Isotope's item list from the container's
+        children, so it does pick up a new DOM order. layout() then
+        positions `filteredItems` - a SEPARATE array that only arrange()
+        and _filter() ever recompute. So the reorder was real and never
+        reached the screen: the DOM changed, every box shifted slightly as
+        sizes were re-measured, and the same pieces stayed in the same
+        sequence. Measured on the live preview as "31 tiles on the first
+        screen, 0 of them new".
+
+        Both of the things I had been measuring - DOM order and box
+        coordinates - changed on every press, which is why three rounds of
+        diagnostics agreed with each other and disagreed with Chris.
+
+        arrange() with no arguments keeps the active category filter and
+        the existing sortBy, and reloadItems() resets itemGUID so
+        'original-order' is reassigned in the new DOM order.
+      */
       iso.reloadItems();
-      iso.layout();
+      iso.arrange();
     });
 
     function updateCols() {
@@ -1272,8 +1292,11 @@ if (emptyFilters.length > 0) {
       for (const el of preGather) frag.appendChild(el);
       grid.appendChild(frag);
       preGather = null;
+      // arrange(), not layout() - layout() repositions a stale filteredItems
+      // array and the reorder never reaches the screen. See the Shuffle
+      // handler for the full account.
       iso.reloadItems();
-      iso.layout();
+      iso.arrange();
     };
 
     const gather = (item: HTMLElement, family: HTMLElement[]) => {
@@ -1341,8 +1364,11 @@ if (emptyFilters.length > 0) {
       if (typeof (iso as any).once === 'function') (iso as any).once('layoutComplete', settle);
       else setTimeout(settle, 450);
 
+      // arrange(), not layout() - layout() repositions a stale filteredItems
+      // array and the reorder never reaches the screen. See the Shuffle
+      // handler for the full account.
       iso.reloadItems();
-      iso.layout();
+      iso.arrange();
     };
 
     const markFamily = (item: HTMLElement) => {

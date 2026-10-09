@@ -203,6 +203,52 @@ if (!chosen) {
   )
 }
 
+/* ---------- the assertion that was missing: a visitor can SEE it ---------- */
+{
+  /*
+    Chris reported Shuffle and Gather doing nothing, twice, and every check
+    in this file passed throughout. They were all measuring DOM order and
+    box coordinates - both of which changed on every press, because
+    reloadItems() really did reorder the list and re-measuring really did
+    shift every box. What never changed was the sequence on screen, because
+    layout() repositions a stale filteredItems array.
+
+    So the question is now asked the way a person asks it: after a Shuffle,
+    are different pieces on the first screenful? Nothing about geometry can
+    substitute for that, and nothing short of it would have caught this.
+  */
+  const page2 = await browser.newPage({viewport: {width: 1600, height: 1000}})
+  await page2.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page2.waitForTimeout(3000)
+
+  const onScreen = () =>
+    page2.evaluate(() =>
+      [...document.querySelectorAll('.pf-grid .pf-item')]
+        .filter((el) => {
+          const r = el.getBoundingClientRect()
+          return r.top < innerHeight && r.bottom > 0 && r.width > 0
+        })
+        .map((el) => el.querySelector('img')?.getAttribute('alt') ?? '?'),
+    )
+
+  const seenBefore = await onScreen()
+  await page2.evaluate(() => document.querySelector('#pf-shuffle')?.click())
+  await page2.waitForTimeout(1500)
+  const seenAfter = await onScreen()
+
+  const was = new Set(seenBefore)
+  const fresh = seenAfter.filter((x) => !was.has(x)).length
+
+  console.log('')
+  console.log(`  first screenful: ${seenBefore.length} pieces before, ${seenAfter.length} after`)
+  check(
+    'Shuffle puts different pieces on the first screenful',
+    fresh > 0,
+    `${fresh} of ${seenAfter.length} are new`,
+  )
+  await page2.close()
+}
+
 /* ---------- turning it off restores the dealt order ---------- */
 {
   const dealt = await page.evaluate(() => {

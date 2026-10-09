@@ -31,6 +31,32 @@ const PROD = (process.argv[3] ?? 'https://rumeaudesign.co').replace(/\/$/, '')
 
 const browser = await chromium.launch()
 
+/*
+  WHAT A PERSON WOULD ACTUALLY JUDGE.
+
+  "Tile positions moved" is true even when the change is invisible - a
+  one-slot rotation shifts every box and leaves the top of the page looking
+  identical. Chris is reporting what he SEES, so this reports the same
+  thing: of the pieces visible on the first screenful, how many are
+  different afterwards. Zero means nothing happened as far as a visitor is
+  concerned, however much the geometry moved.
+*/
+const FIRST_SCREEN = `(() => {
+  return [...document.querySelectorAll('.pf-grid .pf-item')]
+    .filter((el) => {
+      const r = el.getBoundingClientRect();
+      return r.top < window.innerHeight && r.bottom > 0 && r.width > 0;
+    })
+    .map((el) => el.querySelector('img')?.getAttribute('alt')?.slice(0, 20) ?? '?');
+})()`
+
+const changedOnScreen = (before, after) => {
+  const b = new Set(before)
+  const gone = before.filter((x) => !after.includes(x)).length
+  const fresh = after.filter((x) => !b.has(x)).length
+  return {before: before.length, after: after.length, gone, fresh}
+}
+
 /* Where every tile sits on screen, as a fingerprint. */
 const GEOM = `(() => {
   const items = [...document.querySelectorAll('.pf-grid .pf-item')];
@@ -102,16 +128,25 @@ async function survey(label, base) {
 
   /* ---------- SHUFFLE, measured by geometry and with a real click ---------- */
   const before = await page.evaluate(GEOM)
+  const screenBefore = await page.evaluate(FIRST_SCREEN)
   await page.click('#pf-shuffle')
   await page.waitForTimeout(1800)
   const after = await page.evaluate(GEOM)
+  const screenAfter = await page.evaluate(FIRST_SCREEN)
 
   console.log(`\n  Shuffle (real mouse click):`)
   console.log(`    DOM order changed:     ${before.order !== after.order}`)
   console.log(`    TILE POSITIONS moved:  ${before.boxes !== after.boxes}`)
   console.log(`    grid height ${before.gridHeight} -> ${after.gridHeight}`)
+  const vis = changedOnScreen(screenBefore, screenAfter)
+  console.log(
+    `    VISIBLE on first screen: ${vis.before} tiles -> ${vis.after}, ${vis.fresh} of them new, ${vis.gone} gone`,
+  )
   if (before.order !== after.order && before.boxes === after.boxes) {
     console.log(`    >>> the order changed and nothing moved: Isotope is not relaying out.`)
+  }
+  if (vis.fresh === 0) {
+    console.log(`    >>> nothing a visitor can see changed, whatever the geometry says.`)
   }
 
   /* ---------- GATHER ---------- */
@@ -155,7 +190,48 @@ async function survey(label, base) {
   await page.close()
 }
 
-await survey('PREVIEW', PREVIEW)
-await survey('PRODUCTION', PROD)
+await survey('PREVIEW desktop', PREVIEW)
+await survey('PRODUCTION desktop', PROD)
+
+/*
+  A REAL TAP ON A PHONE, which is how Chris said he was testing. Playwright's
+  tap() drives the actual touch pipeline rather than dispatching an event, so
+  it is subject to everything a thumb is subject to.
+*/
+{
+  const page = await browser.newPage({viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true})
+  const errs = []
+  page.on('pageerror', (e) => errs.push(e.message))
+  console.log(`\n=== PREVIEW phone, real taps: ${PREVIEW}/portfolio ===`)
+  await page.goto(`${PREVIEW}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.waitForTimeout(4000)
+
+  const bar = await page.evaluate(() => {
+    const b = document.querySelector('#pf-shuffle')
+    if (!b) return null
+    const r = b.getBoundingClientRect()
+    const top = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2))
+    return {
+      rect: `${Math.round(r.width)}x${Math.round(r.height)} at ${Math.round(r.left)},${Math.round(r.top)}`,
+      topmost: top ? `${top.tagName.toLowerCase()}${top.id ? '#' + top.id : ''}` : 'nothing',
+      cols: document.querySelector('.pf-sizer')?.offsetWidth ?? null,
+    }
+  })
+  console.log(`  #pf-shuffle ${bar?.rect} | topmost ${bar?.topmost} | column width ${bar?.cols}`)
+
+  const b0 = await page.evaluate(GEOM)
+  const s0 = await page.evaluate(FIRST_SCREEN)
+  await page.tap('#pf-shuffle')
+  await page.waitForTimeout(1800)
+  const b1 = await page.evaluate(GEOM)
+  const s1 = await page.evaluate(FIRST_SCREEN)
+  const v = changedOnScreen(s0, s1)
+  console.log(`  Shuffle by real tap:`)
+  console.log(`    DOM order changed:    ${b0.order !== b1.order}`)
+  console.log(`    TILE POSITIONS moved: ${b0.boxes !== b1.boxes}`)
+  console.log(`    VISIBLE on first screen: ${v.before} -> ${v.after}, ${v.fresh} new, ${v.gone} gone`)
+  console.log(`  page errors: ${errs.length}${errs.length ? ' - ' + errs.join(' | ') : ''}`)
+  await page.close()
+}
 
 await browser.close()

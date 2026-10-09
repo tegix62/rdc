@@ -170,7 +170,15 @@ if (!chosen) {
     const idx = tiles.map((el, i) => [hrefOf(el), i]).filter(([k]) => k === href).map(([, i]) => i)
     return {
       top: Math.round(probe.getBoundingClientRect().top),
-      firstInDom: tiles[0] === probe,
+      /*
+        The clicked tile leads ITS OWN RUN now, not the whole grid. Gather
+        used to move the set to index 0, which broke the scroll anchor
+        beyond rescue; the siblings are now inserted around the tile's
+        existing place instead. So the property worth asserting changed
+        with the design - "is it first in the DOM" was testing the old
+        behaviour and would now fail on correct code.
+      */
+      leadsItsRun: Math.min(...idx) === idx[0] && tiles[Math.min(...idx)] === probe,
       spreadAfter: Math.max(...idx) - Math.min(...idx),
       familySize: idx.length,
       lines: document.querySelectorAll('.pf-links line').length,
@@ -190,7 +198,7 @@ if (!chosen) {
     after.spreadAfter === after.familySize - 1,
     `spread ${chosen.spreadBefore} -> ${after.spreadAfter} across ${after.familySize} pieces`,
   )
-  check('the clicked tile leads it', after.firstInDom)
+  check('the clicked tile leads its own run', after.leadsItsRun)
   check(
     'and the visitor keeps their place - the clicked tile barely moves on screen',
     Math.abs(after.top - chosen.top) <= 24,

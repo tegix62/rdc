@@ -1396,6 +1396,21 @@ if (emptyFilters.length > 0) {
       */
       if (typeof (iso as any).once === 'function') (iso as any).once('layoutComplete', settle);
       else setTimeout(settle, 450);
+      /*
+        And once more after the expand transition finishes.
+
+        layoutComplete fires when Isotope has placed the tiles, but the
+        clicked tile is simultaneously growing under a CSS transition, so
+        things keep settling for a few hundred milliseconds afterwards. The
+        first correction left 69px of drift against a 24px tolerance.
+
+        Safe to run twice because settle() re-measures: the second call
+        scrolls by whatever drift is LEFT, so if the first got it right this
+        is a no-op rather than a double-correction. The same trap as the
+        nullish-fallback one further up, avoided here by making the
+        operation idempotent instead of by counting calls.
+      */
+      setTimeout(settle, 420);
 
       // arrange(), not layout() - layout() repositions a stale filteredItems
       // array and the reorder never reaches the screen. See the Shuffle

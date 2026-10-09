@@ -78,9 +78,14 @@ if (!toggle) {
   Dispatching in the page moves nothing on its own, so the scroll position
   under test is the one this script set. The scroll depth is asserted
   outright below, so this can never quietly degenerate again.
+
+  AND NOTHING PRESSES THE TOGGLE HERE ANY MORE. Gather is the default now,
+  so the press that used to switch it on switches it off - which is what
+  the last run actually measured: six failures that all said "the
+  constellation is running", because the test had helpfully turned gather
+  off before testing gather.
 */
-await page.evaluate(() => document.querySelector('#pf-gather')?.click())
-await page.waitForTimeout(300)
+await page.waitForTimeout(200)
 
 /*
   Scroll TO a gatherable tile rather than to a fixed depth and hoping one is

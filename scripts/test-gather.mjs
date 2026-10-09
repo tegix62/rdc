@@ -60,14 +60,25 @@ if (!toggle) {
 }
 
 /*
-  Scroll well down the page first. Gathering at the very top would hide a
-  broken anchor, because there is nowhere above to be thrown to.
+  EVERY CLICK FROM HERE IS DISPATCHED IN THE PAGE, NOT BY PLAYWRIGHT.
+
+  The first version used page.click() and the run printed "page scrolled to
+  0" - Playwright scrolls a target into view before clicking it, and the
+  Gather toggle lives in the toolbar at the top of the page, so pressing it
+  dragged the page back to the top. The anchor assertion then ran with
+  nothing above the tile to be thrown to, which is precisely the degenerate
+  case the comment two paragraphs up warns about. It passed, and it proved
+  almost nothing.
+
+  Dispatching in the page moves nothing on its own, so the scroll position
+  under test is the one this script set. The scroll depth is asserted
+  outright below, so this can never quietly degenerate again.
 */
+await page.evaluate(() => document.querySelector('#pf-gather')?.click())
+await page.waitForTimeout(300)
+
 await page.evaluate(() => window.scrollTo({top: 1600, behavior: 'instant'}))
 await page.waitForTimeout(400)
-
-await page.click('#pf-gather')
-await page.waitForTimeout(300)
 
 const pressed = await page.evaluate(
   () => document.querySelector('#pf-gather')?.getAttribute('aria-pressed'),
@@ -112,7 +123,18 @@ if (!chosen) {
   console.log(`  clicked a tile from ${chosen.href} (${chosen.family} pieces)`)
   console.log(`  it sat ${chosen.top}px down the viewport, page scrolled to ${chosen.scrollY}`)
 
-  await page.click('[data-gather-probe]')
+  /*
+    The anchor only means anything with page above the tile. Asserted, not
+    assumed: a run that silently drifts back to the top would report a
+    perfect anchor while testing nothing.
+  */
+  check(
+    'the test is gathering from part-way down the page, not the top',
+    chosen.scrollY > 600,
+    `scrolled to ${chosen.scrollY}`,
+  )
+
+  await page.evaluate(() => document.querySelector('[data-gather-probe]')?.click())
   await page.waitForTimeout(1400)
 
   const after = await page.evaluate(() => {

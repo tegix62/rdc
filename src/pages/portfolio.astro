@@ -85,6 +85,14 @@ const filters = [
   ...ALL_FILTERS.filter((f) => (counts.get(f.value.replace('.', '')) ?? 0) > 0),
 ];
 
+/*
+  Same gate as the constellation and the collage prototype, read here
+  because the Gather toggle is markup rather than script. A Sanity publish
+  deploys main to production, so an experiment must not reach the live site
+  by a route nobody chose.
+*/
+const PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+
 const emptyFilters = ALL_FILTERS.filter(
   (f) => (counts.get(f.value.replace('.', '')) ?? 0) === 0,
 );
@@ -133,6 +141,24 @@ if (emptyFilters.length > 0) {
 
       <div class="pf-group" role="group" aria-label="Arrange">
         <button type="button" class="pf-btn" id="pf-shuffle">Shuffle</button>
+        {/*
+          A SWITCH BETWEEN TWO ANSWERS TO THE SAME QUESTION, FOR JUDGING.
+
+          Lines and gather both say "these pieces belong together" - one
+          keeps the grid intact, the other breaks it to make the set
+          legible. Chris wants to pick one and shelve the other, and the
+          only way to compare them is side by side on the real grid with
+          real content.
+
+          aria-pressed rather than a checkbox because it is a toggle on the
+          view, not a value being submitted. Preview only: this is a
+          decision aid, not navigation, and it must not ship.
+        */}
+        {PREVIEW && (
+          <button type="button" class="pf-btn" id="pf-gather" aria-pressed="false">
+            Gather: off
+          </button>
+        )}
         {/* nowrap: these two are one control in two halves. */}
         <span class="pf-zoom">
           <button type="button" class="pf-btn" id="pf-minus" aria-label="Smaller tiles">&minus;</button>
@@ -1200,6 +1226,117 @@ if (emptyFilters.length > 0) {
       grid.prepend(svg);
     }
 
+    /*
+      GATHER: PULL A PROJECT'S PIECES TO THE TILE YOU CLICKED.
+
+      Chris's third idea: "if you click something, everything snaps close to
+      it that is... related to the project. But this would take everything
+      out of the grid, and I don't know if I want to resort everything around
+      it, how much that would sacrifice speed."
+
+      SPEED IS NOT THE COST, AND IT IS WORTH SAYING WHY
+
+      Isotope positions with transforms, so a relayout of all 82 tiles is
+      GPU work, not layout thrash - the Shuffle button already re-deals the
+      whole grid on every press. What this actually costs is ORIENTATION.
+      Re-sorting moves the tile you clicked, so your scroll position stops
+      meaning anything and content from below the fold gets pulled past you.
+      On a grid this tall that reads as a glitch rather than a reveal.
+
+      So the scroll is corrected. The clicked tile's distance from the top of
+      the viewport is measured before the re-sort and restored after it, which
+      keeps the one thing the visitor is looking at exactly where they left
+      it while everything else rearranges around it. That is the difference
+      between "the grid gathered" and "the page jumped".
+
+      WHY A TOGGLE RATHER THAN THE CLICK BEHAVIOUR
+
+      Gather and the constellation answer the same question - what else
+      belongs to this - and running both at once is noise. Chris wants to
+      judge them against each other and keep one, so the mode is switchable
+      on the page instead of decided in the source. Preview only, so the
+      toggle is not UI that ships.
+    */
+    let gatherMode = false;
+    let preGather: HTMLElement[] | null = null;
+
+    /* The deal as the build dealt it, kept so gather is undoable without
+       re-running orderTiles in the browser. */
+    const rememberOrder = () => {
+      if (!preGather) preGather = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item'));
+    };
+
+    const restoreOrder = () => {
+      if (!preGather) return;
+      const frag = document.createDocumentFragment();
+      for (const el of preGather) frag.appendChild(el);
+      grid.appendChild(frag);
+      preGather = null;
+      iso.reloadItems();
+      iso.layout();
+    };
+
+    const gather = (item: HTMLElement, family: HTMLElement[]) => {
+      /*
+        Moving from one gathered project straight to another puts the deal
+        back first, silently - no reloadItems, no layout, so there is one
+        animation rather than two. Without this the leftovers from the
+        previous gather become the starting order for the next one and the
+        grid drifts further from the dealt arrangement with every click.
+      */
+      if (preGather) {
+        const back = document.createDocumentFragment();
+        for (const el of preGather) back.appendChild(el);
+        grid.appendChild(back);
+      } else {
+        rememberOrder();
+      }
+      const anchorBefore = item.getBoundingClientRect().top;
+
+      /*
+        The clicked tile first, then its siblings, then everything else in
+        the order it was already in. Masonry fills in DOM order, so putting
+        the set at the front is what brings it together - and leaving the
+        remainder's relative order alone means the rest of the grid is
+        rearranged as little as the move allows.
+      */
+      const rest = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item')).filter(
+        (el) => el !== item && !family.includes(el),
+      );
+      const frag = document.createDocumentFragment();
+      frag.appendChild(item);
+      for (const el of family) if (el !== item) frag.appendChild(el);
+      for (const el of rest) frag.appendChild(el);
+      grid.appendChild(frag);
+
+      iso.reloadItems();
+      iso.layout();
+
+      /*
+        Correct the scroll once the tiles have actually landed. Isotope
+        animates, so measuring before layoutComplete reads a position
+        halfway through the move and corrects by the wrong amount.
+
+        `once` rather than a standing listener: every filter, shuffle and
+        expand fires layoutComplete too, and a scroll correction attached to
+        all of them would fight the visitor for control of the page.
+      */
+      const settle = () => {
+        const drift = item.getBoundingClientRect().top - anchorBefore;
+        if (Math.abs(drift) > 1) window.scrollBy({top: drift, behavior: 'instant' as ScrollBehavior});
+      };
+      /*
+        Explicit branch rather than `once?.(...) ?? setTimeout(...)`. If
+        Isotope's `once` exists but returns undefined, the nullish fallback
+        fires the timeout as well and the page gets scroll-corrected twice -
+        once by the right amount and once by nothing, or worse, overshooting.
+        A silent double-correction is exactly the bug that looks like the
+        animation being janky.
+      */
+      if (typeof (iso as any).once === 'function') (iso as any).once('layoutComplete', settle);
+      else setTimeout(settle, 450);
+    };
+
     const markFamily = (item: HTMLElement) => {
       const href = projectOf(item);
       // A standalone piece has no project, so there is no constellation to
@@ -1272,11 +1409,40 @@ if (emptyFilters.length > 0) {
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
           iso.layout();
-          // A third frame: layout() moves tiles, and lines measured before
-          // that settles point at where things USED to be.
-          requestAnimationFrame(drawLinks);
+          /*
+            One mode or the other, never both. Gather re-sorts the grid, so
+            lines drawn against the old positions would point at where
+            things used to be - and even measured correctly, two answers to
+            "what else belongs to this" at once is the noise Chris is
+            trying to choose between.
+          */
+          if (gatherMode) {
+            if (focusItem && focusFamily.length >= FAMILY_MIN) gather(focusItem, focusFamily);
+            else if (wasExpanded) restoreOrder();
+          } else {
+            // A third frame: layout() moves tiles, and lines measured before
+            // that settles point at where things USED to be.
+            requestAnimationFrame(drawLinks);
+          }
         }),
       );
+    });
+
+    /*
+      Flipping the mode puts the grid back to the dealt order first.
+
+      Turning gather off while a project is still gathered would leave the
+      grid in an arrangement no rule produced and no button could undo - the
+      state you cannot get out of is the one worth handling here.
+    */
+    document.querySelector('#pf-gather')?.addEventListener('click', (e) => {
+      const btn = e.currentTarget as HTMLButtonElement;
+      gatherMode = !gatherMode;
+      btn.setAttribute('aria-pressed', String(gatherMode));
+      btn.textContent = `Gather: ${gatherMode ? 'on' : 'off'}`;
+      restoreOrder();
+      if (gatherMode) grid.querySelector('.pf-links')?.remove();
+      else if (focusItem) requestAnimationFrame(drawLinks);
     });
 
     /*

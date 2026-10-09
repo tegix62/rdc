@@ -1,0 +1,44 @@
+name: Test gather
+
+# Gather pulls a project's pieces to the tile you clicked, and leaves the
+# visitor where they were on the page. See scripts/test-gather.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to test'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+  push:
+    paths:
+      - 'scripts/test-gather.mjs'
+      - 'src/pages/portfolio.astro'
+      - '.github/workflows/test-gather.yml'
+
+jobs:
+  gather:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      # A push to src/ starts a preview deploy at the same moment, so without
+      # this the test measures the PREVIOUS build.
+      - run: sleep 150
+      - run: |
+          set -o pipefail
+          node scripts/test-gather.mjs "${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}" | tee /tmp/gather.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Gather'
+            echo ''
+            echo '```'
+            cat /tmp/gather.txt 2>/dev/null || echo '(the test did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

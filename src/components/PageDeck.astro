@@ -238,8 +238,23 @@ const live = at >= 0 && (prev || next);
           nailed down and the content slides underneath it, which is how an
           app pager actually behaves.
         */
-        const skin = document.querySelector('main');
-        if (!skin) return;
+        /*
+          Looked up lazily, and this is not a style preference.
+
+          The first version resolved <main> at parse time and bailed out if
+          it was missing. This component renders ABOVE <main> in the layout
+          and an is:inline script runs while the document is still being
+          parsed, so the element did not exist yet: querySelector returned
+          null, the early return fired, and NOTHING registered - the drag,
+          the navigation and the arrow keys all went silent together. The
+          arrow keys failing is what gave it away, since they never touch
+          the transform.
+
+          Resolving on first use is correct wherever this component sits in
+          the document, which is the property worth having.
+        */
+        let skinEl = null;
+        const skin = () => (skinEl ||= document.querySelector('main'));
 
         let sx = 0;
         let sy = 0;
@@ -258,17 +273,21 @@ const live = at >= 0 && (prev || next);
         };
 
         const paint = (dx) => {
+          const el = skin();
+          if (!el) return;
           clip(true);
-          skin.style.transition = 'none';
-          skin.style.transform = `translate3d(${dx}px,0,0)`;
+          el.style.transition = 'none';
+          el.style.transform = `translate3d(${dx}px,0,0)`;
         };
 
         const release = () => {
           dragging = false;
-          skin.style.transition = 'transform 260ms cubic-bezier(0.22, 1, 0.36, 1)';
-          skin.style.transform = '';
+          const el = skin();
+          if (!el) return;
+          el.style.transition = 'transform 260ms cubic-bezier(0.22, 1, 0.36, 1)';
+          el.style.transform = '';
           setTimeout(() => {
-            skin.style.transition = '';
+            el.style.transition = '';
             clip(false);
           }, 300);
         };
@@ -344,8 +363,11 @@ const live = at >= 0 && (prev || next);
                 document load starts immediately underneath it - this is a
                 paint, not a wait.
               */
-              skin.style.transition = 'transform 180ms ease-out';
-              skin.style.transform = `translate3d(${dx < 0 ? -innerWidth : innerWidth}px,0,0)`;
+              const el = skin();
+              if (el) {
+                el.style.transition = 'transform 180ms ease-out';
+                el.style.transform = `translate3d(${dx < 0 ? -innerWidth : innerWidth}px,0,0)`;
+              }
               go(wanted, dx < 0 ? 'forward' : 'back');
               return;
             }

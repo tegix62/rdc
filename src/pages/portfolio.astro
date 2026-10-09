@@ -879,9 +879,50 @@ if (emptyFilters.length > 0) {
       grid.querySelector('.pf-links')?.remove();
 
       const gr = grid.getBoundingClientRect();
-      const centre = (el: Element) => {
-        const r = el.getBoundingClientRect();
-        return {x: r.left - gr.left + r.width / 2, y: r.top - gr.top + r.height / 2};
+
+      /*
+        The PICTURE's box, not the tile's.
+
+        .pf-item carries the grid's padding, so its edge sits in the middle
+        of the gutter; .pf-item__frame is where the artwork actually stops.
+        Trimming to the frame is what puts the line's end in the gap rather
+        than against the image.
+      */
+      const boxOf = (el: Element) => {
+        const r = (el.querySelector('.pf-item__frame') ?? el).getBoundingClientRect();
+        return {
+          x: r.left - gr.left + r.width / 2,
+          y: r.top - gr.top + r.height / 2,
+          hw: r.width / 2,
+          hh: r.height / 2,
+        };
+      };
+
+      /*
+        Where a line leaves a box, instead of where the box's middle is.
+
+        Chris: a line running under the artwork is a distraction, and with
+        transparent logos it shows straight through. So no line starts or
+        ends inside a picture - each one is cut back to the edge of the box
+        it points at, and pushed a few pixels further out so it sits in the
+        gutter rather than touching the frame.
+
+        The maths is a ray from the centre in the direction of the other
+        tile, scaled to whichever edge it meets first - the smaller of
+        half-width/|dx| and half-height/|dy|. Which edge that turns out to be
+        is the answer, not something to branch on.
+      */
+      const GAP = 3;
+      const edge = (box: {x: number; y: number; hw: number; hh: number}, toward: {x: number; y: number}) => {
+        const dx = toward.x - box.x;
+        const dy = toward.y - box.y;
+        if (dx === 0 && dy === 0) return {x: box.x, y: box.y};
+        const sx = dx === 0 ? Infinity : box.hw / Math.abs(dx);
+        const sy = dy === 0 ? Infinity : box.hh / Math.abs(dy);
+        const s = Math.min(sx, sy);
+        const len = Math.hypot(dx, dy);
+        const out = s + GAP / len;
+        return {x: box.x + dx * out, y: box.y + dy * out};
       };
 
       const NS = 'http://www.w3.org/2000/svg';
@@ -891,12 +932,26 @@ if (emptyFilters.length > 0) {
       svg.setAttribute('preserveAspectRatio', 'none');
       svg.setAttribute('aria-hidden', 'true');
 
-      const from = centre(focusItem);
+      const source = boxOf(focusItem);
       const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
       for (const el of focusFamily) {
         if (el === focusItem) continue;
-        const to = centre(el);
+        const target = boxOf(el);
+
+        const from = edge(source, target);
+        const to = edge(target, source);
+
+        /*
+          Two tiles close enough that the trimmed ends cross each other have
+          no line to draw - the gap between them is smaller than the two
+          pushes away from their edges. Drawing it anyway produces a short
+          stub pointing the wrong way, which reads as a glitch.
+        */
+        const spanned = Math.hypot(to.x - from.x, to.y - from.y);
+        const apart = Math.hypot(target.x - source.x, target.y - source.y);
+        if (spanned < 2 || spanned > apart) continue;
+
         const line = document.createElementNS(NS, 'line');
         line.setAttribute('x1', String(Math.round(from.x)));
         line.setAttribute('y1', String(Math.round(from.y)));

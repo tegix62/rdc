@@ -1,0 +1,43 @@
+name: Test video in-view autoplay
+
+# Do autoplay clips start when scrolled to, including sideways inside a
+# media row? Tested by instrumenting play(), because Playwright's Chromium
+# has no H.264 decoder and "is it playing" would fail for reasons that have
+# nothing to do with the site. See scripts/test-video-inview.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to test'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+      paths:
+        description: 'Comma-separated pages to walk'
+        default: '/video,/work/dumpstat,/work/two-point-oh,/work/adelante-barbell-club,/work/hug-a-mug'
+
+jobs:
+  inview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          set -o pipefail
+          node scripts/test-video-inview.mjs \
+            "${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}" \
+            "${{ inputs.paths || '/video,/work/dumpstat,/work/two-point-oh,/work/adelante-barbell-club,/work/hug-a-mug' }}" | tee /tmp/vid.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Autoplay in view'
+            echo ''
+            echo '```'
+            cat /tmp/vid.txt 2>/dev/null || echo '(the test did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

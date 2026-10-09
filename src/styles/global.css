@@ -2177,6 +2177,41 @@ main {
   opacity: 0.2;
 }
 
+/*
+  Lines from the clicked piece to its siblings, drawn BEHIND the grid.
+
+  Clicking a tile is a request to see that piece, so anything the click adds
+  has to stay out of its way. Over the grid, these lines would cross the
+  very thing they point at. As the first child of .pf-grid they paint before
+  every tile, so they pass behind the artwork and show only in the gutters -
+  and through the dimmed field, which is what makes the dimming read as
+  "something runs underneath this" rather than merely "this is less
+  important".
+
+  No z-index. The tiles are absolutely positioned with z-index auto, so DOM
+  order alone puts them above; giving this a z-index would start a contest
+  that the expanded tile would have to join.
+*/
+.pf-links {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.pf-links line {
+  stroke: var(--color-navy);
+  stroke-width: 1;
+  /*
+    Faint on purpose. The line's job is to say "related", and it says that
+    at an opacity where you notice it without reading it - strong enough to
+    follow across the grid, weak enough that the lit tiles stay the subject.
+  */
+  stroke-opacity: 0.45;
+  vector-effect: non-scaling-stroke;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pf-grid .pf-item {
     transition: none;

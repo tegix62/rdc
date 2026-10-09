@@ -517,6 +517,20 @@ if (emptyFilters.length > 0) {
     */
     let resizePending = false;
 
+    /*
+      Constellation state, declared up here because remeasure() below redraws
+      the lines and drawLinks reads these. Same reasoning as the function
+      being a declaration: the ordering should not be something anyone has to
+      work out.
+
+      LINES is preview-only. A Sanity publish deploys main to production, so
+      an experiment Chris has not approved must not reach the live site by
+      that route - the same gate the collage prototype uses.
+    */
+    const LINES = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+    let focusItem: HTMLElement | null = null;
+    let focusFamily: HTMLElement[] = [];
+
     function remeasure() {
       if (resizePending) return;
       resizePending = true;
@@ -539,6 +553,11 @@ if (emptyFilters.length > 0) {
         }
         lastSizerW = sizer.offsetWidth;
         iso.layout();
+        // A width change moves every tile, so any open constellation's lines
+        // now point at where things used to be. Redrawn from the new
+        // positions rather than stretched, which is what leaving an svg with
+        // a stale viewBox would do.
+        requestAnimationFrame(() => drawLinks());
       });
     }
 
@@ -816,10 +835,93 @@ if (emptyFilters.length > 0) {
     const projectOf = (el: Element) =>
       el.querySelector('.pf-item__jump')?.getAttribute('href') ?? null;
 
+    /*
+      LINES BETWEEN THE PIECES - PREVIEW ONLY FOR NOW.
+
+      An experiment Chris wanted to see rather than a decision, so it is
+      gated the same way the collage prototype is: a Sanity publish deploys
+      main to production, and an unapproved experiment must not reach the
+      live site by that route. Same flag, same reasoning.
+    */
     const clearFamily = () => {
       grid.classList.remove('has-focus');
       grid.querySelectorAll('.pf-item.is-sibling').forEach((el) => el.classList.remove('is-sibling'));
+      grid.querySelector('.pf-links')?.remove();
+      focusItem = null;
+      focusFamily = [];
     };
+
+    /*
+      BEHIND THE TILES, NOT OVER THEM.
+
+      Chris's constraint is the whole design here: clicking a tile is a
+      request to see THAT piece, so anything the click adds must not compete
+      with it. Lines drawn over the grid would cross the very thing they are
+      meant to point at.
+
+      So the svg is the first child of the grid and the tiles paint after it
+      in DOM order - the lines pass behind every tile and emerge in the gaps.
+      The dimmed field reads as having something underneath it; the lit tiles
+      sit on top, unobstructed. pointer-events are off so nothing here
+      changes what a click lands on.
+
+      Drawn from measured positions rather than from column arithmetic,
+      because masonry decides where a tile ends up and only the painted box
+      knows the answer.
+
+      A declaration rather than a const arrow, because remeasure() above
+      calls it: hoisting means the ordering is not something a reader has to
+      work out, and the state it reads is guarded on the first line rather
+      than assumed.
+    */
+    function drawLinks() {
+      if (!LINES || !focusItem || focusFamily.length < 2) return;
+      grid.querySelector('.pf-links')?.remove();
+
+      const gr = grid.getBoundingClientRect();
+      const centre = (el: Element) => {
+        const r = el.getBoundingClientRect();
+        return {x: r.left - gr.left + r.width / 2, y: r.top - gr.top + r.height / 2};
+      };
+
+      const NS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('class', 'pf-links');
+      svg.setAttribute('viewBox', `0 0 ${Math.round(gr.width)} ${Math.round(gr.height)}`);
+      svg.setAttribute('preserveAspectRatio', 'none');
+      svg.setAttribute('aria-hidden', 'true');
+
+      const from = centre(focusItem);
+      const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      for (const el of focusFamily) {
+        if (el === focusItem) continue;
+        const to = centre(el);
+        const line = document.createElementNS(NS, 'line');
+        line.setAttribute('x1', String(Math.round(from.x)));
+        line.setAttribute('y1', String(Math.round(from.y)));
+        line.setAttribute('x2', String(Math.round(to.x)));
+        line.setAttribute('y2', String(Math.round(to.y)));
+        /*
+          Each line draws itself outward from the clicked tile. The order
+          matters more than the motion: the eye follows the growth from the
+          piece you chose to the ones it is related to, which is the
+          sentence the whole effect is trying to say.
+        */
+        if (!still) {
+          const len = Math.hypot(to.x - from.x, to.y - from.y);
+          line.style.strokeDasharray = String(len);
+          line.style.strokeDashoffset = String(len);
+          requestAnimationFrame(() => {
+            line.style.transition = 'stroke-dashoffset 420ms ease-out';
+            line.style.strokeDashoffset = '0';
+          });
+        }
+        svg.appendChild(line);
+      }
+
+      grid.prepend(svg);
+    }
 
     const markFamily = (item: HTMLElement) => {
       const href = projectOf(item);
@@ -842,6 +944,8 @@ if (emptyFilters.length > 0) {
 
       for (const el of family) el.classList.add('is-sibling');
       grid.classList.add('has-focus');
+      focusItem = item;
+      focusFamily = family;
     };
 
     grid.addEventListener('click', (e) => {
@@ -888,7 +992,14 @@ if (emptyFilters.length > 0) {
       // to re-measure. Two frames: one for the class to apply and the browser
       // to reflow, then layout against real heights. A single synchronous
       // call here measures the pre-reveal height and leaves tiles overlapping.
-      requestAnimationFrame(() => requestAnimationFrame(() => iso.layout()));
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          iso.layout();
+          // A third frame: layout() moves tiles, and lines measured before
+          // that settles point at where things USED to be.
+          requestAnimationFrame(drawLinks);
+        }),
+      );
     });
 
     /*
@@ -951,7 +1062,14 @@ if (emptyFilters.length > 0) {
       */
       const on = Boolean(e?.detail?.on);
       iso.arrange({layoutMode: on ? 'fitRows' : 'masonry'});
-      requestAnimationFrame(() => requestAnimationFrame(() => iso.layout()));
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          iso.layout();
+          // A third frame: layout() moves tiles, and lines measured before
+          // that settles point at where things USED to be.
+          requestAnimationFrame(drawLinks);
+        }),
+      );
     });
   });
 </script>

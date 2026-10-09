@@ -1382,35 +1382,45 @@ if (emptyFilters.length > 0) {
         expand fires layoutComplete too, and a scroll correction attached to
         all of them would fight the visitor for control of the page.
       */
-      const settle = () => {
-        const drift = item.getBoundingClientRect().top - anchorBefore;
-        if (Math.abs(drift) > 1) window.scrollBy({top: drift, behavior: 'instant' as ScrollBehavior});
+      /*
+        HOLD THE TILE STILL WHILE EVERYTHING ELSE SETTLES.
+
+        Two timed corrections did not work and made it worse: 69px of drift
+        became 236px. The target is moving - Isotope places the tiles, and
+        the clicked tile is simultaneously growing under a CSS transition,
+        so one shot at layoutComplete and another at 420ms are both aimed
+        at positions that are still changing.
+
+        A convergent loop instead. Every frame for 800ms, scroll by whatever
+        drift is LEFT. Each pass removes the current error rather than
+        predicting a final one, so it tracks the tile as it settles and
+        reaches zero instead of overshooting. The idempotence that made two
+        shots safe is what makes this work at sixty of them.
+
+        It gives up the moment the visitor touches the page. Holding a tile
+        still is only kind while nobody else is trying to steer - fighting
+        a scroll for most of a second would be the worst bug in this whole
+        feature.
+      */
+      let own = true;
+      const yielded = () => {
+        own = false;
       };
-      /*
-        Explicit branch rather than `once?.(...) ?? setTimeout(...)`. If
-        Isotope's `once` exists but returns undefined, the nullish fallback
-        fires the timeout as well and the page gets scroll-corrected twice -
-        once by the right amount and once by nothing, or worse, overshooting.
-        A silent double-correction is exactly the bug that looks like the
-        animation being janky.
-      */
-      if (typeof (iso as any).once === 'function') (iso as any).once('layoutComplete', settle);
-      else setTimeout(settle, 450);
-      /*
-        And once more after the expand transition finishes.
+      for (const ev of ['wheel', 'touchstart', 'keydown']) {
+        addEventListener(ev, yielded, {once: true, passive: true});
+      }
 
-        layoutComplete fires when Isotope has placed the tiles, but the
-        clicked tile is simultaneously growing under a CSS transition, so
-        things keep settling for a few hundred milliseconds afterwards. The
-        first correction left 69px of drift against a 24px tolerance.
-
-        Safe to run twice because settle() re-measures: the second call
-        scrolls by whatever drift is LEFT, so if the first got it right this
-        is a no-op rather than a double-correction. The same trap as the
-        nullish-fallback one further up, avoided here by making the
-        operation idempotent instead of by counting calls.
-      */
-      setTimeout(settle, 420);
+      const until = performance.now() + 800;
+      const hold = () => {
+        if (!own) return;
+        const drift = item.getBoundingClientRect().top - anchorBefore;
+        if (Math.abs(drift) > 1) {
+          window.scrollBy({top: drift, behavior: 'instant' as ScrollBehavior});
+        }
+        if (performance.now() < until) requestAnimationFrame(hold);
+        else for (const ev of ['wheel', 'touchstart', 'keydown']) removeEventListener(ev, yielded);
+      };
+      requestAnimationFrame(hold);
 
       // arrange(), not layout() - layout() repositions a stale filteredItems
       // array and the reorder never reaches the screen. See the Shuffle

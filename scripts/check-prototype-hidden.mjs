@@ -25,12 +25,26 @@ const PROD = (process.argv[2] ?? 'https://rumeaudesign.co').replace(/\/$/, '')
 const PREVIEW = (process.argv[3] ?? 'https://preview.rumeau-design-co.pages.dev').replace(/\/$/, '')
 const PATH = process.argv[4] ?? '/collage/red-kettle'
 
+/*
+  Follows redirects, deliberately.
+
+  The first version used redirect:'manual' and failed on preview with a 308
+  - Cloudflare sending /collage/red-kettle to the trailing-slash form, which
+  then serves the page perfectly well. That is a hop, not an absence, and
+  reporting it as one sent me looking at a build that was already correct.
+
+  The question is whether the URL ends up serving a page, so the answer is
+  the status at the end of the chain. The hop is reported alongside it,
+  because "200 after a redirect" and "200 directly" are different facts and
+  conflating them is how the next person gets confused in the other
+  direction.
+*/
 const status = async (base) => {
   try {
-    const res = await fetch(`${base}${PATH}`, {redirect: 'manual', headers: {'cache-control': 'no-cache'}})
-    return res.status
+    const res = await fetch(`${base}${PATH}`, {headers: {'cache-control': 'no-cache'}})
+    return {code: res.status, via: res.redirected ? ` (after a redirect to ${res.url})` : ''}
   } catch (e) {
-    return `error: ${e?.message ?? e}`
+    return {code: `error: ${e?.message ?? e}`, via: ''}
   }
 }
 
@@ -38,16 +52,16 @@ const prod = await status(PROD)
 const preview = await status(PREVIEW)
 
 console.log(`${PATH}`)
-console.log(`  production  ${PROD}  ->  ${prod}`)
-console.log(`  preview     ${PREVIEW}  ->  ${preview}`)
+console.log(`  production  ${PROD}  ->  ${prod.code}${prod.via}`)
+console.log(`  preview     ${PREVIEW}  ->  ${preview.code}${preview.via}`)
 
 let failed = false
-if (prod !== 404) {
-  console.log(`\n  Production answers ${prod}; the prototype should not exist there at all.`)
+if (prod.code !== 404) {
+  console.log(`\n  Production answers ${prod.code}; the prototype should not exist there at all.`)
   failed = true
 }
-if (preview !== 200) {
-  console.log(`\n  Preview answers ${preview}; the prototype should be there to work on.`)
+if (preview.code !== 200) {
+  console.log(`\n  Preview answers ${preview.code}; the prototype should be there to work on.`)
   failed = true
 }
 

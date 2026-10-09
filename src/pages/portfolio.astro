@@ -694,7 +694,23 @@ if (emptyFilters.length > 0) {
     document.querySelector('#pf-shuffle')?.addEventListener('click', () => {
       const tiles = Array.from(grid.querySelectorAll('.pf-item'));
       if (tiles.length < 3) return;
-      const offset = 1 + Math.floor(Math.random() * (tiles.length - 1));
+      /*
+        A ROTATION SMALL ENOUGH TO BE INVISIBLE IS NOT A SHUFFLE.
+
+        The offset used to be anywhere from 1 to n-1, and a small one is a
+        technically-correct re-deal that looks like a broken button: the
+        first run with arrange() working reported "2 of 33 pieces on the
+        first screenful are new". The press did exactly what it was written
+        to do and a visitor would swear nothing happened.
+
+        Restricted to the middle half, so every press moves between a
+        quarter and three quarters of the grid past the fold. The
+        alternation the deal worked out is preserved either way, since a
+        rotation keeps the cyclic order whatever the offset.
+      */
+      const lo = Math.max(1, Math.floor(tiles.length * 0.25));
+      const hi = Math.max(lo + 1, Math.floor(tiles.length * 0.75));
+      const offset = lo + Math.floor(Math.random() * (hi - lo));
       const frag = document.createDocumentFragment();
       for (const el of [...tiles.slice(offset), ...tiles.slice(0, offset)]) frag.appendChild(el);
       grid.appendChild(frag);
@@ -1317,19 +1333,36 @@ if (emptyFilters.length > 0) {
       const anchorBefore = item.getBoundingClientRect().top;
 
       /*
-        The clicked tile first, then its siblings, then everything else in
-        the order it was already in. Masonry fills in DOM order, so putting
-        the set at the front is what brings it together - and leaving the
-        remainder's relative order alone means the rest of the grid is
-        rearranged as little as the move allows.
+        THE SET GATHERS WHERE THE TILE ALREADY IS, NOT AT THE TOP.
+
+        The first version put the clicked tile first and its siblings
+        straight after. That brought the set together and broke the anchor
+        outright, which only became measurable once arrange() made the
+        reorder visible at all: 404px down the viewport before, 160px after,
+        with the page scrolled from 749 to 0. Not a bug in the correction -
+        the correction was right and impossible. Moving the tile to index 0
+        puts it at the top of the document, and no scroll position can hold
+        something at 404px when it sits 160px from the top of the page.
+
+        So the siblings are inserted AROUND the clicked tile's existing
+        place in the deal instead. Everything before it keeps its order, so
+        its position barely moves, and the cluster forms where the eye
+        already is rather than somewhere the visitor has to go and find.
+
+        The clicked tile still shifts earlier by however many of its
+        siblings were above it, which is what the scroll correction below is
+        for - a few hundred pixels at most rather than the whole page.
       */
-      const rest = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item')).filter(
-        (el) => el !== item && !family.includes(el),
-      );
+      const current = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item'));
+      const others = current.filter((el) => el === item || !family.includes(el));
+      const at = others.indexOf(item);
       const frag = document.createDocumentFragment();
-      frag.appendChild(item);
-      for (const el of family) if (el !== item) frag.appendChild(el);
-      for (const el of rest) frag.appendChild(el);
+      for (let i = 0; i < others.length; i++) {
+        frag.appendChild(others[i]);
+        // Immediately after the clicked tile, so masonry lays the set out
+        // as one run starting from where that tile already sat.
+        if (i === at) for (const el of family) if (el !== item) frag.appendChild(el);
+      }
       grid.appendChild(frag);
 
       /*

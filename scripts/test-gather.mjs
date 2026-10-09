@@ -241,9 +241,16 @@ if (!chosen) {
 
   console.log('')
   console.log(`  first screenful: ${seenBefore.length} pieces before, ${seenAfter.length} after`)
+  /*
+    A third of the screenful, not merely non-zero. The first passing run
+    reported "2 of 33 are new" - a correct rotation that a visitor would
+    swear did nothing, which is the complaint this whole thread is about.
+    The offset is now restricted to the middle half of the grid, so a weak
+    re-deal is a failure rather than bad luck.
+  */
   check(
-    'Shuffle puts different pieces on the first screenful',
-    fresh > 0,
+    'Shuffle visibly re-deals the first screenful',
+    fresh >= Math.floor(seenAfter.length / 3),
     `${fresh} of ${seenAfter.length} are new`,
   )
   await page2.close()

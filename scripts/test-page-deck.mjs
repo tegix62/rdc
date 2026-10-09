@@ -167,6 +167,17 @@ console.log(`${BASE}\n`)
   check('swiping left goes to the next page', !!now && /\/video/.test(now ?? ''), `landed on ${now ?? 'nowhere'}`)
 
   if (now) {
+    /*
+      Wait for the page we just landed on to be ready before swiping again.
+
+      landed() returns the moment the URL commits, which is well before the
+      new document's deck script has run - so the second swipe was firing
+      into a page with no listeners attached and reported "landed on
+      nowhere". It passed for several runs on timing alone, which is the
+      worst way for a test to be wrong.
+    */
+    await page.waitForLoadState('domcontentloaded')
+    await page.waitForTimeout(900)
     const back = page.url()
     await page.evaluate(() => window.__swipe(null, 160, 0))
     const prev = await landed(page, back)

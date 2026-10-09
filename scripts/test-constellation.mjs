@@ -211,19 +211,49 @@ const links = await page.evaluate(() => {
     measurable difference between the two shapes is total length. Computed
     here rather than guessed at, because a fixed pixel threshold would be a
     number I made up about a layout that changes with the viewport.
+
+    THE TRIMMING HAS TO MATCH, and the first version of this check did not
+    do that. It compared drawn segments - cut back to each frame's edge -
+    against raw centre-to-centre spokes, and "37% less ink" came out of a
+    run where the page was still drawing the starburst. The saving was the
+    trimming, measured against itself. A check that passes for the shape it
+    is supposed to rule out is worse than no check.
+
+    So the ray-rect cut is reimplemented here, independently, and applied to
+    the hypothetical spokes as well. Duplicated from the page on purpose: a
+    test that imported the page's own geometry could only ever agree with
+    it.
   */
-  const hub = grid.querySelector('.pf-item.is-expanded')
-  const mid = (el) => {
+  const boxOf = (el) => {
     const r = (el.querySelector('.pf-item__frame') ?? el).getBoundingClientRect()
-    return {x: r.left - gr.left + r.width / 2, y: r.top - gr.top + r.height / 2}
+    return {
+      x: r.left - gr.left + r.width / 2,
+      y: r.top - gr.top + r.height / 2,
+      hw: r.width / 2,
+      hh: r.height / 2,
+    }
   }
+  const GAP = 3
+  const trimmed = (a, b) => {
+    const dx = b.x - a.x
+    const dy = b.y - a.y
+    const len = Math.hypot(dx, dy)
+    if (!len) return 0
+    const cut = (box) => {
+      const sx = dx === 0 ? Infinity : box.hw / Math.abs(dx)
+      const sy = dy === 0 ? Infinity : box.hh / Math.abs(dy)
+      return Math.min(sx, sy) * len + GAP
+    }
+    return Math.max(0, len - cut(a) - cut(b))
+  }
+
+  const hub = grid.querySelector('.pf-item.is-expanded')
   let starInk = 0
   if (hub) {
-    const h = mid(hub)
+    const h = boxOf(hub)
     for (const el of lit) {
       if (el === hub) continue
-      const m = mid(el)
-      starInk += Math.hypot(m.x - h.x, m.y - h.y)
+      starInk += trimmed(h, boxOf(el))
     }
   }
 

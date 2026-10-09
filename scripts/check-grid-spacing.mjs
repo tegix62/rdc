@@ -92,6 +92,32 @@ console.log(`\n  adjacent same-project pairs: ${clashes.length}`)
 for (const c of clashes) console.log(`    position ${c.at}: ${c.project}`)
 
 /*
+  THE TAIL BELONGS TO UNAFFILIATED WORK.
+
+  Chris spotted the Adelante "More Kilos" tee at the bottom of the grid.
+  The dealer's tie-break was treating a project down to its last piece as
+  indistinguishable from a standalone tile, so that piece got shuffled
+  uniformly into the tail.
+
+  Checked against the served page and not only in the unit test, because
+  the unit test proves the algorithm and this proves the algorithm reached
+  the HTML - the distinction that has caught this project out twice.
+
+  Fifteen is about two rows at the widest layout. DOM order is the right
+  thing to read: masonry decides the visual bottom from tile heights, so a
+  tile dealt late can sit slightly higher, but it cannot climb out of the
+  tail region, and the rule being tested is about the deal.
+*/
+const TAIL = 15
+const tail = tiles.slice(-TAIL)
+const strays = tail.map((t, i) => ({t, at: tiles.length - TAIL + i})).filter(({t}) => t.project)
+const lastAffiliated = tiles.reduce((acc, t, i) => (t.project ? i : acc), -1)
+
+console.log(`\n  last ${TAIL} tiles: ${TAIL - strays.length} unaffiliated, ${strays.length} belonging to a project`)
+console.log(`  last affiliated tile sits at position ${lastAffiliated} of ${tiles.length - 1}`)
+for (const s of strays) console.log(`    position ${s.at}: ${s.t.project}`)
+
+/*
   THE CASE STUDY BAR.
 
   A case study wears its "View project" bar at rest so the curated work is
@@ -132,6 +158,15 @@ if (leaked.length) {
   console.log(`\n${leaked.length} non-case-study tile(s) show the bar at rest; it should be case studies only.`)
   failed = true
 }
+if (strays.length) {
+  console.log(
+    `\n${strays.length} tile(s) belonging to a project sit in the last ${TAIL}; the tail is for unaffiliated work.`,
+  )
+  failed = true
+}
 if (failed) process.exit(1)
 
-console.log('\nNo tile sits beside one from the same project, and every case study wears its bar.')
+console.log(
+  '\nNo tile sits beside one from the same project, every case study wears its bar,' +
+    ' and the tail is unaffiliated work.',
+)

@@ -38,6 +38,22 @@ await page.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60
 await page.waitForSelector('.pf-grid .pf-item', {state: 'visible', timeout: 30_000}).catch(() => {})
 await page.waitForTimeout(2500)
 
+/*
+  Gather is the default now, so the committed constellation has to be
+  switched on before it can be tested. Dispatched in the page rather than
+  clicked, so the toolbar is not scrolled into view and the page stays
+  where this script put it.
+
+  Only the sections below that assert LINES need this. The dimming
+  behaviour is shared by both modes, which is why the later reloads - which
+  reset the toggle to its default - still measure what they claim to.
+*/
+await page.evaluate(() => {
+  const btn = document.querySelector('#pf-gather')
+  if (btn && btn.getAttribute('aria-pressed') === 'true') btn.click()
+})
+await page.waitForTimeout(400)
+
 /* What projects exist on the page, and how big each one is. */
 const families = await page.evaluate(() => {
   const counts = {}
@@ -354,6 +370,83 @@ if (!links) {
     `${links.ink}px of hops against ${links.starInk}px of spokes (${Math.round((1 - links.ink / links.starInk) * 100)}% less ink)`,
   )
   check('the line layer is the first child, so tiles paint over it', links.firstChild)
+}
+
+/*
+  THE HOVER PREVIEW, which is what the constellation is for now.
+
+  Chris chose gather as the default and the lines became its preview: on a
+  desktop pointer, hovering a tile draws its family without moving or
+  dimming anything. The things that would make that obnoxious are what get
+  asserted - a preview that fires while a tile is gathered, or that dims
+  the grid, or that latches on and never clears.
+
+  Desktop only by design. Mobile has no hover and learns the same thing on
+  tap, so nothing here is information a phone cannot reach.
+*/
+{
+  const hover = await browser.newPage({viewport: {width: 1600, height: 1000}})
+  await hover.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await hover.waitForTimeout(3000)
+
+  const target = await hover.evaluate(() => {
+    const tiles = [...document.querySelectorAll('.pf-grid .pf-item')]
+    const hrefOf = (el) => el.querySelector('.pf-item__jump')?.getAttribute('href') ?? null
+    const sizes = {}
+    for (const el of tiles) {
+      const k = hrefOf(el)
+      if (k) sizes[k] = (sizes[k] ?? 0) + 1
+    }
+    const t = tiles.find((el) => hrefOf(el) && sizes[hrefOf(el)] >= 4)
+    if (!t) return null
+    t.setAttribute('data-hover-probe', '')
+    return hrefOf(t)
+  })
+
+  console.log('')
+  if (!target) {
+    check('a tile from a big enough project exists to hover', false)
+  } else {
+    await hover.hover('[data-hover-probe]')
+    // Longer than the 140ms dwell, so this measures the preview rather
+    // than the delay that stops a cursor crossing the grid strobing.
+    await hover.waitForTimeout(500)
+
+    const state = await hover.evaluate(() => {
+      const svg = document.querySelector('.pf-grid .pf-links')
+      return {
+        lines: svg?.querySelectorAll('line').length ?? 0,
+        marked: !!document.querySelector('.pf-links--preview'),
+        opacity: Number(getComputedStyle(document.querySelector('.pf-links line') ?? document.body).strokeOpacity),
+        dimmed: document.querySelector('.pf-grid')?.classList.contains('has-focus') ?? false,
+        moved: !!document.querySelector('.pf-item.is-expanded'),
+      }
+    })
+    console.log(`  hovering a tile from ${target}`)
+    check('hovering draws the family', state.lines > 0, `${state.lines} line(s)`)
+    check('and marks them as a preview', state.marked)
+    check(
+      'the preview is quieter than a committed line',
+      state.opacity > 0 && state.opacity < 1,
+      `stroke-opacity ${state.opacity}`,
+    )
+    /*
+      The two refusals that make it a preview rather than a second mode:
+      nothing dims and nothing moves. Either one would make a hover feel
+      like a click that fired by accident.
+    */
+    check('nothing dims on hover', !state.dimmed)
+    check('nothing expands on hover', !state.moved)
+
+    /* Leaving must clear it, or the lines latch on. */
+    await hover.mouse.move(5, 5)
+    await hover.waitForTimeout(400)
+    const after = await hover.evaluate(
+      () => document.querySelectorAll('.pf-grid .pf-links line').length,
+    )
+    check('leaving the grid clears the preview', after === 0, `${after} line(s) left behind`)
+  }
+  await hover.close()
 }
 
 /* Collapse by clicking the same tile again. */

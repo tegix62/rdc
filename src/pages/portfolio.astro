@@ -936,8 +936,17 @@ if (emptyFilters.length > 0) {
       work out, and the state it reads is guarded on the first line rather
       than assumed.
     */
-    function drawLinks() {
-      if (!LINES || !focusItem || focusFamily.length < 2) return;
+    function drawLinks(from: HTMLElement | null = focusItem, fam: HTMLElement[] = focusFamily) {
+      /*
+        Parameterised so the same drawing can serve two jobs.
+
+        Committed: the lines for whatever tile is expanded, read from the
+        focus state. Preview: the lines for whatever tile is merely under
+        the cursor, passed in. Identical geometry, different trigger - and
+        crucially NOT routed through focusItem/focusFamily, because those
+        also drive the dimming. A hover must not dim eighty tiles.
+      */
+      if (!LINES || !from || fam.length < 2) return;
       grid.querySelector('.pf-links')?.remove();
 
       const gr = grid.getBoundingClientRect();
@@ -1110,7 +1119,7 @@ if (emptyFilters.length > 0) {
       open.setAttribute('fill', '#fff');
       mask.appendChild(open);
 
-      for (const tile of focusFamily) {
+      for (const tile of fam) {
         const f = (tile.querySelector('.pf-item__frame') ?? tile).getBoundingClientRect();
         if (f.width < 2 || f.height < 2) continue;
         const cut = document.createElementNS(NS, 'rect');
@@ -1159,8 +1168,8 @@ if (emptyFilters.length > 0) {
         O(n * n) per step with n at most a couple of dozen tiles, run once
         per click. Clarity is worth more here than the heap.
       */
-      const nodes = focusFamily.map((el) => ({el, box: boxOf(el)}));
-      const root = nodes.find((n) => n.el === focusItem);
+      const nodes = fam.map((el) => ({el, box: boxOf(el)}));
+      const root = nodes.find((n) => n.el === from);
       if (!root) return;
 
       const reached = [root];
@@ -1480,6 +1489,87 @@ if (emptyFilters.length > 0) {
       iso.arrange();
     };
 
+    /*
+      HOVER PREVIEWS THE FAMILY. DESKTOP ONLY, AND THAT IS FINE.
+
+      Chris: "it could act as a mouseover effect". Right instinct, and it
+      reframes what the constellation is FOR. It was weak as an alternative
+      to gather because it asked System 2 to trace a diagram during a
+      glance. As a preview it is doing the job a glance actually wants:
+      what else is this, answered before you commit to anything, with
+      nothing moving and nothing to undo.
+
+      It also retroactively earns the faintness. A hint should be quiet;
+      the reason the lines read as weak is that they were being asked to
+      carry the whole answer.
+
+      NOTHING IS DESKTOP-EXCLUSIVE HERE. Mobile has no hover and gets the
+      same information on tap, via gather. Desktop learns it earlier, which
+      is a hover enhancement rather than a feature gap - the distinction
+      being that no fact about the work is reachable only by mouse.
+
+      Gated on a real pointer. On a touch screen `:hover` sticks after a
+      tap and mouseover fires on the tapped element, so without this the
+      preview would latch on behind the gather and never clear.
+    */
+    const FINE_POINTER = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+    /*
+      A dwell, because a cursor crossing a grid is not a question.
+
+      Moving diagonally across eighty tiles brushes a dozen of them, and
+      drawing for each one is a strobe. 140ms is long enough that the
+      pointer has stopped on something and short enough to feel immediate.
+    */
+    const HOVER_DWELL = 140;
+    let previewTimer: number | undefined;
+    let previewTile: HTMLElement | null = null;
+
+    const clearPreview = () => {
+      window.clearTimeout(previewTimer);
+      if (previewTile) {
+        grid.querySelector('.pf-links--preview')?.remove();
+        previewTile = null;
+      }
+    };
+
+    if (LINES && FINE_POINTER) {
+      grid.addEventListener('mouseover', (e) => {
+        const tile = (e.target as HTMLElement)?.closest<HTMLElement>('.pf-item');
+        if (!tile || tile === previewTile) return;
+
+        /*
+          An expanded tile owns the grid. Previewing a different project
+          while one is gathered would draw lines across an arrangement they
+          do not describe.
+        */
+        if (grid.querySelector('.pf-item.is-expanded')) return;
+
+        clearPreview();
+        const href = projectOf(tile);
+        if (!href) return;
+        const family = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item')).filter(
+          (el) => projectOf(el) === href,
+        );
+        // Same threshold as the committed version. A pair is not a set, and
+        // the two rules must agree or hovering teaches the wrong lesson
+        // about what clicking will do.
+        if (family.length < FAMILY_MIN) return;
+
+        previewTile = tile;
+        previewTimer = window.setTimeout(() => {
+          if (previewTile !== tile) return;
+          drawLinks(tile, family);
+          grid.querySelector('.pf-links')?.classList.add('pf-links--preview');
+        }, HOVER_DWELL);
+      });
+
+      grid.addEventListener('mouseleave', clearPreview);
+      // The grid can be left by a route that fires no mouseleave - a tile
+      // relayout under a still cursor, or the window losing focus.
+      window.addEventListener('blur', clearPreview);
+    }
+
     const markFamily = (item: HTMLElement) => {
       const href = projectOf(item);
       // A standalone piece has no project, so there is no constellation to
@@ -1514,6 +1604,13 @@ if (emptyFilters.length > 0) {
 
       const item = target.closest<HTMLElement>('.pf-item');
       if (!item) return;
+      /*
+        The preview has done its job the moment you commit. clearFamily()
+        below removes the svg either way, but the hover state has to be
+        reset too or the tile stays marked as already-previewed and never
+        draws again after the grid collapses.
+      */
+      clearPreview();
       const wasExpanded = item.classList.contains('is-expanded');
       grid.querySelectorAll<HTMLElement>('.pf-item.is-expanded').forEach((el) => {
         el.classList.remove('is-expanded');

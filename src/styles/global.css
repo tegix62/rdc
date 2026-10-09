@@ -2214,6 +2214,17 @@ main {
     subordinate is its weight, not its transparency.
   */
   stroke-opacity: 1;
+}
+
+/*
+  The hover preview is quieter than the committed lines, and that is the
+  point rather than a compromise. On hover the lines are answering a
+  question nobody has asked out loud yet - what else is this - so they
+  should register without demanding to be read. Full strength is reserved
+  for the moment you actually click.
+*/
+.pf-links--preview line {
+  stroke-opacity: 0.5;
   vector-effect: non-scaling-stroke;
 }
 

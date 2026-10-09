@@ -1410,14 +1410,31 @@ if (emptyFilters.length > 0) {
         addEventListener(ev, yielded, {once: true, passive: true});
       }
 
-      const until = performance.now() + 800;
+      /*
+        Runs until the tile STOPS MOVING, not for a fixed stretch of time.
+
+        The 800ms window left 56px of drift, down from 236px but still a
+        visible jump. The reason is that the window was a guess at how long
+        the expand transition takes, and that is not a number this code
+        should need to know - a CSS duration anyone can change, on a tile
+        whose height depends on its image.
+
+        So the exit condition is the thing actually being waited for: six
+        consecutive frames where the tile has not moved. The 1600ms cap is
+        a safety net for a transition that never settles, not the mechanism.
+      */
+      const deadline = performance.now() + 1600;
+      let still = 0;
       const hold = () => {
         if (!own) return;
         const drift = item.getBoundingClientRect().top - anchorBefore;
         if (Math.abs(drift) > 1) {
           window.scrollBy({top: drift, behavior: 'instant' as ScrollBehavior});
+          still = 0;
+        } else {
+          still += 1;
         }
-        if (performance.now() < until) requestAnimationFrame(hold);
+        if (still < 6 && performance.now() < deadline) requestAnimationFrame(hold);
         else for (const ev of ['wheel', 'touchstart', 'keydown']) removeEventListener(ev, yielded);
       };
       requestAnimationFrame(hold);

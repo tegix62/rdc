@@ -1,0 +1,410 @@
+---
+/*
+  THE SITE AS A DECK OF PAGES YOU CAN SWIPE THROUGH.
+
+  Chris: "could we make these swipeable like pages on an app? Or no? And on
+  desktop, we'd have to find some kind of equivalent workaround."
+
+  WHAT THIS IS NOT
+
+  Not a carousel. Holding all five pages in one document is the obvious way
+  to get a real swipe and it is the wrong one here: it collapses five URLs
+  into one, takes four pages out of the index, and makes every visitor
+  download the 82-tile Portfolio grid to read the About page. For a site
+  whose job is presenting to agencies, losing the URLs is a bigger loss than
+  the gesture is a gain.
+
+  So a swipe is just a second way to trigger a link that already exists. The
+  URL changes, back and forward work, each page stays its own document.
+
+  WHY NO CLIENT-SIDE ROUTER
+
+  Astro's ClientRouter would give a better feel - same-document swaps, no
+  load at all - and it was rejected on blast radius. It turns every link on
+  the site into a client-side swap, which means every script has to survive
+  being re-run or re-initialised per navigation: Isotope's masonry and its
+  patched column placement, the constellation, the tile sharpening, the
+  autoplay observers, InkMode's source swapping. That is the machinery most
+  recently worked on and the most expensive to break subtly.
+
+  Native cross-document view transitions need none of it. `@view-transition`
+  is a CSS opt-in; the BROWSER animates between two ordinary document loads.
+  Every script keeps running exactly when it does today, because each page is
+  still a full load. If the feel turns out not to be good enough, the router
+  is still available as a second step - but it should be a decision taken
+  after feeling this, not before.
+
+  HONEST LIMITS
+
+  - The slide needs `@view-transition` (Chrome 126+, Safari 18.2+). Older
+    browsers get an ordinary page change: the swipe still navigates, it just
+    does not animate. Nothing is broken, it is only less pretty.
+  - The adjacent pages' HTML is prefetched, which is cheap. Their IMAGES are
+    not, so a swipe is fast rather than instant. Prerendering would make it
+    instant and would cost a full load of both neighbours - on a phone, that
+    is the Portfolio grid downloaded to read About. Not worth it unasked.
+
+  PREVIEW ONLY, like the constellation and the collage: a Sanity publish
+  deploys main to production, so an experiment must not reach the live site
+  by a route nobody chose.
+*/
+export interface Props {
+  /** The deck, in order. Internal paths only. */
+  pages: {href: string; label: string}[];
+  /** The path of the page this is rendering on. */
+  here: string;
+}
+
+const {pages, here} = Astro.props;
+
+/*
+  Trailing slashes differ between the built file and the served URL, so both
+  are normalised before comparing. Getting this wrong silently puts every
+  page at index -1, which disables the deck everywhere while looking fine.
+*/
+const norm = (p: string) => (p === '/' ? '/' : p.replace(/\/+$/, ''));
+const at = pages.findIndex((p) => norm(p.href) === norm(here));
+
+const prev = at > 0 ? pages[at - 1] : null;
+const next = at >= 0 && at < pages.length - 1 ? pages[at + 1] : null;
+const live = at >= 0 && (prev || next);
+---
+
+{live && (
+  <>
+    {/*
+      HTML only, deliberately. See the note above on why the images are left
+      to stream rather than prerendered.
+    */}
+    {prev && <link rel="prefetch" href={prev.href} />}
+    {next && <link rel="prefetch" href={next.href} />}
+
+    {/*
+      The desktop answer, and it is not a gesture.
+
+      A trackpad two-finger swipe is detectable and feels native on a Mac,
+      but it is invisible to anyone on a mouse and it fights the same
+      sideways-scrolling media rows the touch gesture has to avoid. So
+      desktop gets something honest instead: a labelled edge affordance and
+      the arrow keys.
+
+      Naming the destination is the point. It makes the order of the deck
+      visible, which is what lets the phone gesture feel learned rather than
+      stumbled into - and on its own it is just decent navigation.
+    */}
+    <nav class="deck" aria-label="Page sequence">
+      {prev && (
+        <a class="deck__edge deck__edge--prev" href={prev.href} data-deck-prev rel="prev">
+          <span class="deck__arrow" aria-hidden="true">&#8592;</span>
+          <span class="deck__label">{prev.label}</span>
+        </a>
+      )}
+      {next && (
+        <a class="deck__edge deck__edge--next" href={next.href} data-deck-next rel="next">
+          <span class="deck__label">{next.label}</span>
+          <span class="deck__arrow" aria-hidden="true">&#8594;</span>
+        </a>
+      )}
+    </nav>
+
+    <script is:inline define:vars={{prevHref: prev?.href ?? null, nextHref: next?.href ?? null}}>
+      (() => {
+        /*
+          Direction is remembered across the navigation.
+
+          A cross-document transition means the incoming page is a different
+          document and cannot know which way the visitor went. sessionStorage
+          survives the hop; `pagereveal` on the new page reads it, tags the
+          transition, and clears it so a later reload or a nav click does not
+          inherit a stale direction.
+        */
+        const KEY = 'deck-dir';
+        const go = (href, dir) => {
+          if (!href) return;
+          try {
+            sessionStorage.setItem(KEY, dir);
+          } catch {}
+          location.assign(href);
+        };
+
+        /* Tag the OUTGOING side, for browsers that run it. */
+        addEventListener('pageswap', (e) => {
+          if (!e.viewTransition) return;
+          let dir = null;
+          try {
+            dir = sessionStorage.getItem(KEY);
+          } catch {}
+          if (dir) e.viewTransition.types.add(`deck-${dir}`);
+        });
+
+        /* Tag the INCOMING side, which is the one that actually animates. */
+        addEventListener('pagereveal', (e) => {
+          if (!e.viewTransition) return;
+          let dir = null;
+          try {
+            dir = sessionStorage.getItem(KEY);
+            sessionStorage.removeItem(KEY);
+          } catch {}
+          if (dir) e.viewTransition.types.add(`deck-${dir}`);
+        });
+
+        /*
+          WHEN A SWIPE IS NOT OURS.
+
+          Three conflicts, all real, and the rules are deliberately
+          conservative - a page that changes when you did not mean it to is
+          far worse than a gesture that sometimes needs a second go.
+        */
+
+        /*
+          1. The sideways media rows. A flick inside one scrolls the row.
+
+          Any swipe STARTING inside a horizontal scroller is ignored
+          outright, rather than ignored only while the row has somewhere left
+          to go. Flicking to the end of a row and tipping over into a page
+          change on the next flick would be maddening, and "it depends how
+          far you already scrolled" is not a rule anyone can learn.
+        */
+        const inSideScroller = (node) => {
+          let el = node instanceof Element ? node : null;
+          while (el && el !== document.body) {
+            const ox = getComputedStyle(el).overflowX;
+            if ((ox === 'auto' || ox === 'scroll') && el.scrollWidth > el.clientWidth + 8) return true;
+            el = el.parentElement;
+          }
+          return false;
+        };
+
+        /*
+          2. Anything already holding the gesture, or mid-interaction.
+
+          An expanded portfolio tile is a visitor looking at one picture; the
+          open mobile menu is a visitor choosing a page by hand. Swiping the
+          whole site out from under either is an interruption.
+        */
+        const busy = () =>
+          !!document.querySelector('.pf-item.is-expanded') ||
+          !!document.querySelector('.site-nav__links.is-open') ||
+          !!document.querySelector('[aria-expanded="true"].site-nav__toggle');
+
+        /* 3. iOS Safari claims horizontal swipes near the screen edges for
+           its own back and forward, so the gesture lives in the middle. */
+        const EDGE_GUARD = 32;
+        const SWIPE_MIN = 70;
+        const AXIS_RATIO = 1.8;
+        const MAX_MS = 700;
+
+        let sx = 0;
+        let sy = 0;
+        let t0 = 0;
+        let axis = null;
+        let armed = false;
+
+        addEventListener(
+          'touchstart',
+          (e) => {
+            armed = false;
+            axis = null;
+            if (e.touches.length !== 1) return;
+            const t = e.touches[0];
+            if (t.clientX < EDGE_GUARD || t.clientX > innerWidth - EDGE_GUARD) return;
+            if (busy() || inSideScroller(e.target)) return;
+            sx = t.clientX;
+            sy = t.clientY;
+            t0 = Date.now();
+            armed = true;
+          },
+          {passive: true},
+        );
+
+        addEventListener(
+          'touchmove',
+          (e) => {
+            if (!armed || axis || e.touches.length !== 1) return;
+            const dx = e.touches[0].clientX - sx;
+            const dy = e.touches[0].clientY - sy;
+            /*
+              The axis is locked once, on the first movement big enough to
+              have a direction, and never revisited. Deciding it per-frame
+              lets a slow diagonal drag flip between scrolling and
+              navigating, which feels like the page is arguing.
+            */
+            if (Math.abs(dx) < 12 && Math.abs(dy) < 12) return;
+            axis = Math.abs(dx) > Math.abs(dy) * AXIS_RATIO ? 'x' : 'y';
+          },
+          {passive: true},
+        );
+
+        addEventListener(
+          'touchend',
+          (e) => {
+            if (!armed || axis !== 'x') return;
+            armed = false;
+            if (Date.now() - t0 > MAX_MS) return;
+            const t = e.changedTouches[0];
+            const dx = t.clientX - sx;
+            if (Math.abs(dx) < SWIPE_MIN) return;
+            // Swiping left pulls the next page in from the right, which is
+            // the direction every app-like pager agrees on.
+            if (dx < 0) go(nextHref, 'forward');
+            else go(prevHref, 'back');
+          },
+          {passive: true},
+        );
+
+        /*
+          The keyboard half of the desktop answer.
+
+          Guarded against firing while someone is typing, and against
+          hijacking a browser shortcut. An arrow key inside a form field, or
+          with a modifier held, belongs to the field or the browser.
+        */
+        addEventListener('keydown', (e) => {
+          if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+          if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+          const el = document.activeElement;
+          const tag = el?.tagName;
+          if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'IFRAME') return;
+          if (el instanceof HTMLElement && el.isContentEditable) return;
+          if (busy()) return;
+          if (e.key === 'ArrowRight') go(nextHref, 'forward');
+          else go(prevHref, 'back');
+        });
+      })();
+    </script>
+
+    <style is:global>
+      /*
+        The browser animates between two real document loads. Scoped to this
+        component's own style block rather than global.css so the whole
+        mechanism only exists where the deck renders - which is preview.
+      */
+      @view-transition {
+        navigation: auto;
+      }
+
+      /*
+        Reduced motion gets the navigation with no slide. The default
+        cross-fade the browser would otherwise apply is still motion, so the
+        animations are only defined inside the no-preference query.
+      */
+      @media (prefers-reduced-motion: no-preference) {
+        html:active-view-transition-type(deck-forward)::view-transition-old(root) {
+          animation: deck-out-left 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+        html:active-view-transition-type(deck-forward)::view-transition-new(root) {
+          animation: deck-in-right 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+        html:active-view-transition-type(deck-back)::view-transition-old(root) {
+          animation: deck-out-right 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+        html:active-view-transition-type(deck-back)::view-transition-new(root) {
+          animation: deck-in-left 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+      }
+
+      @keyframes deck-out-left {
+        to {
+          transform: translateX(-28%);
+          opacity: 0;
+        }
+      }
+      @keyframes deck-in-right {
+        from {
+          transform: translateX(100%);
+        }
+      }
+      @keyframes deck-out-right {
+        to {
+          transform: translateX(28%);
+          opacity: 0;
+        }
+      }
+      @keyframes deck-in-left {
+        from {
+          transform: translateX(-100%);
+        }
+      }
+
+      /*
+        THE EDGE AFFORDANCE.
+
+        Fixed, vertically centred, and quiet until hovered. It carries the
+        destination's name because an unlabelled arrow asks the visitor to
+        guess what order the site is in.
+
+        Hidden on a phone: there the gesture is the affordance, and two
+        floating chips over a masonry grid is clutter on the screen with the
+        least room for it.
+      */
+      .deck {
+        display: none;
+      }
+
+      @media (min-width: 900px) {
+        .deck {
+          display: block;
+        }
+
+        .deck__edge {
+          position: fixed;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 40;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1rem;
+          background: var(--color-cream, #f6f1e7);
+          border: 1px solid var(--color-navy, #1b2a4a);
+          color: var(--color-navy, #1b2a4a);
+          text-decoration: none;
+          font-size: 0.8125rem;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          opacity: 0.35;
+          transition: opacity 180ms ease, transform 180ms ease;
+        }
+
+        .deck__edge--prev {
+          left: 0;
+          border-left: 0;
+        }
+        .deck__edge--next {
+          right: 0;
+          border-right: 0;
+        }
+
+        .deck__edge:hover,
+        .deck__edge:focus-visible {
+          opacity: 1;
+        }
+
+        /*
+          The label is the part that costs room, so at rest only the arrow
+          shows and the name arrives on hover. Collapsed with a max-width
+          rather than display:none so it stays in the accessibility tree and
+          a screen reader still reads "About" rather than an arrow glyph.
+        */
+        .deck__label {
+          max-width: 0;
+          overflow: hidden;
+          white-space: nowrap;
+          transition: max-width 220ms ease;
+        }
+
+        .deck__edge:hover .deck__label,
+        .deck__edge:focus-visible .deck__label {
+          max-width: 12rem;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .deck__edge,
+          .deck__label {
+            transition: none;
+          }
+        }
+      }
+    </style>
+  </>
+)}

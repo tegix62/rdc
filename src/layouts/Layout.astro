@@ -10,6 +10,7 @@ import { hasAsset, imageUrl, socialCardDimensions, socialCardUrl } from '../lib/
 import VisualEditing from '../components/VisualEditing.astro';
 import MetaPixel from '../components/MetaPixel.astro';
 import SiteFooter from '../components/SiteFooter.astro';
+import PageDeck from '../components/PageDeck.astro';
 import { buildGraph, serialise, type SiteContext } from '../lib/structuredData';
 import { stripStega as clean } from '../lib/stega';
 import {
@@ -179,6 +180,34 @@ const navLinks = [
   at Tally or anywhere else stays a Studio edit rather than a code change.
 */
 const CONTACT_URL = settings?.contactUrl || '/contact';
+
+/*
+  THE SWIPEABLE DECK, in order. See components/PageDeck.astro.
+
+  Derived from navLinks rather than written out again, so the order you can
+  swipe through and the order in the menu cannot drift apart. Home is the
+  wordmark, which is a nav link in every sense except being in that array.
+
+  Contact is included ONLY when it is a path on this site. `contactUrl` in
+  Site Settings currently points at a Tally form, and an off-site URL has no
+  business in a deck: a swipe would leave the site, and a cross-document view
+  transition will not animate across origins anyway. Tested rather than
+  assumed, because that setting is a Studio field Chris can change at any
+  time and this must not break when he does.
+*/
+const PAGE_DECK = [
+  {label: 'Home', href: '/'},
+  ...navLinks,
+  ...(CONTACT_URL.startsWith('/') ? [{label: 'Contact', href: CONTACT_URL}] : []),
+];
+
+/*
+  Preview only, like the constellation and the collage prototype. A Sanity
+  publish deploys main to production, so an experiment Chris has not signed
+  off must not reach the live site by a route nobody chose.
+*/
+const DECK_ON = IS_PREVIEW;
+const herePath = Astro.url.pathname;
 
 /*
   Structured data. The live Webflow site emits a JSON-LD block and this one
@@ -381,6 +410,7 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
       browser scrolls to the target and leaves focus on the <body>, so the next
       Tab goes back to the nav - the link appears to work and does nothing.
     */}
+    {DECK_ON && <PageDeck pages={PAGE_DECK} here={herePath} />}
     <main class="wrap" id="main-content" tabindex="-1">
       <slot />
     </main>

@@ -1,0 +1,45 @@
+name: Test the page deck
+
+# A deliberate swipe moves between pages; a flick inside a media row, a
+# vertical scroll, an expanded tile and a screen-edge swipe all refuse.
+# See scripts/test-page-deck.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Preview site to test'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+  push:
+    paths:
+      - 'scripts/test-page-deck.mjs'
+      - 'src/components/PageDeck.astro'
+      - '.github/workflows/test-page-deck.yml'
+
+jobs:
+  deck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      # A push to src/ starts a preview deploy at the same moment, so without
+      # this the test measures the PREVIOUS build.
+      - run: sleep 180
+      - run: |
+          set -o pipefail
+          node scripts/test-page-deck.mjs "${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}" | tee /tmp/deck.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Page deck'
+            echo ''
+            echo '```'
+            cat /tmp/deck.txt 2>/dev/null || echo '(the test did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

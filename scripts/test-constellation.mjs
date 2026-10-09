@@ -107,6 +107,44 @@ if (!big) {
   check('everything else drops back', (big.dimMax ?? 1) < 0.5, `brightest outsider at ${big.dimMax}`)
 }
 
+/*
+  THE LINES, AND THE MASK THAT KEEPS THEM OFF THE ARTWORK.
+
+  Preview only, so this is reported rather than required when absent. What
+  it asserts is the wiring that has gone wrong in this project before: a
+  layer that is present, correct, and attached to nothing. A mask with no
+  rects, or lines outside the masked group, both look exactly like a
+  working feature in the DOM and put strokes straight across the pictures.
+*/
+const links = await page.evaluate(() => {
+  const svg = document.querySelector('.pf-grid .pf-links')
+  if (!svg) return null
+  const mask = svg.querySelector('mask')
+  const group = svg.querySelector('g[mask]')
+  const tiles = document.querySelectorAll('.pf-grid .pf-item').length
+  return {
+    lines: svg.querySelectorAll('line').length,
+    linesInsideMaskedGroup: group ? group.querySelectorAll('line').length : 0,
+    maskRects: mask ? mask.querySelectorAll('rect').length : 0,
+    tiles,
+    firstChild: document.querySelector('.pf-grid')?.firstElementChild?.classList.contains('pf-links') ?? false,
+  }
+})
+
+console.log('')
+if (!links) {
+  console.log('  (no line layer - expected on production, where lines are gated off)')
+} else {
+  console.log(`  line layer: ${links.lines} line(s), mask knocks out ${links.maskRects - 1} of ${links.tiles} pictures`)
+  check('every line sits inside the masked group', links.lines > 0 && links.lines === links.linesInsideMaskedGroup)
+  check(
+    'the mask knocks out every tile, not just the lit ones',
+    links.maskRects === links.tiles + 1,
+    `${links.maskRects} rects for ${links.tiles} tiles plus the open field`,
+  )
+  check('the line layer is the first child, so tiles paint over it', links.firstChild)
+}
+
 /* Collapse by clicking the same tile again. */
 await page.evaluate(() => document.querySelector('.pf-item.is-expanded')?.click())
 await page.waitForTimeout(500)

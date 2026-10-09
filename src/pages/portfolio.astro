@@ -932,6 +932,60 @@ if (emptyFilters.length > 0) {
       svg.setAttribute('preserveAspectRatio', 'none');
       svg.setAttribute('aria-hidden', 'true');
 
+      /*
+        NOT OVER ANY PICTURE, NOT EVEN BEHIND ONE.
+
+        Trimming the ends stopped a line entering the tile it points at, and
+        Chris's screenshot shows what it did not fix: a line to a tile eight
+        columns away still crosses everything between. Drawing them behind
+        the grid was supposed to handle that, and it does not - a large part
+        of this portfolio is logos on transparent backgrounds, so "behind"
+        and "through" are the same thing. The dimmed tiles leak them too, at
+        a fifth opacity.
+
+        So the lines are masked by every picture on the grid. White is drawn
+        through, black is knocked out; a rect per frame means a line can only
+        appear where it is over a gutter. Not a matter of degree - it becomes
+        geometrically impossible for a line to sit on artwork.
+
+        Every tile, not only the lit ones. A line crossing a dimmed tile is
+        the same distraction slightly fainter, and the rule is easier to
+        trust when it has no exceptions.
+      */
+      const mask = document.createElementNS(NS, 'mask');
+      mask.setAttribute('id', 'pf-links-mask');
+      // maskUnits in user space, so the rects below can be plain pixel
+      // coordinates in the same system as the lines.
+      mask.setAttribute('maskUnits', 'userSpaceOnUse');
+
+      const open = document.createElementNS(NS, 'rect');
+      open.setAttribute('x', '0');
+      open.setAttribute('y', '0');
+      open.setAttribute('width', String(Math.round(gr.width)));
+      open.setAttribute('height', String(Math.round(gr.height)));
+      open.setAttribute('fill', '#fff');
+      mask.appendChild(open);
+
+      for (const tile of grid.querySelectorAll('.pf-item')) {
+        const f = (tile.querySelector('.pf-item__frame') ?? tile).getBoundingClientRect();
+        if (f.width < 2 || f.height < 2) continue;
+        const cut = document.createElementNS(NS, 'rect');
+        cut.setAttribute('x', String(Math.round(f.left - gr.left)));
+        cut.setAttribute('y', String(Math.round(f.top - gr.top)));
+        cut.setAttribute('width', String(Math.round(f.width)));
+        cut.setAttribute('height', String(Math.round(f.height)));
+        cut.setAttribute('fill', '#000');
+        mask.appendChild(cut);
+      }
+
+      const defs = document.createElementNS(NS, 'defs');
+      defs.appendChild(mask);
+      svg.appendChild(defs);
+
+      const strokes = document.createElementNS(NS, 'g');
+      strokes.setAttribute('mask', 'url(#pf-links-mask)');
+      svg.appendChild(strokes);
+
       const source = boxOf(focusItem);
       const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -972,7 +1026,7 @@ if (emptyFilters.length > 0) {
             line.style.strokeDashoffset = '0';
           });
         }
-        svg.appendChild(line);
+        strokes.appendChild(line);
       }
 
       grid.prepend(svg);

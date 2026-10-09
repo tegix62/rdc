@@ -175,6 +175,80 @@ console.log(`${BASE}\n`)
   await page.close()
 }
 
+/* ---------- the friction: a short drag moves, then puts itself back ---------- */
+{
+  /*
+    Chris: "it's too easy across any page to have a left or a right swipe
+    just immediately change the page... I'm okay introducing one stop of
+    friction so that we don't make a mistake swiping."
+
+    Two halves, and a test of either alone would pass on a broken build. A
+    short drag has to MOVE - that movement is the whole friction, because it
+    is what tells you a swipe is under way in time to abort it - and it has
+    to END UP BACK where it started. Asserting only the second would also
+    pass if the gesture did nothing at all, which is the version Chris was
+    complaining about.
+  */
+  const page = await phone()
+  await page.goto(`${BASE}/about`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.waitForTimeout(600)
+  const before = page.url()
+
+  const moved = await page.evaluate(async () => {
+    const skin = document.querySelector('main')
+    const shift = () => {
+      const m = new DOMMatrixReadOnly(getComputedStyle(skin).transform)
+      return m.m41
+    }
+    const target = document.body
+    const mk = (x, y) => new Touch({identifier: 1, target, clientX: x, clientY: y, pageX: x, pageY: y})
+    const fire = (type, x, y) => {
+      const t = mk(x, y)
+      target.dispatchEvent(
+        new TouchEvent(type, {
+          touches: type === 'touchend' ? [] : [t],
+          targetTouches: type === 'touchend' ? [] : [t],
+          changedTouches: [t],
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+    }
+    const x0 = Math.round(innerWidth / 2)
+    const y0 = Math.round(innerHeight / 2)
+    // 60px, comfortably short of the 30%-of-screen commit point.
+    fire('touchstart', x0, y0)
+    let peak = 0
+    for (let i = 1; i <= 4; i++) {
+      await new Promise((r) => setTimeout(r, 16))
+      fire('touchmove', x0 - (60 * i) / 4, y0)
+      peak = Math.min(peak, shift())
+    }
+    fire('touchend', x0 - 60, y0)
+    await new Promise((r) => setTimeout(r, 600))
+    return {peak, settled: shift()}
+  })
+
+  const now = await landed(page, before, 1200)
+  console.log('')
+  check(
+    'a short swipe does not change the page',
+    now === null,
+    now ? `it navigated to ${now}` : 'stayed put',
+  )
+  check(
+    'but the page visibly moves under the thumb, which is the friction',
+    moved.peak <= -20,
+    `travelled ${Math.round(moved.peak)}px`,
+  )
+  check(
+    'and it springs back to rest afterwards',
+    Math.abs(moved.settled) < 2,
+    `settled at ${Math.round(moved.settled)}px`,
+  )
+  await page.close()
+}
+
 /* ---------- the arrow keys, which are the desktop half ---------- */
 {
   const page = await browser.newPage({viewport: {width: 1440, height: 900}})

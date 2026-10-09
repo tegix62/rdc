@@ -257,7 +257,53 @@ const links = await page.evaluate(() => {
     }
   }
 
+  /*
+    DO THE HOPS CROSS EACH OTHER?
+
+    Chris: "it'll seem a little random how these lines connect... you might
+    see like an O shape of images when one thing is highlighted". Neatness
+    is the complaint, and it needs a measure that is not a number I made up.
+
+    This one comes free from the maths: a Euclidean minimum spanning tree is
+    planar - it provably has no crossing edges, because if two edges crossed
+    you could always swap an endpoint for a shorter total. So crossings are
+    a direct signal that the tree is not following real nearness, which is
+    exactly the "random" look. The shipped tree measures nearness as the
+    clear space between rectangles rather than between centres, so it is not
+    strictly Euclidean and a crossing is not impossible - but it should be
+    rare, and a handful of them means the metric is still wrong.
+  */
+  const hit = (p, q, r, s) => {
+    const o = (a, b, c) => Math.sign((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x))
+    const d1 = o(p, q, r)
+    const d2 = o(p, q, s)
+    const d3 = o(r, s, p)
+    const d4 = o(r, s, q)
+    return d1 !== d2 && d3 !== d4
+  }
+  let crossings = 0
+  for (let i = 0; i < segs.length; i++) {
+    for (let j = i + 1; j < segs.length; j++) {
+      const a = segs[i]
+      const b = segs[j]
+      // Hops sharing an endpoint meet there by design; only count a crossing
+      // in open space. 6px of slack covers the rounding on the trimmed ends.
+      const near = (m, n) => Math.hypot(m.x - n.x, m.y - n.y) < 6
+      const ends = [
+        {x: a.ax, y: a.ay},
+        {x: a.bx, y: a.by},
+      ]
+      const others = [
+        {x: b.ax, y: b.ay},
+        {x: b.bx, y: b.by},
+      ]
+      if (ends.some((e) => others.some((o2) => near(e, o2)))) continue
+      if (hit(ends[0], ends[1], others[0], others[1])) crossings += 1
+    }
+  }
+
   return {
+    crossings,
     starInk: Math.round(starInk),
     lines: segs.length,
     linesInsideMaskedGroup: group ? group.querySelectorAll('line').length : 0,
@@ -296,6 +342,11 @@ if (!links) {
     'no line lies across a picture the visitor is looking at',
     links.over === 0,
     `${links.over} of ${links.lines} segment(s) cross a lit frame`,
+  )
+  check(
+    'the hops do not cross each other, so the thread reads as a tree',
+    links.crossings === 0,
+    `${links.crossings} crossing(s) among ${links.lines} hop(s)`,
   )
   check(
     'the thread is shorter than the starburst it replaced',

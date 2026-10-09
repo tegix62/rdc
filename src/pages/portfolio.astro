@@ -912,6 +912,83 @@ if (emptyFilters.length > 0) {
         half-width/|dx| and half-height/|dy|. Which edge that turns out to be
         is the answer, not something to branch on.
       */
+      /*
+        NEAREST BY THE GAP BETWEEN PICTURES, NOT BETWEEN THEIR MIDDLES.
+
+        Chris: "it doesn't look like it's targeting the nearest object...
+        you might see like an O shape of images when one thing is
+        highlighted". The tree WAS connecting each piece to its nearest
+        already-connected piece, so the algorithm was right and the metric
+        was wrong.
+
+        Centre-to-centre is a bad proxy for nearness on a masonry grid,
+        because the tiles are wildly different sizes and the clicked one
+        doubles. A big tile's centre can be 400px from a small neighbour
+        whose edge nearly touches it, while a same-sized tile two columns
+        away measures closer. So the tree kept reaching past the obvious
+        neighbour for something that was only nearer in the arithmetic, and
+        chaining those choices is what drew the ring.
+
+        Measuring the clear space BETWEEN the two rectangles is what the eye
+        is actually doing. Zero when they overlap on an axis, so two tiles
+        sitting side by side in the same row read as adjacent no matter how
+        tall either one is.
+      */
+      const gapBetween = (
+        a: {x: number; y: number; hw: number; hh: number},
+        b: {x: number; y: number; hw: number; hh: number},
+      ) => {
+        const dx = Math.max(0, Math.abs(a.x - b.x) - (a.hw + b.hw));
+        const dy = Math.max(0, Math.abs(a.y - b.y) - (a.hh + b.hh));
+        return Math.hypot(dx, dy);
+      };
+
+      /*
+        Does this segment lie across a picture? Liang-Barsky clipping.
+
+        Chris's other constraint: "not have it intersecting any images where
+        the line gets cut off". The mask guarantees a line never PAINTS over
+        a lit picture, but that is not the same as never being in the way -
+        a hop that passes behind a third lit tile comes out the other side
+        with a hole in it, which is the broken-looking thing he is seeing.
+
+        So the tree is told to avoid those hops rather than to draw them and
+        let the mask hide the damage.
+      */
+      const crossesBox = (
+        ax: number,
+        ay: number,
+        bx: number,
+        by: number,
+        box: {x: number; y: number; hw: number; hh: number},
+      ) => {
+        let t0 = 0;
+        let t1 = 1;
+        const dx = bx - ax;
+        const dy = by - ay;
+        const edges: [number, number][] = [
+          [-dx, ax - (box.x - box.hw)],
+          [dx, box.x + box.hw - ax],
+          [-dy, ay - (box.y - box.hh)],
+          [dy, box.y + box.hh - ay],
+        ];
+        for (const [p, q] of edges) {
+          if (p === 0) {
+            if (q < 0) return false;
+          } else {
+            const r = q / p;
+            if (p < 0) {
+              if (r > t1) return false;
+              if (r > t0) t0 = r;
+            } else {
+              if (r < t0) return false;
+              if (r < t1) t1 = r;
+            }
+          }
+        }
+        return t1 > t0;
+      };
+
       const GAP = 3;
       const edge = (box: {x: number; y: number; hw: number; hh: number}, toward: {x: number; y: number}) => {
         const dx = toward.x - box.x;
@@ -1031,11 +1108,37 @@ if (emptyFilters.length > 0) {
       const hops: Array<{from: typeof root; to: typeof root; ring: number}> = [];
       const ringOf = new Map<typeof root, number>([[root, 0]]);
 
+      /*
+        A hop that would be cut is worth avoiding, not forbidding.
+
+        Scored rather than filtered: a flat penalty far larger than any real
+        gap means a clean hop always beats an obstructed one, while an
+        obstructed hop is still available when every option is obstructed.
+        Hard-filtering would leave a sibling unreachable and silently drop
+        it from the constellation, which is worse than one line with a hole.
+      */
+      const BLOCKED = 100_000;
+      const blocked = (a: (typeof nodes)[number], b: (typeof nodes)[number]) => {
+        const from = edge(a.box, b.box);
+        const to = edge(b.box, a.box);
+        return nodes.some(
+          (n) => n !== a && n !== b && crossesBox(from.x, from.y, to.x, to.y, n.box),
+        );
+      };
+
       while (pending.length) {
         let pick: {at: number; to: (typeof nodes)[number]; from: (typeof nodes)[number]; d: number} | null = null;
         for (let i = 0; i < pending.length; i++) {
           for (const have of reached) {
-            const d = Math.hypot(pending[i].box.x - have.box.x, pending[i].box.y - have.box.y);
+            /*
+              Nearest by clear space between the pictures, with obstructed
+              hops pushed to the back of the queue. Both halves matter: the
+              metric is what makes the tree pick the neighbour the eye calls
+              nearest, and the penalty is what keeps it from drawing a line
+              that arrives with a hole in it.
+            */
+            const d =
+              gapBetween(pending[i].box, have.box) + (blocked(pending[i], have) ? BLOCKED : 0);
             if (!pick || d < pick.d) pick = {at: i, to: pending[i], from: have, d};
           }
         }

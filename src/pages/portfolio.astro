@@ -1440,6 +1440,23 @@ if (emptyFilters.length > 0) {
         a safety net for a transition that never settles, not the mechanism.
       */
       const deadline = performance.now() + 1600;
+      /*
+        A FLOOR AS WELL AS A CEILING.
+
+        Stillness alone is not enough to say the tile has arrived. An ease
+        curve barely moves for its first frames, so six consecutive frames
+        under a pixel happen at the START of the transition as readily as
+        at the end - the loop exited early and left 223px of drift, having
+        decided a tile that had not begun moving was a tile that had
+        finished.
+
+        So it cannot stop before 600ms however still things look. The
+        stability test then decides when to stop after that, and the
+        deadline catches a transition that never settles. Three conditions
+        because the quantity being waited on - "has the layout finished" -
+        is not directly observable and every proxy for it fails on its own.
+      */
+      const earliest = performance.now() + 600;
       let still = 0;
       const hold = () => {
         if (!own) return;
@@ -1450,7 +1467,8 @@ if (emptyFilters.length > 0) {
         } else {
           still += 1;
         }
-        if (still < 6 && performance.now() < deadline) requestAnimationFrame(hold);
+        const settled = still >= 6 && performance.now() > earliest;
+        if (!settled && performance.now() < deadline) requestAnimationFrame(hold);
         else for (const ev of ['wheel', 'touchstart', 'keydown']) removeEventListener(ev, yielded);
       };
       requestAnimationFrame(hold);

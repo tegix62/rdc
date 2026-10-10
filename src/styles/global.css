@@ -2475,16 +2475,14 @@ main {
 }
 
 /*
-  Both element types. The hops are polylines now that they are routed as
-  elbows, and leaving this selector on `line` alone would have left every
-  stroke unstyled - no colour, no width, the default black hairline - which
-  is the kind of change that looks like a rendering bug rather than a
-  missing rule.
+  Both element types, still. The hops are plain lines again now that the
+  elbow routing is reverted, but leaving polyline in costs nothing and the
+  alternative - a selector that silently stops matching - is how the
+  strokes lost their colour the last time this changed shape.
 */
 .pf-links line,
 .pf-links polyline {
   fill: none;
-  stroke-linejoin: round;
   stroke-linecap: round;
   stroke: var(--color-navy);
   stroke-width: 1;

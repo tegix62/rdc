@@ -270,7 +270,7 @@ if (!chosen) {
     return new Promise((resolve) => {
       let f = 0
       const tick = () => {
-        const hasLines = grid.querySelectorAll('.pf-links polyline').length > 0
+        const hasLines = grid.querySelectorAll('.pf-links line, .pf-links polyline').length > 0
         const moved = orderNow() !== before
         if (hasLines && linesAt < 0) linesAt = f
         if (moved && movedAt < 0) movedAt = f

@@ -206,10 +206,19 @@ const links = await page.evaluate(() => {
     crossing test and the over-a-picture test are about straight runs, and
     an elbow's two arms can fail them independently.
   */
-  const hops = [...svg.querySelectorAll('polyline')]
+  const hops = [...svg.querySelectorAll('line, polyline')]
   const segs = []
-  for (const poly of hops) {
-    const pts = (poly.getAttribute('points') || '')
+  for (const el of hops) {
+    if (el.tagName.toLowerCase() === 'line') {
+      segs.push({
+        ax: +el.getAttribute('x1'),
+        ay: +el.getAttribute('y1'),
+        bx: +el.getAttribute('x2'),
+        by: +el.getAttribute('y2'),
+      })
+      continue
+    }
+    const pts = (el.getAttribute('points') || '')
       .trim()
       .split(/\s+/)
       .map((p) => p.split(',').map(Number))
@@ -330,7 +339,7 @@ const links = await page.evaluate(() => {
     starInk: Math.round(starInk),
     lines: hops.length,
     arms: segs.length,
-    linesInsideMaskedGroup: group ? group.querySelectorAll('polyline').length : 0,
+    linesInsideMaskedGroup: group ? group.querySelectorAll('line, polyline').length : 0,
     maskRects: mask ? mask.querySelectorAll('rect').length : 0,
     tiles: grid.querySelectorAll('.pf-item').length,
     litTiles: lit.length,
@@ -445,9 +454,9 @@ if (!links) {
     const state = await hover.evaluate(() => {
       const svg = document.querySelector('.pf-grid .pf-links')
       return {
-        lines: svg?.querySelectorAll('polyline').length ?? 0,
+        lines: svg?.querySelectorAll('line, polyline').length ?? 0,
         marked: !!document.querySelector('.pf-links--preview'),
-        opacity: Number(getComputedStyle(document.querySelector('.pf-links polyline') ?? document.body).strokeOpacity),
+        opacity: Number(getComputedStyle(document.querySelector('.pf-links line, .pf-links polyline') ?? document.body).strokeOpacity),
         dimmed: document.querySelector('.pf-grid')?.classList.contains('has-focus') ?? false,
         moved: !!document.querySelector('.pf-item.is-expanded'),
         /* The point of the whole exercise: the rest of the grid drops back
@@ -466,7 +475,7 @@ if (!links) {
         ms: Number((window.__pfPreviewMs ?? 0).toFixed(2)),
         tag: document.querySelector('.pf-tag')?.textContent?.trim() ?? null,
         vectorEffect: getComputedStyle(
-          document.querySelector('.pf-links polyline') ?? document.body,
+          document.querySelector('.pf-links line, .pf-links polyline') ?? document.body,
         ).vectorEffect,
       }
     })
@@ -566,7 +575,7 @@ if (!links) {
         let n = 0
         const read = () => {
           let undrawn = 0
-          const lines = [...document.querySelectorAll('.pf-links polyline')]
+          const lines = [...document.querySelectorAll('.pf-links line, .pf-links polyline')]
           for (const l of lines) undrawn += parseFloat(getComputedStyle(l).strokeDashoffset) || 0
           samples.push(Math.round(undrawn))
           if (++n < 30) requestAnimationFrame(read)
@@ -592,7 +601,7 @@ if (!links) {
     await hover.mouse.move(5, 5)
     await hover.waitForTimeout(400)
     const after = await hover.evaluate(() => ({
-      lines: document.querySelectorAll('.pf-grid .pf-links polyline').length,
+      lines: document.querySelectorAll('.pf-grid .pf-links line, .pf-grid .pf-links polyline').length,
       tag: !!document.querySelector('.pf-tag'),
       previewing: document.querySelector('.pf-grid')?.classList.contains('has-preview') ?? false,
       dimmest: Math.min(

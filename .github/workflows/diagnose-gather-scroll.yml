@@ -12,6 +12,9 @@ on:
       width:
         description: 'Viewport width'
         default: '390'
+      height:
+        description: 'Viewport height (664 is a phone with Safari chrome on screen)'
+        default: '664'
 
 jobs:
   measure:
@@ -28,7 +31,8 @@ jobs:
           set -o pipefail
           node scripts/diagnose-gather-scroll.mjs \
             "${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}" \
-            "${{ inputs.width || '390' }}" | tee /tmp/gather.txt
+            "${{ inputs.width || '390' }}" \
+            "${{ inputs.height || '664' }}" | tee /tmp/gather.txt
       - name: Publish to the run summary
         if: always()
         run: |

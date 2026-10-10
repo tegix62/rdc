@@ -143,9 +143,14 @@ let failed = false
 /*
   Checked at every width, and checked first - because this is the one that
   fired in the wild. The chip rule hid the title but not the piece count
-  that was added to the bar later, and with width:auto against right:0 the
-  nowrap count grew leftwards out of the tile and across four of its
-  neighbours. A mark may never paint outside the thing it marks.
+  that was added to the bar later, so at 390px the marks measured 106-111px
+  against a 96px tile; with width:auto against right:0 the overflow grew
+  leftwards, 12-17px of navy onto the neighbouring picture.
+
+  The `strips` ratio below would have caught it too - these were 115% of
+  their tile - but it answers "is the mark large for its tile", which a
+  mark that is merely chunky also fails. This answers "is the mark outside
+  its tile", which is the thing a person actually sees.
 */
 if (spilling.length) {
   for (const d of spilling) {

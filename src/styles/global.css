@@ -3067,8 +3067,47 @@ main {
     padding: 0.625rem;
   }
 
-  .pf-item--study:not(.is-expanded) .pf-item__jump-label {
+  /*
+    THE CHIP KEEPS THE NUMBER AND NOTHING ELSE.
+
+    This rule hid the label and, for a while, that was the whole of the
+    bar's text. Then the piece count was added as a second span and this
+    rule was not widened to match, so the chip went back to carrying
+    words. Measured at 390px, where the tile is 96px: the marks came out
+    106-111px wide. Wider than the tile they mark - and since they are
+    absolutely positioned at right:0 with width:auto and the count is
+    nowrap, the excess grew leftwards, 12-17px of navy over the
+    neighbouring picture. Five of them at similar heights read as one
+    band laid across the row rather than as five marked tiles.
+
+    So: the separator and the word go with the label, and the bare number
+    stays. "9" plus the arrow is around 45px in that 96px column - a
+    chip, as intended - and it still says there is more here than the one
+    picture. The full "Adelante Barbell Club - 9 pieces" is a tap away,
+    on the expanded bar, which is where there is room for it.
+  */
+  .pf-item--study:not(.is-expanded) .pf-item__jump-label,
+  .pf-item--study:not(.is-expanded) .pf-item__jump-count-sep,
+  .pf-item--study:not(.is-expanded) .pf-item__jump-count-word {
     display: none;
+  }
+
+  /*
+    A belt to the braces above: whatever ends up inside the chip, it may
+    not reach past the tile it marks. An overflowing chip is the failure
+    this whole block exists to prevent, and a max-width makes that true by
+    construction rather than by remembering to update a list of spans.
+  */
+  .pf-item--study:not(.is-expanded) .pf-item__jump {
+    max-width: 100%;
+    /*
+      max-width alone would not bite: the count is nowrap, so a flex item
+      that cannot fit simply overflows the box instead of narrowing it.
+      Clipping is what makes the cap real. It cannot fire on today's
+      content - it is here so the next thing added to this bar fails
+      small and locally rather than across five tiles.
+    */
+    overflow: hidden;
   }
 }
 

@@ -311,18 +311,49 @@ if (emptyFilters.length > 0) {
                       upgradeSizes: '(max-width: 48rem) 66vw, 34vw',
                     })}
               />
+              {/*
+                The bar carries an explicit accessible name, because its
+                visible text is not always all there. On a phone the
+                collapsed bar shrinks to a corner chip and the project's
+                name is display:none - which hides it from assistive tech
+                too, leaving the link called "9" or, on a study with no
+                count, nothing at all. aria-label wins over contents, so
+                the name survives every responsive state the CSS puts the
+                bar through.
+              */}
               {parentHref && (
-                <a class="pf-item__jump" href={parentHref}>
+                <a
+                  class="pf-item__jump"
+                  href={parentHref}
+                  aria-label={[
+                    item.parentTitle ?? item.title ?? 'View project',
+                    (pieceCount.get(parentHref) ?? 0) > 1
+                      ? `${pieceCount.get(parentHref)} pieces`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' - ')}
+                >
                   <span class="pf-item__jump-label">{item.parentTitle ?? item.title ?? 'View project'}</span>
                   {/*
                     A separate span rather than appended to the label, so
                     .pf-item__jump-label stays the project's name on its
                     own - check-grid-spacing groups tiles by that string,
                     and the constellation reads it too.
+
+                    Three spans rather than one string, because the phone
+                    keeps only the middle one. The separator and the word
+                    are what make "9" into "- 9 pieces" next to a title;
+                    with the title gone there is nothing to separate from
+                    and no room for the word - the whole phrase made a
+                    110px mark on a 96px tile. The number survives on its
+                    own because it is the reason to tap.
                   */}
                   {(pieceCount.get(parentHref) ?? 0) > 1 && (
                     <span class="pf-item__jump-count">
-                      &middot; {pieceCount.get(parentHref)} pieces
+                      <span class="pf-item__jump-count-sep">&middot;</span>
+                      {pieceCount.get(parentHref)}
+                      <span class="pf-item__jump-count-word">pieces</span>
                     </span>
                   )}
                   <span class="pf-item__jump-arrow" aria-hidden="true">&rarr;</span>

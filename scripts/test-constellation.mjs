@@ -619,6 +619,74 @@ if (!links) {
   await hover.close()
 }
 
+/*
+  THE ONE-SHOT DEMONSTRATION ON A PHONE.
+
+  Desktop learns this from hover for free; a phone has no such teacher, so
+  the page shows it once. The things worth asserting are the ones that make
+  it a hint rather than an intrusion: it happens at all, it clears itself,
+  it does not move the grid, and it does not come back.
+
+  "Very fast" is Chris's requirement, so the whole thing is timed rather
+  than described - a demonstration that outstays its welcome is worse than
+  none, because the visitor learns that the page does things at them.
+*/
+{
+  const ph = await browser.newPage({viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true})
+  await ph.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+
+  const demo = await ph.evaluate(() => {
+    const grid = document.querySelector('.pf-grid')
+    const order = () =>
+      [...grid.querySelectorAll('.pf-item')].map((el) => el.querySelector('img')?.getAttribute('alt') ?? '?').join('|')
+    const startOrder = order()
+    const t0 = performance.now()
+    let appeared = -1
+    let cleared = -1
+    let moved = false
+    return new Promise((resolve) => {
+      const tick = () => {
+        const lit = grid.querySelectorAll('.pf-links line, .pf-links polyline').length > 0
+        if (lit && appeared < 0) appeared = performance.now() - t0
+        if (appeared >= 0 && !lit && cleared < 0) cleared = performance.now() - t0
+        if (order() !== startOrder) moved = true
+        if (performance.now() - t0 < 6000) requestAnimationFrame(tick)
+        else resolve({appeared: Math.round(appeared), cleared: Math.round(cleared), moved})
+      }
+      requestAnimationFrame(tick)
+    })
+  })
+
+  console.log('')
+  console.log(`  demo: thread at ${demo.appeared}ms, gone by ${demo.cleared}ms`)
+  check('a phone is shown the idea once, unprompted', demo.appeared > 0)
+  check(
+    'and it clears itself',
+    demo.cleared > demo.appeared,
+    demo.cleared > 0 ? `on screen for ${demo.cleared - demo.appeared}ms` : 'still up after 6s',
+  )
+  check(
+    'it is a hint, not a performance - under 1.5s on screen',
+    demo.cleared > 0 && demo.cleared - demo.appeared < 1500,
+    `${demo.cleared - demo.appeared}ms`,
+  )
+  /*
+    It explains, it does not act. Gathering unprompted would rearrange a
+    page the visitor has not touched, which is the difference between a
+    demonstration and the site doing something to them.
+  */
+  check('nothing is gathered or moved by the demo', !demo.moved)
+
+  /* Once per session: a hint that repeats is a nag. */
+  await ph.reload({waitUntil: 'domcontentloaded'})
+  await ph.waitForTimeout(3200)
+  const again = await ph.evaluate(
+    () => document.querySelectorAll('.pf-links line, .pf-links polyline').length,
+  )
+  check('and it does not come back on the next page view', again === 0, `${again} line(s)`)
+  await ph.close()
+}
+
 /* Collapse by clicking the same tile again. */
 await page.evaluate(() => document.querySelector('.pf-item.is-expanded')?.click())
 await page.waitForTimeout(500)

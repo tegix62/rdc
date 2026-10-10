@@ -1107,16 +1107,54 @@ if (emptyFilters.length > 0) {
         to right, mostly-stacked pairs join top to bottom.
       */
       const GAP = 3;
-      const edge = (
-        box: {x: number; y: number; hw: number; hh: number},
-        toward: {x: number; y: number},
-      ) => {
+      type Box = {x: number; y: number; hw: number; hh: number};
+
+      /*
+        AND SLID ALONG THAT SIDE TO WHERE THE OTHER TILE ACTUALLY IS.
+
+        Chris: "these lines are better, but they still present some strange
+        artifacts if something's too close or just above/below."
+
+        Both of those are the same cause. The midpoint of a side is the
+        right side but often the wrong POINT on it. Two tiles stacked in a
+        column whose centres differ by a few pixels get a line that leans;
+        a tall tile beside a short one gets a line leaving halfway up its
+        600px flank, nowhere near the tile it is going to, which reads as
+        starting from nothing.
+
+        So the attachment slides along the facing side to the middle of the
+        range the two tiles SHARE. Stacked tiles that overlap horizontally
+        get a line that is exactly vertical, however their centres differ.
+        Side-by-side tiles get one that is exactly horizontal. A tall tile
+        meets a short one at the short one's height. Where they share no
+        overlap at all the point is clamped to the nearest end of the side,
+        which is the closest honest answer.
+
+        That is the whole difference between a line drawn between two boxes
+        and a line drawn between two boxes that can see each other.
+      */
+      const span = (c: number, half: number) => ({lo: c - half, hi: c + half});
+      const overlapMid = (a: {lo: number; hi: number}, b: {lo: number; hi: number}) => {
+        const lo = Math.max(a.lo, b.lo);
+        const hi = Math.min(a.hi, b.hi);
+        if (hi > lo) return (lo + hi) / 2;
+        // No shared range: hug whichever end of this side is nearer.
+        return Math.min(Math.max((b.lo + b.hi) / 2, a.lo), a.hi);
+      };
+
+      const edge = (box: Box, toward: Box) => {
         const dx = toward.x - box.x;
         const dy = toward.y - box.y;
         if (Math.abs(dx) >= Math.abs(dy)) {
-          return {x: box.x + Math.sign(dx || 1) * (box.hw + GAP), y: box.y};
+          return {
+            x: box.x + Math.sign(dx || 1) * (box.hw + GAP),
+            y: overlapMid(span(box.y, box.hh), span(toward.y, toward.hh)),
+          };
         }
-        return {x: box.x, y: box.y + Math.sign(dy || 1) * (box.hh + GAP)};
+        return {
+          x: overlapMid(span(box.x, box.hw), span(toward.x, toward.hw)),
+          y: box.y + Math.sign(dy || 1) * (box.hh + GAP),
+        };
       };
 
       const NS = 'http://www.w3.org/2000/svg';
@@ -1286,9 +1324,22 @@ if (emptyFilters.length > 0) {
           skipping one costs nothing: the tile is still lit, and the tree
           still reaches everything through it.
         */
+        /*
+          A STUB IS NOT A CONNECTION.
+
+          Two tiles separated by little more than the gutter leave almost
+          nothing between their trimmed ends - a three or four pixel mark
+          that reads as dirt on the screen rather than as a line. The old
+          floor was 2px, which let every one of them through.
+
+          Skipping it costs nothing: the tile is still lit, still named by
+          the label, and sitting directly against its sibling, which says
+          "related" more plainly than a speck ever could. Adjacency is its
+          own line.
+        */
         const spanned = Math.hypot(to.x - from.x, to.y - from.y);
         const apart = Math.hypot(target.x - source.x, target.y - source.y);
-        if (spanned < 2 || spanned > apart) continue;
+        if (spanned < 14 || spanned > apart) continue;
 
         /*
           STRAIGHT AGAIN. The elbows are reverted at Chris's call: "there
@@ -1778,6 +1829,103 @@ if (emptyFilters.length > 0) {
       nameSet(tile, family);
       (window as any).__pfPreviewMs = performance.now() - t0;
     };
+
+    /*
+      ONE DEMONSTRATION ON A PHONE, UNDER A SECOND, ONCE.
+
+      Chris: "I'd agree with mobile demo but it would have to be fast, very
+      fast, while still getting the point across."
+
+      Desktop gets taught this for free. A pointer crossing the grid
+      previews a project at no cost, so by the time anyone clicks they
+      already know tiles are related. On a phone there is no such teacher:
+      a visitor taps expecting a picture to open, gets a thread and a
+      regroup, and has to work out AFTER the fact that they found a
+      feature. That is reasoning demanded at the exact moment you want
+      none.
+
+      So the page shows it once instead of explaining it. No copy, no
+      tooltip, nothing to dismiss - a tooltip is instruction, which is the
+      slow system; a demonstration is just perception. It draws a thread,
+      names the set, and clears. Nothing moves and nothing is gathered,
+      because the point being made is "these are related", not "here is
+      what tapping does to your scroll position".
+
+      Budget: the quick draw completes in about 250ms, it holds for 420,
+      and the fade is 240. Call it nine hundred milliseconds. Short enough
+      to read as part of the page settling rather than as an animation
+      someone has to sit through.
+
+      Once per session, and it picks a project that is ON SCREEN - a
+      demonstration happening below the fold teaches nobody. It gives up
+      the instant the visitor touches or scrolls, because the moment they
+      are doing something themselves, a hint is an interruption.
+    */
+    const DEMO_KEY = 'pf-demo-shown';
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    if (LINES && !FINE_POINTER && !reducedMotion.matches) {
+      let seen = false;
+      try {
+        seen = sessionStorage.getItem(DEMO_KEY) === '1';
+      } catch {
+        // Private browsing can throw on read. A demo that plays every
+        // visit is a worse failure than one that never plays.
+        seen = true;
+      }
+
+      if (!seen) {
+        let abandoned = false;
+        const giveUp = () => {
+          abandoned = true;
+          dropPreview();
+        };
+        for (const ev of ['touchstart', 'scroll', 'wheel']) {
+          addEventListener(ev, giveUp, {once: true, passive: true});
+        }
+
+        /*
+          After the grid has laid out and the first images are in. Running
+          it against a half-built masonry would draw a thread between tiles
+          that are about to move.
+        */
+        window.setTimeout(() => {
+          if (abandoned || grid.querySelector('.pf-item.is-expanded')) return;
+
+          const tiles = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item'));
+          const sizes = new Map<string, number>();
+          for (const el of tiles) {
+            const k = projectOf(el);
+            if (k) sizes.set(k, (sizes.get(k) ?? 0) + 1);
+          }
+
+          /* Visible, and from a project big enough to read as a set. */
+          const onScreen = tiles.filter((el) => {
+            const r = el.getBoundingClientRect();
+            return r.top < window.innerHeight * 0.9 && r.bottom > 80;
+          });
+          const pick = onScreen.find((el) => {
+            const k = projectOf(el);
+            return k && (sizes.get(k) ?? 0) >= FAMILY_MIN;
+          });
+          if (!pick) return;
+
+          const href = projectOf(pick)!;
+          const family = tiles.filter((el) => projectOf(el) === href);
+
+          try {
+            sessionStorage.setItem(DEMO_KEY, '1');
+          } catch {}
+
+          showPreview(pick, href, family);
+          window.setTimeout(() => {
+            if (abandoned) return;
+            grid.querySelector('.pf-links')?.classList.add('is-leaving');
+            window.setTimeout(dropPreview, 240);
+          }, 680);
+        }, 1200);
+      }
+    }
 
     if (LINES && FINE_POINTER) {
       grid.addEventListener('mouseover', (e) => {

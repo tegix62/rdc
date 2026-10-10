@@ -81,6 +81,14 @@ await page.addInitScript(() => {
       }
     }
   }
+  /*
+    Observes `document`, not `document.documentElement`. This runs at
+    document-start, where <html> may not have been parsed yet - and
+    observe(null) throws, which would kill the observer before the page
+    had drawn anything and leave the test reporting an empty SVG as
+    though that were a finding about the site. A Document node accepts
+    childList + subtree and covers everything under it.
+  */
   new MutationObserver((muts) => {
     for (const m of muts) {
       for (const n of m.addedNodes) {
@@ -89,7 +97,25 @@ await page.addInitScript(() => {
         else n.querySelector?.('.pf-links') && record(n.querySelector('.pf-links'))
       }
     }
-  }).observe(document.documentElement, {childList: true, subtree: true})
+  }).observe(document, {childList: true, subtree: true})
+
+  /*
+    A second, independent source. The observer is the precise one - it
+    catches every beat even though each replaces the last - but it is
+    also the part most likely to be miswired, and a test whose only
+    sensor can fail quietly reports "the site drew nothing" when what
+    happened is "the test saw nothing". The sampler cannot distinguish
+    beats, which is fine: its whole job is to disagree when the observer
+    is wrong.
+  */
+  window.__sampled = 0
+  window.__sampledLines = 0
+  setInterval(() => {
+    const svg = document.querySelector('.pf-links')
+    if (!svg) return
+    window.__sampled += 1
+    window.__sampledLines = Math.max(window.__sampledLines, svg.querySelectorAll('line, polyline').length)
+  }, 40)
 })
 
 /*
@@ -110,6 +136,8 @@ const got = await page.evaluate(() => ({
   hops: window.__hops ?? [],
   kinds: window.__kinds ?? {},
   beats: window.__beats ?? 0,
+  sampled: window.__sampled ?? 0,
+  sampledLines: window.__sampledLines ?? 0,
 }))
 
 /*
@@ -173,8 +201,17 @@ const beats = new Set(got.hops.map((h) => h.beat))
 console.log(`  ${beats.size} beat(s) drew something; ${lines.length} line(s), ${polys.length} polyline(s)`)
 console.log(`  of the lines: ${tally.diagonal} diagonal, ${tally.vertical} vertical, ${tally.horizontal} horizontal\n`)
 
-if (got.beats === 0) {
-  console.log('  nothing was drawn, so here is what the page says about why:')
+if (got.beats === 0 && got.sampled > 0) {
+  console.log(
+    `  THE OBSERVER MISSED IT. The sampler saw an SVG on ${got.sampled} ticks ` +
+      `with up to ${got.sampledLines} segment(s), so the demo ran and this test did not see it.\n`,
+  )
+  failed = true
+  failures.push('the observer missed a demo the sampler saw')
+}
+
+if (got.beats === 0 && got.sampled === 0) {
+  console.log('  neither sensor saw anything, so here is what the page says about why:')
   console.log(`    pointer: fine        ${gates.finePointer}   (true sends the page down the hover path instead)`)
   console.log(`    reduced motion       ${gates.reducedMotion}`)
   console.log(`    demo already shown   ${gates.demoFlag}`)

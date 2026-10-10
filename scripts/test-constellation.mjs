@@ -48,11 +48,7 @@ await page.waitForTimeout(2500)
   behaviour is shared by both modes, which is why the later reloads - which
   reset the toggle to its default - still measure what they claim to.
 */
-await page.evaluate(() => {
-  const btn = document.querySelector('#pf-gather')
-  if (btn && btn.getAttribute('aria-pressed') === 'true') btn.click()
-})
-await page.waitForTimeout(400)
+/* No toggle any more: a click gathers, and the thread precedes it. */
 
 /* What projects exist on the page, and how big each one is. */
 const families = await page.evaluate(() => {
@@ -468,6 +464,7 @@ if (!links) {
           ),
         ),
         ms: Number((window.__pfPreviewMs ?? 0).toFixed(2)),
+        tag: document.querySelector('.pf-tag')?.textContent?.trim() ?? null,
         vectorEffect: getComputedStyle(
           document.querySelector('.pf-links polyline') ?? document.body,
         ).vectorEffect,
@@ -518,6 +515,16 @@ if (!links) {
     */
     check('it does not borrow the clicked state', !state.dimmed)
     check('nothing expands on hover', !state.moved)
+    /*
+      The thread says WHICH pieces; the label says WHAT they are. Without
+      it a visitor watching eighteen tiles light up still has to work out
+      that they are one project, and which one.
+    */
+    check(
+      'the set is named at the tile under the pointer',
+      !!state.tag,
+      state.tag ? `reads "${state.tag}"` : 'no label',
+    )
     /*
       "Can this work but still be snappy" has a number for an answer, and
       it should come from the browser. One frame at 60Hz is 16.7ms; drawing
@@ -586,6 +593,7 @@ if (!links) {
     await hover.waitForTimeout(400)
     const after = await hover.evaluate(() => ({
       lines: document.querySelectorAll('.pf-grid .pf-links polyline').length,
+      tag: !!document.querySelector('.pf-tag'),
       previewing: document.querySelector('.pf-grid')?.classList.contains('has-preview') ?? false,
       dimmest: Math.min(
         ...[...document.querySelectorAll('.pf-grid .pf-item')].map((el) =>
@@ -595,8 +603,8 @@ if (!links) {
     }))
     check(
       'leaving the grid clears the lines AND the dimming',
-      after.lines === 0 && !after.previewing && after.dimmest === 1,
-      `${after.lines} line(s), dimmest tile at ${after.dimmest}`,
+      after.lines === 0 && !after.previewing && after.dimmest === 1 && !after.tag,
+      `${after.lines} line(s), dimmest tile at ${after.dimmest}, label ${after.tag ? 'left behind' : 'cleared'}`,
     )
   }
   await hover.close()

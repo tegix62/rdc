@@ -53,9 +53,14 @@ const toggle = await page.evaluate(() => {
   return btn ? {text: btn.textContent.trim(), pressed: btn.getAttribute('aria-pressed')} : null
 })
 
-if (!toggle) {
-  check('the Gather toggle is on the page', false, 'not found')
-} else {
+/*
+  The toggle is gone on purpose. It existed to judge two rival modes, and
+  the answer was that they were never rivals - the thread explains the
+  regrouping and the regrouping follows it. Asserted as an absence so that
+  re-adding it has to be a decision rather than a reflex.
+*/
+check('the Gather toggle is gone - there is one behaviour now', toggle === null)
+if (false) {
   /*
     Starts ON now. Chris chose gather over the constellation as the default
     once he could see it, so the toggle's job changed: it is no longer a way
@@ -120,10 +125,7 @@ const marked = await page.evaluate(() => {
 if (!marked) check('a tile from a gatherable project exists', false)
 await page.waitForTimeout(500)
 
-const pressed = await page.evaluate(
-  () => document.querySelector('#pf-gather')?.getAttribute('aria-pressed'),
-)
-check('gather is active without having to be switched on', pressed === 'true')
+/* Gather is simply what a click does now; nothing has to be switched on. */
 
 /*
   Pick a tile from a project big enough to gather, somewhere in the middle
@@ -353,23 +355,19 @@ if (!chosen) {
 
 /* ---------- turning it off restores the dealt order ---------- */
 {
-  const dealt = await page.evaluate(() => {
-    const el = document.querySelector('#pf-gather')
-    el.click()
-    return null
-  })
-  void dealt
-  await page.waitForTimeout(1200)
+  /* Collapsing the expanded tile is what restores the dealt order now. */
+  await page.evaluate(() => document.querySelector('.pf-item.is-expanded')?.click())
+  await page.waitForTimeout(1400)
   const restored = await page.evaluate(() => {
     const tiles = [...document.querySelectorAll('.pf-grid .pf-item')]
     const hrefOf = (el) => el.querySelector('.pf-item__jump')?.getAttribute('href') ?? null
     const keys = tiles.map((el, i) => hrefOf(el) ?? `solo:${i}`)
     let clashes = 0
     for (let i = 1; i < keys.length; i++) if (keys[i] === keys[i - 1]) clashes += 1
-    return {clashes, pressed: document.querySelector('#pf-gather')?.getAttribute('aria-pressed')}
+    return {clashes, expanded: !!document.querySelector('.pf-item.is-expanded')}
   })
   console.log('')
-  check('turning gather off switches the mode back', restored.pressed === 'false')
+  check('collapsing clears the gathered state', !restored.expanded)
   /*
     The dealt order's defining property is that no two neighbours share a
     project. If restoring left the gathered run in place, this would be a
@@ -398,8 +396,11 @@ await page.close()
   if (!reached) {
     console.log(`  (${PROD} unreachable; the gating check did not run)`)
   } else {
-    const leaked = await prod.evaluate(() => !!document.querySelector('#pf-gather'))
-    check('production has no Gather toggle', !leaked)
+    const leaked = await prod.evaluate(() => ({
+      toggle: !!document.querySelector('#pf-gather'),
+      tag: !!document.querySelector('.pf-tag'),
+    }))
+    check('production has no Gather toggle', !leaked.toggle)
   }
   await prod.close()
 }

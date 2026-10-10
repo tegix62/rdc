@@ -2363,13 +2363,105 @@ main {
   then, and leaving it up while the tiles move would draw a diagram of an
   arrangement that no longer exists.
 */
+/*
+  THE SET, NAMED.
+
+  The thread says which pieces are related; this says what they are. Placed
+  against the grid rather than the viewport so it travels with the tile it
+  belongs to, and pointer-events off because it is a caption, not a control
+  - clicking through it must still reach the tile underneath.
+
+  Sits on the tile's top-left corner, overlapping the artwork slightly. That
+  is deliberate: floated clear in the gutter it reads as a tooltip for the
+  grid, and sitting ON the piece it reads as a label for that piece.
+*/
+.pf-tag {
+  position: absolute;
+  z-index: 3;
+  transform: translateY(-100%);
+  padding: 0.25rem 0.5rem;
+  background: var(--color-navy);
+  color: var(--color-cream, #f6f1e7);
+  font-family: var(--font-heading);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: pf-tag-in 140ms ease-out both;
+}
+
+/* No room above, so it hangs under the tile instead. */
+.pf-tag--below {
+  transform: none;
+}
+
+@keyframes pf-tag-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-tag {
+    animation: none;
+  }
+}
+
 .pf-links.is-leaving {
   opacity: 0;
   transition: opacity 240ms ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pf-links.is-leaving {
+  /*
+  THE SET, NAMED.
+
+  The thread says which pieces are related; this says what they are. Placed
+  against the grid rather than the viewport so it travels with the tile it
+  belongs to, and pointer-events off because it is a caption, not a control
+  - clicking through it must still reach the tile underneath.
+
+  Sits on the tile's top-left corner, overlapping the artwork slightly. That
+  is deliberate: floated clear in the gutter it reads as a tooltip for the
+  grid, and sitting ON the piece it reads as a label for that piece.
+*/
+.pf-tag {
+  position: absolute;
+  z-index: 3;
+  transform: translateY(-100%);
+  padding: 0.25rem 0.5rem;
+  background: var(--color-navy);
+  color: var(--color-cream, #f6f1e7);
+  font-family: var(--font-heading);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: pf-tag-in 140ms ease-out both;
+}
+
+/* No room above, so it hangs under the tile instead. */
+.pf-tag--below {
+  transform: none;
+}
+
+@keyframes pf-tag-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-tag {
+    animation: none;
+  }
+}
+
+.pf-links.is-leaving {
     transition: none;
   }
 }

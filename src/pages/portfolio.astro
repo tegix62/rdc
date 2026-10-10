@@ -148,31 +148,16 @@ if (emptyFilters.length > 0) {
           the production toolbar ends with a half-width button alone on a row,
           which is the orphan Chris just asked to be rid of, moved one line up.
         */}
-        <button
-          type="button"
-          class:list={['pf-btn', !PREVIEW && 'pf-btn--span']}
-          id="pf-shuffle"
-        >
-          Shuffle
-        </button>
+        {/* Spans both phone columns: with the Gather toggle gone there are
+            three controls, so without this Shuffle sits alone on a row. */}
+        <button type="button" class="pf-btn pf-btn--span" id="pf-shuffle">Shuffle</button>
         {/*
-          A SWITCH BETWEEN TWO ANSWERS TO THE SAME QUESTION, FOR JUDGING.
-
-          Lines and gather both say "these pieces belong together" - one
-          keeps the grid intact, the other breaks it to make the set
-          legible. Chris wants to pick one and shelve the other, and the
-          only way to compare them is side by side on the real grid with
-          real content.
-
-          aria-pressed rather than a checkbox because it is a toggle on the
-          view, not a value being submitted. Preview only: this is a
-          decision aid, not navigation, and it must not ship.
+          THE GATHER TOGGLE IS GONE. It existed to let Chris judge two
+          rival modes against each other, and the answer turned out to be
+          that they were never rivals - the thread explains the regrouping
+          and the regrouping follows it. There is one behaviour now, so
+          there is nothing to switch.
         */}
-        {PREVIEW && (
-          <button type="button" class="pf-btn" id="pf-gather" aria-pressed="true">
-            Gather: on
-          </button>
-        )}
         {/* nowrap: these two are one control in two halves. */}
         <span class="pf-zoom">
           <button type="button" class="pf-btn" id="pf-minus" aria-label="Smaller tiles">&minus;</button>
@@ -923,6 +908,7 @@ if (emptyFilters.length > 0) {
       grid.classList.remove('has-focus');
       grid.querySelectorAll('.pf-item.is-sibling').forEach((el) => el.classList.remove('is-sibling'));
       grid.querySelector('.pf-links')?.remove();
+      dropTag();
       focusItem = null;
       focusFamily = [];
     };
@@ -1318,7 +1304,39 @@ if (emptyFilters.length > 0) {
         const pts: {x: number; y: number}[] = [];
         const horizontalFirst = Math.abs(target.x - source.x) >= Math.abs(target.y - source.y);
 
-        if (horizontalFirst) {
+        /*
+          NEARLY ALIGNED IS ALIGNED.
+
+          Chris: "there's a funky thing happening where if something is
+          nearby on the grid, it makes a little vertical line with slight
+          offshoots like 1 to 2px horizontally."
+
+          Two tiles in the same column do not share an exact centre - an
+          expanded tile is wider, and rounding does the rest - so their x
+          values differ by a pixel or two. The dogleg dutifully drew that
+          difference: a long vertical run with a 1px horizontal kink at the
+          elbow, which reads as a rendering fault rather than a line.
+
+          Within a gutter's width of each other, the two are treated as
+          aligned and get one straight run down the average of their
+          centres. A jog smaller than the stroke is not information.
+        */
+        const ALIGN = 10;
+        if (!horizontalFirst && Math.abs(target.x - source.x) <= ALIGN) {
+          const x = (source.x + target.x) / 2;
+          const dir = target.y > source.y ? 1 : -1;
+          pts.push(
+            {x, y: source.y + dir * (source.hh + GAP)},
+            {x, y: target.y - dir * (target.hh + GAP)},
+          );
+        } else if (horizontalFirst && Math.abs(target.y - source.y) <= ALIGN) {
+          const y = (source.y + target.y) / 2;
+          const dir = target.x > source.x ? 1 : -1;
+          pts.push(
+            {x: source.x + dir * (source.hw + GAP), y},
+            {x: target.x - dir * (target.hw + GAP), y},
+          );
+        } else if (horizontalFirst) {
           /*
             Leave sideways, turn once in a column channel, arrive sideways.
             The channel is snapped to a column boundary and clamped between
@@ -1349,7 +1367,13 @@ if (emptyFilters.length > 0) {
         const path: {x: number; y: number}[] = [];
         for (const pt of pts) {
           const last = path[path.length - 1];
-          if (!last || Math.abs(last.x - pt.x) > 0.5 || Math.abs(last.y - pt.y) > 0.5) path.push(pt);
+          /*
+            2px rather than 0.5. The alignment branch above removes the
+            degenerate doglegs at source; this is the safety net for what
+            rounding leaves behind, and half a pixel was too fine a sieve
+            to catch anything.
+          */
+          if (!last || Math.abs(last.x - pt.x) > 2 || Math.abs(last.y - pt.y) > 2) path.push(pt);
         }
         if (path.length < 2) continue;
 
@@ -1467,7 +1491,11 @@ if (emptyFilters.length > 0) {
       is what it is for: he has not decided to delete it, only to stop
       leading with it.
     */
-    let gatherMode = LINES;
+    /*
+      One behaviour, not a mode. Still gated to preview until Chris says to
+      ship it - flipping this to `true` is the whole of that change.
+    */
+    const gatherMode = LINES;
     let preGather: HTMLElement[] | null = null;
 
     /* The deal as the build dealt it, kept so gather is undoable without
@@ -1718,6 +1746,58 @@ if (emptyFilters.length > 0) {
       redrawing them would restart an animation the visitor has already
       watched.
     */
+    /*
+      SAY WHAT THE SET IS, NOT JUST WHICH ONES.
+
+      Chris, on why the constellation earns its place next to gather: it
+      "spells out the idea of this grid intuitively, where the Gather
+      function snaps a bunch of pictures together in a click."
+
+      The thread shows WHICH pieces are related. It never said WHAT they
+      are. A visitor watching eighteen tiles light up still has to work out
+      that they are one project, and which one - so the set gets named at
+      the tile the visitor is pointing at.
+
+      This is the thing gather structurally cannot do. Gather rearranges,
+      which costs the visitor their place; the label names the set where it
+      stands, without moving anything.
+
+      The name is read from the jump label rather than passed down from the
+      query, because that element already carries the parent project's
+      title and is the same string check-grid-spacing reads. Two sources
+      for one fact is how they drift.
+    */
+    const nameSet = (tile: HTMLElement, family: HTMLElement[]) => {
+      const title = tile.querySelector('.pf-item__jump-label')?.textContent?.trim();
+      if (!title) return;
+
+      const tag = document.createElement('div');
+      tag.className = 'pf-tag';
+      tag.textContent = `${title} · ${family.length} pieces`;
+
+      const gr = grid.getBoundingClientRect();
+      const r = (tile.querySelector('.pf-item__frame') ?? tile).getBoundingClientRect();
+      const left = r.left - gr.left;
+      const top = r.top - gr.top;
+
+      /*
+        Above the tile, unless the tile is at the top of the grid and there
+        is no above - then below it. A label clipped off the top of the
+        page is worse than no label.
+      */
+      tag.style.left = `${Math.round(left)}px`;
+      if (top > 28) tag.style.top = `${Math.round(top)}px`;
+      else {
+        tag.style.top = `${Math.round(top + r.height)}px`;
+        tag.classList.add('pf-tag--below');
+      }
+
+      grid.querySelector('.pf-tag')?.remove();
+      grid.appendChild(tag);
+    };
+
+    const dropTag = () => grid.querySelector('.pf-tag')?.remove();
+
     const dropPreview = (keepLines = false) => {
       window.clearTimeout(offTimer);
       if (!previewHref) return;
@@ -1726,7 +1806,10 @@ if (emptyFilters.length > 0) {
       grid
         .querySelectorAll('.pf-item.is-preview-sibling')
         .forEach((el) => el.classList.remove('is-preview-sibling'));
-      if (!keepLines) grid.querySelector('.pf-links')?.remove();
+      if (!keepLines) {
+        grid.querySelector('.pf-links')?.remove();
+        dropTag();
+      }
     };
 
     const scheduleDrop = () => {
@@ -1770,6 +1853,7 @@ if (emptyFilters.length > 0) {
 
       drawLinks(tile, family, true);
       grid.querySelector('.pf-links')?.classList.add('pf-links--preview');
+      nameSet(tile, family);
       (window as any).__pfPreviewMs = performance.now() - t0;
     };
 
@@ -1939,10 +2023,19 @@ if (emptyFilters.length > 0) {
                 svg?.classList.add('is-leaving');
                 gather(focusItem!, focusFamily, anchorTop);
                 window.setTimeout(() => svg?.remove(), 300);
+                /*
+                  Re-placed after the move rather than left where it was.
+                  The label points at the anchor tile, and the anchor tile
+                  is the one thing the gather deliberately holds still - but
+                  "still" is in viewport terms, and this is positioned
+                  against the grid, which grows and shrinks underneath it.
+                */
+                window.setTimeout(() => nameSet(focusItem!, focusFamily), 360);
               };
               if (explained) go();
               else {
                 drawLinks(focusItem, focusFamily, true);
+                nameSet(focusItem, focusFamily);
                 window.setTimeout(go, EXPLAIN_HOLD);
               }
             } else if (wasExpanded) restoreOrder();
@@ -1955,22 +2048,6 @@ if (emptyFilters.length > 0) {
       );
     });
 
-    /*
-      Flipping the mode puts the grid back to the dealt order first.
-
-      Turning gather off while a project is still gathered would leave the
-      grid in an arrangement no rule produced and no button could undo - the
-      state you cannot get out of is the one worth handling here.
-    */
-    document.querySelector('#pf-gather')?.addEventListener('click', (e) => {
-      const btn = e.currentTarget as HTMLButtonElement;
-      gatherMode = !gatherMode;
-      btn.setAttribute('aria-pressed', String(gatherMode));
-      btn.textContent = `Gather: ${gatherMode ? 'on' : 'off'}`;
-      restoreOrder();
-      if (gatherMode) grid.querySelector('.pf-links')?.remove();
-      else if (focusItem) requestAnimationFrame(() => drawLinks());
-    });
 
     /*
       Archive mode changes tile heights - gutters open up and logomarks get

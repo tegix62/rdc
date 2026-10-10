@@ -2378,6 +2378,19 @@ main {
 .pf-tag {
   position: absolute;
   z-index: 3;
+  /*
+    Hung off the tile's own corner. Isotope positions tiles absolutely and
+    moves them by transform, so this rides along with its piece instead of
+    being re-placed after every rearrangement.
+
+    width:max-content lets it be wider than its column - a 96px tile cannot
+    hold a project name - and the max-width keeps it inside the screen
+    whichever edge it hangs from.
+  */
+  left: 0;
+  top: 0;
+  width: max-content;
+  max-width: min(80vw, 22rem);
   transform: translateY(-100%);
   padding: 0.25rem 0.5rem;
   background: var(--color-navy);
@@ -2412,7 +2425,19 @@ main {
 
 /* No room above, so it hangs under the tile instead. */
 .pf-tag--below {
+  top: 100%;
   transform: none;
+}
+
+/*
+  A tile in the right half of the grid hangs its label from its RIGHT edge,
+  so a long name grows inwards rather than off the screen. Chosen from the
+  tile's position rather than clamped in pixels, because a pixel clamp
+  measured before a gather is wrong immediately after one.
+*/
+.pf-tag--right {
+  left: auto;
+  right: 0;
 }
 
 @keyframes pf-tag-in {
@@ -2448,6 +2473,19 @@ main {
 .pf-tag {
   position: absolute;
   z-index: 3;
+  /*
+    Hung off the tile's own corner. Isotope positions tiles absolutely and
+    moves them by transform, so this rides along with its piece instead of
+    being re-placed after every rearrangement.
+
+    width:max-content lets it be wider than its column - a 96px tile cannot
+    hold a project name - and the max-width keeps it inside the screen
+    whichever edge it hangs from.
+  */
+  left: 0;
+  top: 0;
+  width: max-content;
+  max-width: min(80vw, 22rem);
   transform: translateY(-100%);
   padding: 0.25rem 0.5rem;
   background: var(--color-navy);
@@ -2482,7 +2520,19 @@ main {
 
 /* No room above, so it hangs under the tile instead. */
 .pf-tag--below {
+  top: 100%;
   transform: none;
+}
+
+/*
+  A tile in the right half of the grid hangs its label from its RIGHT edge,
+  so a long name grows inwards rather than off the screen. Chosen from the
+  tile's position rather than clamped in pixels, because a pixel clamp
+  measured before a gather is wrong immediately after one.
+*/
+.pf-tag--right {
+  left: auto;
+  right: 0;
 }
 
 @keyframes pf-tag-in {

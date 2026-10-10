@@ -223,6 +223,83 @@ if (!chosen) {
   )
 }
 
+/* ---------- the label must not lag behind its tile ---------- */
+{
+  /*
+    Chris: "the 'pieces' tag is the only thing now that takes a second to
+    lock in."
+
+    It was positioned in grid coordinates and re-placed after the gather,
+    so it sat still while its tile moved and then jumped to catch up. It
+    is a child of the tile now, which means the property to assert is
+    simply that it never separates from it - sampled every frame through
+    the whole rearrangement rather than checked once at the end, because
+    checking at the end is exactly what hid this.
+  */
+  const ph = await browser.newPage({viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true})
+  await ph.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await ph.waitForTimeout(3500)
+
+  const drift = await ph.evaluate(() => {
+    const grid = document.querySelector('.pf-grid')
+    const tiles = [...grid.querySelectorAll('.pf-item')]
+    const hrefOf = (el) => el.querySelector('.pf-item__jump')?.getAttribute('href') ?? null
+    const sizes = {}
+    for (const el of tiles) {
+      const k = hrefOf(el)
+      if (k) sizes[k] = (sizes[k] ?? 0) + 1
+    }
+    const t = tiles.find((el) => hrefOf(el) && sizes[hrefOf(el)] >= 4)
+    if (!t) return null
+    t.click()
+
+    let worst = 0
+    let sawTag = false
+    let offScreen = 0
+    return new Promise((resolve) => {
+      let f = 0
+      const tick = () => {
+        const tag = document.querySelector('.pf-tag')
+        if (tag) {
+          sawTag = true
+          const tr = tag.getBoundingClientRect()
+          const br = t.getBoundingClientRect()
+          /* Horizontal separation from its own tile, which is what a
+             stale position looks like while the grid reflows. */
+          const gap = Math.min(
+            Math.abs(tr.left - br.left),
+            Math.abs(tr.right - br.right),
+          )
+          worst = Math.max(worst, gap)
+          if (tr.left < -2 || tr.right > window.innerWidth + 2) offScreen += 1
+        }
+        if (++f < 90) requestAnimationFrame(tick)
+        else resolve({worst: Math.round(worst), sawTag, offScreen})
+      }
+      requestAnimationFrame(tick)
+    })
+  })
+
+  console.log('')
+  if (!drift) {
+    check('a gatherable tile exists on the phone layout', false)
+  } else {
+    console.log(`  label vs its tile over 90 frames: worst separation ${drift.worst}px`)
+    check('the set is labelled on touch too', drift.sawTag)
+    check(
+      'and the label never lags behind its tile',
+      drift.worst <= 4,
+      `${drift.worst}px at worst`,
+    )
+    check(
+      'nor does it hang off the screen',
+      drift.offScreen === 0,
+      `${drift.offScreen} frame(s) outside the viewport`,
+    )
+  }
+  await ph.close()
+}
+
 /* ---------- how long a gather actually takes on a phone ---------- */
 {
   /*

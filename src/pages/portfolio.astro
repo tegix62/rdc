@@ -1740,6 +1740,8 @@ if (emptyFilters.length > 0) {
       title and is the same string check-grid-spacing reads. Two sources
       for one fact is how they drift.
     */
+    const dropTag = () => grid.querySelector('.pf-tag')?.remove();
+
     const nameSet = (tile: HTMLElement, family: HTMLElement[]) => {
       /*
         STRIPPED, because the DOM string is not the visible string.
@@ -1763,52 +1765,43 @@ if (emptyFilters.length > 0) {
         .trim();
       if (!title) return;
 
+      /*
+        THE LABEL LIVES INSIDE THE TILE, NOT ON TOP OF THE GRID.
+
+        Chris: "the 'pieces' tag is the only thing now that takes a second
+        to lock in."
+
+        It was positioned in grid coordinates, so when the gather moved its
+        tile the label stayed where it was and had to be re-placed after
+        the dust settled. That re-placement is the second he is describing:
+        the thing appears, the grid rearranges around it, and then it
+        jumps to catch up.
+
+        Appended to the tile instead. Isotope positions tiles absolutely
+        and moves them by transform, so a child rides along for free -
+        nothing to recompute, nothing to re-place, and no moment where the
+        label is pointing at where its piece used to be.
+
+        Which side it hangs from is decided once from the tile's own
+        position, rather than clamped in pixels. A tile in the right half
+        of the grid hangs its label from its right edge, one in the left
+        half from its left. That survives the tile moving, which a pixel
+        clamp measured before the move does not.
+      */
       const tag = document.createElement('div');
       tag.className = 'pf-tag';
       tag.textContent = `${title} · ${family.length} pieces`;
 
       const gr = grid.getBoundingClientRect();
       const r = (tile.querySelector('.pf-item__frame') ?? tile).getBoundingClientRect();
-      const left = r.left - gr.left;
-      const top = r.top - gr.top;
 
-      /*
-        Above the tile, unless the tile is at the top of the grid and there
-        is no above - then below it. A label clipped off the top of the
-        page is worse than no label.
-      */
-      tag.style.left = `${Math.round(left)}px`;
-      if (top > 28) tag.style.top = `${Math.round(top)}px`;
-      else {
-        tag.style.top = `${Math.round(top + r.height)}px`;
-        tag.classList.add('pf-tag--below');
-      }
+      if (r.left - gr.left + r.width / 2 > gr.width / 2) tag.classList.add('pf-tag--right');
+      // No room above - the top row would hang its label off the grid.
+      if (r.top - gr.top < 28) tag.classList.add('pf-tag--below');
 
-      grid.querySelector('.pf-tag')?.remove();
-      grid.appendChild(tag);
-
-      /*
-        AND IT HAS TO FIT ON THE SCREEN.
-
-        Chris, with a screenshot of "DUMPSTAT, A D&D PODCAST · 18 PIE"
-        running off the right edge of a phone: the label is positioned at
-        its tile's left edge and allowed to run, which on a 390px screen
-        with a long project name puts the piece count past the fold.
-
-        Two bounds, applied after insertion because both need the measured
-        width. The box may not be wider than the grid, and it may not start
-        so far right that it ends outside it. Pulling it left is better
-        than letting it clip: the label belongs to the tile but it is
-        readable or it is nothing, and a count nobody can see is the half
-        that carries the information.
-      */
-      const room = grid.clientWidth;
-      tag.style.maxWidth = `${Math.max(140, room - 8)}px`;
-      const w = tag.getBoundingClientRect().width;
-      if (left + w > room - 4) tag.style.left = `${Math.max(0, Math.round(room - w - 4))}px`;
+      dropTag();
+      tile.appendChild(tag);
     };
-
-    const dropTag = () => grid.querySelector('.pf-tag')?.remove();
 
     const dropPreview = (keepLines = false) => {
       window.clearTimeout(offTimer);
@@ -2133,13 +2126,10 @@ if (emptyFilters.length > 0) {
                 gather(focusItem!, focusFamily, anchorTop);
                 window.setTimeout(() => svg?.remove(), 300);
                 /*
-                  Re-placed after the move rather than left where it was.
-                  The label points at the anchor tile, and the anchor tile
-                  is the one thing the gather deliberately holds still - but
-                  "still" is in viewport terms, and this is positioned
-                  against the grid, which grows and shrinks underneath it.
+                  No re-placement. The label is a child of the tile now, so
+                  it travels with it - see nameSet. Re-placing it here is
+                  what made it take a second to settle.
                 */
-                window.setTimeout(() => nameSet(focusItem!, focusFamily), 360);
               };
               /*
                 THE THREAD IS A DESKTOP THING NOW, PLUS ONE DEMO.

@@ -1756,12 +1756,45 @@ if (emptyFilters.length > 0) {
       const current = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item'));
       const others = current.filter((el) => el === item || !family.includes(el));
       const at = others.indexOf(item);
+
+      /*
+        TALLEST FIRST, BECAUSE THAT IS HOW GREEDY PACKING WANTS ITS INPUT.
+
+        Masonry's rule - put each item in whichever column is currently
+        shortest - is greedy bin packing, and greedy bin packing is badly
+        served by arbitrary order and well served by largest-first. It is
+        the classic longest-processing-time result: feed it the big items
+        while there is still room to balance them, and the small ones
+        settle the difference at the end. Feed it in shuffle order and a
+        tall tile arriving last leaves a column hanging below all the
+        others.
+
+        Measured before this: the set's bottom edge was 186px ragged
+        between its shortest and tallest column, and three columns
+        carried gaps of 174-188px in one band underneath it. Chris:
+        "sometimes this grid on desktop has large gaps. Is there a chance
+        we can make it look more together when it's gathered?"
+
+        Heights are read here, before anything moves, because the tiles
+        are still where the current layout put them. The clicked tile
+        stays at the head regardless: it is about to become the biggest
+        thing in the set anyway, and moving it would undo the one piece
+        of continuity the visitor has.
+
+        Only the order WITHIN the set changes. The deal is untouched, and
+        restoreOrder still puts everything back exactly as it was.
+      */
+      const packed = family
+        .filter((el) => el !== item)
+        .map((el) => ({el, h: el.getBoundingClientRect().height}))
+        .sort((a, b) => b.h - a.h)
+        .map((x) => x.el);
       const frag = document.createDocumentFragment();
       for (let i = 0; i < others.length; i++) {
         frag.appendChild(others[i]);
         // Immediately after the clicked tile, so masonry lays the set out
         // as one run starting from where that tile already sat.
-        if (i === at) for (const el of family) if (el !== item) frag.appendChild(el);
+        if (i === at) for (const el of packed) frag.appendChild(el);
       }
       grid.appendChild(frag);
 

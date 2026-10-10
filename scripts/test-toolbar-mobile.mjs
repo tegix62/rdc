@@ -107,9 +107,24 @@ const bar = await page.evaluate(() => {
   }
   rows.sort((a, b) => a.top - b.top)
 
+  /*
+    THE FILTERS SHOULD BE EVEN HALVES.
+
+    The test counted the filter buttons and measured the toolbar's height
+    and never once asked how wide each button was, so a 2x2 block whose
+    left column was two and a half times the right passed every check.
+    Chris saw it immediately: "the category buttons are off center in
+    their division."
+
+    Measured as the widest filter against the narrowest, which needs no
+    knowledge of how many there are or which row they fall on.
+  */
+  const filterWidths = boxes.filter((b) => b.kind === 'filter').map((b) => b.width)
+
   const barBox = root.getBoundingClientRect()
   return {
     boxes,
+    filterWidths,
     rows: rows.map((r) => ({top: r.top, labels: r.items.map((i) => i.label)})),
     barHeight: Math.round(barBox.height),
     barBottom: Math.round(barBox.bottom),
@@ -142,6 +157,20 @@ if (!bar) {
     'no control is left alone on a row beside rows that are not',
     !(lonely.length && paired.length),
     `rows of ${widths.join(', ')}`,
+  )
+
+  /*
+    Even columns. 6px of slack for sub-pixel grid rounding and borders -
+    tight enough that the 2.5x split this was written for fails loudly,
+    loose enough that a half-pixel column never does.
+  */
+  const fw = bar.filterWidths ?? []
+  const widest = Math.max(0, ...fw)
+  const narrowest = fw.length ? Math.min(...fw) : 0
+  check(
+    'the category buttons divide the row evenly',
+    fw.length >= 2 && widest - narrowest <= 6,
+    fw.length ? `widest ${widest}px, narrowest ${narrowest}px` : 'no filter buttons found',
   )
 
   const archiveRow = bar.rows.find((r) => r.labels.some((l) => /archive/i.test(l)))

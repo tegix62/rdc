@@ -1786,6 +1786,26 @@ if (emptyFilters.length > 0) {
 
       grid.querySelector('.pf-tag')?.remove();
       grid.appendChild(tag);
+
+      /*
+        AND IT HAS TO FIT ON THE SCREEN.
+
+        Chris, with a screenshot of "DUMPSTAT, A D&D PODCAST · 18 PIE"
+        running off the right edge of a phone: the label is positioned at
+        its tile's left edge and allowed to run, which on a 390px screen
+        with a long project name puts the piece count past the fold.
+
+        Two bounds, applied after insertion because both need the measured
+        width. The box may not be wider than the grid, and it may not start
+        so far right that it ends outside it. Pulling it left is better
+        than letting it clip: the label belongs to the tile but it is
+        readable or it is nothing, and a count nobody can see is the half
+        that carries the information.
+      */
+      const room = grid.clientWidth;
+      tag.style.maxWidth = `${Math.max(140, room - 8)}px`;
+      const w = tag.getBoundingClientRect().width;
+      if (left + w > room - 4) tag.style.left = `${Math.max(0, Math.round(room - w - 4))}px`;
     };
 
     const dropTag = () => grid.querySelector('.pf-tag')?.remove();
@@ -2121,8 +2141,32 @@ if (emptyFilters.length > 0) {
                 */
                 window.setTimeout(() => nameSet(focusItem!, focusFamily), 360);
               };
-              if (explained) go();
-              else {
+              /*
+                THE THREAD IS A DESKTOP THING NOW, PLUS ONE DEMO.
+
+                Chris: "lines appear briefly as the mosaic slowly Gathers,
+                it's a noticeable lag on mobile but not on desktop... I
+                don't see an application for the lines on mobile. Unless
+                it's part of that live demo you mentioned."
+
+                He is right, and it undoes a decision I made two rounds
+                ago. The 280ms beat existed because touch had no hover to
+                explain the regroup - but the one-time demonstration now
+                does that job properly, once, before anyone has tapped
+                anything. Paying the beat again on every single tap buys
+                nothing and spends it against a relayout that is already
+                the slowest thing on a phone.
+
+                So on touch the tap gathers immediately. On a pointer the
+                hover has normally already drawn the thread, and it fades
+                as the pieces travel; where it has not, the beat still
+                runs, because a desktop relayout is fast enough to afford
+                it.
+              */
+              if (explained || !FINE_POINTER) {
+                nameSet(focusItem, focusFamily);
+                go();
+              } else {
                 drawLinks(focusItem, focusFamily, true);
                 nameSet(focusItem, focusFamily);
                 window.setTimeout(go, EXPLAIN_HOLD);

@@ -223,6 +223,104 @@ if (!chosen) {
   )
 }
 
+/* ---------- how long a gather actually takes on a phone ---------- */
+{
+  /*
+    Chris: "lines appear briefly as the mosaic slowly Gathers, it's a
+    noticeable lag on mobile but not on desktop."
+
+    The lines are gone from the touch path now, but it is worth knowing
+    whether they were the whole of it - a relayout of eighty-two tiles into
+    one or two columns is real work, and if the gather itself is slow then
+    removing the thread has only made the wait emptier.
+
+    Reported rather than asserted, because I do not yet know what good
+    looks like here and inventing a threshold would be a number pretending
+    to be a standard. What the figure separates is "the thread was the lag"
+    from "the thread was hiding the lag".
+  */
+  const ph = await browser.newPage({viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true})
+  await ph.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await ph.waitForTimeout(3500)
+
+  const timing = await ph.evaluate(() => {
+    const grid = document.querySelector('.pf-grid')
+    const tiles = [...grid.querySelectorAll('.pf-item')]
+    const hrefOf = (el) => el.querySelector('.pf-item__jump')?.getAttribute('href') ?? null
+    const sizes = {}
+    for (const el of tiles) {
+      const k = hrefOf(el)
+      if (k) sizes[k] = (sizes[k] ?? 0) + 1
+    }
+    const t = tiles.find((el) => hrefOf(el) && sizes[hrefOf(el)] >= 4)
+    if (!t) return null
+
+    const order = () =>
+      [...grid.querySelectorAll('.pf-item')].map((el) => el.querySelector('img')?.getAttribute('alt') ?? '?').join('|')
+    const start = order()
+    const t0 = performance.now()
+    let movedAt = -1
+    let settledAt = -1
+    let lastBoxes = ''
+    let stable = 0
+    let longestFrame = 0
+    let prev = t0
+    let lines = 0
+
+    t.click()
+    return new Promise((resolve) => {
+      const tick = () => {
+        const now = performance.now()
+        longestFrame = Math.max(longestFrame, now - prev)
+        prev = now
+        if (document.querySelectorAll('.pf-links line, .pf-links polyline').length) lines += 1
+        if (movedAt < 0 && order() !== start) movedAt = now - t0
+        const boxes = [...grid.querySelectorAll('.pf-item')]
+          .map((el) => Math.round(el.getBoundingClientRect().top))
+          .join(',')
+        if (boxes === lastBoxes) stable += 1
+        else stable = 0
+        lastBoxes = boxes
+        if (movedAt >= 0 && stable >= 8 && settledAt < 0) settledAt = now - t0
+        if (settledAt < 0 && now - t0 < 4000) requestAnimationFrame(tick)
+        else resolve({
+          movedAt: Math.round(movedAt),
+          settledAt: Math.round(settledAt),
+          longestFrame: Math.round(longestFrame),
+          framesWithLines: lines,
+          tiles: tiles.length,
+        })
+      }
+      requestAnimationFrame(tick)
+    })
+  })
+
+  console.log('')
+  if (!timing) {
+    check('a gatherable tile exists on the phone layout', false)
+  } else {
+    console.log(
+      `  phone gather over ${timing.tiles} tiles: starts moving at ${timing.movedAt}ms, settled at ${timing.settledAt}ms`,
+    )
+    console.log(`  longest frame during the move: ${timing.longestFrame}ms`)
+    check(
+      'no thread is drawn on touch - that is desktop and the one-time demo now',
+      timing.framesWithLines === 0,
+      `${timing.framesWithLines} frame(s) had lines`,
+    )
+    /*
+      A tap should start doing something within a few frames. Anything
+      slower and the page feels like it ignored you, whatever happens next.
+    */
+    check(
+      'the gather begins promptly rather than after a pause',
+      timing.movedAt >= 0 && timing.movedAt < 180,
+      `first movement at ${timing.movedAt}ms`,
+    )
+  }
+  await ph.close()
+}
+
 /* ---------- the explanation has to come BEFORE the move ---------- */
 {
   /*
@@ -285,17 +383,20 @@ if (!chosen) {
   if (!seq) {
     check('a gatherable tile exists on the phone layout', false)
   } else {
+    /*
+      REVERSED, deliberately. This used to require the thread before the
+      move on touch. Chris: "I don't see an application for the lines on
+      mobile" - the one-time demo explains the idea now, and paying a
+      280ms beat on every tap spent it against the slowest relayout on the
+      site. The assertion follows the decision rather than outliving it.
+    */
     console.log(`  on touch: lines at frame ${seq.linesAt}, grid reordered at frame ${seq.movedAt}`)
     check(
-      'the thread is drawn on touch, where there is no hover to have shown it',
-      seq.linesAt >= 0,
-      `first seen at frame ${seq.linesAt}`,
+      'a tap on touch goes straight to the gather, with no thread',
+      seq.linesAt < 0,
+      seq.linesAt < 0 ? 'no lines drawn' : `lines appeared at frame ${seq.linesAt}`,
     )
-    check(
-      'and it is drawn BEFORE the pieces move',
-      seq.linesAt >= 0 && seq.movedAt > seq.linesAt,
-      `lines frame ${seq.linesAt}, move frame ${seq.movedAt}`,
-    )
+    check('and the grid does rearrange', seq.movedAt >= 0, `moved at frame ${seq.movedAt}`)
   }
   await phone.close()
 }

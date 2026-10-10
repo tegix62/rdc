@@ -2358,6 +2358,22 @@ main {
   order alone puts them above; giving this a z-index would start a contest
   that the expanded tile would have to join.
 */
+/*
+  The thread fades as the pieces travel. It has said what it had to say by
+  then, and leaving it up while the tiles move would draw a diagram of an
+  arrangement that no longer exists.
+*/
+.pf-links.is-leaving {
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-links.is-leaving {
+    transition: none;
+  }
+}
+
 .pf-links {
   position: absolute;
   inset: 0;

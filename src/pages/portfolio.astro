@@ -1684,10 +1684,28 @@ if (emptyFilters.length > 0) {
       whichever tile you are on.
     */
     const PREVIEW_OFF_DELAY = 120;
+
+    /*
+      Long enough for the thread to finish stitching before the pieces move.
+
+      The quick draw is 80ms a hop staggered 22ms apart and capped at eight,
+      so a tree of any depth completes in about 256ms. Holding for 280 means
+      the explanation is finished rather than interrupted - a line still
+      growing when its tile slides out from under it is worse than no line
+      at all.
+    */
+    const EXPLAIN_HOLD = 280;
     let previewHref: string | null = null;
     let offTimer: number | undefined;
 
-    const dropPreview = () => {
+    /*
+      `keepLines` exists for the hand-off into gather. On a click the hover
+      state has to be released, but the lines it drew are the explanation
+      of the rearrangement that is about to happen - throwing them away and
+      redrawing them would restart an animation the visitor has already
+      watched.
+    */
+    const dropPreview = (keepLines = false) => {
       window.clearTimeout(offTimer);
       if (!previewHref) return;
       previewHref = null;
@@ -1695,7 +1713,7 @@ if (emptyFilters.length > 0) {
       grid
         .querySelectorAll('.pf-item.is-preview-sibling')
         .forEach((el) => el.classList.remove('is-preview-sibling'));
-      grid.querySelector('.pf-links')?.remove();
+      if (!keepLines) grid.querySelector('.pf-links')?.remove();
     };
 
     const scheduleDrop = () => {
@@ -1818,7 +1836,17 @@ if (emptyFilters.length > 0) {
         reset too or the tile stays marked as already-previewed and never
         draws again after the grid collapses.
       */
-      dropPreview();
+      /*
+        Was the visitor already being shown this project's thread?
+
+        On a desktop pointer the hover preview has usually drawn it before
+        the click lands, so the relationship has already been explained and
+        the gather can follow immediately. On touch there is no hover, which
+        is where the explanation was missing entirely - tiles simply leapt
+        together and the viewer was left to infer why.
+      */
+      const explained = previewHref !== null && previewHref === projectOf(item);
+      dropPreview(explained);
       const wasExpanded = item.classList.contains('is-expanded');
       grid.querySelectorAll<HTMLElement>('.pf-item.is-expanded').forEach((el) => {
         el.classList.remove('is-expanded');
@@ -1865,8 +1893,44 @@ if (emptyFilters.length > 0) {
             trying to choose between.
           */
           if (gatherMode) {
-            if (focusItem && focusFamily.length >= FAMILY_MIN) gather(focusItem, focusFamily);
-            else if (wasExpanded) restoreOrder();
+            if (focusItem && focusFamily.length >= FAMILY_MIN) {
+              /*
+                THE LINES EXPLAIN THE MOVE, THEN THE MOVE HAPPENS.
+
+                Chris: "the Gather function snaps a bunch of pictures
+                together in a click, where the viewer may otherwise have not
+                even gathered that the surrounding pieces are related."
+
+                That is the whole gap, and it is not a flaw in gather - it
+                is that gather shows a RESULT with no cause. The pieces
+                arrive together and nothing ever said they belonged
+                together; the regrouping has to be inferred backwards from
+                the fact that it happened.
+
+                So the two stop being rival modes and become one sentence.
+                The thread stitches out from the tile first, naming the
+                relationship while everything is still in place, and the
+                pieces then come together along it. Cause, then effect.
+
+                Where the hover preview has already drawn that thread -
+                which on a desktop pointer is nearly always - the gather
+                follows at once and the lines fade as the tiles travel.
+                Re-explaining something the visitor just watched is its own
+                kind of rude. The beat only happens where the explanation
+                has not: touch.
+              */
+              const go = () => {
+                const svg = grid.querySelector('.pf-links');
+                svg?.classList.add('is-leaving');
+                gather(focusItem!, focusFamily);
+                window.setTimeout(() => svg?.remove(), 300);
+              };
+              if (explained) go();
+              else {
+                drawLinks(focusItem, focusFamily, true);
+                window.setTimeout(go, EXPLAIN_HOLD);
+              }
+            } else if (wasExpanded) restoreOrder();
           } else {
             // A third frame: layout() moves tiles, and lines measured before
             // that settles point at where things USED to be.

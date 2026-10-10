@@ -221,6 +221,83 @@ if (!chosen) {
   )
 }
 
+/* ---------- the explanation has to come BEFORE the move ---------- */
+{
+  /*
+    Chris: "the Gather function snaps a bunch of pictures together in a
+    click, where the viewer may otherwise have not even gathered that the
+    surrounding pieces are related."
+
+    Gather shows a result with no cause, so the thread is drawn first and
+    the pieces come together along it. On a desktop pointer the hover
+    preview has usually said it already and the gather follows at once -
+    so TOUCH is where this is tested, because touch is where the
+    explanation was missing entirely.
+
+    Asserted as an ordering, which is the only thing that makes it an
+    explanation: lines present while the grid is still in its dealt order,
+    and the grid reordered afterwards. A test that only checked "lines
+    appear at some point" would pass on a build that draws them after the
+    tiles have already landed, which explains nothing.
+  */
+  const phone = await browser.newPage({viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true})
+  await phone.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await phone.waitForTimeout(3000)
+
+  const seq = await phone.evaluate(async () => {
+    const grid = document.querySelector('.pf-grid')
+    const tiles = [...grid.querySelectorAll('.pf-item')]
+    const hrefOf = (el) => el.querySelector('.pf-item__jump')?.getAttribute('href') ?? null
+    const sizes = {}
+    for (const el of tiles) {
+      const k = hrefOf(el)
+      if (k) sizes[k] = (sizes[k] ?? 0) + 1
+    }
+    const target = tiles.find((el) => hrefOf(el) && sizes[hrefOf(el)] >= 4)
+    if (!target) return null
+
+    const orderNow = () =>
+      [...grid.querySelectorAll('.pf-item')].map((el) => el.querySelector('img')?.getAttribute('alt') ?? '?').join('|')
+    const before = orderNow()
+
+    target.click()
+
+    /* Watch both facts every frame for a second. */
+    let linesAt = -1
+    let movedAt = -1
+    return new Promise((resolve) => {
+      let f = 0
+      const tick = () => {
+        const hasLines = grid.querySelectorAll('.pf-links polyline').length > 0
+        const moved = orderNow() !== before
+        if (hasLines && linesAt < 0) linesAt = f
+        if (moved && movedAt < 0) movedAt = f
+        if (++f < 60) requestAnimationFrame(tick)
+        else resolve({linesAt, movedAt, frames: f})
+      }
+      requestAnimationFrame(tick)
+    })
+  })
+
+  console.log('')
+  if (!seq) {
+    check('a gatherable tile exists on the phone layout', false)
+  } else {
+    console.log(`  on touch: lines at frame ${seq.linesAt}, grid reordered at frame ${seq.movedAt}`)
+    check(
+      'the thread is drawn on touch, where there is no hover to have shown it',
+      seq.linesAt >= 0,
+      `first seen at frame ${seq.linesAt}`,
+    )
+    check(
+      'and it is drawn BEFORE the pieces move',
+      seq.linesAt >= 0 && seq.movedAt > seq.linesAt,
+      `lines frame ${seq.linesAt}, move frame ${seq.movedAt}`,
+    )
+  }
+  await phone.close()
+}
+
 /* ---------- the assertion that was missing: a visitor can SEE it ---------- */
 {
   /*

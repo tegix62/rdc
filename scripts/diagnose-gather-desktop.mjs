@@ -142,7 +142,71 @@ const result = await page.evaluate(async () => {
     return a + r.width * r.height
   }, 0)
 
+  /*
+    WHERE THE WHITE IS.
+
+    "81% of the box is the set" says a fifth of it is empty and says
+    nothing about where, and Chris is describing gaps he can see rather
+    than a percentage. Two different kinds of hole are possible and they
+    have different fixes, so they are counted separately:
+
+      - inside the set, under its ragged bottom edge. Masonry packs
+        greedily into the shortest column, which leaves a staircase
+        when tiles of very different heights arrive in a bad order.
+      - above the set, in the band the shelf creates. Levelling every
+        column to the tallest is what stops other work intruding, and
+        it buys that with whitespace under every column that was
+        shorter. That cost is mine, introduced an hour ago, and it is
+        not visible in the fill figure at all because it falls outside
+        the set's bounding box.
+
+    Measured per column rather than as one average, because a single
+    400px hole and forty 10px ones are the same number and not the same
+    page.
+  */
+  const colW = all[0]?.getBoundingClientRect().width || 1
+  const gapsByColumn = []
+  const nCols = Math.max(1, Math.round(grid.clientWidth / colW))
+  const gridTop = grid.getBoundingClientRect().top
+  for (let c = 0; c < nCols; c++) {
+    const x = c * colW + colW / 2
+    const inCol = all
+      .map((el) => el.getBoundingClientRect())
+      .filter((r) => r.left <= x && r.right >= x)
+      .sort((a, b) => a.top - b.top)
+    let biggest = 0
+    let at = 0
+    for (let i = 1; i < inCol.length; i++) {
+      const gap = inCol[i].top - inCol[i - 1].bottom
+      if (gap > biggest) {
+        biggest = gap
+        at = Math.round(inCol[i - 1].bottom - gridTop)
+      }
+    }
+    gapsByColumn.push({col: c, gap: Math.round(biggest), at})
+  }
+  gapsByColumn.sort((a, b) => b.gap - a.gap)
+
+  // The staircase at the bottom of the set: how far the shortest column
+  // of the set finishes above the longest.
+  const colBottoms = new Map()
+  for (const r of rects) {
+    const c = Math.round((r.left + 1) / colW)
+    colBottoms.set(c, Math.max(colBottoms.get(c) ?? -Infinity, r.bottom))
+  }
+  const bottoms = [...colBottoms.values()]
+  const ragged = Math.round(Math.max(...bottoms) - Math.min(...bottoms))
+
+  const totalArea = grid.clientWidth * grid.scrollHeight
+  const covered = all.reduce((a, el) => {
+    const r = el.getBoundingClientRect()
+    return a + r.width * r.height
+  }, 0)
+
   return {
+    gaps: gapsByColumn.slice(0, 4),
+    ragged,
+    whitespace: Math.round((1 - covered / totalArea) * 100),
     href,
     family: fam.length,
     frames: frames.length,
@@ -190,6 +254,14 @@ console.log(
     ? `    -> the set is shot through with other work; it will not read as a block.`
     : `    -> the set is mostly contiguous.`,
 )
+
+console.log('\n  WHERE THE WHITE IS')
+console.log(`    the set's bottom edge is ${result.ragged}px ragged between its shortest and tallest column`)
+console.log(`    ${result.whitespace}% of the whole grid is empty`)
+console.log(`    biggest vertical gaps, by column:`)
+for (const g of result.gaps) {
+  console.log(`      column ${g.col}: ${g.gap}px, starting ${g.at}px down the grid`)
+}
 
 /*
   A GUARD, NOT JUST A REPORT.

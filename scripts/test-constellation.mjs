@@ -728,9 +728,16 @@ if (!links) {
     demo.projects >= 4,
     `${demo.projects} distinct project(s) lit`,
   )
+  /*
+    Half a second turned out to be too fast to read - Chris's call after
+    seeing it - so the beat doubled to 200ms and the bound moved with it.
+    What the bound is still for is the failure mode that matters: a demo
+    that outstays its welcome teaches people the page does things at them.
+    A second and a half is where that starts.
+  */
   check(
-    'inside half a second',
-    demo.cleared > 0 && demo.cleared - demo.appeared < 700,
+    'and stays a flash rather than a performance',
+    demo.cleared > 0 && demo.cleared - demo.appeared < 1500,
     `${demo.cleared - demo.appeared}ms including the fade`,
   )
   /*

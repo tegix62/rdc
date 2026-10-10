@@ -2031,7 +2031,22 @@ if (emptyFilters.length > 0) {
             sessionStorage.setItem(DEMO_KEY, '1');
           } catch {}
 
-          const BEAT = 115;
+          /*
+            200ms a beat, up from 115. Chris: "maybe a half second was too
+            fast."
+
+            Four projects now land in about a second rather than
+            two-thirds of one. Still a flash rather than a performance -
+            the thing being avoided is a demonstration anyone has to sit
+            through - but with enough time between beats to register each
+            set as a separate shape instead of one blur with flicker in it.
+
+            The threads still appear rather than animate. At 200ms a
+            staggered draw would just about finish and would spend the
+            whole beat finishing, which trades four clear shapes for four
+            smears. The pace is the thing that changed, not the drawing.
+          */
+          const BEAT = 200;
           let i = 0;
           const beat = () => {
             if (abandoned) return;

@@ -2977,6 +2977,21 @@ main {
   }
 }
 
+/*
+  The count, subordinate to the name on the same button.
+
+  Lighter than the title so the bar still reads title-first, and sharing
+  the button rather than floating beside it - which is the whole point.
+  Chris: a second label repeating the project name "would distract from
+  taking the action to click on that arrow". The count belongs with the
+  action because it is a reason to take it, not a separate fact.
+*/
+.pf-item__jump-count {
+  opacity: 0.7;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 .pf-item__jump-arrow {
   flex: none;
 }

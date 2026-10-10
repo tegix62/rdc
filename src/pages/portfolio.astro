@@ -91,6 +91,27 @@ const filters = [
   deploys main to production, so an experiment must not reach the live site
   by a route nobody chose.
 */
+/*
+  How many pieces each project has, counted once here rather than in the
+  browser.
+
+  Chris: "it is repetitive to have the name of the parent project twice.
+  One being on the very button we want them to click on, and another being
+  this hovering label that says the same thing. I think it would distract
+  from taking the action to click on that arrow."
+
+  Right - and the count was the part that earned its place, not the name.
+  So the count moves onto the button, where it stops being a second thing
+  to read and becomes a reason to press the first one: "18 pieces" is an
+  argument for clicking through, where a repeated title is just noise
+  between the visitor and the arrow.
+*/
+const pieceCount = new Map<string, number>();
+for (const item of items) {
+  const href = tileHref(item as any);
+  if (href) pieceCount.set(href, (pieceCount.get(href) ?? 0) + 1);
+}
+
 const PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
 
 const emptyFilters = ALL_FILTERS.filter(
@@ -293,6 +314,17 @@ if (emptyFilters.length > 0) {
               {parentHref && (
                 <a class="pf-item__jump" href={parentHref}>
                   <span class="pf-item__jump-label">{item.parentTitle ?? item.title ?? 'View project'}</span>
+                  {/*
+                    A separate span rather than appended to the label, so
+                    .pf-item__jump-label stays the project's name on its
+                    own - check-grid-spacing groups tiles by that string,
+                    and the constellation reads it too.
+                  */}
+                  {(pieceCount.get(parentHref) ?? 0) > 1 && (
+                    <span class="pf-item__jump-count">
+                      &middot; {pieceCount.get(parentHref)} pieces
+                    </span>
+                  )}
                   <span class="pf-item__jump-arrow" aria-hidden="true">&rarr;</span>
                 </a>
               )}
@@ -1797,11 +1829,23 @@ if (emptyFilters.length > 0) {
         because this runs in the browser bundle and one regex is cheaper
         than pulling the module across.
       */
-      const title = tile
-        .querySelector('.pf-item__jump-label')
-        ?.textContent?.replace(/[\u200B-\u200F\u2060-\u2064\uFEFF]/g, '')
-        .trim();
-      if (!title) return;
+      /*
+        THE COUNT ONLY, AND ONLY WHERE THE BUTTON IS NOT ALREADY SAYING IT.
+
+        The name now lives on the jump bar along with the count. Repeating
+        it in a floating label put the project's title twice on screen,
+        a few pixels apart, with one copy being the thing we want pressed -
+        so the label was competing with its own call to action.
+
+        Two rules, each saying its thing once. Where the bar is visible
+        this stands down entirely. Where it is not - an offshoot under the
+        pointer, whose bar only appears once expanded - the count alone
+        quantifies the set the dimming has just picked out, without
+        pre-empting the name the button will give.
+      */
+      const bar = tile.querySelector<HTMLElement>('.pf-item__jump');
+      if (bar && getComputedStyle(bar).display !== 'none') return;
+      if (family.length < 2) return;
 
       /*
         THE LABEL LIVES INSIDE THE TILE, NOT ON TOP OF THE GRID.
@@ -1828,7 +1872,7 @@ if (emptyFilters.length > 0) {
       */
       const tag = document.createElement('div');
       tag.className = 'pf-tag';
-      tag.textContent = `${title} · ${family.length} pieces`;
+      tag.textContent = `${family.length} pieces`;
 
       const gr = grid.getBoundingClientRect();
       const r = (tile.querySelector('.pf-item__frame') ?? tile).getBoundingClientRect();

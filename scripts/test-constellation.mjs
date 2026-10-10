@@ -549,10 +549,21 @@ if (!links) {
       it a visitor watching eighteen tiles light up still has to work out
       that they are one project, and which one.
     */
+    /*
+      The floating label is the COUNT only now, and only where the jump bar
+      is not already up. The name lives on the button with the count beside
+      it - repeating the title a few pixels from the thing we want pressed
+      was competing with its own call to action.
+
+      So the assertion is no longer "it names the set": it is that nothing
+      says the same thing twice. Either the bar is showing, in which case
+      the label stands down, or it is not, in which case the label gives
+      the count and no name.
+    */
     check(
-      'the set is named at the tile under the pointer',
-      !!state.tag,
-      state.tag ? `reads "${state.tag}"` : 'no label',
+      'nothing repeats the project name',
+      !state.tag || !/[a-z]{4}/i.test(state.tag.replace(/pieces?/i, '')),
+      state.tag ? `label reads "${state.tag}"` : 'no label, the bar has it',
     )
     /*
       Sanity's stega encoding hides editing metadata in text as zero-width

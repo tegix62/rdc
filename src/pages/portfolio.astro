@@ -521,6 +521,38 @@ if (emptyFilters.length > 0) {
     if (masonry && typeof masonry._getItemLayoutPosition === 'function') {
       const original = masonry._getItemLayoutPosition.bind(masonry);
       masonry._getItemLayoutPosition = function (item: any) {
+        /*
+          A SHELF, SO A GATHERED SET IS ACTUALLY A BLOCK.
+
+          Chris: "on desktop, the layout can get a little messy on the
+          grouping/gathering."
+
+          Measured at 1440px, gathering a ten-piece project: the set came
+          out in a 1424x819 box - the entire width of the grid - only 57%
+          of which was the set, with eleven tiles from other projects
+          woven through it taking 40% of the area. The DOM reorder does
+          put the family contiguous; masonry then undoes it, because it
+          places each item in whichever column is currently shortest and
+          the columns are ragged by the time the run begins. Ten
+          consecutive items land at ten different heights, and the tails
+          of tall tiles placed earlier hang down between them.
+
+          `clear: both` for masonry, in other words. An item flagged this
+          way levels every column to the tallest before it is placed, so
+          the run after it starts on a flat line and packs tight. gather()
+          flags the first tile of the set and the first tile after it, so
+          the set gets a shelf of its own with nothing else on it.
+
+          It costs a band of whitespace where the columns were ragged -
+          at most one tile's height. That is the trade: a visible seam
+          above the set, in exchange for the set reading as one thing.
+        */
+        if (item?.element?.__pfClear) {
+          let floor = 0;
+          for (const y of this.colYs) floor = Math.max(floor, y);
+          for (let i = 0; i < this.colYs.length; i++) this.colYs[i] = floor;
+        }
+
         const preferred = item?.element?.__pfCol;
         if (typeof preferred !== 'number') return original(item);
 
@@ -544,6 +576,22 @@ if (emptyFilters.length > 0) {
       // Not fatal: without it the grid behaves as it did before, which jumps.
       console.warn('[portfolio] masonry layout mode not found; expanded tiles will re-pack freely');
     }
+
+    /*
+      Shelves belong to one gather and must not outlive it.
+
+      Unlike __pfCol, which only ever sits on the expanded tile, a shelf
+      flag is also set on the first tile AFTER the set - an ordinary tile
+      that is not expanded and would therefore be missed by the two
+      places that clear __pfCol. A stale flag means a column-levelling
+      seam across a grid that has no set in it, which would look like a
+      layout bug with no cause anywhere near it.
+    */
+    const clearShelves = () => {
+      for (const el of grid.querySelectorAll<HTMLElement>('.pf-item')) {
+        delete (el as any).__pfClear;
+      }
+    };
 
     // Isotope has positioned everything, so the tiles can be shown. Anything
     // after this point is a deliberate rearrangement the visitor asked for.
@@ -722,6 +770,7 @@ if (emptyFilters.length > 0) {
           el.classList.remove('is-expanded');
           delete (el as any).__pfCol;
         });
+        clearShelves();
         // And the lit set, which would otherwise survive into a filtered view
         // where most of its members are hidden - dimming a grid around tiles
         // that are no longer on it.
@@ -1594,6 +1643,9 @@ if (emptyFilters.length > 0) {
       for (const el of preGather) frag.appendChild(el);
       grid.appendChild(frag);
       preGather = null;
+      // The deal is back, so the set's shelf has nothing left to hold
+      // apart - leaving it would level the columns at an arbitrary tile.
+      clearShelves();
       // arrange(), not layout() - layout() repositions a stale filteredItems
       // array and the reorder never reaches the screen. See the Shuffle
       // handler for the full account.
@@ -1712,6 +1764,31 @@ if (emptyFilters.length > 0) {
         if (i === at) for (const el of family) if (el !== item) frag.appendChild(el);
       }
       grid.appendChild(frag);
+
+      /*
+        GIVE THE SET A SHELF OF ITS OWN.
+
+        Contiguous in the DOM is not contiguous on screen: masonry sends
+        each item to the shortest column, so by the time the run starts
+        the columns are ragged and the set scatters down the page with
+        other people's work hanging between the pieces. Measured on a
+        ten-piece project at 1440px: 1424x819, 57% set, eleven intruders.
+
+        Two flags do it. The clicked tile is the head of the run, so it
+        levels the columns before it is placed and the whole family packs
+        from one flat line; the first tile AFTER the run levels them
+        again, so nothing later fills into the set's ragged bottom edge.
+        See the layout override for the mechanism.
+      */
+      clearShelves();
+      (item as any).__pfClear = true;
+      const run = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item'));
+      // The family is contiguous now, so the last member's neighbour is
+      // the first tile that is not part of the set.
+      let lastOfSet = -1;
+      for (let i = 0; i < run.length; i++) if (family.includes(run[i])) lastOfSet = i;
+      const after = run[lastOfSet + 1];
+      if (after) (after as any).__pfClear = true;
 
       /*
         Correct the scroll once the tiles have actually landed. Isotope
@@ -2353,6 +2430,7 @@ if (emptyFilters.length > 0) {
         // being pinned to a column it is no longer expanded in.
         delete (el as any).__pfCol;
       });
+      clearShelves();
       // Always, including when collapsing and when moving to another tile -
       // the lit set belongs to whichever tile is open, and leaving the old
       // one lit would say two projects are one.

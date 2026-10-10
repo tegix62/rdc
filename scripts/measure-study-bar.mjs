@@ -65,9 +65,19 @@ const data = await page.evaluate(() => {
 
     const jr = jump.getBoundingClientRect()
     const lr = label.getBoundingClientRect()
+    const tr = el.getBoundingClientRect()
     out.push({
       text: strip(label.textContent),
-      tileW: Math.round(el.getBoundingClientRect().width),
+      /*
+        How far the mark hangs off its own tile, each side, in px. The
+        `strips` ratio below asks whether the mark is wide RELATIVE to the
+        tile, which a mark that has escaped the tile entirely also answers
+        badly - but these two numbers say the thing directly, and they are
+        what a person sees: navy painted over the neighbouring pictures.
+      */
+      spillLeft: Math.round(Math.max(0, tr.left - jr.left)),
+      spillRight: Math.round(Math.max(0, jr.right - tr.right)),
+      tileW: Math.round(tr.width),
       imgH: Math.round(img?.getBoundingClientRect().height ?? 0),
       barW: Math.round(jr.width),
       barH: Math.round(jr.height),
@@ -127,7 +137,23 @@ const labelled = data.filter((d) => d.labelW > 0)
 const inFlow = data.filter((d) => d.barPos !== 'absolute')
 const strips = data.filter((d) => d.barW2 > d.tileW * 0.6)
 const tiny = data.filter((d) => d.barH < 30 || d.barW2 < 26)
+const spilling = data.filter((d) => d.spillLeft > 1 || d.spillRight > 1)
 let failed = false
+
+/*
+  Checked at every width, and checked first - because this is the one that
+  fired in the wild. The chip rule hid the title but not the piece count
+  that was added to the bar later, and with width:auto against right:0 the
+  nowrap count grew leftwards out of the tile and across four of its
+  neighbours. A mark may never paint outside the thing it marks.
+*/
+if (spilling.length) {
+  for (const d of spilling) {
+    console.log(`\n  "${d.text}" hangs ${d.spillLeft}px off the left and ${d.spillRight}px off the right of its tile.`)
+  }
+  failed = true
+}
+
 if (WIDTH <= 640) {
   if (labelled.length) {
     console.log(`\n  ${labelled.length} tile(s) still render the title at this width.`)

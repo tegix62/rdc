@@ -1352,6 +1352,34 @@ if (emptyFilters.length > 0) {
         if (spanned < 14 || spanned > apart) continue;
 
         /*
+          AND A HOP THAT WOULD CROSS A LIT PICTURE IS NOT DRAWN AT ALL.
+
+          The tree prefers clean routes but will take an obstructed one
+          rather than leave a sibling unreachable - that was the right call
+          for the TREE and the wrong one for the drawing. The mask then
+          knocks the line out where it passes behind the lit tile, so what
+          arrives on screen is a line with a hole in it, which is the
+          cut-off artifact Chris objected to in the first place.
+
+          A line with a gap looks broken. A sibling with no line is simply
+          unconnected - still lit, still inside the dimming, still named by
+          the label - and the viewer reads it as part of the set from every
+          other cue. Same reasoning as the stub rule above: when the mark
+          cannot be drawn honestly, not drawing it is the better answer.
+
+          This makes "no line lies across a lit picture" true by
+          construction rather than by preference, which is what the test
+          was asserting all along.
+        */
+        if (
+          nodes.some(
+            (n) => n !== hop.from && n !== hop.to && crossesBox(from.x, from.y, to.x, to.y, n.box),
+          )
+        ) {
+          continue;
+        }
+
+        /*
           STRAIGHT AGAIN. The elbows are reverted at Chris's call: "there
           are a lot of straight vertical lines here now... let's go with
           the non-elbow lines actually."

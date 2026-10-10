@@ -140,7 +140,21 @@ if (emptyFilters.length > 0) {
       </div>
 
       <div class="pf-group" role="group" aria-label="Arrange">
-        <button type="button" class="pf-btn" id="pf-shuffle">Shuffle</button>
+        {/*
+          Shuffle spans both columns on a phone WHEN the Gather toggle is not
+          there to sit beside it. Decided here rather than in CSS because the
+          number of controls is a build-time fact - PREVIEW is the same flag
+          that renders Gather - and CSS cannot count its siblings. Without it
+          the production toolbar ends with a half-width button alone on a row,
+          which is the orphan Chris just asked to be rid of, moved one line up.
+        */}
+        <button
+          type="button"
+          class:list={['pf-btn', !PREVIEW && 'pf-btn--span']}
+          id="pf-shuffle"
+        >
+          Shuffle
+        </button>
         {/*
           A SWITCH BETWEEN TWO ANSWERS TO THE SAME QUESTION, FOR JUDGING.
 

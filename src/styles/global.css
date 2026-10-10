@@ -2077,9 +2077,91 @@ main {
   }
 }
 
+/*
+  ONE RHYTHM FOR THE WHOLE TOOLBAR ON A PHONE.
+
+  Chris: "on mobile lets tidy up the orphaned archive button, get this
+  snappier. I like the four buttons above."
+
+  The filters were already a 2x2 block and read well. Everything below them
+  was a flex row that wrapped where it ran out of room, so Shuffle, Gather
+  and the zoom pair took one line and the Archive switch dropped onto a
+  line of its own - a small control alone at the left margin under four
+  full-width ones. Orphaned is the right word for it.
+
+  So the controls become one two-column grid and every control takes a cell
+  in it. The arrange and view wrappers are display:contents, which keeps
+  them as grouping elements for assistive tech while letting their children
+  participate in the outer grid - the alternative was moving the Archive
+  switch into the arrange group in the markup, which would have lost its
+  pushed-right position on a wide screen for the sake of a phone.
+
+  Four cells, two rows, the same rhythm as the filters:
+
+      [ SHUFFLE ] [ GATHER ]        (production: SHUFFLE spans both)
+      [  -  +   ] [ ARCHIVE ]
+
+  And tighter. The toolbar was taking around 600px of an 844px screen
+  before a single piece of work appeared, which is most of a phone spent on
+  chrome. The padding comes down and min-height holds the 44px tap target
+  that the earlier mobile pass established, so this is less space without
+  being a smaller target.
+*/
+@media (max-width: 35rem) {
+  .pf-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-1);
+  }
+
+  .pf-group--filters {
+    grid-column: 1 / -1;
+    gap: var(--space-1);
+  }
+
+  /* Their children become cells of the grid above; the groups stay in the
+     accessibility tree with their labels. */
+  .pf-group,
+  .pf-group--view {
+    display: contents;
+  }
+
+  /* The two halves of the zoom control share one cell rather than hugging
+     their text, so the row stays even. */
+  .pf-zoom {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-1);
+  }
+
+  .pf-btn--span {
+    grid-column: 1 / -1;
+  }
+
+  /*
+    The switch has to fill its cell like a button, or it is still the odd
+    one out - just in a tidier place. Bordered to match, so the row reads as
+    two controls rather than one control and a stray label.
+  */
+  .pf-group--view .view-switch {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    min-height: 2.75rem;
+    padding: 0.375rem 0.625rem;
+    border: 1px solid var(--color-navy);
+  }
+
+  .pf-btn {
+    min-height: 2.75rem;
+    padding: 0.5rem 0.5rem;
+  }
+}
+
 @media (max-width: 30rem) {
   .pf-btn {
-    padding: 0.3125rem 0.625rem;
+    padding: 0.3125rem 0.5rem;
     font-size: 0.625rem;
     letter-spacing: 0.06em;
   }

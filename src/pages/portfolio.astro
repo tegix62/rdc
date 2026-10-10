@@ -686,6 +686,20 @@ if (emptyFilters.length > 0) {
       that route - the same gate the collage prototype uses.
     */
     const LINES = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+    /*
+      ARRIVING FROM THE HOMEPAGE, WITH A PROJECT ALREADY IN MIND.
+
+      A featured tile on the homepage links to /portfolio?project=<slug>
+      rather than to its case study, so landing here gathers that project
+      and threads it. Chris's call on what the homepage is for: the
+      portfolio is "the main thing I want people to see", and someone who
+      only sees the homepage never learns the work comes in sets.
+
+      The slug, not the full path: it is what the link can carry legibly,
+      and it matches the last segment of the family key that projectOf()
+      already returns.
+    */
+    const PROJECT = new URLSearchParams(window.location.search).get('project');
     let focusItem: HTMLElement | null = null;
     let focusFamily: HTMLElement[] = [];
 
@@ -2215,7 +2229,13 @@ if (emptyFilters.length > 0) {
     const DEMO_KEY = 'pf-demo-shown';
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-    if (LINES && !FINE_POINTER && !reducedMotion.matches) {
+    /*
+      No demo when a project was asked for by name. The visitor has
+      already chosen something; flashing four other projects at them
+      first would be answering a question nobody asked, and the two would
+      race for the same grid.
+    */
+    if (LINES && !FINE_POINTER && !reducedMotion.matches && !PROJECT) {
       let seen = false;
       try {
         seen = sessionStorage.getItem(DEMO_KEY) === '1';
@@ -2377,6 +2397,47 @@ if (emptyFilters.length > 0) {
           beat();
         }, 1200);
       }
+    }
+
+    /*
+      THE ARRIVAL, PLAYED AS A TAP.
+
+      Deliberately a synthesised click rather than calling gather()
+      directly. The click handler does a dozen things in a particular
+      order - reads the anchor before anything moves, records the
+      column from the painted box, expands, marks the family, sharpens
+      the image, then threads and gathers across two frames - and a
+      second entry point that reproduced some of that would drift from
+      it the first time either changed. There is one way to open a
+      project on this page, and this uses it.
+
+      Dispatched from the image because the handler ignores clicks that
+      land on a link, and the jump bar is a link.
+
+      1200ms, the same wait the demo uses: masonry has to have placed
+      the tiles, or the gather measures an anchor that is about to move.
+    */
+    if (LINES && PROJECT) {
+      window.setTimeout(() => {
+        const want = PROJECT.replace(/\/+$/, '');
+        const tile = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item')).find((el) => {
+          const href = projectOf(el);
+          return !!href && href.replace(/\/+$/, '').split('/').pop() === want;
+        });
+        // A slug that matches nothing leaves the grid exactly as it is,
+        // which is the right failure: an unpublished or renamed project
+        // should land on the Portfolio, not on an error.
+        if (!tile) return;
+        /*
+          Put it on screen first. gather() reads the tile's position to
+          decide where the set should end up, so opening one that is
+          2000px below the fold would anchor the whole arrangement off
+          screen - on a desktop, where the correction holds the tile
+          where it already is, that means gathering into empty air.
+        */
+        tile.scrollIntoView({block: 'center', behavior: 'instant' as ScrollBehavior});
+        tile.querySelector('img')?.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+      }, 1200);
     }
 
     if (LINES && FINE_POINTER) {

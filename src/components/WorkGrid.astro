@@ -33,6 +33,10 @@ interface Props {
 }
 
 const { items = [], heading = 'Selected work', moreHref = '/portfolio' } = Astro.props;
+
+// Same gate as gather and the constellation on the Portfolio page, so the
+// homepage cannot start pointing at a behaviour production does not have.
+const PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
 ---
 
 {items.length > 0 && (
@@ -50,7 +54,34 @@ const { items = [], heading = 'Selected work', moreHref = '/portfolio' } = Astro
         // truthy and used to swallow the real picture. See lib/image.ts.
         const img = tileImage(item);
         if (!img) return null;
-        const href = tileHref(item);
+        const projectHref = tileHref(item);
+        /*
+          THE DOOR INTO THE GRID.
+
+          Chris, deciding what the homepage is for: the portfolio is "the
+          main thing I want people to see", and a visitor who only ever
+          sees this page never learns that the work comes in sets.
+
+          So a featured tile lands on the Portfolio with its project
+          already gathered and threaded, rather than on the written case
+          study. It teaches the grid's one gesture at the moment someone
+          arrives, instead of leaving them to find it among eighty-two
+          tiles. The case study is still one tap away - it is what the
+          gathered tile's own bar points at.
+
+          An earlier plan was to run thread and gather on THIS grid. It
+          does not survive the data: these eight are one tile per
+          project, and a thread needs a family of four. The behaviour had
+          nowhere to happen here, so the link goes where the family is.
+
+          Preview-gated, exactly like gather itself. On production the
+          tiles still go straight to the case study, because a link to a
+          gather that is switched off is a link to the top of a grid.
+          Both flip together when gather ships.
+        */
+        const slug = projectHref?.split('/').filter(Boolean).pop();
+        const href =
+          PREVIEW && slug ? `/portfolio?project=${encodeURIComponent(slug)}` : projectHref;
         const hero = Boolean(item.heroTile);
 
         /*

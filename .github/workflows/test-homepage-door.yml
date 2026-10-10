@@ -1,0 +1,45 @@
+name: Test homepage door
+
+# Whether the homepage featured tiles open the Portfolio pre-gathered.
+# See scripts/test-homepage-door.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to measure'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+      width:
+        description: 'Viewport width'
+        default: '1440'
+      height:
+        description: 'Viewport height'
+        default: '900'
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          set -o pipefail
+          node scripts/test-homepage-door.mjs \
+            "${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}" \
+            "${{ inputs.width || '1440' }}" \
+            "${{ inputs.height || '900' }}" | tee /tmp/door.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## The homepage as a door'
+            echo ''
+            echo '```'
+            cat /tmp/door.txt 2>/dev/null || echo '(the measurement did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

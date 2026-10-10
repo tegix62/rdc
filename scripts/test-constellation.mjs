@@ -518,6 +518,57 @@ if (!links) {
       `${state.ms}ms to dim the grid and draw the tree`,
     )
 
+    /*
+      THE ASSERTION THAT WAS MISSING FOR THREE ROUNDS.
+
+      Chris said he could not see the animation three times. Every check in
+      this file passed throughout, because they all asserted that the lines
+      EXIST and how long the draw costs - never that a stroke grows. I twice
+      reported it fixed on that basis.
+
+      The mechanism is a transition on stroke-dashoffset from each hop's
+      length to zero, so the thing to measure is the total undrawn length
+      across every hop, sampled per frame. It starts at the tree's full
+      length and reaches zero only when the last hop lands. A series that is
+      zero from the first sample is a tree that simply appeared - which is
+      what the ring-depth stagger produced, since most hops shared a depth
+      and the lot finished inside 110ms.
+
+      Deliberately NOT asserting a duration. The point is that the draw is
+      progressive and that it finishes; how long it should take is Chris's
+      call and will move.
+    */
+    const drawn = await hover.evaluate(() => {
+      const tile = document.querySelector('[data-hover-probe]')
+      // Re-enter the tile so a fresh draw is captured from its first frame.
+      tile?.dispatchEvent(new MouseEvent('mouseout', {bubbles: true}))
+      return new Promise((resolve) => {
+        const samples = []
+        let n = 0
+        const read = () => {
+          let undrawn = 0
+          const lines = [...document.querySelectorAll('.pf-links line')]
+          for (const l of lines) undrawn += parseFloat(getComputedStyle(l).strokeDashoffset) || 0
+          samples.push(Math.round(undrawn))
+          if (++n < 30) requestAnimationFrame(read)
+          else resolve(samples)
+        }
+        tile?.dispatchEvent(new MouseEvent('mouseover', {bubbles: true}))
+        requestAnimationFrame(read)
+      })
+    })
+
+    const peak = Math.max(...drawn)
+    const settled = drawn[drawn.length - 1]
+    const steps = new Set(drawn).size
+    console.log(`    undrawn length over ${drawn.length} frames: ${drawn[0]} ... peak ${peak} ... ${settled}`)
+    check(
+      'the tree draws progressively rather than appearing',
+      peak > 100 && steps > 4,
+      `peak ${peak}px undrawn across ${steps} distinct values`,
+    )
+    check('and it finishes', settled === 0, `${settled}px still undrawn after ${drawn.length} frames`)
+
     /* Leaving must clear it, or the lines latch on. */
     await hover.mouse.move(5, 5)
     await hover.waitForTimeout(400)

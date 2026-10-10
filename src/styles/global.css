@@ -2962,6 +2962,39 @@ main {
   also where the title has room to wrap properly now.
 */
 @media (max-width: 40rem) {
+  /*
+    THE EXPANDED BAR STACKS, SO THE TITLE GETS THE WHOLE WIDTH.
+
+    On one row the count never yields: it is nowrap, so flex gives it its
+    natural width and the title shrinks into whatever is left. At 390px an
+    expanded tile is two columns - about 164px of content - and the count
+    takes 75 of them, leaving the title roughly 89px across two clamped
+    lines. "Hug a Mug Coffeehouse & Ceramics Studio" needs 302px, so it
+    came out "HUG A MUG...". The project the bar is pointing at was the
+    one thing it failed to say.
+
+    Wrapping puts the title on its own full-width line and drops the count
+    and the arrow to a second row, where space-between parks them at
+    either end. 164px over two lines is 328px of room, which the longest
+    title fits with some to spare. Costs one line of height on a tile the
+    visitor has deliberately opened.
+  */
+  .pf-item.is-expanded .pf-item__jump {
+    flex-wrap: wrap;
+  }
+
+  .pf-item.is-expanded .pf-item__jump-label {
+    flex: 1 1 100%;
+  }
+
+  /*
+    The separator separates the count from a title beside it. On its own
+    line there is nothing to its left, so it reads as a stray dot.
+  */
+  .pf-item.is-expanded .pf-item__jump-count-sep {
+    display: none;
+  }
+
   .pf-item--study:not(.is-expanded) .pf-item__frame {
     position: relative;
   }

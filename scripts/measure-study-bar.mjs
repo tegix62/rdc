@@ -92,6 +92,70 @@ const data = await page.evaluate(() => {
   return out
 })
 
+/*
+  AND THE BAR THE VISITOR ACTUALLY READS.
+
+  Everything above measures the collapsed mark, which carries no title by
+  design. The bar with the title on it only exists after a tap, so until
+  now nothing measured the one state where the title has a job to do - and
+  that is exactly where it broke: the count took its width and the longest
+  project came out "HUG A MUG...".
+
+  Expands the study with the longest title, since the shortest one fits
+  under any rule and proves nothing.
+*/
+const longest = await page.evaluate(() => {
+  const strip = (s) => String(s ?? '').replace(/[​-‏⁠-⁤﻿]/g, '').trim()
+  let best = null
+  for (const el of document.querySelectorAll('.pf-item--study')) {
+    const t = strip(el.querySelector('.pf-item__jump-label')?.textContent)
+    if (!best || t.length > best.len) best = {len: t.length, text: t}
+  }
+  return best
+})
+
+await page.evaluate(() => {
+  const strip = (s) => String(s ?? '').replace(/[​-‏⁠-⁤﻿]/g, '').trim()
+  let best = null
+  for (const el of document.querySelectorAll('.pf-item--study')) {
+    const t = strip(el.querySelector('.pf-item__jump-label')?.textContent)
+    if (!best || t.length > best.len) best = {len: t.length, el}
+  }
+  // The click handler lives on the grid and ignores clicks that land on a
+  // link, so dispatch from the image rather than from the bar.
+  best?.el.querySelector('img')?.dispatchEvent(new MouseEvent('click', {bubbles: true}))
+})
+await page.waitForTimeout(1200)
+
+const open = await page.evaluate(() => {
+  const el = document.querySelector('.pf-item.is-expanded')
+  if (!el) return null
+  const jump = el.querySelector('.pf-item__jump')
+  const label = el.querySelector('.pf-item__jump-label')
+  const count = el.querySelector('.pf-item__jump-count')
+  if (!jump || !label) return null
+  const jr = jump.getBoundingClientRect()
+  const lr = label.getBoundingClientRect()
+  const cr = count?.getBoundingClientRect()
+  return {
+    tileW: Math.round(el.getBoundingClientRect().width),
+    barW: Math.round(jr.width),
+    barH: Math.round(jr.height),
+    labelW: Math.round(lr.width),
+    countW: Math.round(cr?.width ?? 0),
+    /*
+      Two separate questions. `clipped` is whether the clamp is eating
+      lines; `truncated` is whether any glyph is missing, which is the one
+      a person sees as "HUG A MUG...". A label can be clipped vertically
+      and still show every word, so neither alone is the check.
+    */
+    clipped: label.scrollHeight > label.clientHeight + 1,
+    truncated: label.scrollWidth > label.clientWidth + 1 || label.scrollHeight > label.clientHeight + 1,
+    // Did the bar actually wrap? Compared by row, not by rule.
+    stacked: cr ? cr.top >= lr.bottom - 1 : null,
+  }
+})
+
 await browser.close()
 
 console.log(`${BASE}/portfolio at ${WIDTH}px, 3x\n`)
@@ -175,6 +239,36 @@ if (WIDTH <= 640) {
   if (tiny.length) {
     console.log(`\n  ${tiny.length} mark(s) are too small to tap comfortably.`)
     failed = true
+  }
+}
+
+/*
+  The expanded bar, which is where the title has to survive.
+*/
+if (WIDTH <= 640) {
+  console.log(`\n  expanded, longest title - "${longest?.text ?? '?'}"`)
+  if (!open) {
+    console.log('    the tile did not expand, so the bar was not measured')
+    failed = true
+  } else {
+    console.log(
+      `    tile ${open.tileW}px, bar ${open.barW}x${open.barH}, ` +
+        `title box ${open.labelW}px, count ${open.countW}px, ` +
+        `${open.stacked ? 'stacked' : 'one row'}`,
+    )
+    if (open.truncated) {
+      console.log(`    the title is cut off - the bar names a project it cannot show.`)
+      failed = true
+    }
+    /*
+      Stacking is the mechanism, not the goal, so it is only required when
+      the two would not fit side by side. Asserting the layout rather than
+      the outcome would fail a future fix that solved this another way.
+    */
+    if (!open.stacked && open.labelW < open.countW) {
+      console.log(`    the count has more of the bar than the title does.`)
+      failed = true
+    }
   }
 }
 

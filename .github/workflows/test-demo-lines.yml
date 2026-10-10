@@ -1,0 +1,41 @@
+name: Test demo lines
+
+# What the once-per-session mobile demo actually draws - straight diagonal
+# hops, or elbows routed through a corner. See scripts/test-demo-lines.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to test'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+      width:
+        description: 'Viewport width'
+        default: '390'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          set -o pipefail
+          node scripts/test-demo-lines.mjs \
+            "${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}" \
+            "${{ inputs.width || '390' }}" | tee /tmp/demo.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## The mobile demo'
+            echo ''
+            echo '```'
+            cat /tmp/demo.txt 2>/dev/null || echo '(the test did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

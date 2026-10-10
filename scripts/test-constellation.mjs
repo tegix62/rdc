@@ -24,10 +24,20 @@ import {chromium} from 'playwright'
 const BASE = (process.argv[2] ?? 'https://preview.rumeau-design-co.pages.dev').replace(/\/$/, '')
 
 let failures = 0
+/*
+  Failed checks are also collected and reprinted at the end.
+
+  These runs are read through a log tail, and a suite with forty passing
+  lines pushes an early failure off the top of it - which has cost two
+  rounds of fetching progressively more of the same log to find out which
+  check broke. The verdict belongs where it can always be seen.
+*/
+const failed = []
 const check = (name, ok, detail = '') => {
   if (ok) console.log(`ok    ${name}${detail ? ` - ${detail}` : ''}`)
   else {
     failures += 1
+    failed.push(`${name}${detail ? ` - ${detail}` : ''}`)
     console.log(`FAIL  ${name}${detail ? ` - ${detail}` : ''}`)
   }
 }
@@ -789,5 +799,10 @@ if (!solo) {
 }
 
 await browser.close()
+if (failures) {
+  console.log('')
+  console.log('--- failed checks ---')
+  for (const f of failed) console.log(`  FAIL  ${f}`)
+}
 console.log(failures === 0 ? '\nThe constellation fires where it should and nowhere else.' : `\n${failures} check(s) failed.`)
 process.exit(failures === 0 ? 0 : 1)

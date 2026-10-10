@@ -1,0 +1,42 @@
+name: Diagnose line animation
+
+# Do the constellation lines actually animate? Reports, does not assert.
+# See scripts/diagnose-line-animation.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to test'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+  push:
+    paths:
+      - 'scripts/diagnose-line-animation.mjs'
+      - '.github/workflows/diagnose-line-animation.yml'
+
+jobs:
+  lines:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      # A push to src/ starts a preview deploy at the same moment, so without
+      # this the test measures the PREVIOUS build.
+      - run: |
+          set -o pipefail
+          node scripts/diagnose-line-animation.mjs "${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}" | tee /tmp/lines.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Line animation'
+            echo ''
+            echo '```'
+            cat /tmp/lines.txt 2>/dev/null || echo '(the test did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

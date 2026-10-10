@@ -2256,6 +2256,28 @@ if (emptyFilters.length > 0) {
             // A third frame: layout() moves tiles, and lines measured before
             // that settles point at where things USED to be.
             requestAnimationFrame(() => drawLinks());
+            /*
+              AND ONCE MORE WHEN THE TILE HAS FINISHED GROWING.
+
+              Three frames is enough for Isotope but not for the clicked
+              tile, which keeps expanding under a CSS transition for a few
+              hundred milliseconds after. Lines drawn against the midway
+              geometry are correct when drawn and wrong when the tile
+              settles - which is how a hop that avoided every lit picture
+              at draw time ended up lying across one, measured as "1 of 8
+              segment(s) cross a lit frame" with the skip rule already in
+              place and working.
+
+              Redrawn in 'flash' so the corrected lines appear in place
+              rather than re-animating. The visitor has already watched the
+              thread travel; playing it twice to fix a few pixels would
+              draw attention to the correction instead of hiding it.
+            */
+            window.setTimeout(() => {
+              if (focusItem && focusFamily.length >= FAMILY_MIN) {
+                drawLinks(focusItem, focusFamily, 'flash');
+              }
+            }, 420);
           }
         }),
       );

@@ -92,6 +92,14 @@ await page.addInitScript(() => {
   }).observe(document.documentElement, {childList: true, subtree: true})
 })
 
+/*
+  A page error kills the demo silently - the whole thing hangs off one
+  DOMContentLoaded handler - and a test that only reports "nothing drew"
+  sends you looking at the observer instead of at the exception.
+*/
+const pageErrors = []
+page.on('pageerror', (e) => pageErrors.push(String(e.message ?? e)))
+
 await page.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60_000})
 await page.waitForSelector('.pf-grid .pf-item', {state: 'visible', timeout: 30_000}).catch(() => {})
 // Four beats of 200ms, after the grid settles. Generous, so a slow runner
@@ -103,6 +111,41 @@ const got = await page.evaluate(() => ({
   kinds: window.__kinds ?? {},
   beats: window.__beats ?? 0,
 }))
+
+/*
+  THE GATES, READ FROM THE PAGE RATHER THAN REASONED ABOUT.
+
+  The demo is behind four conditions, and when it does not play the
+  useful question is which one said no - not whether the observer is
+  wired up. Each of these is cheap and none of them can be inferred
+  correctly from outside the browser: a headless Chromium's idea of
+  `pointer: fine` in particular is a thing to measure, not assume.
+*/
+const gates = await page.evaluate(() => {
+  const grid = document.querySelector('#pf-grid')
+  const tiles = Array.from(grid?.querySelectorAll('.pf-item') ?? [])
+  const hrefOf = (el) => el.querySelector('.pf-item__jump')?.getAttribute('href') ?? null
+  const families = new Map()
+  for (const el of tiles) {
+    const h = hrefOf(el)
+    if (h) families.set(h, (families.get(h) ?? 0) + 1)
+  }
+  let seen = null
+  try {
+    seen = sessionStorage.getItem('pf-demo-shown')
+  } catch {
+    seen = '(sessionStorage threw)'
+  }
+  return {
+    finePointer: window.matchMedia('(hover: hover) and (pointer: fine)').matches,
+    reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    demoFlag: seen,
+    tiles: tiles.length,
+    biggestFamily: Math.max(0, ...families.values()),
+    familiesOfFourPlus: [...families.values()].filter((n) => n >= 4).length,
+    linksNow: !!document.querySelector('.pf-links'),
+  }
+})
 
 await browser.close()
 
@@ -129,6 +172,21 @@ for (const h of lines) tally[kind(h)] += 1
 const beats = new Set(got.hops.map((h) => h.beat))
 console.log(`  ${beats.size} beat(s) drew something; ${lines.length} line(s), ${polys.length} polyline(s)`)
 console.log(`  of the lines: ${tally.diagonal} diagonal, ${tally.vertical} vertical, ${tally.horizontal} horizontal\n`)
+
+if (got.beats === 0) {
+  console.log('  nothing was drawn, so here is what the page says about why:')
+  console.log(`    pointer: fine        ${gates.finePointer}   (true sends the page down the hover path instead)`)
+  console.log(`    reduced motion       ${gates.reducedMotion}`)
+  console.log(`    demo already shown   ${gates.demoFlag}`)
+  console.log(`    tiles                ${gates.tiles}`)
+  console.log(`    projects of 4+       ${gates.familiesOfFourPlus} (biggest family ${gates.biggestFamily})`)
+  console.log(`    an SVG on the grid   ${gates.linksNow}`)
+  if (pageErrors.length) {
+    console.log(`    page errors:`)
+    for (const e of pageErrors) console.log(`      ${e}`)
+  }
+  console.log('')
+}
 
 check('the demo actually played', got.beats > 0, `${got.beats} SVG(s) built`)
 check('it flashed through more than one project', beats.size >= 2, `${beats.size} beats drew`)

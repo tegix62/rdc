@@ -2,7 +2,8 @@
 import Layout from '../layouts/Layout.astro';
 import { pageDescription } from '../lib/meta';
 import Img from '../components/Img.astro';
-import InkMode from '../components/InkMode.astro';
+// InkMode is shelved, not deleted - see the note where its control used to
+// sit in the toolbar. Restoring the import and that markup brings it back.
 import Sections from '../components/Sections.astro';
 import { getPage, getAllGridItems } from '../lib/queries';
 // Shared with the homepage's miniature grid, so the two cannot disagree about
@@ -221,10 +222,21 @@ if (emptyFilters.length > 0) {
         No destination props, so it toggles this page rather than leaving it -
         which is what it was always meant to do. The inkmodechange listener
         further down re-lays the grid out as ruled rows when it turns on.
+
+        SHELVED. Chris: "Archive's obsolete let's shelve it."
+
+        He had called it obsolete twice before deciding, and the toolbar is
+        where that cost the most - on a phone it was a quarter of the
+        controls standing between a visitor and the work, for a mode nobody
+        asked for. So the control comes out of the toolbar.
+
+        Shelved rather than deleted, deliberately. InkMode.astro, the
+        archiveMark alternates, the .view-switch styles and the
+        inkmodechange listener further down are all untouched and still
+        correct; bringing it back is restoring the import and the four
+        lines that used to sit here. What has been removed is the claim on
+        the toolbar, not the work that went into the view.
       */}
-      <div class="pf-group pf-group--view" role="group" aria-label="View">
-        <InkMode />
-      </div>
     </div>
 
     {/*

@@ -2299,6 +2299,27 @@ main {
     grid-column: auto;
   }
 
+  /*
+    The tools take the whole row now that Archive is shelved.
+
+    They used to be one cell of the outer two-column grid with the Archive
+    switch as the other. With the switch gone that rule left Shuffle and
+    the zoom pair squeezed into the left half and the right half empty -
+    which is the orphaned-control problem this block was written to fix,
+    arriving from the opposite direction.
+
+    Spanning keeps the internal `1fr auto`: Shuffle takes the room, the
+    zoom pair stays the width of two glyphs.
+  */
+  .pf-group--arrange {
+    grid-column: 1 / -1;
+  }
+
+  /*
+    Kept for the shelved Archive switch. It costs nothing while nothing
+    matches it, and deleting it would mean rebuilding the mobile
+    treatment from scratch if Chris wants the view back.
+  */
   .pf-group--view {
     display: block;
   }

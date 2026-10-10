@@ -144,7 +144,17 @@ if (!bar) {
     `\n  toolbar ${bar.barHeight}px tall, ends at ${bar.barBottom} of ${bar.viewport} viewport`,
   )
 
-  check('the Archive switch is on the page at all', bar.archiveFound)
+  /*
+    Archive is SHELVED, at Chris's word: "Archive's obsolete let's shelve
+    it." So this asserts its absence, and the two checks that used to
+    guard its placement are gone with it.
+
+    Asserted rather than just deleted, because the control is one import
+    and four lines of markup away from coming back, and a toolbar that
+    silently regrows a quarter of its controls on a phone is exactly the
+    regression this file exists to catch.
+  */
+  check('the Archive switch is gone from the toolbar', !bar.archiveFound)
 
   /*
     The orphan test. A row of one next to rows of two is the shape that
@@ -171,13 +181,6 @@ if (!bar) {
     'the category buttons divide the row evenly',
     fw.length >= 2 && widest - narrowest <= 6,
     fw.length ? `widest ${widest}px, narrowest ${narrowest}px` : 'no filter buttons found',
-  )
-
-  const archiveRow = bar.rows.find((r) => r.labels.some((l) => /archive/i.test(l)))
-  check(
-    'the Archive switch shares its row',
-    !!archiveRow && archiveRow.labels.length > 1,
-    archiveRow ? `sits with ${archiveRow.labels.filter((l) => !/archive/i.test(l)).join(', ') || 'nothing'}` : 'row not found',
   )
 
   /*

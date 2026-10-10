@@ -1489,7 +1489,7 @@ if (emptyFilters.length > 0) {
       iso.arrange();
     };
 
-    const gather = (item: HTMLElement, family: HTMLElement[]) => {
+    const gather = (item: HTMLElement, family: HTMLElement[], anchorAt?: number) => {
       /*
         Moving from one gathered project straight to another puts the deal
         back first, silently - no reloadItems, no layout, so there is one
@@ -1504,7 +1504,20 @@ if (emptyFilters.length > 0) {
       } else {
         rememberOrder();
       }
-      const anchorBefore = item.getBoundingClientRect().top;
+      /*
+        Where the tile was WHEN THE VISITOR TAPPED, not where it is now.
+
+        Captured at click time and passed in, because the thread now draws
+        for 280ms before the pieces move and the tile finishes expanding
+        inside that window. Reading the position here anchors to wherever
+        the expansion left it - measured at 82px of drift on DumpStat's
+        eighteen pieces, against a tolerance of 24.
+
+        The visitor's reference point is the tile they touched, at the
+        moment they touched it. Any later reading is a position they never
+        chose.
+      */
+      const anchorBefore = anchorAt ?? item.getBoundingClientRect().top;
 
       /*
         THE SET GATHERS WHERE THE TILE ALREADY IS, NOT AT THE TOP.
@@ -1846,6 +1859,8 @@ if (emptyFilters.length > 0) {
         together and the viewer was left to infer why.
       */
       const explained = previewHref !== null && previewHref === projectOf(item);
+      /* Read before anything expands or moves - see gather()'s anchor note. */
+      const anchorTop = item.getBoundingClientRect().top;
       dropPreview(explained);
       const wasExpanded = item.classList.contains('is-expanded');
       grid.querySelectorAll<HTMLElement>('.pf-item.is-expanded').forEach((el) => {
@@ -1922,7 +1937,7 @@ if (emptyFilters.length > 0) {
               const go = () => {
                 const svg = grid.querySelector('.pf-links');
                 svg?.classList.add('is-leaving');
-                gather(focusItem!, focusFamily);
+                gather(focusItem!, focusFamily, anchorTop);
                 window.setTimeout(() => svg?.remove(), 300);
               };
               if (explained) go();

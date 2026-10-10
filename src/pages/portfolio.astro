@@ -1280,11 +1280,82 @@ if (emptyFilters.length > 0) {
         const apart = Math.hypot(target.x - source.x, target.y - source.y);
         if (spanned < 2 || spanned > apart) continue;
 
-        const line = document.createElementNS(NS, 'line');
-        line.setAttribute('x1', String(Math.round(from.x)));
-        line.setAttribute('y1', String(Math.round(from.y)));
-        line.setAttribute('x2', String(Math.round(to.x)));
-        line.setAttribute('y2', String(Math.round(to.y)));
+        /*
+          ROUTED ALONG THE GRID, NOT STRAIGHT ACROSS IT.
+
+          Chris, on the straight version: "Constellation has a very weird
+          way of connecting these lines. I think it's something in the
+          math, where these don't connect as pleasingly."
+
+          The tree itself was right - minimal, no crossings, nearest by the
+          gap between pictures. What could not be fixed by any distance
+          function is that a straight line between two distant tiles
+          answers to nothing in the layout. A 400px diagonal at 23 degrees
+          across six unrelated pieces is not wrong, it is simply not ABOUT
+          anything you can see, and every metric I tried produced diagonals
+          at some other angle.
+
+          So each hop is now an elbow that travels along the grid's own
+          lines: out of the tile, along a column channel, and in to the
+          other tile. Masonry gives one thing for free here - a fixed
+          column width - so the vertical boundaries are known exactly and a
+          run snapped to one sits in a real gutter rather than near one.
+
+          The horizontal runs are a different matter and worth being
+          straight about: masonry's rows do not line up, so a horizontal
+          run is NOT guaranteed a clear channel and will cross dimmed tiles
+          on its way. That is the same licence the straight lines already
+          had - dimmed tiles are ground - and the mask still keeps every
+          stroke off the lit ones.
+
+          Chris said he disagrees with this before seeing it, so it is
+          built to be looked at rather than argued about. Reverting is this
+          block.
+        */
+        const colW = sizer.offsetWidth;
+        const snapX = (x: number) => (colW > 0 ? Math.round(x / colW) * colW : x);
+
+        const pts: {x: number; y: number}[] = [];
+        const horizontalFirst = Math.abs(target.x - source.x) >= Math.abs(target.y - source.y);
+
+        if (horizontalFirst) {
+          /*
+            Leave sideways, turn once in a column channel, arrive sideways.
+            The channel is snapped to a column boundary and clamped between
+            the two tiles, so the turn never happens outside the span it is
+            meant to bridge.
+          */
+          const dir = target.x > source.x ? 1 : -1;
+          const ax = source.x + dir * (source.hw + GAP);
+          const bx = target.x - dir * (target.hw + GAP);
+          const lo = Math.min(ax, bx);
+          const hi = Math.max(ax, bx);
+          const mx = Math.min(Math.max(snapX((ax + bx) / 2), lo), hi);
+          pts.push({x: ax, y: source.y}, {x: mx, y: source.y}, {x: mx, y: target.y}, {x: bx, y: target.y});
+        } else {
+          const dir = target.y > source.y ? 1 : -1;
+          const ay = source.y + dir * (source.hh + GAP);
+          const by = target.y - dir * (target.hh + GAP);
+          const my = (ay + by) / 2;
+          pts.push({x: source.x, y: ay}, {x: source.x, y: my}, {x: target.x, y: my}, {x: target.x, y: by});
+        }
+
+        /*
+          Collapse points that land on top of each other. Two tiles in the
+          same column produce a dogleg with zero-length arms, and a
+          polyline carrying duplicate points draws a visible blob at the
+          joint under a round linejoin.
+        */
+        const path: {x: number; y: number}[] = [];
+        for (const pt of pts) {
+          const last = path[path.length - 1];
+          if (!last || Math.abs(last.x - pt.x) > 0.5 || Math.abs(last.y - pt.y) > 0.5) path.push(pt);
+        }
+        if (path.length < 2) continue;
+
+        const line = document.createElementNS(NS, 'polyline');
+        line.setAttribute('points', path.map((pt) => `${Math.round(pt.x)},${Math.round(pt.y)}`).join(' '));
+        line.setAttribute('fill', 'none');
         /*
           Each hop draws itself away from the piece it grew out of, delayed
           by its distance from the root, so the thread travels rather than
@@ -1294,7 +1365,16 @@ if (emptyFilters.length > 0) {
           say.
         */
         if (!still) {
-          const len = Math.hypot(to.x - from.x, to.y - from.y);
+          /*
+            The path's length, not the straight-line distance between its
+            ends. An elbow is longer than the diagonal it replaces, and a
+            dash pattern cut to the diagonal would leave the last arm
+            permanently drawn - the animation would start half finished.
+          */
+          let len = 0;
+          for (let i = 1; i < path.length; i++) {
+            len += Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y);
+          }
           /*
             STAGGERED PER HOP, AND THAT IS THE WHOLE ANIMATION.
 

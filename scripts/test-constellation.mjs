@@ -204,12 +204,23 @@ const links = await page.evaluate(() => {
     return t1 > t0
   }
 
-  const segs = [...svg.querySelectorAll('line')].map((l) => ({
-    ax: +l.getAttribute('x1'),
-    ay: +l.getAttribute('y1'),
-    bx: +l.getAttribute('x2'),
-    by: +l.getAttribute('y2'),
-  }))
+  /*
+    Each hop is a polyline of elbows now, so a "segment" is one ARM of one
+    hop. Expanded rather than treated as a single line because both the
+    crossing test and the over-a-picture test are about straight runs, and
+    an elbow's two arms can fail them independently.
+  */
+  const hops = [...svg.querySelectorAll('polyline')]
+  const segs = []
+  for (const poly of hops) {
+    const pts = (poly.getAttribute('points') || '')
+      .trim()
+      .split(/\s+/)
+      .map((p) => p.split(',').map(Number))
+    for (let i = 1; i < pts.length; i++) {
+      segs.push({ax: pts[i - 1][0], ay: pts[i - 1][1], bx: pts[i][0], by: pts[i][1]})
+    }
+  }
 
   let over = 0
   let longest = 0
@@ -321,8 +332,9 @@ const links = await page.evaluate(() => {
   return {
     crossings,
     starInk: Math.round(starInk),
-    lines: segs.length,
-    linesInsideMaskedGroup: group ? group.querySelectorAll('line').length : 0,
+    lines: hops.length,
+    arms: segs.length,
+    linesInsideMaskedGroup: group ? group.querySelectorAll('polyline').length : 0,
     maskRects: mask ? mask.querySelectorAll('rect').length : 0,
     tiles: grid.querySelectorAll('.pf-item').length,
     litTiles: lit.length,
@@ -357,7 +369,7 @@ if (!links) {
   )
 } else {
   console.log(
-    `  line layer: ${links.lines} line(s), ${links.ink}px of ink, longest hop ${links.longest}px`,
+    `  line layer: ${links.lines} hop(s) in ${links.arms} arms, ${links.ink}px of ink, longest arm ${links.longest}px`,
   )
   console.log(
     `  mask knocks out ${links.maskRects - 1} lit frame(s); the other ${links.tiles - links.litTiles} tiles are left open on purpose`,
@@ -381,7 +393,7 @@ if (!links) {
   check(
     'the hops do not cross each other, so the thread reads as a tree',
     links.crossings === 0,
-    `${links.crossings} crossing(s) among ${links.lines} hop(s)`,
+    `${links.crossings} crossing(s) among ${links.arms} arms`,
   )
   check(
     'the thread is shorter than the starburst it replaced',
@@ -437,9 +449,9 @@ if (!links) {
     const state = await hover.evaluate(() => {
       const svg = document.querySelector('.pf-grid .pf-links')
       return {
-        lines: svg?.querySelectorAll('line').length ?? 0,
+        lines: svg?.querySelectorAll('polyline').length ?? 0,
         marked: !!document.querySelector('.pf-links--preview'),
-        opacity: Number(getComputedStyle(document.querySelector('.pf-links line') ?? document.body).strokeOpacity),
+        opacity: Number(getComputedStyle(document.querySelector('.pf-links polyline') ?? document.body).strokeOpacity),
         dimmed: document.querySelector('.pf-grid')?.classList.contains('has-focus') ?? false,
         moved: !!document.querySelector('.pf-item.is-expanded'),
         /* The point of the whole exercise: the rest of the grid drops back
@@ -457,7 +469,7 @@ if (!links) {
         ),
         ms: Number((window.__pfPreviewMs ?? 0).toFixed(2)),
         vectorEffect: getComputedStyle(
-          document.querySelector('.pf-links line') ?? document.body,
+          document.querySelector('.pf-links polyline') ?? document.body,
         ).vectorEffect,
       }
     })
@@ -547,7 +559,7 @@ if (!links) {
         let n = 0
         const read = () => {
           let undrawn = 0
-          const lines = [...document.querySelectorAll('.pf-links line')]
+          const lines = [...document.querySelectorAll('.pf-links polyline')]
           for (const l of lines) undrawn += parseFloat(getComputedStyle(l).strokeDashoffset) || 0
           samples.push(Math.round(undrawn))
           if (++n < 30) requestAnimationFrame(read)
@@ -573,7 +585,7 @@ if (!links) {
     await hover.mouse.move(5, 5)
     await hover.waitForTimeout(400)
     const after = await hover.evaluate(() => ({
-      lines: document.querySelectorAll('.pf-grid .pf-links line').length,
+      lines: document.querySelectorAll('.pf-grid .pf-links polyline').length,
       previewing: document.querySelector('.pf-grid')?.classList.contains('has-preview') ?? false,
       dimmest: Math.min(
         ...[...document.querySelectorAll('.pf-grid .pf-item')].map((el) =>

@@ -57,7 +57,7 @@ const SAMPLER = `
           describes what a person sees - it starts at the tree's full length
           and reaches zero only when the last hop lands.
         */
-        const lines = [...document.querySelectorAll('.pf-links line')];
+        const lines = [...document.querySelectorAll('.pf-links polyline')];
         if (!lines.length) {
           out.push({t: Math.round(performance.now()), missing: true});
         } else {

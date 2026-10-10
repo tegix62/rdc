@@ -2366,7 +2366,18 @@ main {
   pointer-events: none;
 }
 
-.pf-links line {
+/*
+  Both element types. The hops are polylines now that they are routed as
+  elbows, and leaving this selector on `line` alone would have left every
+  stroke unstyled - no colour, no width, the default black hairline - which
+  is the kind of change that looks like a rendering bug rather than a
+  missing rule.
+*/
+.pf-links line,
+.pf-links polyline {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
   stroke: var(--color-navy);
   stroke-width: 1;
   /*

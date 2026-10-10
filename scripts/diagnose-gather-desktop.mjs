@@ -187,12 +187,26 @@ const result = await page.evaluate(async () => {
   }
   gapsByColumn.sort((a, b) => b.gap - a.gap)
 
-  // The staircase at the bottom of the set: how far the shortest column
-  // of the set finishes above the longest.
+  /*
+    The staircase at the bottom of the set: how far its shortest column
+    finishes above its tallest.
+
+    Each rect is recorded against EVERY column it covers, not just the
+    one its left edge falls in. The expanded tile is two columns wide,
+    and keying it by its left edge alone left its second column looking
+    like it ended at whatever short tile happened to sit there - which
+    reported the bottom edge getting MORE ragged (186px to 200px) in the
+    same run where the set's box shrank by 152px and its fill went from
+    81% to 90%. Two of those three cannot be true, and the broken one
+    was the measurement.
+  */
   const colBottoms = new Map()
   for (const r of rects) {
-    const c = Math.round((r.left + 1) / colW)
-    colBottoms.set(c, Math.max(colBottoms.get(c) ?? -Infinity, r.bottom))
+    const first = Math.round(r.left / colW)
+    const span = Math.max(1, Math.round(r.width / colW))
+    for (let c = first; c < first + span; c++) {
+      colBottoms.set(c, Math.max(colBottoms.get(c) ?? -Infinity, r.bottom))
+    }
   }
   const bottoms = [...colBottoms.values()]
   const ragged = Math.round(Math.max(...bottoms) - Math.min(...bottoms))

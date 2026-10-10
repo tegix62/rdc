@@ -939,7 +939,17 @@ if (emptyFilters.length > 0) {
     function drawLinks(
       from: HTMLElement | null = focusItem,
       fam: HTMLElement[] = focusFamily,
-      quick = false,
+      /*
+        Three speeds, because there are three moments.
+
+        'commit' is a deliberate click and can afford to be a gesture.
+        'preview' is a hover, dozens of times a minute, so it registers
+        direction and little else. 'flash' is the mobile demonstration,
+        which shows four projects inside half a second - at roughly 115ms
+        each there is no time to animate anything, so the thread simply
+        appears. An animation that cannot finish is a smear.
+      */
+      mode: 'commit' | 'preview' | 'flash' = 'commit',
     ) {
       /*
         Parameterised so the same drawing can serve two jobs.
@@ -1370,7 +1380,7 @@ if (emptyFilters.length > 0) {
           related to, which is the sentence the whole effect is trying to
           say.
         */
-        if (!still) {
+        if (!still && mode !== 'flash') {
           const len = Math.hypot(to.x - from.x, to.y - from.y);
           /*
             STAGGERED PER HOP, AND THAT IS THE WHOLE ANIMATION.
@@ -1401,9 +1411,9 @@ if (emptyFilters.length > 0) {
             tree lands in about a quarter of a second and reads as a quick
             stitch rather than a performance.
           */
-          const span = quick ? 80 : 320;
-          const step = quick ? 22 : 80;
-          const cap = quick ? 8 : 10;
+          const span = mode === 'preview' ? 80 : 320;
+          const step = mode === 'preview' ? 22 : 80;
+          const cap = mode === 'preview' ? 8 : 10;
           line.style.strokeDasharray = String(len);
           line.style.strokeDashoffset = String(len);
           requestAnimationFrame(() => {
@@ -1843,7 +1853,13 @@ if (emptyFilters.length > 0) {
       its answer, and the number should come from the browser rather than
       from me asserting it feels fine.
     */
-    const showPreview = (tile: HTMLElement, href: string, family: HTMLElement[]) => {
+    const showPreview = (
+      tile: HTMLElement,
+      href: string,
+      family: HTMLElement[],
+      mode: 'preview' | 'flash' = 'preview',
+      withLabel = true,
+    ) => {
       window.clearTimeout(offTimer);
       const t0 = performance.now();
 
@@ -1856,9 +1872,15 @@ if (emptyFilters.length > 0) {
         previewHref = href;
       }
 
-      drawLinks(tile, family, true);
+      drawLinks(tile, family, mode);
       grid.querySelector('.pf-links')?.classList.add('pf-links--preview');
-      nameSet(tile, family);
+      /*
+        No label during the flash. Four names strobing past in half a
+        second is not reading, it is flicker - and the label's job is to be
+        read. It is taught instead on the first real hover or tap, which is
+        the moment someone is actually looking at one project.
+      */
+      if (withLabel) nameSet(tile, family);
       (window as any).__pfPreviewMs = performance.now() - t0;
     };
 
@@ -1921,6 +1943,25 @@ if (emptyFilters.length > 0) {
           it against a half-built masonry would draw a thread between tiles
           that are about to move.
         */
+        /*
+          FOUR PROJECTS IN UNDER HALF A SECOND.
+
+          Chris: "The demo should flash through 4 projects with lines
+          showing within less than half a second, I think."
+
+          One project showed that one set is related. Four shows that the
+          grid is MADE of sets, which is the actual claim the page is
+          making and the thing an agency viewer needs in the first
+          seconds. Showing it four times in the time it took to show it
+          once also stops it reading as an animation to sit through - it
+          is closer to a page flicking its lights on.
+
+          115ms a project, which is why drawLinks gets a 'flash' mode: the
+          staggered draw takes 250ms and an animation that cannot finish
+          is a smear. The threads simply appear. No labels either - four
+          names strobing past is flicker, not reading, and the label is
+          taught on the first real hover or tap instead.
+        */
         window.setTimeout(() => {
           if (abandoned || grid.querySelector('.pf-item.is-expanded')) return;
 
@@ -1931,30 +1972,51 @@ if (emptyFilters.length > 0) {
             if (k) sizes.set(k, (sizes.get(k) ?? 0) + 1);
           }
 
-          /* Visible, and from a project big enough to read as a set. */
-          const onScreen = tiles.filter((el) => {
+          /*
+            On-screen projects first, because a demonstration below the
+            fold teaches nobody - then anything else big enough, so the
+            flash still has four beats on a short viewport.
+          */
+          const visible = (el: HTMLElement) => {
             const r = el.getBoundingClientRect();
-            return r.top < window.innerHeight * 0.9 && r.bottom > 80;
-          });
-          const pick = onScreen.find((el) => {
+            return r.top < window.innerHeight * 0.95 && r.bottom > 60;
+          };
+          const bigEnough = (el: HTMLElement) => {
             const k = projectOf(el);
-            return k && (sizes.get(k) ?? 0) >= FAMILY_MIN;
-          });
-          if (!pick) return;
+            return !!k && (sizes.get(k) ?? 0) >= FAMILY_MIN;
+          };
 
-          const href = projectOf(pick)!;
-          const family = tiles.filter((el) => projectOf(el) === href);
+          const picks: {tile: HTMLElement; href: string; family: HTMLElement[]}[] = [];
+          const taken = new Set<string>();
+          for (const pool of [tiles.filter(visible), tiles]) {
+            for (const el of pool) {
+              if (picks.length >= 4) break;
+              const href = projectOf(el);
+              if (!href || taken.has(href) || !bigEnough(el)) continue;
+              taken.add(href);
+              picks.push({tile: el, href, family: tiles.filter((t) => projectOf(t) === href)});
+            }
+          }
+          if (!picks.length) return;
 
           try {
             sessionStorage.setItem(DEMO_KEY, '1');
           } catch {}
 
-          showPreview(pick, href, family);
-          window.setTimeout(() => {
+          const BEAT = 115;
+          let i = 0;
+          const beat = () => {
             if (abandoned) return;
-            grid.querySelector('.pf-links')?.classList.add('is-leaving');
-            window.setTimeout(dropPreview, 240);
-          }, 680);
+            if (i >= picks.length) {
+              grid.querySelector('.pf-links')?.classList.add('is-leaving');
+              window.setTimeout(dropPreview, 200);
+              return;
+            }
+            const p = picks[i++];
+            showPreview(p.tile, p.href, p.family, 'flash', false);
+            window.setTimeout(beat, BEAT);
+          };
+          beat();
         }, 1200);
       }
     }
@@ -2157,7 +2219,7 @@ if (emptyFilters.length > 0) {
                 nameSet(focusItem, focusFamily);
                 go();
               } else {
-                drawLinks(focusItem, focusFamily, true);
+                drawLinks(focusItem, focusFamily, 'preview');
                 nameSet(focusItem, focusFamily);
                 window.setTimeout(go, EXPLAIN_HOLD);
               }

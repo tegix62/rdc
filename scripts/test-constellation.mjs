@@ -665,14 +665,35 @@ if (!links) {
     let appeared = -1
     let cleared = -1
     let moved = false
+    /*
+      WHICH set is lit, not just whether one is. The whole point of the
+      flash is that it shows SEVERAL projects - counting distinct lit sets
+      is the only way to tell four beats from one long one, and a test that
+      only knew "lines were up" would pass on either.
+    */
+    const sets = new Set()
+    let labels = 0
     return new Promise((resolve) => {
       const tick = () => {
         const lit = grid.querySelectorAll('.pf-links line, .pf-links polyline').length > 0
         if (lit && appeared < 0) appeared = performance.now() - t0
         if (appeared >= 0 && !lit && cleared < 0) cleared = performance.now() - t0
+        const family = [...grid.querySelectorAll('.pf-item.is-preview-sibling')]
+          .map((el) => el.querySelector('.pf-item__jump')?.getAttribute('href') ?? '')
+          .sort()
+          .join(',')
+        if (family) sets.add(family)
+        if (document.querySelector('.pf-tag')) labels += 1
         if (order() !== startOrder) moved = true
         if (performance.now() - t0 < 6000) requestAnimationFrame(tick)
-        else resolve({appeared: Math.round(appeared), cleared: Math.round(cleared), moved})
+        else
+          resolve({
+            appeared: Math.round(appeared),
+            cleared: Math.round(cleared),
+            moved,
+            projects: sets.size,
+            labels,
+          })
       }
       requestAnimationFrame(tick)
     })
@@ -686,11 +707,28 @@ if (!links) {
     demo.cleared > demo.appeared,
     demo.cleared > 0 ? `on screen for ${demo.cleared - demo.appeared}ms` : 'still up after 6s',
   )
+  /*
+    Four, because one project shows that one set is related and four shows
+    that the grid is MADE of sets - which is the claim the page is actually
+    making. Counting distinct lit families is what separates a flash
+    through several from a single long hold.
+  */
   check(
-    'it is a hint, not a performance - under 1.5s on screen',
-    demo.cleared > 0 && demo.cleared - demo.appeared < 1500,
-    `${demo.cleared - demo.appeared}ms`,
+    'it flashes through several projects, not one',
+    demo.projects >= 4,
+    `${demo.projects} distinct project(s) lit`,
   )
+  check(
+    'inside half a second',
+    demo.cleared > 0 && demo.cleared - demo.appeared < 700,
+    `${demo.cleared - demo.appeared}ms including the fade`,
+  )
+  /*
+    No labels during the flash. Four project names strobing past in half a
+    second is flicker rather than reading, and the label's whole job is to
+    be read.
+  */
+  check('and names nothing while it flashes', demo.labels === 0, `${demo.labels} frame(s) had a label`)
   /*
     It explains, it does not act. Gathering unprompted would rearrange a
     page the visitor has not touched, which is the difference between a

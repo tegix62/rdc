@@ -1632,6 +1632,55 @@ if (emptyFilters.length > 0) {
       const anchorBefore = anchorAt ?? item.getBoundingClientRect().top;
 
       /*
+        ON A PHONE THE SET COMES TO THE TOP, NOT THE TILE TO WHERE IT WAS.
+
+        Chris: "the gathering on mobile will persistently gather at a
+        certain point on the screen where you kind of have to scroll down
+        a bit... it kind of feels like a perpetual scrolling down."
+
+        Holding the tapped tile still is the right instinct on a desktop,
+        where six or seven columns make nine pieces two rows and keeping
+        the tile put happens to show the whole set as well. It is the
+        wrong one on a phone. Four columns turn the same project into
+        four or five rows, the family is laid out running DOWNWARD from
+        the tapped tile, and so the set lands wherever the thumb happened
+        to be. Measured at 390x664, tapping low on the screen: the set's
+        top edge at 365px of a 664px window, the last row 30-40px past
+        the bottom. The top half of the phone is unrelated, dimmed work
+        and the thing you asked for is the part hanging off the end.
+
+        Worth recording that my first account of this was wrong. I said
+        the sets would be pushed off the bottom and the page would march
+        downward, measured it at 390x844, and got 9/9, 6/6 and 18/18
+        pieces visible with the page moving UP. 844px is an iPhone with
+        no browser chrome; Safari spends about 200px on a URL bar and a
+        toolbar, and a set 540px tall fits in one window and not in the
+        other. The complaint was real and my model of it was not.
+
+        So on a narrow screen the correction aims at the SET instead:
+        bring its top edge just under the top of the window. Every set
+        measured runs 330-540px, which fits a 664px phone whole. It also
+        makes the result the same every time - tap anything, the project
+        arrives at the top of your screen - where today the page moves
+        -227px, then -15px, then +211px depending on where you tapped.
+
+        The machinery underneath is untouched: same convergent loop, same
+        stillness exit, same yield the moment the visitor touches the
+        page. Only the target changes.
+      */
+      const narrow = window.matchMedia('(max-width: 48rem)').matches;
+      // 48rem is where the grid itself drops to four columns, so this
+      // changes behaviour exactly where the layout does.
+      const SET_TOP = 12;
+      const setTop = () => {
+        let top = Infinity;
+        for (const el of family) top = Math.min(top, el.getBoundingClientRect().top);
+        return top;
+      };
+      const driftNow = () =>
+        narrow ? setTop() - SET_TOP : item.getBoundingClientRect().top - anchorBefore;
+
+      /*
         THE SET GATHERS WHERE THE TILE ALREADY IS, NOT AT THE TOP.
 
         The first version put the clicked tile first and its siblings
@@ -1741,12 +1790,25 @@ if (emptyFilters.length > 0) {
       */
       const earliest = performance.now() + 600;
       let still = 0;
+      let lastY = -1;
       const hold = () => {
         if (!own) return;
-        const drift = item.getBoundingClientRect().top - anchorBefore;
+        const drift = driftNow();
         if (Math.abs(drift) > 1) {
+          const before = window.scrollY;
           window.scrollBy({top: drift, behavior: 'instant' as ScrollBehavior});
-          still = 0;
+          /*
+            A scroll that cannot happen counts as arrived. Aiming the set
+            at the top of the window asks for a scroll position that may
+            not exist - a project near the end of the grid runs out of
+            document before its top reaches 12px - and the browser
+            silently clamps. Without this the drift stays non-zero
+            forever, `still` never climbs, and the loop grinds through
+            every frame to its 1600ms deadline measuring a correction it
+            has already made as well as it can.
+          */
+          still = window.scrollY === before && before === lastY ? still + 1 : 0;
+          lastY = before;
         } else {
           still += 1;
         }

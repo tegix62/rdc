@@ -403,23 +403,61 @@ a {
     The hamburger goes with them. A toggle for a menu that is already open
     is a control with nothing to do.
   */
+  /*
+    ONE ROW, LOGO INCLUDED.
+
+    Chris: "I liked the idea of seeing each menu that you can swipe
+    between, but I think the logo mark of my site needs to go alongside
+    them somehow... all of that takes up half the page on a page load."
+
+    The links had width:100%, which forced them onto their own line under
+    the wordmark - so the header alone was two rows and about 190px before
+    a single control appeared. The brand keeps its margin-right:auto so
+    the pages still sit to the right of it; it just no longer gets a line
+    to itself.
+
+    The wordmark comes down to 1.5rem to pay for that. It is a logotype
+    rather than a mark, so it is wide, and at 3rem it was buying presence
+    on the one screen where presence is measured in pixels that could have
+    been work.
+  */
   .site-nav__links {
     display: flex;
-    width: 100%;
     flex-direction: row;
     align-items: center;
-    justify-content: space-between;
     gap: var(--space-2);
-    padding: 0.25rem 0 0;
+    padding: 0;
+  }
+
+  .site-nav__brand img {
+    height: 1.5rem;
+  }
+
+  .site-nav__inner {
+    gap: var(--space-2);
+    padding: 0.5rem var(--space-2);
+    min-height: 0;
   }
 
   .site-nav__links a {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
   }
 
   .site-nav__contact {
-    padding: 0.375rem 0.75rem;
-    border-bottom-width: 4px;
+    padding: 0.3125rem 0.625rem;
+    border-width: 1px;
+    border-bottom-width: 3px;
+  }
+}
+
+/* Narrower still: the four page names and a wordmark is a lot for 360px. */
+@media (max-width: 24rem) {
+  .site-nav__links {
+    gap: 0.5rem;
+  }
+
+  .site-nav__links a {
+    font-size: 0.75rem;
   }
 }
 
@@ -2201,14 +2239,63 @@ main {
     align-items: center;
     justify-content: center;
     gap: var(--space-1);
-    min-height: 2.75rem;
-    padding: 0.375rem 0.625rem;
+    min-height: 2.5rem;
+    padding: 0.3125rem 0.5rem;
     border: 1px solid var(--color-navy);
   }
 
+  .pf-group--view .view-switch__label {
+    font-size: 0.6875rem;
+  }
+
+  /*
+    THE TOOLS SHARE ONE ROW INSTEAD OF TWO.
+
+    Shuffle was spanning both columns, which put the zoom pair and Archive
+    on a line of their own - four rows of chrome in total. Shuffle, minus,
+    plus and Archive all fit across a 390px screen at their natural widths,
+    so they get a four-column row of their own and the toolbar loses a line.
+
+    The zoom buttons are deliberately narrower than the other two: they are
+    a glyph each, and giving them equal thirds was spending the row's width
+    on whitespace that Archive's label needed.
+  */
+  .pf-group {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr 2.5rem 2.5rem;
+    gap: var(--space-1);
+    align-items: stretch;
+  }
+
+  .pf-btn--span {
+    grid-column: auto;
+  }
+
+  .pf-group--view {
+    display: block;
+    grid-column: 1 / -1;
+  }
+
+  /*
+    2.5rem, not 2.75. The 44px floor was set for the tap targets on this
+    toolbar and it still holds for the filters, which are the controls
+    people actually hunt for. These four are secondary and 40px is still
+    comfortably above the 24px minimum - the trade is ten pixels of row
+    against a toolbar that was eating the fold.
+  */
   .pf-btn {
+    min-height: 2.5rem;
+    padding: 0.375rem 0.375rem;
+    font-size: 0.6875rem;
+  }
+
+  .pf-group--filters .pf-btn {
     min-height: 2.75rem;
-    padding: 0.5rem 0.5rem;
+  }
+
+  .pf-controls {
+    margin-bottom: var(--space-2);
   }
 }
 

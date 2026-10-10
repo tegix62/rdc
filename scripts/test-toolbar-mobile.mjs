@@ -146,10 +146,23 @@ if (!bar) {
     Snappier, measured against the screen rather than a pixel target. Half
     the viewport is already generous for chrome above the content.
   */
+  /*
+    ABSOLUTE PIXELS, NOT A FRACTION OF AN ASSUMED SCREEN.
+
+    This used to assert "under 60% of the viewport" against an 844px
+    iPhone, and reported 373px as a comfortable 44%. Chris's screenshot was
+    a shorter phone, where the same 373px is most of the fold - so the
+    check was passing on a measurement that described a device he was not
+    using. A fraction of the tallest phone is the easiest bar to clear.
+
+    280px is roughly three rows of controls plus a one-row header. On the
+    shortest phone still in use that leaves most of a screen of work;
+    on a tall one it leaves a great deal more.
+  */
   check(
-    'the toolbar leaves most of the screen for the work',
-    bar.barBottom < bar.viewport * 0.6,
-    `chrome ends ${bar.barBottom}px down an ${bar.viewport}px screen (${Math.round((bar.barBottom / bar.viewport) * 100)}%)`,
+    'the chrome above the work stays under 280px',
+    bar.barBottom < 280,
+    `chrome ends ${bar.barBottom}px down (${Math.round((bar.barBottom / bar.viewport) * 100)}% of a ${bar.viewport}px screen)`,
   )
 
   /*
@@ -200,10 +213,33 @@ if (!bar) {
       markers: here.length,
       transitionName: marker ? getComputedStyle(marker).viewTransitionName : null,
       markerWidth: marker ? Math.round(marker.getBoundingClientRect().width) : 0,
+      brandTop: (() => {
+        const b = document.querySelector('.site-nav__brand')
+        return b ? Math.round(b.getBoundingClientRect().top) : null
+      })(),
+      linksTop: Math.round(
+        document.querySelector('.site-nav__links')?.getBoundingClientRect().top ?? -1,
+      ),
+      headerHeight: Math.round(
+        document.querySelector('.site-nav')?.getBoundingClientRect().height ?? 0,
+      ),
     }
   })
 
   console.log(`\n  nav: ${nav.labels.join(' / ')}`)
+  /*
+    Chris: "the logo mark of my site needs to go alongside them somehow."
+    The links carried width:100%, which forced them under the wordmark and
+    made the header two rows before a single control appeared. Sharing a
+    row is the whole fix, so it is the thing asserted - a smaller logo on
+    its own line would still be a line.
+  */
+  check(
+    'the wordmark and the pages share one row',
+    nav.brandTop !== null && Math.abs(nav.brandTop - nav.linksTop) < 24,
+    `wordmark at y=${nav.brandTop}, pages at y=${nav.linksTop}`,
+  )
+  check('and the header is one row tall', nav.headerHeight < 72, `${nav.headerHeight}px`)
   check(
     'the pages are visible without opening anything',
     nav.visible >= 3,
@@ -226,6 +262,39 @@ if (!bar) {
     `${nav.markers} marker(s), view-transition-name "${nav.transitionName}"`,
   )
   check('the marker is actually drawn', nav.markerWidth > 10, `${nav.markerWidth}px wide`)
+}
+
+/*
+  AND A SHORT PHONE, which is the one that actually hurt.
+
+  Chris's screenshot was not an 844px screen. On a 667px one the same
+  chrome is a far bigger share of the fold, and "you can't really see the
+  grid demo even because of how much those controls and buttons are taking
+  up the screen" is a statement about how many rows of work are left - so
+  that is what gets counted.
+*/
+{
+  const small = await browser.newPage({viewport: {width: 390, height: 667}, isMobile: true, hasTouch: true})
+  await small.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await small.waitForTimeout(3000)
+  const room = await small.evaluate(() => {
+    const controls = document.querySelector('.pf-controls')
+    const chrome = controls ? Math.round(controls.getBoundingClientRect().bottom) : 0
+    const onScreen = [...document.querySelectorAll('.pf-grid .pf-item')].filter((el) => {
+      const r = el.getBoundingClientRect()
+      return r.top < window.innerHeight && r.bottom > chrome
+    }).length
+    return {chrome, onScreen, viewport: window.innerHeight}
+  })
+  console.log('')
+  console.log(`  on a ${room.viewport}px screen: chrome ends at ${room.chrome}px, ${room.onScreen} tiles visible below it`)
+  check(
+    'a short phone still gets a screenful of work, not just controls',
+    room.chrome < room.viewport * 0.45,
+    `${Math.round((room.chrome / room.viewport) * 100)}% chrome`,
+  )
+  check('and enough tiles are visible for the demo to land on', room.onScreen >= 6, `${room.onScreen} tiles`)
+  await small.close()
 }
 
 /* The edge tabs Chris asked to be rid of. */

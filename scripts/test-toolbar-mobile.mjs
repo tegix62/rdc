@@ -69,7 +69,16 @@ const bar = await page.evaluate(() => {
   const controls = [
     ...root.querySelectorAll('.pf-group--filters .pf-btn'),
   ].map((el) => ({el, kind: 'filter'}))
-  for (const el of root.querySelectorAll(':scope .pf-group > .pf-btn, :scope > .pf-btn')) {
+  /*
+    :not(.pf-group--filters) matters. The filters group carries .pf-group
+    too, so the old selector collected all four filter buttons a second
+    time as "arrange" controls - which is why a three-control toolbar
+    reported rows of 3, 1, 2, 1. The orphan check was reading a shape that
+    did not exist on screen.
+  */
+  for (const el of root.querySelectorAll(
+    ':scope .pf-group:not(.pf-group--filters) > .pf-btn, :scope > .pf-btn',
+  )) {
     controls.push({el, kind: 'arrange'})
   }
   const zoom = root.querySelector('.pf-zoom')
@@ -170,11 +179,21 @@ if (!bar) {
     44px is the floor an earlier pass on this site settled on after a
     control shipped at 33x34.
   */
-  const small = bar.boxes.filter((b) => b.height < 44)
+  /*
+    Two floors, matching the decision rather than a single remembered
+    number. The filters are what people hunt for and keep 44px; Shuffle,
+    the zoom pair and Archive are secondary and sit at 40, which is still
+    well clear of the 24px minimum. Ten pixels of row against a toolbar
+    that was eating the fold is a trade worth making - and worth encoding,
+    so the next person sees it was chosen rather than slipped.
+  */
+  const tooSmall = bar.boxes.filter((b) => b.height < (b.kind === 'filter' ? 44 : 40))
   check(
-    'every control still clears a 44px tap target',
-    small.length === 0,
-    small.length ? small.map((b) => `${b.label} ${b.width}x${b.height}`).join(', ') : 'all at least 44px tall',
+    'filters clear 44px and the secondary controls clear 40px',
+    tooSmall.length === 0,
+    tooSmall.length
+      ? tooSmall.map((b) => `${b.label} ${b.width}x${b.height}`).join(', ')
+      : 'every control above its floor',
   )
 
   check(

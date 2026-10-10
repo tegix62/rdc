@@ -2260,10 +2260,19 @@ main {
     a glyph each, and giving them equal thirds was spending the row's width
     on whitespace that Archive's label needed.
   */
+  /*
+    The arrange group is ONE cell of the outer two-column grid, holding
+    Shuffle and the zoom pair; Archive is the other cell. So the tools are
+    a single row beside each other rather than three stacked ones.
+
+    The first attempt gave .pf-group three columns for Shuffle, minus and
+    plus - but minus and plus live inside .pf-zoom, so it had two children
+    for three columns and Archive was pushed to a line of its own. The
+    markup was not the shape the rule assumed.
+  */
   .pf-group {
     display: grid;
-    grid-column: 1 / -1;
-    grid-template-columns: 1fr 2.5rem 2.5rem;
+    grid-template-columns: 1fr auto;
     gap: var(--space-1);
     align-items: stretch;
   }
@@ -2274,7 +2283,6 @@ main {
 
   .pf-group--view {
     display: block;
-    grid-column: 1 / -1;
   }
 
   /*

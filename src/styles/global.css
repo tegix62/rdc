@@ -383,25 +383,78 @@ a {
     padding: 0.75rem var(--space-3);
   }
 
+  /* The links are visible now, so there is nothing for it to toggle. */
   .site-nav__toggle {
-    display: flex;
-  }
-
-  .site-nav__links {
     display: none;
-    width: 100%;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-2);
-    padding: var(--space-2) 0 var(--space-3);
   }
 
-  .site-nav__links.is-open {
+  /*
+    THE PAGES STAY VISIBLE ON A PHONE.
+
+    Chris: "part of the reason for mobile's lack of efficacy is it has a
+    hamburger menu. And if you could see the spread of Portfolio, About,
+    Video... that would help both desktop and mobile."
+
+    That is the right diagnosis of why swiping did not land. A swipe moves
+    you along a sequence, and the sequence was hidden behind a button - so
+    the gesture had no model to confirm. Three words across the top give it
+    one, and the marker under the current word says where in it you are.
+
+    The hamburger goes with them. A toggle for a menu that is already open
+    is a control with nothing to do.
+  */
+  .site-nav__links {
     display: flex;
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: 0.25rem 0 0;
+  }
+
+  .site-nav__links a {
+    font-size: 0.875rem;
   }
 
   .site-nav__contact {
-    align-self: flex-start;
+    padding: 0.375rem 0.75rem;
+    border-bottom-width: 4px;
+  }
+}
+
+/*
+  THE CURRENT PAGE, AND THE ANIMATION THAT MOVES IT.
+
+  A real element rather than a ::after, because it carries a
+  view-transition-name and pseudo-elements cannot hold one. With the deck's
+  @view-transition opt-in, the browser matches this element by name across
+  the outgoing and incoming documents and animates between its two
+  positions - so the underline SLIDES from Portfolio to About instead of
+  disappearing and reappearing. That is the "animation showing which page
+  you're on" doing double duty: it marks the position and it shows the
+  move.
+
+  Without view transition support it is an underline on the current link,
+  which is what was missing in the first place.
+*/
+.site-nav__links a {
+  position: relative;
+}
+
+.site-nav__here {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.3125rem;
+  height: 3px;
+  background: var(--color-navy);
+  view-transition-name: nav-here;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-nav__here {
+    view-transition-name: none;
   }
 }
 
@@ -2252,7 +2305,16 @@ main {
   tiles would snap back instantly on collapse and only fade on the way in.
 */
 .pf-grid .pf-item {
-  transition: opacity 160ms ease;
+  /*
+    120ms, down from 160. Chris on the hover preview: "the animations are
+    sick. Let's speed up that fade just a little bit."
+
+    The dim is the slowest part of the whole interaction now - the lines
+    finish their stitch in about 215ms, so a 160ms fade meant the ground was
+    still settling while the thread had already arrived. At 120 they land
+    together.
+  */
+  transition: opacity 120ms ease;
 }
 
 .pf-grid.has-focus .pf-item:not(.is-sibling) {

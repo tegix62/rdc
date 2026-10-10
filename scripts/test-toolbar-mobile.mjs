@@ -161,6 +161,76 @@ if (!bar) {
   )
 }
 
+/*
+  THE NAV, which is the other half of why swiping did not land.
+
+  Chris: "part of the reason for mobile's lack of efficacy is it has a
+  hamburger menu. And if you could see the spread of Portfolio, About,
+  Video... and some animation showing which page you're on."
+
+  A swipe moves you along a sequence; the sequence was behind a button, so
+  the gesture had nothing to confirm it. These check that the sequence is
+  visible without a tap, that exactly one page is marked as current, and
+  that the marker carries the view-transition-name that makes it slide
+  between pages rather than blink.
+*/
+{
+  const nav = await page.evaluate(() => {
+    const links = [...document.querySelectorAll('.site-nav__links a')]
+    const toggle = document.querySelector('.site-nav__toggle')
+    const here = document.querySelectorAll('.site-nav__here')
+    const marker = here[0]
+    return {
+      labels: links.map((a) => a.textContent.trim().replace(/\s+/g, ' ')),
+      visible: links.filter((a) => a.getBoundingClientRect().width > 0).length,
+      toggleShown: toggle ? getComputedStyle(toggle).display !== 'none' : false,
+      current: links.filter((a) => a.getAttribute('aria-current') === 'page').map((a) =>
+        a.getAttribute('href'),
+      ),
+      markers: here.length,
+      transitionName: marker ? getComputedStyle(marker).viewTransitionName : null,
+      markerWidth: marker ? Math.round(marker.getBoundingClientRect().width) : 0,
+    }
+  })
+
+  console.log(`\n  nav: ${nav.labels.join(' / ')}`)
+  check(
+    'the pages are visible without opening anything',
+    nav.visible >= 3,
+    `${nav.visible} of ${nav.labels.length} links laid out`,
+  )
+  check('the hamburger is gone on a phone', !nav.toggleShown)
+  check(
+    'exactly one page is marked current',
+    nav.current.length === 1,
+    nav.current.join(', ') || 'none marked',
+  )
+  /*
+    One name per document is a hard rule: two elements sharing a
+    view-transition-name makes the browser skip the transition entirely, so
+    the marker would stop sliding and nothing would say why.
+  */
+  check(
+    'and exactly one marker carries the transition name',
+    nav.markers === 1 && nav.transitionName === 'nav-here',
+    `${nav.markers} marker(s), view-transition-name "${nav.transitionName}"`,
+  )
+  check('the marker is actually drawn', nav.markerWidth > 10, `${nav.markerWidth}px wide`)
+}
+
+/* The edge tabs Chris asked to be rid of. */
+{
+  const desk = await browser.newPage({viewport: {width: 1440, height: 900}})
+  await desk.goto(`${BASE}/about`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await desk.waitForTimeout(800)
+  const edges = await desk.evaluate(
+    () => document.querySelectorAll('[data-deck-next], [data-deck-prev], .deck__edge').length,
+  )
+  console.log('')
+  check('no edge buttons on desktop', edges === 0, `${edges} found`)
+  await desk.close()
+}
+
 await browser.close()
 console.log(failures === 0 ? '\nThe phone toolbar is one rhythm and leaves room for the work.' : `\n${failures} check(s) failed.`)
 process.exit(failures === 0 ? 0 : 1)

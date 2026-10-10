@@ -210,6 +210,13 @@ const DECK_ON = IS_PREVIEW;
 const herePath = Astro.url.pathname;
 
 /*
+  Trailing slashes differ between the built file and the served URL, so both
+  ends are normalised before comparing. Getting this wrong marks no page as
+  current, everywhere, and looks exactly like the feature not being built.
+*/
+const norm = (p: string) => (p === '/' ? '/' : p.replace(/\/+$/, ''));
+
+/*
   Structured data. The live Webflow site emits a JSON-LD block and this one
   did not, which is the gap the SEO parity check missed - it compared meta, OG,
   canonical, sitemap and robots and never looked for this.
@@ -399,8 +406,34 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
         >
           <span></span><span></span><span></span>
         </button>
+        {/*
+          THE DECK, VISIBLE. Chris: "if you could see the spread of
+          Portfolio, About, Video... and some animation showing which page
+          you're on, that would help both desktop and mobile."
+
+          The marker is a real element rather than a ::after, because it
+          carries a view-transition-name and pseudo-elements cannot. That
+          name is what makes it SLIDE: on a cross-document view transition
+          the browser matches the element by name across the two documents
+          and animates between their positions, so navigating from Portfolio
+          to About moves the underline rather than redrawing it. Only one
+          element may hold a given name per document, and only the current
+          link renders it.
+
+          Where view transitions are not supported it is simply an underline
+          on the current page, which is the thing that needed to exist
+          anyway.
+        */}
         <div class="site-nav__links" id="site-nav-links">
-          {navLinks.map((link) => <a href={link.href}>{link.label}</a>)}
+          {navLinks.map((link) => {
+            const current = norm(link.href) === norm(herePath);
+            return (
+              <a href={link.href} aria-current={current ? 'page' : undefined}>
+                {link.label}
+                {current && <span class="site-nav__here" aria-hidden="true"></span>}
+              </a>
+            );
+          })}
           <a class="site-nav__contact" href={CONTACT_URL}>Contact</a>
         </div>
       </nav>

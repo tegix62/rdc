@@ -80,32 +80,22 @@ const live = at >= 0 && (prev || next);
     {next && <link rel="prefetch" href={next.href} />}
 
     {/*
-      The desktop answer, and it is not a gesture.
+      NO EDGE BUTTONS. Removed at Chris's call.
 
-      A trackpad two-finger swipe is detectable and feels native on a Mac,
-      but it is invisible to anyone on a mouse and it fights the same
-      sideways-scrolling media rows the touch gesture has to avoid. So
-      desktop gets something honest instead: a labelled edge affordance and
-      the arrow keys.
+      They were the desktop answer when desktop had no other way in: two
+      labelled tabs pinned to the screen edges. Chris: "get rid of the side
+      buttons on desktop for swipeability. All I would really want on
+      desktop is a sort of swipe left/right page animation."
 
-      Naming the destination is the point. It makes the order of the deck
-      visible, which is what lets the phone gesture feel learned rather than
-      stumbled into - and on its own it is just decent navigation.
+      Right, and the nav is the better place for it. Once the pages are
+      listed across the top with the current one marked, the deck's order is
+      visible permanently rather than announced by two chips hovering over
+      the work - and the edge tabs were competing with the grid for the
+      sides of the screen, which on the Portfolio page is where the work is.
+
+      The arrow keys stay. They cost nothing and they are the only keyboard
+      route through the deck.
     */}
-    <nav class="deck" aria-label="Page sequence">
-      {prev && (
-        <a class="deck__edge deck__edge--prev" href={prev.href} data-deck-prev rel="prev">
-          <span class="deck__arrow" aria-hidden="true">&#8592;</span>
-          <span class="deck__label">{prev.label}</span>
-        </a>
-      )}
-      {next && (
-        <a class="deck__edge deck__edge--next" href={next.href} data-deck-next rel="next">
-          <span class="deck__label">{next.label}</span>
-          <span class="deck__arrow" aria-hidden="true">&#8594;</span>
-        </a>
-      )}
-    </nav>
 
     <script is:inline define:vars={{prevHref: prev?.href ?? null, nextHref: next?.href ?? null}}>
       (() => {
@@ -530,85 +520,6 @@ const live = at >= 0 && (prev || next);
         }
       }
 
-      /*
-        THE EDGE AFFORDANCE.
-
-        Fixed, vertically centred, and quiet until hovered. It carries the
-        destination's name because an unlabelled arrow asks the visitor to
-        guess what order the site is in.
-
-        Hidden on a phone: there the gesture is the affordance, and two
-        floating chips over a masonry grid is clutter on the screen with the
-        least room for it.
-      */
-      .deck {
-        display: none;
-      }
-
-      @media (min-width: 900px) {
-        .deck {
-          display: block;
-        }
-
-        .deck__edge {
-          position: fixed;
-          top: 50%;
-          transform: translateY(-50%);
-          z-index: 40;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1rem;
-          background: var(--color-cream, #f6f1e7);
-          border: 1px solid var(--color-navy, #1b2a4a);
-          color: var(--color-navy, #1b2a4a);
-          text-decoration: none;
-          font-size: 0.8125rem;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-          opacity: 0.35;
-          transition: opacity 180ms ease, transform 180ms ease;
-        }
-
-        .deck__edge--prev {
-          left: 0;
-          border-left: 0;
-        }
-        .deck__edge--next {
-          right: 0;
-          border-right: 0;
-        }
-
-        .deck__edge:hover,
-        .deck__edge:focus-visible {
-          opacity: 1;
-        }
-
-        /*
-          The label is the part that costs room, so at rest only the arrow
-          shows and the name arrives on hover. Collapsed with a max-width
-          rather than display:none so it stays in the accessibility tree and
-          a screen reader still reads "About" rather than an arrow glyph.
-        */
-        .deck__label {
-          max-width: 0;
-          overflow: hidden;
-          white-space: nowrap;
-          transition: max-width 220ms ease;
-        }
-
-        .deck__edge:hover .deck__label,
-        .deck__edge:focus-visible .deck__label {
-          max-width: 12rem;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .deck__edge,
-          .deck__label {
-            transition: none;
-          }
-        }
-      }
     </style>
   </>
 )}

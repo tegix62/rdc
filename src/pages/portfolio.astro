@@ -160,7 +160,17 @@ if (emptyFilters.length > 0) {
         ))}
       </div>
 
-      <div class="pf-group" role="group" aria-label="Arrange">
+      {/*
+        Named, not addressed as "the one without a modifier". The phone
+        toolbar gives this group a two-column grid, and written as a bare
+        .pf-group that rule also hit .pf-group--filters, which carries
+        .pf-group too - so the filters inherited "first column 1fr, second
+        column auto" and ALL came out twice the width of BRAND IDENTITY.
+        The same shape of mistake had already bitten the toolbar test,
+        whose selector counted the filters as a tools group. A modifier
+        costs one word and makes the rule say what it means.
+      */}
+      <div class="pf-group pf-group--arrange" role="group" aria-label="Arrange">
         {/*
           Shuffle spans both columns on a phone WHEN the Gather toggle is not
           there to sit beside it. Decided here rather than in CSS because the

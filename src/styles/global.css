@@ -2269,12 +2269,30 @@ main {
     plus - but minus and plus live inside .pf-zoom, so it had two children
     for three columns and Archive was pushed to a line of its own. The
     markup was not the shape the rule assumed.
+
+    The second attempt wrote this as a bare `.pf-group`, which also
+    matches .pf-group--filters. The filters took "first column 1fr, second
+    column auto" and ALL came out roughly two and a half times the width
+    of BRAND IDENTITY. Chris: "the category buttons are off center in
+    their division." Addressed by modifier now.
   */
-  .pf-group {
+  .pf-group--arrange {
     display: grid;
     grid-template-columns: 1fr auto;
     gap: var(--space-1);
     align-items: stretch;
+  }
+
+  /*
+    Said here rather than left to the block above, which declares the same
+    thing at the same breakpoint and then loses to `.pf-group { display:
+    contents }` further down on source order alone. Two rules of equal
+    specificity disagreeing about one element, with the more explicit one
+    losing, is how the bug above survived a reading of the file.
+  */
+  .pf-group--filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
 
   .pf-btn--span {

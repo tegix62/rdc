@@ -3003,6 +3003,28 @@ main {
 
   .pf-item.is-expanded .pf-item__jump-label {
     flex: 1 1 100%;
+    /*
+      AND NO LINE CAP HERE.
+
+      Stacking gave the title 158px of width, and two lines of that is
+      316px against the 302px the longest title needs - which looked like
+      enough and was not. Text does not pack to the millimetre: greedy
+      wrapping puts "HUG A MUG" on the first line and "COFFEEHOUSE &" on
+      the second, so it wants a third, and the clamp ate it. Measured,
+      not predicted - the first fix stacked correctly and still reported
+      the title cut off.
+
+      Rather than raise the cap to three and hope no project is ever
+      named anything longer, the cap goes. It was there to stop a long
+      name doubling a tile's height against its neighbours in the
+      masonry, and on a tile the visitor has deliberately expanded that
+      is not a concern worth a truncated project name. The collapsed
+      tiles, which are the ones that have to keep a rhythm, still have
+      it.
+    */
+    display: block;
+    -webkit-line-clamp: none;
+    overflow: visible;
   }
 
   /*

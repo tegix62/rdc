@@ -677,6 +677,23 @@ if (!links) {
   const ph = await browser.newPage({viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true})
   await ph.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60_000})
 
+  /*
+    SCROLLING WHILE IT WAITS, because that is what people do.
+
+    Chris: "I guarantee somebody will scroll... I think it's something on
+    a mobile experience that they would do immediately." He was right and
+    the demo never fired for them - a scroll gesture raises touchstart and
+    scroll, and both were cancelling it.
+
+    So the test scrolls during the delay before the demo is due. Testing
+    it on a page nobody touched was testing the one visitor who does not
+    exist.
+  */
+  await ph.waitForTimeout(600)
+  await ph.evaluate(() => window.scrollBy({top: 700, behavior: 'instant'}))
+  await ph.waitForTimeout(200)
+  await ph.evaluate(() => window.scrollBy({top: 500, behavior: 'instant'}))
+
   const demo = await ph.evaluate(() => {
     const grid = document.querySelector('.pf-grid')
     const order = () =>
@@ -722,7 +739,10 @@ if (!links) {
 
   console.log('')
   console.log(`  demo: thread at ${demo.appeared}ms, gone by ${demo.cleared}ms`)
-  check('a phone is shown the idea once, unprompted', demo.appeared > 0)
+  check(
+    'a phone is shown the idea once, unprompted - even after scrolling',
+    demo.appeared > 0,
+  )
   check(
     'and it clears itself',
     demo.cleared > demo.appeared,

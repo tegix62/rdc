@@ -2001,14 +2001,32 @@ if (emptyFilters.length > 0) {
       }
 
       if (!seen) {
+        /*
+          SCROLLING DOES NOT CANCEL IT.
+
+          Chris: "this demo should play regardless of whether somebody
+          scrolls or not, because I guarantee somebody will scroll, and
+          currently this animation doesn't seem to work if somebody
+          scrolls."
+
+          It was worse than not surviving a scroll. A scroll gesture on a
+          phone fires touchstart AND scroll, and both were in the cancel
+          list - so the one thing people do first on a grid of pictures
+          was the one thing that guaranteed they never saw the
+          demonstration. I wrote that guard reasoning about interruption
+          and never asked what the interruption actually is.
+
+          Scrolling is reading, not interrupting. The only gesture that
+          cancels now is a tap on the work itself, which is someone
+          choosing a piece - a hint over the top of that is genuinely in
+          the way.
+        */
         let abandoned = false;
         const giveUp = () => {
           abandoned = true;
           dropPreview();
         };
-        for (const ev of ['touchstart', 'scroll', 'wheel']) {
-          addEventListener(ev, giveUp, {once: true, passive: true});
-        }
+        grid.addEventListener('click', giveUp, {once: true});
 
         /*
           After the grid has laid out and the first images are in. Running
@@ -2093,14 +2111,42 @@ if (emptyFilters.length > 0) {
           const BEAT = 200;
           let i = 0;
           const beat = () => {
-            if (abandoned) return;
+            if (abandoned || grid.querySelector('.pf-item.is-expanded')) {
+              dropPreview();
+              return;
+            }
             if (i >= picks.length) {
               grid.querySelector('.pf-links')?.classList.add('is-leaving');
               window.setTimeout(dropPreview, 200);
               return;
             }
             const p = picks[i++];
-            showPreview(p.tile, p.href, p.family, 'flash', false);
+
+            /*
+              The thread grows from whichever piece of this project is
+              nearest the middle of the screen RIGHT NOW, not from the one
+              that was visible when the demo was scheduled. Since scrolling
+              no longer cancels it, the visitor is very likely somewhere
+              else by the time a beat fires, and a thread rooted off-screen
+              demonstrates nothing.
+
+              The dimming is grid-wide either way, so the beat registers
+              wherever they are - this is about making the lines land in
+              front of them too.
+            */
+            const mid = window.innerHeight / 2;
+            let root = p.tile;
+            let best = Infinity;
+            for (const el of p.family) {
+              const r = el.getBoundingClientRect();
+              const d = Math.abs(r.top + r.height / 2 - mid);
+              if (d < best) {
+                best = d;
+                root = el;
+              }
+            }
+
+            showPreview(root, p.href, p.family, 'flash', false);
             window.setTimeout(beat, BEAT);
           };
           beat();

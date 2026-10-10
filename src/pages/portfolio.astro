@@ -1741,7 +1741,26 @@ if (emptyFilters.length > 0) {
       for one fact is how they drift.
     */
     const nameSet = (tile: HTMLElement, family: HTMLElement[]) => {
-      const title = tile.querySelector('.pf-item__jump-label')?.textContent?.trim();
+      /*
+        STRIPPED, because the DOM string is not the visible string.
+
+        Sanity's stega encoding hides visual-editing metadata inside text
+        as zero-width characters, so the jump label's textContent carries
+        several hundred invisible code points after the project's name.
+        They render as nothing, which is exactly why this went unnoticed
+        until a test printed the raw string - and they are still real
+        characters in a `white-space: nowrap` element, so the label's box
+        was being sized against text nobody can see.
+
+        The same class of characters that check-portfolio-live strips for
+        the same reason. Done inline rather than by importing the helper
+        because this runs in the browser bundle and one regex is cheaper
+        than pulling the module across.
+      */
+      const title = tile
+        .querySelector('.pf-item__jump-label')
+        ?.textContent?.replace(/[\u200B-\u200F\u2060-\u2064\uFEFF]/g, '')
+        .trim();
       if (!title) return;
 
       const tag = document.createElement('div');

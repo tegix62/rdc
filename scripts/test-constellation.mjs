@@ -473,7 +473,17 @@ if (!links) {
           ),
         ),
         ms: Number((window.__pfPreviewMs ?? 0).toFixed(2)),
-        tag: document.querySelector('.pf-tag')?.textContent?.trim() ?? null,
+        /* Trimmed for the log as well as read: a stega-laden string makes
+           the run output unreadable, which is how this was found. */
+        tag:
+          document
+            .querySelector('.pf-tag')
+            ?.textContent?.replace(/[\u200B-\u200F\u2060-\u2064\uFEFF]/g, '')
+            .trim() ?? null,
+        tagInvisible: (document.querySelector('.pf-tag')?.textContent ?? '').replace(
+          /[^\u200B-\u200F\u2060-\u2064\uFEFF]/g,
+          '',
+        ).length,
         vectorEffect: getComputedStyle(
           document.querySelector('.pf-links line, .pf-links polyline') ?? document.body,
         ).vectorEffect,
@@ -533,6 +543,17 @@ if (!links) {
       'the set is named at the tile under the pointer',
       !!state.tag,
       state.tag ? `reads "${state.tag}"` : 'no label',
+    )
+    /*
+      Sanity's stega encoding hides editing metadata in text as zero-width
+      characters. They render as nothing, so the only way this surfaces is
+      by counting them - and they still take part in layout inside a
+      nowrap label.
+    */
+    check(
+      'and the label carries no invisible stega characters',
+      state.tagInvisible === 0,
+      `${state.tagInvisible} zero-width character(s)`,
     )
     /*
       "Can this work but still be snappy" has a number for an answer, and

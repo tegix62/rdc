@@ -47,15 +47,34 @@ const SAMPLER = `
       const out = [];
       let n = 0;
       const tick = () => {
-        const line = document.querySelector('.pf-links line');
-        if (!line) {
+        /*
+          THE SUM ACROSS EVERY LINE, not the first one.
+
+          Sampling one line told me almost nothing: the hops are staggered,
+          so the first one is finished before the last one starts, and its
+          series decaying to zero is compatible with the whole tree
+          appearing at once. Total undrawn length is the figure that
+          describes what a person sees - it starts at the tree's full length
+          and reaches zero only when the last hop lands.
+        */
+        const lines = [...document.querySelectorAll('.pf-links line')];
+        if (!lines.length) {
           out.push({t: Math.round(performance.now()), missing: true});
         } else {
-          const cs = getComputedStyle(line);
+          const cs = getComputedStyle(lines[0]);
+          let undrawn = 0;
+          let done = 0;
+          for (const l of lines) {
+            const o = parseFloat(getComputedStyle(l).strokeDashoffset) || 0;
+            undrawn += o;
+            if (o < 1) done += 1;
+          }
           out.push({
             t: Math.round(performance.now()),
-            offset: Math.round(parseFloat(cs.strokeDashoffset) || 0),
-            array: cs.strokeDashArray,
+            offset: Math.round(undrawn),
+            drawn: done,
+            total: lines.length,
+            array: cs.strokeDasharray,
             transition: cs.transitionProperty + ' ' + cs.transitionDuration + ' ' + cs.transitionDelay,
           });
         }
@@ -109,8 +128,8 @@ async function look(label, reducedMotion) {
 
   /* ---------- the hover draw ---------- */
   await page.hover('[data-probe]')
-  const hoverSeries = await page.evaluate(() => window.__sampleDash(10))
-  console.log(`  HOVER, ${href} - dashoffset over 10 frames:`)
+  const hoverSeries = await page.evaluate(() => window.__sampleDash(26))
+  console.log(`  HOVER, ${href} - total undrawn length per frame:`)
   console.log(`    ${hoverSeries.map((s) => (s.missing ? 'none' : s.offset)).join(' -> ')}`)
   const h0 = hoverSeries.find((s) => !s.missing)
   if (h0) {
@@ -161,11 +180,19 @@ async function look(label, reducedMotion) {
   })
   await page.waitForTimeout(400)
   await page.evaluate(() => document.querySelector('[data-probe]')?.click())
-  /* Two frames for the layout chain the click handler waits on. */
-  await page.waitForTimeout(80)
-  const clickSeries = await page.evaluate(() => window.__sampleDash(14))
-  console.log(`  CLICK with gather off - dashoffset over 14 frames:`)
-  console.log(`    ${clickSeries.map((s) => (s.missing ? 'none' : s.offset)).join(' -> ')}`)
+  /*
+    No wait. The click handler takes three frames to reach drawLinks, and
+    the sampler is itself frame-based, so it picks the draw up as it starts
+    - the previous 80ms pause meant the first sample landed most of the way
+    through a 320ms transition and reported an offset of 2, which I nearly
+    read as "the animation is broken".
+  */
+  const clickSeries = await page.evaluate(() => window.__sampleDash(40))
+  console.log(`  CLICK with gather off - total undrawn length per frame:`)
+  console.log(`    ${clickSeries.map((s) => (s.missing ? '-' : s.offset)).join(' ')}`)
+  console.log(
+    `    hops drawn: ${clickSeries.map((s) => (s.missing ? '-' : `${s.drawn}/${s.total}`)).join(' ')}`,
+  )
   const c0 = clickSeries.find((s) => !s.missing)
   if (c0) console.log(`    transition "${c0.transition}"`)
 

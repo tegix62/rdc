@@ -1244,7 +1244,8 @@ if (emptyFilters.length > 0) {
 
       const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      for (const hop of hops) {
+      for (let hopIndex = 0; hopIndex < hops.length; hopIndex++) {
+        const hop = hops[hopIndex];
         const source = hop.from.box;
         const target = hop.to.box;
 
@@ -1281,35 +1282,41 @@ if (emptyFilters.length > 0) {
         if (!still) {
           const len = Math.hypot(to.x - from.x, to.y - from.y);
           /*
-            TWO SPEEDS, BECAUSE THE TWO MOMENTS ARE NOT THE SAME MOMENT.
+            STAGGERED PER HOP, AND THAT IS THE WHOLE ANIMATION.
 
-            Chris: "I liked the original iteration's animation, but that
-            would get tiring over so many mouseovers. Any chance we could do
-            a MEGA fast animation, like hardly perceptible?"
+            Chris said three times that he could not see this. The
+            transitions were applying correctly the whole time - measured on
+            the live preview as "stroke-dashoffset 0.32s" with the offset
+            decaying to zero. What was missing was anything to SEE.
 
-            The committed draw happens once, on a deliberate click, and can
-            afford to be a gesture - 320ms a hop with 90ms between rings,
-            so the thread visibly travels outward.
+            Two reasons, both mine. The hops are short now: switching from a
+            starburst to a nearest-neighbour tree took the lines from
+            700-1100px spokes down to about 115px each, so a stroke growing
+            along its own length barely travels. And the stagger was keyed
+            to ring DEPTH, where most hops share a value - so with a 14ms
+            step they all animated at once and the lot finished inside
+            110ms. Mechanically perfect, perceptually instantaneous.
 
-            The preview happens every time a pointer settles on a tile,
-            dozens of times a minute. There the animation is not there to be
-            watched, it is there so the lines arrive FROM the tile under the
-            cursor rather than materialising around it. 70ms a hop and 14ms
-            between rings: the direction still registers, the motion barely
-            does, and the whole tree is complete in about a sixth of a
-            second however deep it goes.
+            Keyed to the hop's position in the growth order instead. Every
+            hop gets its own slot, so the thread stitches outward one
+            segment at a time, and the SEQUENCE is what registers rather
+            than each short stroke's growth. That is the thing worth seeing
+            anyway - it says the pieces are reached in order from the one
+            you are pointing at.
 
-            Rings are capped tighter in preview too - six rather than eight -
-            so a long chain through DumpStat's eighteen pieces cannot quietly
-            become a half-second wait at the far end.
-            */
-          const span = quick ? 70 : 320;
-          const step = quick ? 14 : 90;
-          const rings = quick ? 6 : 8;
+            Still two speeds, because the moments differ. A click happens
+            once and can afford to be a gesture. A hover happens dozens of
+            times a minute, so 80ms a hop and 22ms between them: the whole
+            tree lands in about a quarter of a second and reads as a quick
+            stitch rather than a performance.
+          */
+          const span = quick ? 80 : 320;
+          const step = quick ? 22 : 80;
+          const cap = quick ? 8 : 10;
           line.style.strokeDasharray = String(len);
           line.style.strokeDashoffset = String(len);
           requestAnimationFrame(() => {
-            line.style.transition = `stroke-dashoffset ${span}ms ease-out ${Math.min(hop.ring - 1, rings) * step}ms`;
+            line.style.transition = `stroke-dashoffset ${span}ms ease-out ${Math.min(hopIndex, cap) * step}ms`;
             line.style.strokeDashoffset = '0';
           });
         }

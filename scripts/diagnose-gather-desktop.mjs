@@ -190,3 +190,28 @@ console.log(
     ? `    -> the set is shot through with other work; it will not read as a block.`
     : `    -> the set is mostly contiguous.`,
 )
+
+/*
+  A GUARD, NOT JUST A REPORT.
+
+  The shelf took this from 57% fill with eleven intruders to 81% with
+  none, and a number that good is worth defending - the failure it fixes
+  was invisible to every other check in the repo and was found by Chris
+  looking at his screen.
+
+  Two intruders of slack rather than zero, because masonry is allowed a
+  little raggedness at the set's bottom edge and failing on one stray
+  tile would make this a test people turn off. 70% fill is comfortably
+  below the 81% measured and comfortably above the 57% that prompted it.
+*/
+let failed = false
+if (result.intruders > 2) {
+  console.log(`\nFAIL ${result.intruders} tiles from other projects are inside the set - the shelf is not holding.`)
+  failed = true
+}
+if (result.fill < 70) {
+  console.log(`\nFAIL the set fills only ${result.fill}% of its own bounding box.`)
+  failed = true
+}
+if (failed) process.exit(1)
+console.log('\nThe set reads as one block.')

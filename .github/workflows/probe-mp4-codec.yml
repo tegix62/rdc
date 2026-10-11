@@ -1,0 +1,39 @@
+name: Probe MP4 codecs
+
+# What is actually inside the MP4s we serve - profile, bit depth, chroma
+# and audio codec, parsed rather than grepped. See
+# scripts/probe-mp4-codec.mjs for why the string scan in
+# check-video-cors.mjs can call an unplayable file healthy.
+
+on:
+  workflow_dispatch:
+    inputs:
+      video_url:
+        description: 'One video URL, or "--all" for every MP4 in Sanity'
+        default: '--all'
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: |
+          set -o pipefail
+          node scripts/probe-mp4-codec.mjs \
+            "${{ inputs.video_url || '--all' }}" | tee /tmp/codec.txt
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## MP4 codecs'
+            echo ''
+            echo '```'
+            cat /tmp/codec.txt 2>/dev/null || echo '(the probe did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

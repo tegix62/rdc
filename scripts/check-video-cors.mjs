@@ -203,6 +203,11 @@ for (const [host, url] of hosts) {
     try {
       const probe = await fetch(url, {headers: {Origin: ORIGIN, Range: 'bytes=0-524287'}})
       const txt = Buffer.from(await probe.arrayBuffer()).toString('latin1')
+      /*
+        Also a scan, with the same weakness: 'moov' can occur inside
+        mdat by chance, so a false "yes" is possible. probe-mp4-codec.mjs
+        follows each box's own size, which cannot be fooled.
+      */
       faststart = txt.includes('moov')
       /*
         WHICH CODEC, SO "UNSUPPORTED" BECOMES ACTIONABLE.
@@ -252,9 +257,27 @@ for (const [host, url] of hosts) {
       (bytes !== null && bytes < 10_000 ? '  <- far too small to be a real clip' : ''),
   )
   console.log(`    looks like: ${signature ?? '(could not read the first bytes)'}`)
+  /*
+    THIS SCAN IS A HINT, NOT A VERDICT.
+
+    It said "H.264 - the one browsers all support" about the one file
+    Chris cannot play, and that was a green light on a broken clip.
+    Looking for four characters in half a megabyte cannot tell a
+    coincidence in compressed data from a real sample entry, and - the
+    part that actually bit - `avc1` is also what 10-bit and 4:2:2
+    H.264 call themselves, neither of which any browser decodes. It is
+    blind to the audio track too, and an MP4 can be refused whole over
+    its sound.
+
+    scripts/probe-mp4-codec.mjs parses the box tree and reads the
+    profile, bit depth, chroma and audio codec. When the two disagree,
+    that one is right.
+  */
   if (codec) {
     const web = /H\.264/.test(codec)
-    console.log(`    codec: ${codec}${web ? '' : '  <- browsers will refuse this'}`)
+    console.log(
+      `    codec (by scan): ${codec}${web ? ' - confirm with probe-mp4-codec.mjs' : '  <- browsers will refuse this'}`,
+    )
     if (!web) anyBlocked = true
   }
   if (faststart !== null) {

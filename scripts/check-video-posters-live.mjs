@@ -103,9 +103,12 @@ for (const p of PATHS) {
   console.log('')
 }
 
-console.log(`${total} facade(s), ${blanks} with no poster.`)
+// "videos", not "facades": this counts both kinds now, and calling the
+// total facades understates what was checked by a factor of five on a
+// page of self-hosted clips.
+console.log(`${total} video(s), ${blanks} with no poster.`)
 if (blanks) {
-  console.log('A facade with no poster is the black rectangle before play.')
+  console.log('A video with no poster paints its first frame - black if the clip fades up.')
   process.exit(1)
 }
 console.log('Every video shows something before it is played.')

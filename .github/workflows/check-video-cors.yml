@@ -1,0 +1,39 @@
+name: Check video CORS
+
+# Whether the Studio's poster frame grabber can read pixels from the hosts
+# we serve video from. See scripts/check-video-cors.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      page_url:
+        description: 'A page that embeds a self-hosted video'
+        default: 'https://rumeaudesign.co/video'
+      studio_origin:
+        description: 'The Studio origin asking for the frame'
+        default: 'https://rumeau-design-co.sanity.studio'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: |
+          set -o pipefail
+          node scripts/check-video-cors.mjs \
+            "${{ inputs.page_url || 'https://rumeaudesign.co/video' }}" \
+            "${{ inputs.studio_origin || 'https://rumeau-design-co.sanity.studio' }}" | tee /tmp/cors.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Video CORS'
+            echo ''
+            echo '```'
+            cat /tmp/cors.txt 2>/dev/null || echo '(the check did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

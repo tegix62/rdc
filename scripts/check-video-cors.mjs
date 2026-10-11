@@ -198,11 +198,41 @@ for (const [host, url] of hosts) {
     means it is at the end.
   */
   let faststart = null
+  let codec = null
   if (signature?.startsWith('MP4')) {
     try {
       const probe = await fetch(url, {headers: {Origin: ORIGIN, Range: 'bytes=0-524287'}})
       const txt = Buffer.from(await probe.arrayBuffer()).toString('latin1')
       faststart = txt.includes('moov')
+      /*
+        WHICH CODEC, SO "UNSUPPORTED" BECOMES ACTIONABLE.
+
+        Chris's clip returns MediaError code 4 - the browser cannot
+        decode it - on a file that is valid, fast-started and correctly
+        served. "Unsupported codec" is true and useless on its own; what
+        he needs is which one, so he knows what to export instead.
+
+        An MP4 names its codec in a sample entry inside moov, as a
+        four-character code. Those are distinctive enough to find by
+        scanning, which beats writing a box parser for one fact.
+      */
+      // Plain JS: this is a .mjs, and a type annotation here is a syntax
+      // error rather than a hint.
+      const CODECS = [
+        [/hvc1|hev1|hvcC/, 'HEVC / H.265 - Safari only, and not everywhere'],
+        [/av01/, 'AV1 - very limited support'],
+        [/vp09/, 'VP9 in MP4 - patchy support'],
+        [/ap4h|apch|apcn|apcs/, 'Apple ProRes - an editing codec, not a web one'],
+        [/dvh1|dvhe/, 'Dolby Vision - not playable on the open web'],
+        [/avc1|avcC/, 'H.264 / AVC - the one browsers all support'],
+        [/mp4v/, 'MPEG-4 Part 2 - old, poorly supported'],
+      ]
+      for (const [re, name] of CODECS) {
+        if (re.test(txt)) {
+          codec = name
+          break
+        }
+      }
     } catch {
       /* leave null */
     }
@@ -222,6 +252,11 @@ for (const [host, url] of hosts) {
       (bytes !== null && bytes < 10_000 ? '  <- far too small to be a real clip' : ''),
   )
   console.log(`    looks like: ${signature ?? '(could not read the first bytes)'}`)
+  if (codec) {
+    const web = /H\.264/.test(codec)
+    console.log(`    codec: ${codec}${web ? '' : '  <- browsers will refuse this'}`)
+    if (!web) anyBlocked = true
+  }
   if (faststart !== null) {
     console.log(
       `    fast start: ${faststart ? 'yes - plays and scrubs immediately' : 'NO - the index is at the end, so the whole file must download before anything shows'}`,

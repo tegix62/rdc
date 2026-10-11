@@ -70,15 +70,28 @@ if (!explicit.length) {
   }
 }
 
-const hosts = new Map()
+/*
+  EVERY URL, NOT ONE PER HOST.
+
+  This used to keep one URL per host, which answers "is this host
+  configured for CORS" and says nothing about whether each video is
+  actually there. Chris then hit a clip that would not load at all from
+  a host this check had already passed - because the file behind that
+  particular URL is missing, which deduplicating by host made invisible.
+
+  A video that 404s is broken on the live site too, not only in the
+  Studio, so this is worth finding per file.
+*/
+const targets = []
 for (const u of urls) {
   try {
-    const h = new URL(u).host
-    if (!hosts.has(h)) hosts.set(h, u)
+    new URL(u)
+    if (!targets.includes(u)) targets.push(u)
   } catch {
     /* not a URL - skip */
   }
 }
+const hosts = new Map(targets.map((u) => [u, u]))
 
 const PAGE = `${urls.length} video URL(s) from Sanity`
 
@@ -107,9 +120,10 @@ for (const [host, url] of hosts) {
   }
   const allow = res.headers.get('access-control-allow-origin')
   const ok = allow === '*' || allow === ORIGIN
-  if (!ok) anyBlocked = true
-  console.log(`  ${host}`)
-  console.log(`    HTTP ${res.status}`)
+  const missing = res.status >= 400
+  if (!ok || missing) anyBlocked = true
+  console.log(`  ${new URL(host).pathname}  (${new URL(host).host})`)
+  console.log(`    HTTP ${res.status}${missing ? '  <- the file is not there' : ''}`)
   console.log(`    access-control-allow-origin: ${allow ?? '(none sent)'}`)
   console.log(
     ok

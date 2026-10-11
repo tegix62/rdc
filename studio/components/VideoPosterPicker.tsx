@@ -38,7 +38,7 @@
   does send the header, so a video uploaded as a Sanity file works
   either way.
 */
-import {useCallback, useMemo, useRef, useState} from 'react'
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {Box, Button, Card, Flex, Spinner, Stack, Text} from '@sanity/ui'
 import {set, setIfMissing, useClient, useFormValue, type ObjectInputProps} from 'sanity'
 
@@ -79,6 +79,14 @@ export function VideoPosterPicker(props: ObjectInputProps) {
     return ref && projectId && dataset ? fileRefToUrl(ref, projectId, dataset) : null
   }, [videoSrc, videoFile, projectId, dataset])
 
+  /*
+    A YouTube or Vimeo link is not a video file. Offering a scrubber for
+    one gives a black box and a "could not be loaded" message for a
+    perfectly healthy embed, which is the panel accusing the content of
+    a fault it does not have.
+  */
+  const isEmbed = Boolean(src && /youtu\.?be|youtube\.com|vimeo\.com/i.test(src))
+
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [open, setOpen] = useState(false)
   const [duration, setDuration] = useState(0)
@@ -103,14 +111,31 @@ export function VideoPosterPicker(props: ObjectInputProps) {
     setAt(start)
   }, [])
 
+  /*
+    THE FIRST FAILURE IS NOT EVIDENCE OF CORS.
+
+    This used to assume it was: one error, blame the bucket, retry
+    without the attribute. When the retry ALSO failed it added a second
+    message, so the panel showed "this host does not allow frames to be
+    read" and "that video could not be loaded" together - two different
+    diagnoses of one fault, one of them invented.
+
+    If the plain retry fails too, CORS was never the problem: a browser
+    that cannot load a video at all is not being refused pixel access,
+    it is being refused the video. So the CORS claim is withdrawn when
+    that happens, and the URL is shown instead - which is the thing
+    either of us would actually need to see.
+  */
   const onError = useCallback(() => {
     if (cors) {
-      // Retry without the attribute: playback will work, capture will not.
+      // Retry without the attribute: playback may work, capture will not.
       setCors(false)
       setBlocked(true)
+      setNote(null)
       return
     }
-    setNote('That video could not be loaded for preview.')
+    setBlocked(false)
+    setNote('That video could not be loaded at all, so this is not a CORS problem.')
   }, [cors])
 
   const grab = useCallback(async () => {
@@ -156,6 +181,23 @@ export function VideoPosterPicker(props: ObjectInputProps) {
     }
   }, [at, client, onChange])
 
+  /*
+    iOS IGNORES preload, SO ASK FOR THE METADATA EXPLICITLY.
+
+    Chris, on a phone: the slider does not move and the duration reads
+    "?s". On iOS Safari preload="auto" is treated as "none" - the
+    browser will not spend a visitor's data on a video they have not
+    asked for - so loadedmetadata never fires, duration stays 0 and the
+    range input is disabled because it has no maximum to scrub to.
+
+    An explicit load() is the documented way to override that, and the
+    panel only exists after a tap, so it is not fetching anything
+    uninvited.
+  */
+  useEffect(() => {
+    if (open && videoRef.current) videoRef.current.load()
+  }, [open, cors])
+
   const scrub = useCallback((t: number) => {
     setAt(t)
     if (videoRef.current) videoRef.current.currentTime = t
@@ -163,7 +205,17 @@ export function VideoPosterPicker(props: ObjectInputProps) {
 
   return (
     <Stack space={3}>
-      {src && !readOnly && (
+      {src && isEmbed && !readOnly && (
+        <Card padding={3} radius={2} shadow={1} tone="caution">
+          <Text size={1}>
+            This is a {/youtu/i.test(src) ? 'YouTube' : 'Vimeo'} link, so its frames belong to
+            them and cannot be read here. The poster comes from their thumbnail unless you
+            upload one below to override it.
+          </Text>
+        </Card>
+      )}
+
+      {src && !isEmbed && !readOnly && (
         <Card padding={3} radius={2} shadow={1} tone="transparent">
           <Stack space={3}>
             <Flex align="center" justify="space-between" gap={2}>
@@ -181,6 +233,15 @@ export function VideoPosterPicker(props: ObjectInputProps) {
 
             {open && (
               <Stack space={3}>
+                {/*
+                  The URL, always. "Could not be loaded" is unactionable
+                  without it - it could be a YouTube link in the wrong
+                  field, a stale path, or a host that is simply down, and
+                  those look identical from the outside.
+                */}
+                <Text size={0} muted textOverflow="ellipsis">
+                  {src}
+                </Text>
                 <video
                   ref={videoRef}
                   src={src}
@@ -208,6 +269,16 @@ export function VideoPosterPicker(props: ObjectInputProps) {
                   style={{width: '100%'}}
                   aria-label="Scrub to a frame"
                 />
+
+                {!duration && !blocked && (
+                  <Button
+                    mode="ghost"
+                    fontSize={1}
+                    padding={2}
+                    text="Load the video"
+                    onClick={() => videoRef.current?.load()}
+                  />
+                )}
 
                 <Flex align="center" justify="space-between" gap={2}>
                   <Text size={1} muted>

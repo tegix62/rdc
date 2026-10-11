@@ -21,19 +21,48 @@
 
   READ-ONLY.
 
-  Usage: node scripts/check-video-cors.mjs [page-url] [studio-origin]
+  Usage: node scripts/check-video-cors.mjs [page-url ...] [studio-origin]
 */
-const PAGE = process.argv[2] ?? 'https://rumeaudesign.co/video'
-const ORIGIN = process.argv[3] ?? 'https://rumeau-design-co.sanity.studio'
+/*
+  Several pages, not one.
 
-const html = await fetch(PAGE, {redirect: 'follow'}).then((r) => r.text())
+  The first run asked /video and found nothing: a videoSection can
+  render a facade for a YouTube link, and a self-hosted clip may sit on
+  the Portfolio grid or a case study rather than on the page named after
+  video. Looking at one page and concluding "nothing to test" is a
+  measurement that describes the page I picked, not the site.
+*/
+const DEFAULT_PAGES = [
+  'https://rumeaudesign.co/video',
+  'https://rumeaudesign.co/',
+  'https://rumeaudesign.co/portfolio',
+  'https://rumeaudesign.co/merchfolio',
+  'https://rumeaudesign.co/collage',
+]
+const args = process.argv.slice(2)
+const ORIGIN_ARG = args.find((a) => a.includes('sanity.studio') || a.includes('localhost'))
+const PAGES = args.filter((a) => a !== ORIGIN_ARG)
+const pages = PAGES.length ? PAGES : DEFAULT_PAGES
+const ORIGIN = ORIGIN_ARG ?? 'https://rumeau-design-co.sanity.studio'
+
+let html = ''
+for (const page of pages) {
+  try {
+    html += await fetch(page, {redirect: 'follow'}).then((r) => r.text())
+  } catch (err) {
+    console.log(`  could not read ${page}: ${String(err?.message ?? err)}`)
+  }
+}
+const PAGE = pages.join(', ')
 
 /*
   Any absolute media URL on the page. Both <source src> and a poster-less
   <video src> are fair game, and so is a Sanity-hosted file, because the
   point is to test each HOST we serve video from rather than one tag.
 */
-const urls = [...html.matchAll(/https?:\/\/[^"'\s<>]+\.(?:mp4|webm|mov)/gi)].map((m) => m[0])
+const urls = [...html.matchAll(/https?:\\?\/\\?\/[^"'\s<>\\]+\.(?:mp4|webm|mov)/gi)].map((m) =>
+  m[0].replace(/\\/g, ''),
+)
 const hosts = new Map()
 for (const u of urls) {
   const h = new URL(u).host

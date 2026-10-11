@@ -241,9 +241,9 @@ for (const [host, url] of hosts) {
 }
 
 if (anyBlocked) {
-  console.log('At least one host needs a CORS rule before the frame grabber can capture')
-  console.log('from it. For R2: the bucket’s CORS policy, allowing the Studio origin')
-  console.log('above, with GET and the Range header. Playback is unaffected either way.')
+  console.log('Something above is marked. A missing CORS rule is a bucket setting; a')
+  console.log('file with no fast start has to be re-exported with "optimize for web",')
+  console.log('since moving the same file cannot fix where its index sits.')
 } else {
   console.log('Every host we serve video from allows frame capture.')
 }

@@ -126,6 +126,32 @@ export function VideoPosterPicker(props: ObjectInputProps) {
     that happens, and the URL is shown instead - which is the thing
     either of us would actually need to see.
   */
+  /*
+    ASK THE BROWSER WHY, RATHER THAN GUESSING.
+
+    Six theories were eliminated on one clip that would not preview -
+    missing file, wrong content type, truncated upload, bad signature,
+    no fast start, CORS - each by a measurement taken from outside the
+    browser, and the file turned out healthy on every one. The thing
+    that actually knows is the element: MediaError carries a code and
+    usually a message, and neither was being read.
+
+    MEDIA_ERR_DECODE or SRC_NOT_SUPPORTED means the codec is the
+    problem, which no amount of checking headers would ever have shown.
+  */
+  const reason = () => {
+    const err = videoRef.current?.error
+    if (!err) return ''
+    const names: Record<number, string> = {
+      1: 'the load was aborted',
+      2: 'a network error',
+      3: 'the file could not be decoded - usually an unsupported codec',
+      4: 'this browser does not support that video format or codec',
+    }
+    const why = names[err.code] ?? `error code ${err.code}`
+    return err.message ? ` ${why} (${err.message})` : ` ${why}`
+  }
+
   const onError = useCallback(() => {
     if (cors) {
       // Retry without the attribute: playback may work, capture will not.
@@ -135,7 +161,7 @@ export function VideoPosterPicker(props: ObjectInputProps) {
       return
     }
     setBlocked(false)
-    setNote('That video could not be loaded at all, so this is not a CORS problem.')
+    setNote(`The browser refused this video:${reason()}`)
   }, [cors])
 
   const grab = useCallback(async () => {

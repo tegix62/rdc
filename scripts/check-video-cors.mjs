@@ -149,6 +149,36 @@ for (const [host, url] of hosts) {
     The upload worker sets this from the File's own type. A clip put in
     the bucket by any other route may carry nothing.
   */
+  /*
+    IS IT ACTUALLY A VIDEO FILE?
+
+    Present, correct CORS, correct content-type - and the browser still
+    would not decode it. Every one of those says something about the
+    SERVER. None of them says the bytes are a playable movie, and a
+    truncated or half-finished upload answers 206 just as happily as a
+    whole one.
+
+    Content-Range on a ranged request carries the true total size, and
+    the first bytes of an MP4 carry an 'ftyp' box at offset 4. Between
+    them: how big it really is, and whether it is the thing it claims.
+  */
+  let total = null
+  let signature = null
+  try {
+    const head = await fetch(url, {headers: {Origin: ORIGIN, Range: 'bytes=0-31'}})
+    const cr = head.headers.get('content-range')
+    total = cr?.split('/')[1] ?? null
+    const buf = new Uint8Array(await head.arrayBuffer())
+    const ascii = String.fromCharCode(...buf.slice(4, 12))
+    signature = /ftyp/.test(ascii)
+      ? `MP4 (${ascii.slice(4).replace(/[^\x20-\x7e]/g, '').trim() || 'ftyp'})`
+      : buf[0] === 0x1a && buf[1] === 0x45
+        ? 'WebM/Matroska'
+        : `unrecognised (${[...buf.slice(0, 8)].map((b) => b.toString(16).padStart(2, '0')).join(' ')})`
+  } catch {
+    /* leave both null */
+  }
+
   const ctype = res.headers.get('content-type')
   const playable = Boolean(ctype && /^video\//i.test(ctype))
   if (!missing && !playable) anyBlocked = true
@@ -157,6 +187,15 @@ for (const [host, url] of hosts) {
     `    content-type: ${ctype ?? '(none)'}` +
       (playable ? '' : '  <- not a video type, so a browser will not play it'),
   )
+  const bytes = total ? Number(total) : null
+  console.log(
+    `    size: ${bytes ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : '(unknown)'}` +
+      (bytes !== null && bytes < 10_000 ? '  <- far too small to be a real clip' : ''),
+  )
+  console.log(`    looks like: ${signature ?? '(could not read the first bytes)'}`)
+  if (signature?.startsWith('unrecognised') || (bytes !== null && bytes < 10_000)) {
+    anyBlocked = true
+  }
   console.log(`    access-control-allow-origin: ${allow ?? '(none sent)'}`)
   console.log(
     ok

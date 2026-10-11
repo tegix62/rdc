@@ -1,0 +1,39 @@
+name: Check video posters live
+
+# What each video facade actually puts on screen before play - a Sanity
+# image, a YouTube still, or nothing. See scripts/check-video-posters-live.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to check'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+      paths:
+        description: 'Comma-separated paths'
+        default: '/video,/,/portfolio'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: |
+          set -o pipefail
+          node scripts/check-video-posters-live.mjs \
+            "${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}" \
+            "${{ inputs.paths || '/video,/,/portfolio' }}" | tee /tmp/posters.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Video posters'
+            echo ''
+            echo '```'
+            cat /tmp/posters.txt 2>/dev/null || echo '(the check did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

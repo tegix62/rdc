@@ -137,7 +137,26 @@ for (const [host, url] of hosts) {
   const missing = res.status >= 400
   if (!ok || missing) anyBlocked = true
   console.log(`  ${new URL(host).pathname}  (${new URL(host).host})`)
+  /*
+    CONTENT-TYPE, BECAUSE fetch DOES NOT CARE AND <video> DOES.
+
+    A file can answer 206 with perfect CORS and still refuse to play: a
+    browser will not decode a video served as application/octet-stream
+    or with no type at all. Every check so far used fetch, which reads
+    the bytes happily either way - so a clip that is fine by every
+    measurement here can be a black box in the Studio and on the page.
+
+    The upload worker sets this from the File's own type. A clip put in
+    the bucket by any other route may carry nothing.
+  */
+  const ctype = res.headers.get('content-type')
+  const playable = Boolean(ctype && /^video\//i.test(ctype))
+  if (!missing && !playable) anyBlocked = true
   console.log(`    HTTP ${res.status}${missing ? '  <- the file is not there' : ''}`)
+  console.log(
+    `    content-type: ${ctype ?? '(none)'}` +
+      (playable ? '' : '  <- not a video type, so a browser will not play it'),
+  )
   console.log(`    access-control-allow-origin: ${allow ?? '(none sent)'}`)
   console.log(
     ok

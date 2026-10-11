@@ -352,6 +352,10 @@ async function probe(url) {
   }
 
   const {buf} = await get(url, moov.offset, moov.offset + moov.size - 1)
+  if (process.argv.includes('--tree')) {
+    console.log(`  moov @${moov.offset} size ${moov.size}, fetched ${buf.length} bytes`)
+    tree(buf, 0, buf.length)
+  }
   const tracks = readTracks(buf, 0, buf.length)
   if (!tracks.length) console.log('  no tracks found in moov')
   let bad = false
@@ -415,6 +419,39 @@ function readTracks(buf, start, end) {
     }
   }
   return out
+}
+
+/* ------------------------------------------------------------------ */
+/* looking, when the parse disagrees with reality                      */
+
+/*
+  Sixteen of sixteen real files came back "profile undefined" from a
+  parser whose self-tests all passed, which means the hand-built MP4s
+  are not shaped like the real ones somewhere. Guessing where is how
+  the last three bugs happened, so: print the tree, with offsets and
+  sizes, and the first bytes of each video sample entry.
+*/
+const CONTAINERS = new Set([
+  'moov', 'trak', 'mdia', 'minf', 'stbl', 'edts', 'mvex', 'moof', 'traf', 'udta', 'wave',
+])
+
+function tree(buf, start, end, depth = 0) {
+  if (depth > 6) return
+  for (const b of boxesIn(buf, start, end)) {
+    const pad = '  '.repeat(depth + 1)
+    console.log(
+      `${pad}${b.type} @${b.start} size ${b.size}${b.truncated ? '  <- TRUNCATED' : ''}`,
+    )
+    if (CONTAINERS.has(b.type)) {
+      tree(buf, b.body, b.start + b.size, depth + 1)
+    } else if (b.type === 'stsd') {
+      tree(buf, b.body + 8, b.start + b.size, depth + 1)
+    } else if (/^(avc1|avc3|hvc1|hev1|mp4a|av01)$/.test(b.type)) {
+      const head = buf.subarray(b.start, Math.min(b.start + 112, b.start + b.size))
+      console.log(`${pad}  bytes: ${head.toString('hex').replace(/(.{48})/g, '$1\n' + pad + '         ')}`)
+      console.log(`${pad}  ascii: ${head.toString('latin1').replace(/[^\x20-\x7e]/g, '.')}`)
+    }
+  }
 }
 
 /* ------------------------------------------------------------------ */

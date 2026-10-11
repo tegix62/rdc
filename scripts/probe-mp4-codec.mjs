@@ -83,6 +83,40 @@ function findBox(buf, start, end, type) {
   return boxesIn(buf, start, end).find((b) => b.type === type) ?? null
 }
 
+/*
+  A SAMPLE ENTRY'S CHILDREN, FOUND RATHER THAN ASSUMED.
+
+  The first version walked in at a hard-coded 78 bytes, which is where
+  avcC sits if you forget that the 16-byte SampleEntry prefix already
+  contains the 8-byte box header. It is 86. Sixteen real files came
+  back "profile undefined" and all four self-tests still passed,
+  because I had built the fixtures out of the same wrong number - a
+  test written from an assumption tests the assumption, not the format.
+
+  So the offset is a starting point, and if nothing parses from there
+  the entry is searched for the fourcc with its length checked. Real
+  files put pasp, colr, btrt and sometimes much stranger things in
+  here, and an offset that is right for one encoder's output is not a
+  fact about MP4.
+*/
+function childOfSampleEntry(buf, entry, type, offset) {
+  const end = entry.start + entry.size
+  const found = findBox(buf, entry.start + offset, end, type)
+  if (found) return found
+  const want = Buffer.from(type, 'latin1')
+  let at = entry.start + 8
+  for (;;) {
+    at = buf.indexOf(want, at)
+    if (at === -1 || at + 4 > end) return null
+    const start = at - 4
+    if (start >= entry.start) {
+      const size = buf.readUInt32BE(start)
+      if (size >= 8 && start + size <= end) return {type, start, size, body: start + 8}
+    }
+    at += 4
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* H.264: the profile is in avcC, the bit depth is in the SPS          */
 
@@ -238,24 +272,56 @@ const VIDEO_FOURCC = {
 }
 
 function describeTrack(t) {
+  const size = t.w && t.h ? `${t.w}x${t.h}, ` : ''
   if (t.kind === 'video') {
     const name = VIDEO_FOURCC[t.fourcc] ?? `unknown video codec (${t.fourcc})`
     if (t.fourcc !== 'avc1' && t.fourcc !== 'avc3') {
-      return {line: name, ok: false, why: 'browsers do not decode this on the open web'}
+      return {line: `${size}${name}`, ok: false, why: 'browsers do not decode this on the open web'}
     }
-    const prof = PROFILES[t.avc?.profile] ?? `profile ${t.avc?.profile}`
-    const chroma = CHROMA[t.avc?.sps?.chroma] ?? '?'
-    const depth = t.avc?.sps?.depth?.luma ?? '?'
-    const ok = VIDEO_OK.has(t.avc?.profile) && depth === 8 && t.avc?.sps?.chroma === 1
-    const level = t.avc?.level != null ? (t.avc.level / 10).toFixed(1) : '?'
+    /*
+      "COULD NOT READ IT" IS NOT "IT IS WRONG".
+
+      With the avcC offset wrong, every file reported "?-bit H.264 -
+      the web only decodes 8-bit": a confident verdict about a number
+      the probe had failed to read. That is worse than no answer,
+      because it looks like an answer. Unknown is now its own state.
+    */
+    if (!t.avc || t.avc.profile == null) {
+      return {
+        line: `${size}${name}, but its avcC configuration could not be read`,
+        ok: null,
+        why: 'so this says nothing either way about whether a browser will play it',
+      }
+    }
+    const prof = PROFILES[t.avc.profile] ?? `profile ${t.avc.profile}`
+    const chroma = CHROMA[t.avc.sps?.chroma] ?? '?'
+    const depth = t.avc.sps?.depth?.luma ?? '?'
+    const ok = VIDEO_OK.has(t.avc.profile) && depth === 8 && t.avc.sps?.chroma === 1
+    const level = t.avc.level != null ? (t.avc.level / 10).toFixed(1) : '?'
+    /*
+      LEVEL, WHICH IS NOT THE CODEC BUT REFUSES LIKE ONE.
+
+      A level is a promise about resolution, frame rate and bitrate.
+      Phones decode H.264 in hardware, and that hardware tops out -
+      iOS at 5.2, most Android around 5.1 - so a file tagged above
+      that is handed back as "format not supported" however ordinary
+      its profile is. Desktop browsers fall back to software and play
+      it, which is exactly the shape of a bug that looks like "it
+      works for me".
+    */
+    const warn =
+      t.avc.level > 52
+        ? `level ${level} is above what phone hardware decoders accept (iOS tops out at 5.2), so a phone can refuse it while a desktop plays it`
+        : null
     return {
-      line: `${name}, ${prof} profile, level ${level}, ${chroma}, ${depth}-bit`,
+      line: `${size}${name}, ${prof} profile, level ${level}, ${chroma}, ${depth}-bit`,
       ok,
+      warn,
       why: ok
         ? null
         : depth !== 8
           ? `${depth}-bit H.264 - the web only decodes 8-bit`
-          : t.avc?.sps?.chroma !== 1
+          : t.avc.sps?.chroma !== 1
             ? `${chroma} chroma - the web only decodes 4:2:0`
             : `the ${prof} profile is not decodable in a browser`,
     }
@@ -356,21 +422,49 @@ async function probe(url) {
     console.log(`  moov @${moov.offset} size ${moov.size}, fetched ${buf.length} bytes`)
     tree(buf, 0, buf.length)
   }
+  /*
+    Duration and bitrate, because a level is a claim about bitrate and
+    a reader deserves to see whether the file is anywhere near it.
+  */
+  const outer = boxesIn(buf, 0, buf.length)
+  const moovBox = outer.find((b) => b.type === 'moov')
+  const mvhd = moovBox ? findBox(buf, moovBox.body, moovBox.start + moovBox.size, 'mvhd') : null
+  if (mvhd) {
+    const v = buf[mvhd.body]
+    const timescale = v === 1 ? buf.readUInt32BE(mvhd.body + 20) : buf.readUInt32BE(mvhd.body + 12)
+    const dur =
+      v === 1 ? Number(buf.readBigUInt64BE(mvhd.body + 24)) : buf.readUInt32BE(mvhd.body + 16)
+    const secs = timescale ? dur / timescale : 0
+    if (secs > 0) {
+      const mbps = total ? ((total * 8) / secs / 1_000_000).toFixed(1) : '?'
+      console.log(`  ${secs.toFixed(1)}s, about ${mbps} Mbit/s`)
+    }
+  }
+
   const tracks = readTracks(buf, 0, buf.length)
   if (!tracks.length) console.log('  no tracks found in moov')
   let bad = false
+  let unknown = false
+  const warns = []
   for (const t of tracks) {
     const d = describeTrack(t)
-    if (!d.ok) bad = true
-    console.log(`  ${t.kind}: ${d.line}${d.ok ? '' : `  <- ${d.why}`}`)
+    if (d.ok === false) bad = true
+    if (d.ok === null) unknown = true
+    if (d.warn) warns.push(d.warn)
+    console.log(`  ${t.kind}: ${d.line}${d.ok === true ? '' : `  <- ${d.why}`}`)
+    if (d.warn) console.log(`    note: ${d.warn}`)
   }
   console.log(
     bad
       ? '  -> a browser can refuse this file. That is MediaError code 3 or 4.'
-      : '  -> every track is a format browsers decode.',
+      : unknown
+        ? '  -> could not tell. Something in this file is not laid out as expected.'
+        : warns.length
+          ? '  -> the codec is fine, but a phone can still refuse it. See the note.'
+          : '  -> every track is a format browsers decode.',
   )
   console.log('')
-  return !bad
+  return !bad && !unknown && !warns.length
 }
 
 /*
@@ -410,9 +504,14 @@ function readTracks(buf, start, end) {
     const entries = boxesIn(buf, stsd.body + 8, stsd.start + stsd.size)
     for (const e of entries) {
       const t = {kind, fourcc: e.type}
+      if (kind === 'video' && e.size >= 86) {
+        // width and height live in the visual sample entry itself.
+        t.w = buf.readUInt16BE(e.start + 32)
+        t.h = buf.readUInt16BE(e.start + 34)
+      }
       if (e.type === 'avc1' || e.type === 'avc3') {
-        // A visual sample entry is 78 bytes before its children.
-        const avcC = findBox(buf, e.start + 78, e.start + e.size, 'avcC')
+        // A visual sample entry's children begin 86 bytes in.
+        const avcC = childOfSampleEntry(buf, e, 'avcC', 86)
         if (avcC) t.avc = readAvcC(buf, avcC)
       }
       out.push(t)
@@ -480,12 +579,12 @@ function selftest() {
     const bits = (v + 1).toString(2)
     return '0'.repeat(bits.length - 1) + bits
   }
-  const sps = (profile, chroma, depth) => {
+  const sps = (profile, chroma, depth, level = 40) => {
     let s = ''
     s += '01100111' // NAL header 0x67
     s += profile.toString(2).padStart(8, '0')
     s += '00000000' // constraint flags
-    s += '00101000' // level 4.0
+    s += level.toString(2).padStart(8, '0')
     s += ue(0) // sps id
     const HIGH = [100, 110, 122, 244]
     if (HIGH.includes(profile)) {
@@ -499,20 +598,31 @@ function selftest() {
     for (let i = 0; i < s.length; i += 8) bytes.push(parseInt(s.slice(i, i + 8), 2))
     return Buffer.from(bytes)
   }
-  const avcC = (profile, chroma, depth) => {
-    const s = sps(profile, chroma, depth)
+  const avcCRaw = (profile, level, spsProfile, spsLevel, chroma = 1, depth = 8) => {
+    const s = sps(spsProfile, chroma, depth, spsLevel)
     const len = Buffer.alloc(2)
     len.writeUInt16BE(s.length, 0)
     return box(
       'avcC',
-      Buffer.from([1, profile, 0, 40, 0xff, 0xe1]),
+      Buffer.from([1, profile, 0, level, 0xff, 0xe1]),
       len,
       s,
       Buffer.from([0]), // no PPS
     )
   }
-  const videoEntry = (profile, chroma, depth) =>
-    box('avc1', Buffer.alloc(70), avcC(profile, chroma, depth))
+  const avcC = (profile, chroma, depth) => avcCRaw(profile, 40, profile, 40, chroma, depth)
+  /*
+    78 bytes of visual sample entry after the 8-byte box header, which
+    is what a real file looks like - checked against the hex of
+    /v/1787172684321-4b784531.mp4, where avcC begins at byte 86 of the
+    entry. The first version of this used 70 because the parser did,
+    and so the pair agreed with each other and not with any MP4.
+
+    `extra` puts a box in front of avcC, as most encoders do with pasp
+    or colr, so the walk is tested rather than the constant.
+  */
+  const videoEntry = (profile, chroma, depth, extra = []) =>
+    box('avc1', Buffer.alloc(78), ...extra, avcC(profile, chroma, depth))
   const audioEntry = (fourcc) => box(fourcc, Buffer.alloc(28))
   const trak = (handler, entry) =>
     box(
@@ -546,9 +656,39 @@ function selftest() {
     },
     {
       name: 'ProRes',
-      buf: moov(trak('vide', box('apcn', Buffer.alloc(70)))),
+      buf: moov(trak('vide', box('apcn', Buffer.alloc(78)))),
       want: false,
       tracks: 1,
+    },
+    {
+      // pasp and colr in front of avcC, which is the normal case.
+      name: 'avcC behind a pasp and a colr box',
+      buf: moov(
+        trak(
+          'vide',
+          videoEntry(100, 1, 8, [
+            box('pasp', Buffer.from([0, 0, 0, 1, 0, 0, 0, 1])),
+            box('colr', Buffer.from('nclx', 'latin1'), Buffer.alloc(7)),
+          ]),
+        ),
+      ),
+      want: true,
+      tracks: 1,
+      expect: 'High profile',
+    },
+    {
+      /*
+        The real thing: Main profile at level 6.0, read by hand out of
+        the avcC of /v/1787172684321-4b784531.mp4 (01 4d 40 3c, SPS
+        67 4d 40 3c). The profile is fine and a phone still refuses it,
+        so the probe has to say both at once.
+      */
+      name: 'Main profile at level 6.0 (the clip Chris cannot play)',
+      buf: moov(trak('vide', box('avc1', Buffer.alloc(78), avcCRaw(77, 60, 77, 60)))),
+      want: true,
+      tracks: 1,
+      expect: 'Main profile, level 6.0',
+      warn: true,
     },
   ]
 
@@ -563,11 +703,19 @@ function selftest() {
       that expects a refusal - three green ticks for a parser that was
       not working at all.
     */
-    const pass = ok === c.want && tracks.length === c.tracks
+    /*
+      And the TEXT, where asked. A boolean can come out right for the
+      wrong reason; "Main profile, level 6.0" cannot.
+    */
+    const text = all.map((d) => d.line).join(' | ')
+    const said = !c.expect || text.includes(c.expect)
+    const warned = c.warn == null || Boolean(all.some((d) => d.warn)) === c.warn
+    const pass = ok === c.want && tracks.length === c.tracks && said && warned
     if (!pass) failures++
     console.log(`${pass ? 'ok  ' : 'FAIL'}  ${c.name}`)
     for (let i = 0; i < tracks.length; i++) {
       console.log(`        ${tracks[i].kind}: ${all[i].line}${all[i].ok ? '' : `  <- ${all[i].why}`}`)
+      if (all[i].warn) console.log(`          note: ${all[i].warn}`)
     }
   }
   console.log('')

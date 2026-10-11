@@ -145,6 +145,18 @@ const youTubeId = embed?.includes('youtube.com/embed/')
   check is on size and not just on status.
 */
 const fallbackPoster = youTubeId ? await youTubePoster(youTubeId) : null;
+/*
+  The fallback's real shape, not a hard-coded 4:3.
+
+  These were width="640" height="480" from when sddefault was the only
+  option. maxresdefault is 1280x720, so once the probe started preferring
+  it the element was reserving a 4:3 box for a 16:9 picture - a wrong
+  aspect ratio baked into the layout before the image arrives, which is
+  exactly what width/height are there to prevent.
+*/
+const maxres = Boolean(fallbackPoster?.includes('maxresdefault'));
+const fallbackW = maxres ? 1280 : 640;
+const fallbackH = maxres ? 720 : 480;
 const posterUrl = imageUrl(poster)?.width(width).url() ?? null;
 /*
   posterUrl, not the raw poster object. An image field can save its
@@ -162,7 +174,7 @@ const hasPoster = Boolean(posterUrl);
 {selfHosted && posterPlay ? (
   <div class:list={['video', 'video--self', 'video--poster-play', className]} data-poster-play data-poster-bg={posterBg}>
     <button type="button" class="video__poster-wrap" aria-label={`Play ${title}`}>
-      {poster ? (
+      {hasPoster ? (
         <Img image={poster} alt="" field={posterField ?? 'video poster'} width={width} sizes={sizes} />
       ) : posterUrl ? (
         <img src={posterUrl} alt="" loading="lazy" />
@@ -221,10 +233,10 @@ const hasPoster = Boolean(posterUrl);
 ) : embed && posterPlay ? (
   <div class:list={['video', 'video--embed', 'video--poster-play', className]} data-video-embed={embed} data-video-title={title}>
     <button type="button" class="video__facade" aria-label={`Play ${title}`}>
-      {poster ? (
+      {hasPoster ? (
         <Img image={poster} alt="" field={posterField ?? 'video poster'} width={width} sizes={sizes} />
       ) : fallbackPoster ? (
-        <img src={fallbackPoster} alt="" loading="lazy" width="640" height="480" />
+        <img src={fallbackPoster} alt="" loading="lazy" width={fallbackW} height={fallbackH} />
       ) : (
         <span class="video__facade-blank" aria-hidden="true"></span>
       )}
@@ -236,10 +248,10 @@ const hasPoster = Boolean(posterUrl);
 ) : embed ? (
   <div class:list={['video', 'video--embed', className]} data-video-embed={embed} data-video-title={title}>
     <button type="button" class="video__facade" aria-label={`Play ${title}`}>
-      {poster ? (
+      {hasPoster ? (
         <Img image={poster} alt="" field={posterField ?? 'video poster'} width={width} sizes={sizes} />
       ) : fallbackPoster ? (
-        <img src={fallbackPoster} alt="" loading="lazy" width="640" height="480" />
+        <img src={fallbackPoster} alt="" loading="lazy" width={fallbackW} height={fallbackH} />
       ) : (
         <span class="video__facade-blank" aria-hidden="true"></span>
       )}

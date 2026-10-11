@@ -179,6 +179,35 @@ for (const [host, url] of hosts) {
     /* leave both null */
   }
 
+  /*
+    IS THE INDEX AT THE FRONT? ("fast start")
+
+    An MP4 keeps its index in a 'moov' atom. Exported normally that atom
+    goes at the END of the file, so a browser cannot know the duration,
+    seek, or paint a single frame until it has fetched everything - 34MB
+    before anything appears. On a phone that reads as a black box with
+    "?s" on it, and a flaky connection turns it into an error.
+
+    Every other check here passed on exactly such a file, because being
+    slow to start is not a fault of the server, the headers or the
+    bytes. It is a fault of how the file was written, and the only fix
+    is to re-export it with fast start / "optimize for web" - moving it
+    between buckets will not help.
+
+    Looked for in the first 512KB: present means front-loaded, absent
+    means it is at the end.
+  */
+  let faststart = null
+  if (signature?.startsWith('MP4')) {
+    try {
+      const probe = await fetch(url, {headers: {Origin: ORIGIN, Range: 'bytes=0-524287'}})
+      const txt = Buffer.from(await probe.arrayBuffer()).toString('latin1')
+      faststart = txt.includes('moov')
+    } catch {
+      /* leave null */
+    }
+  }
+
   const ctype = res.headers.get('content-type')
   const playable = Boolean(ctype && /^video\//i.test(ctype))
   if (!missing && !playable) anyBlocked = true
@@ -193,6 +222,12 @@ for (const [host, url] of hosts) {
       (bytes !== null && bytes < 10_000 ? '  <- far too small to be a real clip' : ''),
   )
   console.log(`    looks like: ${signature ?? '(could not read the first bytes)'}`)
+  if (faststart !== null) {
+    console.log(
+      `    fast start: ${faststart ? 'yes - plays and scrubs immediately' : 'NO - the index is at the end, so the whole file must download before anything shows'}`,
+    )
+    if (!faststart) anyBlocked = true
+  }
   if (signature?.startsWith('unrecognised') || (bytes !== null && bytes < 10_000)) {
     anyBlocked = true
   }

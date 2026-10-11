@@ -47,7 +47,40 @@ for (const p of PATHS) {
   const selfPlay = html.split(/class="[^"]*video__poster-wrap[^"]*"/).slice(1)
   const all = [...chunks.map((c) => ['embed', c]), ...selfPlay.map((c) => ['self', c])]
 
-  console.log(`${p} - ${all.length} video facade(s)`)
+  /*
+    AND THE PLAIN <video> ELEMENTS, WHICH ARE MOST OF THEM.
+
+    The first version counted only facades - the poster-with-play mode -
+    and reported "1 facade, 0 with no poster" for a page carrying a media
+    row of three. A video set to "click to play" or autoplay renders a
+    bare <video> with a poster attribute and no facade markup at all, so
+    the check walked past it and called the page clean. That is the same
+    false green this file was written to catch, one layer down.
+
+    A <video> with no poster attribute shows its first decoded frame,
+    because Video.astro switches preload to auto when no poster exists.
+    If the clip fades up from black, that frame is black - which is the
+    complaint that started all of this.
+
+    `hidden` ones are skipped: a facade keeps a hidden <video> behind its
+    button, and that element legitimately has no poster because the
+    button in front of it is the poster. Counting it would invent a
+    fault on every facade on the page.
+  */
+  const plain = [...html.matchAll(/<video\b[^>]*>/gi)]
+    .map((m) => m[0])
+    .filter((t) => !/\shidden[\s>]/i.test(t))
+
+  console.log(`${p} - ${all.length} facade(s), ${plain.length} plain <video>`)
+  for (const tag of plain) {
+    total += 1
+    if (/\sposter="[^"]+"/i.test(tag)) {
+      console.log(`    video: poster attribute set`)
+    } else {
+      console.log(`    video: NO poster - shows its first frame, black if the clip fades up`)
+      blanks += 1
+    }
+  }
   for (const [kind, chunk] of all) {
     total += 1
     // Only look as far as the end of this button.

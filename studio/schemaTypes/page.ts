@@ -96,4 +96,34 @@ export default defineType({
       ],
     }),
   ],
+  /*
+    THE LIST SHOWS WHICH PAGE THIS IS, NOT JUST WHAT IT IS CALLED.
+
+    Chris: "I don't have access to the video page on Sanity, I don't
+    think. I don't really have any option to customize it."
+
+    He did have access. The page exists, has body copy and a video
+    section on it already. What he did not have was any way to FIND it:
+    with no preview defined, Sanity lists these documents by their
+    `title` field, which is the SEO title - so the Video page appears as
+    "Process | Rumeau Design Co". The nav calls it Video, the list calls
+    it Process, and nothing on screen connects the two.
+
+    The route is the thing a person actually navigates by, so it goes in
+    the subtitle. "Process | Rumeau Design Co" over "/video" is findable;
+    the title alone is not. Fixes it for every page at once rather than
+    renaming this one document, because the next page with a title that
+    differs from its nav label would have exactly the same problem.
+  */
+  preview: {
+    select: {title: 'title', slug: 'slug.current', heading: 'heading'},
+    prepare({title, slug, heading}: {title?: string; slug?: string; heading?: string}) {
+      return {
+        title: title || heading || 'Untitled page',
+        // The leading slash matters: it reads as a URL rather than as a
+        // second name, which is the whole point of putting it here.
+        subtitle: slug ? `/${slug}` : 'no slug - this page is not routable',
+      };
+    },
+  },
 })

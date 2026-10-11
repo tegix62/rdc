@@ -1,6 +1,7 @@
 import {defineField} from 'sanity'
 import {imageSpec} from './imageFields'
 import {VideoUpload} from '../components/VideoUpload'
+import {VideoPosterPicker} from '../components/VideoPosterPicker'
 
 /*
   Shared fields for every place on the site that shows a video.
@@ -129,6 +130,14 @@ export function videoBehaviourFields(mode: VideoMode = 'primary') {
         name: 'videoPoster',
         title: 'Poster image - the still shown before playing',
         fieldset: VIDEO_FIELDSET,
+        /*
+          Wraps the ordinary image input with a frame grabber, so a
+          poster can come from the video itself rather than from a still
+          exported by hand. See components/VideoPosterPicker.tsx - the
+          default input is still rendered underneath, so uploading a
+          file, alt text and hotspot all work exactly as before.
+        */
+        components: {input: VideoPosterPicker},
         description:
           'The still shown before the video plays. For a YouTube link this is what ' +
           'the visitor sees and clicks. For "poster with corner play" this IS the ' +

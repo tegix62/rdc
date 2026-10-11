@@ -1307,8 +1307,23 @@ if (emptyFilters.length > 0) {
         const lo = Math.max(a.lo, b.lo);
         const hi = Math.min(a.hi, b.hi);
         if (hi > lo) return (lo + hi) / 2;
-        // No shared range: hug whichever end of this side is nearer.
-        return Math.min(Math.max((b.lo + b.hi) / 2, a.lo), a.hi);
+        /*
+          No shared range: this box's own nearest corner.
+
+          The previous fallback clamped the OTHER box's centre into this
+          one's range, which is not symmetric - the two ends of the same
+          hop computed different values and the line arrived with a small
+          lateral kink in it. That is the artifact Chris reported as "a
+          little vertical line with slight offshoots like 1 to 2px
+          horizontally", traced on the live site at 2px and 8px on three
+          separate hops.
+
+          Each end taking its own near corner is symmetric by
+          construction and draws an honest diagonal between two tiles
+          that really are diagonally offset, instead of a vertical
+          pretending otherwise.
+        */
+        return b.lo > a.hi ? a.hi : a.lo;
       };
 
       const edge = (box: Box, toward: Box) => {
@@ -1508,7 +1523,21 @@ if (emptyFilters.length > 0) {
         */
         const spanned = Math.hypot(to.x - from.x, to.y - from.y);
         const apart = Math.hypot(target.x - source.x, target.y - source.y);
-        if (spanned < 14 || spanned > apart) continue;
+        /*
+          6, not 14. Traced on the live site: eighteen pieces drew six
+          lines out of a possible seventeen, and the bulk of the missing
+          ones were between tiles that share an edge. Those are 8px apart
+          - boxOf measures .pf-item__frame and the gutter is 4px of
+          padding each side - so a 14px floor deleted every single one of
+          them. It was written to kill 1-2px offshoots and it was killing
+          most of the thread.
+
+          The offshoots are fixed at the source now, in overlapMid, so
+          this no longer has to stand in for that. What is left for it is
+          genuine degeneracy, and 6 catches that while letting an 8px
+          gutter tick through.
+        */
+        if (spanned < 6 || spanned > apart) continue;
 
         /*
           AND A HOP THAT WOULD CROSS A LIT PICTURE IS NOT DRAWN AT ALL.
@@ -1530,13 +1559,25 @@ if (emptyFilters.length > 0) {
           construction rather than by preference, which is what the test
           was asserting all along.
         */
-        if (
-          nodes.some(
-            (n) => n !== hop.from && n !== hop.to && crossesBox(from.x, from.y, to.x, to.y, n.box),
-          )
-        ) {
-          continue;
-        }
+        /*
+          NO LONGER SKIPPED HERE. The tree already prefers a clear route -
+          an obstructed hop carries a penalty larger than any real gap, so
+          Prim takes one only when a piece cannot be reached any other way.
+
+          Dropping it at this point undid that. Prim guarantees every
+          piece has exactly one edge to the rest, so deleting that edge
+          after the fact leaves the piece lit with nothing reaching it -
+          which is how a column of three ended up floating on the live
+          site with no line at all. Preferring a clean route and then
+          silently deleting the only route left are two different
+          policies, and I had both running at once.
+
+          So the rare forced hop is drawn, and the mask puts a gap in it
+          where it passes behind a lit picture. A line with a gap is not
+          ideal. A piece with no line is worse, because it says the piece
+          is not part of the set - which is the one thing the thread
+          exists to deny.
+        */
 
         /*
           STRAIGHT AGAIN. The elbows are reverted at Chris's call: "there

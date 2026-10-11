@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
     inputs:
       page_url:
-        description: 'A page that embeds a self-hosted video'
-        default: 'https://rumeaudesign.co/video'
+        description: 'A page that embeds a self-hosted video (blank = check the usual five)'
+        default: ''
       studio_origin:
         description: 'The Studio origin asking for the frame'
         default: 'https://rumeau-design-co.sanity.studio'
@@ -25,7 +25,7 @@ jobs:
       - run: |
           set -o pipefail
           node scripts/check-video-cors.mjs \
-            "${{ inputs.page_url || 'https://rumeaudesign.co/video' }}" \
+            ${{ inputs.page_url }} \
             "${{ inputs.studio_origin || 'https://rumeau-design-co.sanity.studio' }}" | tee /tmp/cors.txt
       - name: Publish to the run summary
         if: always()

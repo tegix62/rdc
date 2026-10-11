@@ -39,7 +39,11 @@ const DEFAULT_PAGES = [
   'https://rumeaudesign.co/merchfolio',
   'https://rumeaudesign.co/collage',
 ]
-const args = process.argv.slice(2)
+// Boolean: the workflow passes an empty string when no page is named, and
+// an empty argument would otherwise count as "one page was requested" and
+// suppress the defaults - which is exactly how the first two runs came
+// back "nothing to test" while never looking past /video.
+const args = process.argv.slice(2).filter(Boolean)
 const ORIGIN_ARG = args.find((a) => a.includes('sanity.studio') || a.includes('localhost'))
 const PAGES = args.filter((a) => a !== ORIGIN_ARG)
 const pages = PAGES.length ? PAGES : DEFAULT_PAGES

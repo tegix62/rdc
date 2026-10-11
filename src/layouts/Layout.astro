@@ -202,11 +202,22 @@ const PAGE_DECK = [
 ];
 
 /*
-  Preview only, like the constellation and the collage prototype. A Sanity
-  publish deploys main to production, so an experiment Chris has not signed
-  off must not reach the live site by a route nobody chose.
+  Shipped with the grid work, at Chris's "let's push what we got to
+  production". It went to preview as an experiment and has been through
+  his notes since - one stop of friction, an animation, the edge tabs
+  removed on desktop - so it is no longer unsigned-off.
+
+  A constant rather than the env flag for the same reason as the grid:
+  production unsets PUBLIC_IS_PREVIEW on purpose. The collage prototype
+  stays on the flag, which is the one thing here Chris has genuinely not
+  agreed to ship.
+
+  Worth being plain that this is the riskiest of the three. The grid
+  behaviours affect one page; a horizontal swipe changes pages
+  everywhere, so if anything in this batch wants pulling back it is this
+  line.
 */
-const DECK_ON = IS_PREVIEW;
+const DECK_ON = true;
 const herePath = Astro.url.pathname;
 
 /*

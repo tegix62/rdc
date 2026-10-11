@@ -34,9 +34,10 @@ interface Props {
 
 const { items = [], heading = 'Selected work', moreHref = '/portfolio' } = Astro.props;
 
-// Same gate as gather and the constellation on the Portfolio page, so the
-// homepage cannot start pointing at a behaviour production does not have.
-const PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+// Shipped with gather. This points at a Portfolio behaviour, so the two
+// have to agree: a door into a gather that is switched off is a link to
+// the top of a grid. Both became constants in the same commit.
+const GATHER_LINKS = true;
 ---
 
 {items.length > 0 && (
@@ -81,7 +82,7 @@ const PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
         */
         const slug = projectHref?.split('/').filter(Boolean).pop();
         const href =
-          PREVIEW && slug ? `/portfolio?project=${encodeURIComponent(slug)}` : projectHref;
+          GATHER_LINKS && slug ? `/portfolio?project=${encodeURIComponent(slug)}` : projectHref;
         const hero = Boolean(item.heroTile);
 
         /*

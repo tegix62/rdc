@@ -113,8 +113,6 @@ for (const item of items) {
   if (href) pieceCount.set(href, (pieceCount.get(href) ?? 0) + 1);
 }
 
-const PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
-
 const emptyFilters = ALL_FILTERS.filter(
   (f) => (counts.get(f.value.replace('.', '')) ?? 0) === 0,
 );
@@ -173,15 +171,11 @@ if (emptyFilters.length > 0) {
       */}
       <div class="pf-group pf-group--arrange" role="group" aria-label="Arrange">
         {/*
-          Shuffle spans both columns on a phone WHEN the Gather toggle is not
-          there to sit beside it. Decided here rather than in CSS because the
-          number of controls is a build-time fact - PREVIEW is the same flag
-          that renders Gather - and CSS cannot count its siblings. Without it
-          the production toolbar ends with a half-width button alone on a row,
-          which is the orphan Chris just asked to be rid of, moved one line up.
+          Spans both phone columns. The Gather toggle it used to sit beside
+          is gone, and so is the build-time flag that rendered it, so this
+          is now simply true: there are three controls on a phone, and
+          without the span Shuffle ends up alone on a row.
         */}
-        {/* Spans both phone columns: with the Gather toggle gone there are
-            three controls, so without this Shuffle sits alone on a row. */}
         <button type="button" class="pf-btn pf-btn--span" id="pf-shuffle">Shuffle</button>
         {/*
           THE GATHER TOGGLE IS GONE. It existed to let Chris judge two
@@ -685,7 +679,24 @@ if (emptyFilters.length > 0) {
       an experiment Chris has not approved must not reach the live site by
       that route - the same gate the collage prototype uses.
     */
-    const LINES = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+    /*
+      SHIPPED. Chris: "Let's push what we got to production."
+
+      This was the preview gate for the whole grid behaviour - the thread,
+      the dimming, gather, the hover preview, the once-a-session mobile
+      demo and the homepage's pre-gathered arrival. It is a constant now
+      rather than the env flag, because production deliberately unsets
+      PUBLIC_IS_PREVIEW and the production gate REFUSES a build where it
+      reappears. Turning the flag on would also have shipped the collage
+      prototype, which Chris has not signed off; that stays gated on the
+      env var, where it belongs.
+
+      Kept as a named constant rather than deleted. Every branch it
+      guards still reads `if (LINES ...)`, which says what the condition
+      is about, and switching the whole behaviour off in a hurry is one
+      line here rather than a hunt through a thousand of them.
+    */
+    const LINES = true;
     /*
       ARRIVING FROM THE HOMEPAGE, WITH A PROJECT ALREADY IN MIND.
 
@@ -1045,12 +1056,12 @@ if (emptyFilters.length > 0) {
       el.querySelector('.pf-item__jump')?.getAttribute('href') ?? null;
 
     /*
-      LINES BETWEEN THE PIECES - PREVIEW ONLY FOR NOW.
+      LINES BETWEEN THE PIECES.
 
-      An experiment Chris wanted to see rather than a decision, so it is
-      gated the same way the collage prototype is: a Sanity publish deploys
-      main to production, and an unapproved experiment must not reach the
-      live site by that route. Same flag, same reasoning.
+      This went up as an experiment Chris wanted to see rather than a
+      decision, gated the same way the collage prototype is. It is a
+      decision now - see the note on LINES above - and the collage keeps
+      the gate it was sharing.
     */
     const clearFamily = () => {
       grid.classList.remove('has-focus');

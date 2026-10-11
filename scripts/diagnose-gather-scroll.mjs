@@ -223,6 +223,8 @@ if (!rounds.length) {
   process.exit(1)
 }
 
+let failedAir = false
+
 /*
   The verdict, in the two terms Chris's complaint is actually in.
 */
@@ -235,7 +237,32 @@ for (const band of ['high', 'low']) {
   console.log(`  tapping ${band}:`)
   console.log(`    pieces visible:  ${seen.join(', ')}`)
   console.log(`    below the fold:  ${below.join('px, ')}px`)
+  console.log(`    set starts at:   ${rs.map((r) => r.after.setTop).join('px, ')}px`)
   console.log(`    page ended at:   ${scrolls.join(' -> ')}`)
+}
+
+/*
+  AIR ABOVE THE SET.
+
+  Chris: "it snaps to the very top of the screen, can it maybe snap to
+  the top but not absolute top?" So the set's top edge is checked, not
+  just whether the whole set is on screen - flush against the top and
+  comfortably below it are the same number by every other measure here.
+
+  Only asserted where the set actually fits, because the air is
+  deliberately spent out of slack: a set taller than the window gets
+  none, and that is correct rather than a regression.
+*/
+const fits = rounds.filter((r) => r.after.belowFold === 0)
+const flush = fits.filter((r) => r.after.setTop < 8)
+if (flush.length) {
+  console.log(`\nFAIL ${flush.length} gather(s) put the set flush against the top of the window.`)
+  failedAir = true
+}
+const shoved = fits.filter((r) => r.after.setTop > 96)
+if (shoved.length) {
+  console.log(`\nFAIL ${shoved.length} gather(s) pushed the set more than 96px down - that is not "near the top".`)
+  failedAir = true
 }
 
 const worst = Math.min(...rounds.map((r) => r.after.visible / r.after.total))
@@ -245,3 +272,5 @@ console.log(
     ? `\n  Worst case: ${Math.round(worst * 100)}% of a set shown, ${mostHidden}px of it below the fold.`
     : `\n  Every gather in both bands showed its whole set.`,
 )
+
+if (failedAir) process.exit(1)

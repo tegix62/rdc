@@ -1749,14 +1749,48 @@ if (emptyFilters.length > 0) {
       const narrow = window.matchMedia('(max-width: 48rem)').matches;
       // 48rem is where the grid itself drops to four columns, so this
       // changes behaviour exactly where the layout does.
-      const SET_TOP = 12;
-      const setTop = () => {
+      /*
+        NEAR THE TOP, NOT JAMMED AGAINST IT.
+
+        Chris: "it snaps to the very top of the screen, can it maybe snap
+        to the top but not absolute top?"
+
+        12px was a literal reading of "bring the set to the top" and it
+        reads as a page that has hit a wall - nothing above the set, so
+        there is no sign the grid continues upwards and the arrangement
+        looks like the start of the document rather than a place in it.
+        A band of the work above it says "you are somewhere in a grid",
+        which is true and worth saying.
+
+        AIR IS ONLY EVER SPENT OUT OF SLACK.
+
+        A fixed 64px offset would push a tall set off the bottom of a
+        short phone, which trades the complaint for a worse one - sets
+        measured 330-540px against a 664px window, so on a 600px screen
+        a 540px set has 60px to give and no more. So the air is half the
+        room left over after the set, capped at 64: generous when the
+        set is small, nothing at all when it does not fit. There is
+        always at least as much space below the set as above it, so it
+        can never be pushed out of view by its own margin.
+      */
+      const SET_AIR = 64;
+      const setBox = () => {
         let top = Infinity;
-        for (const el of family) top = Math.min(top, el.getBoundingClientRect().top);
-        return top;
+        let bottom = -Infinity;
+        for (const el of family) {
+          const r = el.getBoundingClientRect();
+          top = Math.min(top, r.top);
+          bottom = Math.max(bottom, r.bottom);
+        }
+        return {top, bottom};
       };
-      const driftNow = () =>
-        narrow ? setTop() - SET_TOP : item.getBoundingClientRect().top - anchorBefore;
+      const driftNow = () => {
+        if (!narrow) return item.getBoundingClientRect().top - anchorBefore;
+        const box = setBox();
+        const slack = window.innerHeight - (box.bottom - box.top);
+        const air = Math.max(0, Math.min(SET_AIR, slack / 2));
+        return box.top - air;
+      };
 
       /*
         THE SET GATHERS WHERE THE TILE ALREADY IS, NOT AT THE TOP.

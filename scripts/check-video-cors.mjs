@@ -24,60 +24,69 @@
   Usage: node scripts/check-video-cors.mjs [page-url ...] [studio-origin]
 */
 /*
-  Several pages, not one.
+  ASK SANITY, NOT THE RENDERED PAGES.
 
-  The first run asked /video and found nothing: a videoSection can
-  render a facade for a YouTube link, and a self-hosted clip may sit on
-  the Portfolio grid or a case study rather than on the page named after
-  video. Looking at one page and concluding "nothing to test" is a
-  measurement that describes the page I picked, not the site.
+  Three runs scraped pages for a video URL and found none, which was
+  true and useless: a videoSection renders a facade for a YouTube link,
+  so a self-hosted clip need not appear in any page's HTML - and a clip
+  just uploaded may not be referenced anywhere yet at all. Scraping
+  answers "is a video on this page", and the question is "which hosts
+  do we serve video from".
+
+  The documents hold the answer directly. videoSrc on any document, plus
+  the hero video on siteSettings, covers every self-hosted route.
 */
-const DEFAULT_PAGES = [
-  'https://rumeaudesign.co/video',
-  'https://rumeaudesign.co/',
-  'https://rumeaudesign.co/portfolio',
-  'https://rumeaudesign.co/merchfolio',
-  'https://rumeaudesign.co/collage',
-]
-// Boolean: the workflow passes an empty string when no page is named, and
-// an empty argument would otherwise count as "one page was requested" and
-// suppress the defaults - which is exactly how the first two runs came
-// back "nothing to test" while never looking past /video.
-const args = process.argv.slice(2).filter(Boolean)
-const ORIGIN_ARG = args.find((a) => a.includes('sanity.studio') || a.includes('localhost'))
-const PAGES = args.filter((a) => a !== ORIGIN_ARG)
-const pages = PAGES.length ? PAGES : DEFAULT_PAGES
-const ORIGIN = ORIGIN_ARG ?? 'https://rumeau-design-co.sanity.studio'
+const PROJECT_ID = '8337vjtf'
+const DATASET = 'production'
+const TOKEN = process.env.SANITY_API_TOKEN
 
-let html = ''
-for (const page of pages) {
-  try {
-    html += await fetch(page, {redirect: 'follow'}).then((r) => r.text())
-  } catch (err) {
-    console.log(`  could not read ${page}: ${String(err?.message ?? err)}`)
+const args = process.argv.slice(2).filter(Boolean)
+const ORIGIN =
+  args.find((a) => a.includes('sanity.studio') || a.includes('localhost')) ??
+  'https://rumeau-design-co.sanity.studio'
+const explicit = args.filter((a) => /^https?:\/\//.test(a) && a !== ORIGIN)
+
+const urls = [...explicit]
+
+if (!explicit.length) {
+  if (!TOKEN) {
+    console.error('SANITY_API_TOKEN is required (read-only is enough), or pass a video URL.')
+    process.exit(2)
+  }
+  const query = `*[defined(videoSrc) && videoSrc != ""].videoSrc
+    + *[_type == "siteSettings"].heroVideo.asset->url
+    + *[defined(sections)].sections[defined(videoSrc)].videoSrc`
+  const res = await fetch(
+    `https://${PROJECT_ID}.api.sanity.io/v2024-01-01/data/query/${DATASET}?query=${encodeURIComponent(query)}`,
+    {headers: {Authorization: `Bearer ${TOKEN}`}},
+  )
+  if (!res.ok) {
+    console.error(`Sanity: ${res.status} ${res.statusText}`)
+    process.exit(2)
+  }
+  const found = (await res.json()).result ?? []
+  for (const u of found.flat(Infinity)) {
+    if (typeof u === 'string' && /^https?:\/\//.test(u)) urls.push(u)
   }
 }
-const PAGE = pages.join(', ')
 
-/*
-  Any absolute media URL on the page. Both <source src> and a poster-less
-  <video src> are fair game, and so is a Sanity-hosted file, because the
-  point is to test each HOST we serve video from rather than one tag.
-*/
-const urls = [...html.matchAll(/https?:\\?\/\\?\/[^"'\s<>\\]+\.(?:mp4|webm|mov)/gi)].map((m) =>
-  m[0].replace(/\\/g, ''),
-)
 const hosts = new Map()
 for (const u of urls) {
-  const h = new URL(u).host
-  if (!hosts.has(h)) hosts.set(h, u)
+  try {
+    const h = new URL(u).host
+    if (!hosts.has(h)) hosts.set(h, u)
+  } catch {
+    /* not a URL - skip */
+  }
 }
+
+const PAGE = `${urls.length} video URL(s) from Sanity`
 
 console.log(`${PAGE}\nasking as ${ORIGIN}\n`)
 
 if (!hosts.size) {
-  console.log('  No video files found on that page, so there is nothing to test.')
-  console.log('  Pass a page that embeds a self-hosted video, or a direct URL to one.')
+  console.log('  No self-hosted video URLs exist in the dataset, so there is nothing')
+  console.log('  to test. Every video here is a YouTube or Vimeo link.')
   process.exit(0)
 }
 

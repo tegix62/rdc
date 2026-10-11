@@ -1425,12 +1425,110 @@ if (emptyFilters.length > 0) {
       const root = nodes.find((n) => n.el === source);
       if (!root) return;
 
-      const reached = [root];
-      const pending = nodes.filter((n) => n !== root);
+      /*
+        TOUCHING PIECES ARE ONE NODE.
+
+        Chris: "the constellation lines are still a bit awkward." Traced
+        off the live site, DumpStat's eighteen pieces drew SIX lines. A
+        spanning tree over eighteen nodes has seventeen edges, so eleven
+        were missing and nine of the eighteen pieces had no line touching
+        them at all - including a whole column of three down the right
+        edge. What was left read as a few unrelated dashes, which is
+        exactly what it looked like.
+
+        The cause is structural rather than a bad threshold. Masonry puts
+        a project's pieces against each other constantly, and two tiles
+        that touch have a gap of ZERO - so the hop between them has no
+        length, the stub rule drops it as an artifact, and a chain of
+        four stacked pieces loses all three of its edges. The rule was
+        written to kill 1-2px offshoots and it was killing most of the
+        tree.
+
+        So the tree is built over CLUSTERS of touching pieces rather than
+        over pieces. Tiles that touch - edge to edge or at a corner - are
+        already read as one block by anyone looking at them; a line
+        between them is both undrawable and unnecessary. What the thread
+        then has to do is join the blocks, which is the job it was always
+        meant to do and the one it was failing at. On that same project
+        it is eleven clusters, so ten visible hops instead of six, and
+        nothing floating unconnected.
+
+        The pieces themselves still do the drawing: a hop between two
+        clusters is drawn between the two MEMBERS that are nearest each
+        other, so the line still leaves and arrives at a real picture.
+      */
+      const parent = nodes.map((_, i) => i);
+      const find = (i: number): number => {
+        while (parent[i] !== i) {
+          parent[i] = parent[parent[i]];
+          i = parent[i];
+        }
+        return i;
+      };
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          /*
+            TOUCHING MEANS A GUTTER APART, NOT ZERO.
+
+            boxOf measures .pf-item__frame, which sits inside 4px of
+            padding on every side, so two tiles that share an edge have
+            8px of clear space between their frames and never read as
+            touching by distance alone. Simulated against the eighteen
+            real DumpStat boxes, a 1px threshold merged nothing at all -
+            it would have shipped as a no-op that looked like a fix.
+
+            The measured gaps on that project: 7, 8, 8, 8, 8, 8, 8, 9, 9,
+            9, 9, 10, 12, then 41. Edge-sharing neighbours live in that
+            first band and the next real distance is four times further,
+            so 10 sits in a wide valley rather than on a cliff edge.
+
+            It also keeps corner-only neighbours apart, which is what we
+            want: two tiles meeting at a corner are 8px across AND 8px
+            down, about 11px by this metric, and they do not read as one
+            block the way a shared edge does.
+          */
+          if (gapBetween(nodes[i].box, nodes[j].box) <= 10) {
+            const a = find(i);
+            const b = find(j);
+            if (a !== b) parent[a] = b;
+          }
+        }
+      }
+      const byRoot = new Map<number, (typeof nodes)[number][]>();
+      nodes.forEach((n, i) => {
+        const k = find(i);
+        const list = byRoot.get(k);
+        if (list) list.push(n);
+        else byRoot.set(k, [n]);
+      });
+      type Cluster = {members: (typeof nodes)[number][]};
+      const clusters: Cluster[] = [...byRoot.values()].map((members) => ({members}));
+      const rootCluster = clusters.find((c) => c.members.includes(root));
+      if (!rootCluster) return;
+
+      /*
+        The nearest pair of pieces across two clusters, which is both the
+        distance between them and where the line will be drawn. Returned
+        together because picking the edge and then re-deriving its
+        endpoints is how the two drift apart.
+      */
+      const nearestPair = (A: Cluster, B: Cluster) => {
+        let best: {a: (typeof nodes)[number]; b: (typeof nodes)[number]; d: number} | null = null;
+        for (const a of A.members) {
+          for (const b of B.members) {
+            const d = gapBetween(a.box, b.box);
+            if (!best || d < best.d) best = {a, b, d};
+          }
+        }
+        return best!;
+      };
+
+      const reached = [rootCluster];
+      const pending = clusters.filter((c) => c !== rootCluster);
       /* Hops in growth order, each carrying how far it is from the root so
          the animation can expand outward a ring at a time. */
       const hops: Array<{from: typeof root; to: typeof root; ring: number}> = [];
-      const ringOf = new Map<typeof root, number>([[root, 0]]);
+      const ringOf = new Map<Cluster, number>([[rootCluster, 0]]);
 
       /*
         A hop that would be cut is worth avoiding, not forbidding.
@@ -1451,7 +1549,9 @@ if (emptyFilters.length > 0) {
       };
 
       while (pending.length) {
-        let pick: {at: number; to: (typeof nodes)[number]; from: (typeof nodes)[number]; d: number} | null = null;
+        let pick:
+          | {at: number; cluster: Cluster; parent: Cluster; a: (typeof nodes)[number]; b: (typeof nodes)[number]; d: number}
+          | null = null;
         for (let i = 0; i < pending.length; i++) {
           for (const have of reached) {
             /*
@@ -1461,15 +1561,29 @@ if (emptyFilters.length > 0) {
               nearest, and the penalty is what keeps it from drawing a line
               that arrives with a hole in it.
             */
-            const d =
-              gapBetween(pending[i].box, have.box) + (blocked(pending[i], have) ? BLOCKED : 0);
-            if (!pick || d < pick.d) pick = {at: i, to: pending[i], from: have, d};
+            const near = nearestPair(pending[i], have);
+            /*
+              A hop too short to draw is as useless to the tree as one
+              that crosses a picture, and it fails the same way: the
+              cluster ends up lit with no line reaching it. Both are
+              penalties on the SCORE rather than filters at draw time,
+              so Prim routes around them and every cluster keeps a
+              visible line to the rest. Filtering after the tree was
+              built is what left a whole column of three unconnected.
+            */
+            const tooShort = near.d < 8;
+            const d = near.d + (blocked(near.a, near.b) || tooShort ? BLOCKED : 0);
+            if (!pick || d < pick.d)
+              pick = {at: i, cluster: pending[i], parent: have, a: near.b, b: near.a, d};
           }
         }
         if (!pick) break;
-        hops.push({from: pick.from, to: pick.to, ring: (ringOf.get(pick.from) ?? 0) + 1});
-        ringOf.set(pick.to, (ringOf.get(pick.from) ?? 0) + 1);
-        reached.push(pick.to);
+        const ring = (ringOf.get(pick.parent) ?? 0) + 1;
+        // from = the piece in the cluster already reached, so the hop still
+        // grows outward from the tile that was clicked.
+        hops.push({from: pick.a, to: pick.b, ring});
+        ringOf.set(pick.cluster, ring);
+        reached.push(pick.cluster);
         pending.splice(pick.at, 1);
       }
 
@@ -1494,21 +1608,28 @@ if (emptyFilters.length > 0) {
           still reaches everything through it.
         */
         /*
-          A STUB IS NOT A CONNECTION.
+          A STUB IS NOT A CONNECTION - BUT THE FLOOR WAS DOING FAR MORE
+          THAN THAT.
 
           Two tiles separated by little more than the gutter leave almost
-          nothing between their trimmed ends - a three or four pixel mark
-          that reads as dirt on the screen rather than as a line. The old
-          floor was 2px, which let every one of them through.
+          nothing between their trimmed ends, and a three-pixel mark reads
+          as dirt rather than as a line. That much still holds.
 
-          Skipping it costs nothing: the tile is still lit, still named by
-          the label, and sitting directly against its sibling, which says
-          "related" more plainly than a speck ever could. Adjacency is its
-          own line.
+          What did not hold is where the floor was set. At 14px it was
+          also deleting every hop between tiles that TOUCH, which masonry
+          produces constantly, and that turned out to be most of the tree:
+          eighteen pieces, seventeen edges, six drawn. "Skipping it costs
+          nothing" was true of one stub and false of eleven.
+
+          Touching pieces are now merged into one node before the tree is
+          built, so a zero-length hop no longer reaches this line at all.
+          What is left for the floor to catch is the genuine case it was
+          written for - two clusters that are close but not touching - and
+          8px is enough for that while no longer swallowing real hops.
         */
         const spanned = Math.hypot(to.x - from.x, to.y - from.y);
         const apart = Math.hypot(target.x - source.x, target.y - source.y);
-        if (spanned < 14 || spanned > apart) continue;
+        if (spanned < 8 || spanned > apart) continue;
 
         /*
           AND A HOP THAT WOULD CROSS A LIT PICTURE IS NOT DRAWN AT ALL.

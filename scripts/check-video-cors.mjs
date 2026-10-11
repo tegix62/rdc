@@ -53,9 +53,22 @@ if (!explicit.length) {
     console.error('SANITY_API_TOKEN is required (read-only is enough), or pass a video URL.')
     process.exit(2)
   }
-  const query = `*[defined(videoSrc) && videoSrc != ""].videoSrc
-    + *[_type == "siteSettings"].heroVideo.asset->url
-    + *[defined(sections)].sections[defined(videoSrc)].videoSrc`
+  /*
+    THE WHOLE DOCUMENT, SCANNED - NOT A LIST OF PLACES I THOUGHT OF.
+
+    The previous query named three paths: videoSrc on a document,
+    siteSettings' hero, and sections[].videoSrc. It found two videos,
+    pronounced both healthy, and missed the one Chris was actually
+    looking at - because a media row keeps its videos in
+    sections[].items[], one level deeper than any path I listed.
+
+    Enumerating the places a URL can hide is a losing game: the next
+    nested array breaks it again, silently, with a green run. So this
+    pulls the documents and scans them for video URLs wherever they
+    sit. More data over the wire, and no blind spots that depend on me
+    remembering the schema.
+  */
+  const query = `*[!(_id in path("drafts.**"))]`
   const res = await fetch(
     `https://${PROJECT_ID}.api.sanity.io/v2024-01-01/data/query/${DATASET}?query=${encodeURIComponent(query)}`,
     {headers: {Authorization: `Bearer ${TOKEN}`}},
@@ -64,9 +77,10 @@ if (!explicit.length) {
     console.error(`Sanity: ${res.status} ${res.statusText}`)
     process.exit(2)
   }
-  const found = (await res.json()).result ?? []
-  for (const u of found.flat(Infinity)) {
-    if (typeof u === 'string' && /^https?:\/\//.test(u)) urls.push(u)
+  const docs = (await res.json()).result ?? []
+  const blob = JSON.stringify(docs)
+  for (const m of blob.matchAll(/https?:\/\/[^"'\s\\]+\.(?:mp4|webm|mov)/gi)) {
+    if (!urls.includes(m[0])) urls.push(m[0])
   }
 }
 

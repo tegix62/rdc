@@ -56,7 +56,7 @@ export function getOtherCaseStudies(excludeId: string) {
 
 export function getGridItems(caseStudyId: string) {
   return sanityClient.fetch(
-    `*[_type == "caseStudy" && pageType == "Grid Item" && parentBrand._ref == $id] | order(title asc)`,
+    `*[_type == "caseStudy" && pageType == "Grid Item" && ${IN_PROJECT('$id')}] | order(title asc)`,
     { id: caseStudyId },
   );
 }
@@ -72,8 +72,7 @@ export function getMerchItems() {
   return sanityClient.fetch(
     `*[_type == "caseStudy" && category == "Merch & Apparel"]{
       ...,
-      "parentSlug": parentBrand->slug.current,
-      "parentType": parentBrand->pageType
+      ${PROJECT_FIELDS}
     } | order(title asc)`,
   );
 }
@@ -177,6 +176,40 @@ export function getContactForm() {
 // homepage grid and the Portfolio grid cannot drift into showing different
 // things about the same piece of work.
 /*
+  A PIECE CAN BE PARENTED TO ANOTHER PIECE, AND STILL BELONG TO THE PROJECT.
+
+  Chris: "take some grid items and parent them to their shirt mockup rather
+  than to a case study. But those things that still get parented to a shirt
+  on the grid will still get parented to the case study because that shirt
+  is still parented to the case study."
+
+  Parent Brand has always accepted any caseStudy document, Grid Items
+  included - and five pieces already used it that way (the Desperate Foes
+  hoodie under the Desperate Foes artwork, under DumpStat). The site read a
+  Grid Item parent as "no project", so those five had no link, never
+  gathered with DumpStat, and were missing from its case study page.
+
+  So the project is now read THROUGH a piece parent: when the parent is a
+  Grid Item, the project is the parent's parent. `pieceParent` keeps the
+  piece itself, which is what the merch view uses to put a shirt's alternate
+  shots next to it. One level of piece is followed, which is the deepest the
+  data goes; a piece of a piece of a piece would read as having no project,
+  the same as today.
+
+  Out here rather than as a comment in the GROQ: GROQ takes // comments
+  only, and a block comment inside a query fails the whole build.
+*/
+const VIA_PIECE = `parentBrand->pageType == "Grid Item"`;
+const PROJECT_FIELDS = `
+  "pieceParent": select(${VIA_PIECE} => parentBrand._ref),
+  "parentSlug": select(${VIA_PIECE} => parentBrand->parentBrand->slug.current, parentBrand->slug.current),
+  "parentTitle": select(${VIA_PIECE} => parentBrand->parentBrand->title, parentBrand->title),
+  "parentType": select(${VIA_PIECE} => parentBrand->parentBrand->pageType, parentBrand->pageType)
+`;
+// The project a piece belongs to, by id, whichever route it takes there.
+const IN_PROJECT = (id: string) => `(parentBrand._ref == ${id} || parentBrand->parentBrand._ref == ${id})`;
+
+/*
   `tileOpaque` is whether the picture the tile shows has real transparency -
   a garment cut out on nothing. select() makes the same choice tileImage()
   makes about which picture to show: the thumbnail when it has an asset, the
@@ -198,9 +231,7 @@ const TILE = `
     defined(thumbnail.asset) => thumbnail.asset->metadata.isOpaque,
     mainImage.asset->metadata.isOpaque
   ),
-  "parentSlug": parentBrand->slug.current,
-  "parentTitle": parentBrand->title,
-  "parentType": parentBrand->pageType
+  ${PROJECT_FIELDS}
 `;
 
 /*
@@ -398,7 +429,7 @@ export async function getFeaturedWork(limit = 8) {
   const pool: any[] = await sanityClient.fetch(
     `*[_type == "caseStudy" && pageType == "Grid Item"
        && (defined(thumbnail) || defined(mainImage))
-       && !(parentBrand._ref in $shown)]
+       && !(parentBrand._ref in $shown) && !(parentBrand->parentBrand._ref in $shown)]
       | order(title asc)[0...24]{${TILE}}`,
     { shown: studies.map((s) => s._id).filter(Boolean) },
   );

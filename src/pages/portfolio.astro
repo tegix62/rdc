@@ -262,6 +262,16 @@ if (emptyFilters.length > 0) {
         // other angles and scenes after. Only on merch tiles, since it means
         // nothing anywhere else. See merchPlacement() in lib/tiles.ts.
         const merch = cat === 'merch-apparel' ? merchPlacement(item) : undefined;
+        /*
+          Its own id and the piece it hangs off, for the merch view: a shirt's
+          alternate shots and sketches are parented to the shirt, and the view
+          finds them by these. Cleaned, because the preview's editing markers
+          ride on any CMS string and an id compared with a marked id never
+          matches; and without a drafts. prefix, which a child's reference
+          never carries.
+        */
+        const pieceId = cleanKey(item._id).replace(/^drafts\./, '');
+        const pieceParent = item.pieceParent ? cleanKey(item.pieceParent) : undefined;
         // The category has to be a real CLASS, not just a data attribute:
         // Isotope filters with CSS selectors (".brand-identity"), so with the
         // value only in data-category every filter matched zero tiles and the
@@ -285,6 +295,8 @@ if (emptyFilters.length > 0) {
             ]}
             data-category={cat}
             data-merch={merch}
+            data-piece={pieceId}
+            data-piece-parent={pieceParent}
           >
             {/*
               The frame wraps the image and the jump button so a selected tile
@@ -502,10 +514,30 @@ if (emptyFilters.length > 0) {
     */
     const MERCH_FILTER = '.merch-apparel';
     const TYPE_FILTER = '.type-lettering';
-    const VIEWS: Record<string, {cols: number; mobileCols: number; cls: string}> = {
-      [MERCH_FILTER]: {cols: 3, mobileCols: 2, cls: 'is-merch-view'},
-      [TYPE_FILTER]: {cols: 4, mobileCols: 2, cls: 'is-type-view'},
+    /*
+      `cols` is the grid's UNDERLYING column count; `unit` is how many of
+      them an ordinary tile spans. In the main grid and the type view a tile
+      is one column. In the merch view it is two, on a grid of six (four on a
+      phone), so the visible count is still three across (two on a phone) -
+      and a gather can step the sizes DOWN as well as up:
+
+        the shirt you opened   4 columns  (two thirds of the width)
+        its own shots          2 columns  (an ordinary tile)
+        the rest of the project 1 column  (half a tile)
+
+      Chris: "these alternate shots of the shirt show up because they're
+      parented straight to the shirt first. And then anything after is
+      actually a smaller grid item... a new kind of view where we stagger
+      the sizes". Masonry can only place widths that are whole multiples of
+      its column, so half a tile needs a column half as wide; doubling the
+      grid underneath is what makes the smaller size exist at all.
+    */
+    const VIEWS: Record<string, {cols: number; mobileCols: number; unit: number; cls: string}> = {
+      [MERCH_FILTER]: {cols: 6, mobileCols: 4, unit: 2, cls: 'is-merch-view'},
+      [TYPE_FILTER]: {cols: 4, mobileCols: 2, unit: 1, cls: 'is-type-view'},
     };
+    // How many underlying columns an ordinary tile spans in the current view.
+    const unit = () => (view ? VIEWS[view].unit : 1);
     // The filter whose view is open, or null for the ordinary grid.
     let view: string | null = null;
     // Kept as a name because the merch view has rules the type view does not
@@ -937,7 +969,31 @@ if (emptyFilters.length > 0) {
       know the view is any different.
     */
     const revealed = new Set<HTMLElement>();
-    const merchFilter = (el: HTMLElement) => el.matches(MERCH_FILTER) || revealed.has(el);
+
+    /*
+      A SHIRT'S OWN SHOTS WAIT UNTIL THE SHIRT IS OPENED.
+
+      An alternate angle or a sketch parented to a shirt belongs with that
+      shirt, not loose in the view: at rest the view is "just those shirts",
+      and the shots arrive when you ask for that one.
+
+      Only when the parent is itself a merch piece. Five pieces were already
+      parented to another piece before this existed, and one is the Desperate
+      Foes HOODIE - a merch piece hanging off an artwork. Hiding every child
+      of a piece would have taken that hoodie out of the merch view; hiding
+      children of a merch piece leaves it exactly where it was.
+    */
+    const byPiece = new Map<string, HTMLElement>();
+    for (const el of grid.querySelectorAll<HTMLElement>('.pf-item')) {
+      if (el.dataset.piece) byPiece.set(el.dataset.piece, el);
+    }
+    const shirtOf = (el: HTMLElement) => {
+      const up = el.dataset.pieceParent;
+      const parent = up ? byPiece.get(up) : undefined;
+      return parent && parent.matches(MERCH_FILTER) ? parent : null;
+    };
+    const merchFilter = (el: HTMLElement) =>
+      (el.matches(MERCH_FILTER) && !shirtOf(el)) || revealed.has(el);
 
     const enterView = (f: string) => {
       ungatherSilently();
@@ -1126,15 +1182,17 @@ if (emptyFilters.length > 0) {
       setColWidth();
       iso.layout();
     }
+    // Stepped by the view's unit, so a merch tile never ends up spanning an
+    // odd number of half-columns and the half-size tiles stay half.
     document.querySelector('#pf-plus')?.addEventListener('click', () => {
-      if (cols > 1) {
-        cols--;
+      if (cols > unit()) {
+        cols -= unit();
         updateCols();
       }
     });
     document.querySelector('#pf-minus')?.addEventListener('click', () => {
       if (cols < 12) {
-        cols++;
+        cols += unit();
         updateCols();
       }
     });
@@ -1330,6 +1388,7 @@ if (emptyFilters.length > 0) {
       // next arrange() - restoreOrder's on close, the next gather's on a new
       // click, the filter's on a filter change.
       revealed.clear();
+      grid.querySelectorAll('.pf-item.is-minor').forEach((el) => el.classList.remove('is-minor'));
       grid.classList.remove('has-focus');
       grid.querySelectorAll('.pf-item.is-sibling').forEach((el) => el.classList.remove('is-sibling'));
       grid.querySelector('.pf-links')?.remove();
@@ -2162,11 +2221,35 @@ if (emptyFilters.length > 0) {
         Only the order WITHIN the set changes. The deal is untouched, and
         restoreOrder still puts everything back exactly as it was.
       */
-      const packed = family
+      let packed = family
         .filter((el) => el !== item)
         .map((el) => ({el, h: el.getBoundingClientRect().height}))
         .sort((a, b) => b.h - a.h)
         .map((x) => x.el);
+
+      /*
+        IN THE MERCH VIEW THE ORDER IS THE HIERARCHY, NOT THE HEIGHTS.
+
+        Every tile there is the same square, so tallest-first has nothing to
+        sort. What matters is closeness to the piece you opened: its own
+        shots first, at ordinary size; then the rest of the case study,
+        half-size, so the project is present without competing with the
+        shirt. Opening one of the shots instead treats its shirt, and the
+        shirt's other shots, as the close ones - you asked about that shirt.
+      */
+      if (inMerch()) {
+        const own = item.dataset.piece;
+        const up = item.dataset.pieceParent;
+        const near = family.filter(
+          (el) =>
+            el !== item &&
+            ((own && el.dataset.pieceParent === own) ||
+              (up && (el.dataset.piece === up || el.dataset.pieceParent === up))),
+        );
+        const rest = family.filter((el) => el !== item && !near.includes(el));
+        for (const el of rest) el.classList.add('is-minor');
+        packed = [...near, ...rest];
+      }
       const frag = document.createDocumentFragment();
       for (let i = 0; i < others.length; i++) {
         frag.appendChild(others[i]);
@@ -3061,7 +3144,8 @@ if (emptyFilters.length > 0) {
       // `cols` is already the live count - responsive by default, and the
       // visitor's own once they have zoomed. The old literal here meant Down
       // stepped 3 tiles on a phone no matter how many were actually in a row.
-      const c = cols;
+      // In columns a visitor can see: the merch view's tiles span two.
+      const c = Math.max(1, Math.round(cols / unit()));
       if (e.key === 'ArrowRight') { e.preventDefault(); setCursor(cursor + 1); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); setCursor(cursor - 1); }
       else if (e.key === 'ArrowDown') { e.preventDefault(); setCursor(cursor + c); }

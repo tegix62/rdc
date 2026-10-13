@@ -183,11 +183,22 @@ export default defineType({
       group: 'tile',
       // The inverse condition: a Case Study IS the parent, so it has none.
       hidden: onlyOnGridItems,
+      /*
+        A piece can hang off another piece. Chris: "parent them to their
+        shirt mockup rather than to a case study... those things will still
+        get parented to the case study because that shirt is still parented
+        to the case study." The site reads the project through the piece
+        (see PROJECT_FIELDS in src/lib/queries.ts), and in the merch view a
+        shirt's own shots arrive beside it when it is opened.
+      */
       description:
         'Which Case Study this tile is a piece of - the tile then offers a ' +
-        'link through to that project. Optional, and deliberately so: 22 of ' +
-        'the 68 tiles are standalone assets rather than part of a documented ' +
-        'piece of work, and those simply show the picture with no link.',
+        'link through to that project. Or pick another PIECE: an alternate ' +
+        'angle or a sketch can hang off its shirt, and it still belongs to ' +
+        "the shirt's project, links there and shows on its page. In the Merch " +
+        'view a shirt\'s own shots wait until the shirt is opened, then sit ' +
+        'right beside it. Optional: standalone assets simply show the picture ' +
+        'with no link.',
     }),
 
     /*

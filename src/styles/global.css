@@ -2904,8 +2904,34 @@ main {
   photograph sits in a contact sheet. A logomark keeps its air, as it does
   everywhere: it is drawn to sit in space, not to be trimmed.
 */
-.pf-grid.is-merch-view .pf-item--hero:not(.is-expanded),
 .pf-grid.is-type-view .pf-item--hero:not(.is-expanded) {
+  width: var(--pf-col-w);
+}
+
+/*
+  The merch view runs on a grid twice as fine as it looks (see VIEWS in
+  portfolio.astro), so its sizes are counted in half-tiles: an ordinary
+  tile spans two columns, an opened one four, and the rest of a project
+  gathered around a shirt spans one. --pf-col-w is that underlying column.
+
+  Hero included in the first rule - in this view a hero is an ordinary
+  square like everything else.
+*/
+.pf-grid.is-merch-view .pf-sizer {
+  width: var(--pf-col-w);
+}
+
+.pf-grid.is-merch-view .pf-item,
+.pf-grid.is-merch-view .pf-item--hero {
+  width: calc(var(--pf-col-w) * 2);
+}
+
+.pf-grid.is-merch-view .pf-item.is-expanded,
+.pf-grid.is-merch-view .pf-item--hero.is-expanded {
+  width: calc(var(--pf-col-w) * 4);
+}
+
+.pf-grid.is-merch-view .pf-item.is-minor:not(.is-expanded) {
   width: var(--pf-col-w);
 }
 

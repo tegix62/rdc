@@ -58,8 +58,19 @@ const state = (page) =>
     const active = Array.from(document.querySelectorAll('.pf-btn[data-filter].is-active')).map(
       (b) => b.dataset.filter,
     )
+    // Columns a visitor SEES: the grid's width over an ordinary resting
+    // tile's. The sizer is the underlying column, which in the merch view is
+    // half a tile, so it would report six.
+    // Not a hero either: in the main grid a hero spans two columns.
+    const ordinary = shown.find(
+      (el) =>
+        !el.classList.contains('is-expanded') &&
+        !el.classList.contains('is-minor') &&
+        !el.classList.contains('pf-item--hero'),
+    )
     return {
-      cols: Math.round(grid.clientWidth / sizer.getBoundingClientRect().width),
+      cols: ordinary ? Math.round(grid.clientWidth / ordinary.getBoundingClientRect().width) : 0,
+      underlying: Math.round(grid.clientWidth / sizer.getBoundingClientRect().width),
       active,
       merchView: grid.classList.contains('is-merch-view'),
       typeView: grid.classList.contains('is-type-view'),
@@ -189,11 +200,75 @@ const press = async (page, filter) => {
     check('nothing lit is left invisible', g.hiddenLit === 0, `${g.hiddenLit} hidden lit`)
     check('the gathered set is on screen', g.onScreen)
 
+    /*
+      THE SIZES STEP DOWN. Opened = two ordinary tiles wide; the rest of the
+      case study = half a tile. Measured against an ordinary merch tile.
+    */
+    const sizes = await page.evaluate((h) => {
+      const grid = document.querySelector('#pf-grid')
+      const href = (el) => el.querySelector('.pf-item__jump')?.getAttribute('href') ?? null
+      const w = (el) => el.getBoundingClientRect().width
+      const tile = grid.clientWidth / 3
+      const fam = Array.from(grid.querySelectorAll('.pf-item')).filter((el) => href(el) === h)
+      const opened = fam.find((el) => el.classList.contains('is-expanded'))
+      const minors = fam.filter((el) => el.classList.contains('is-minor'))
+      return {
+        opened: opened ? w(opened) / tile : 0,
+        minor: minors.length ? Math.max(...minors.map(w)) / tile : 0,
+        minorCount: minors.length,
+        famCount: fam.length,
+      }
+    }, target.h)
+    check('the opened shirt is two tiles wide', Math.abs(sizes.opened - 2) < 0.05, `${sizes.opened.toFixed(2)} tiles`)
+    check('the rest of the case study is half a tile', sizes.minorCount > 0 && Math.abs(sizes.minor - 0.5) < 0.05, `${sizes.minorCount} of ${sizes.famCount} at ${sizes.minor.toFixed(2)} tiles`)
+
     // Closing it hides the revealed pieces again: the view is garments at rest.
     await tile.locator('.pf-item__img').click()
     await page.waitForTimeout(1200)
     const closed = await state(page)
     check('closing hides the revealed pieces again', closed.shown === closed.shownMerch && closed.shownMerch === m.shownMerch, `${closed.shown} on screen, ${closed.shownMerch} merch`)
+  }
+
+  /*
+    A PIECE'S OWN PIECES COME FIRST, AT ORDINARY SIZE.
+
+    No shirt has alternate shots parented to it yet, but the Desperate Foes
+    hoodie already hangs off its artwork, which is the same relationship from
+    the other side: open the hoodie and the piece it belongs to must arrive
+    right beside it at full size, with the rest of DumpStat half-size after.
+  */
+  const child = await page.evaluate(() => {
+    const all = Array.from(document.querySelectorAll('#pf-grid .pf-item'))
+    const el = all.find(
+      (t) => t.dataset.pieceParent && getComputedStyle(t).display !== 'none' && t.getBoundingClientRect().width > 0,
+    )
+    return el ? {i: all.indexOf(el), parent: el.dataset.pieceParent} : null
+  })
+  if (!child) {
+    console.log('\n(no merch piece with a piece parent is on screen - near-first check skipped)')
+  } else {
+    const tile = page.locator('#pf-grid .pf-item').nth(child.i)
+    await tile.scrollIntoViewIfNeeded()
+    await tile.locator('.pf-item__img').click()
+    await page.waitForTimeout(1800)
+    const near = await page.evaluate((parent) => {
+      const grid = document.querySelector('#pf-grid')
+      const shown = Array.from(grid.querySelectorAll('.pf-item')).filter(
+        (el) => getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().width > 0,
+      )
+      const opened = grid.querySelector('.pf-item.is-expanded')
+      const p = grid.querySelector(`.pf-item[data-piece="${parent}"]`)
+      return {
+        shown: !!p && shown.includes(p),
+        next: !!p && shown.indexOf(p) === shown.indexOf(opened) + 1,
+        ordinary: !!p && !p.classList.contains('is-minor') && Math.abs(p.getBoundingClientRect().width / (grid.clientWidth / 3) - 1) < 0.05,
+      }
+    }, child.parent)
+    console.log('')
+    check("opening a piece brings the piece it hangs off right beside it", near.shown && near.next, JSON.stringify(near))
+    check('at ordinary size, not half', near.ordinary)
+    await tile.locator('.pf-item__img').click()
+    await page.waitForTimeout(1000)
   }
 
   // Another filter leaves the merch view entirely.

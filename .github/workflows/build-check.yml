@@ -97,6 +97,13 @@ jobs:
       - run: node scripts/test-caption.mjs
       - run: node scripts/migrate-captions-to-rich-text.mjs --selftest
 
+      # The credits panel became one rich text field, and the structured data
+      # and meta description now read collaborators and the typeface back out
+      # of it. Includes a round trip through the migration, which is the
+      # check that the two halves agree.
+      - run: node scripts/test-credits.mjs
+      - run: node scripts/migrate-credits-to-rich-text.mjs --selftest
+
       # Keeps the built-HTML gate below honest. It found two bugs in that gate
       # in its first minutes: a decode bug that failed every correct og:image,
       # and a check that flagged a pipe in og:title when the defect is restating

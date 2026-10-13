@@ -25,7 +25,11 @@ for (const p of PATHS) {
     : new RegExp(`<(\\w+)[^>]*class="[^"]*\\b${TAG}\\b[^"]*"[^>]*>([\\s\\S]*?)</\\1>`, 'gi')
   const hits = [...html.matchAll(re)].map((m) => (m.length > 2 ? m[2] : m[1]))
   console.log(`${p} - ${hits.length} <${TAG}>`)
-  for (const h of hits) console.log(`    ${h.replace(/\s+/g, ' ').trim()}`)
+  // The preview build carries Sanity's click-to-edit markers: long runs of
+  // zero-width characters after every CMS string. Invisible on the page,
+  // a wall of noise in a log - so they are dropped here, and only here.
+  const unmark = (s) => s.replace(/[\u200B-\u200D\u2060\uFEFF]+/g, '')
+  for (const h of hits) console.log(`    ${unmark(h).replace(/\s+/g, ' ').trim()}`)
   found += hits.length
   console.log('')
 }

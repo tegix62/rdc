@@ -1,0 +1,47 @@
+name: Migrate credits to rich text
+
+# Folds a case study's credits panel - the collaborator list plus the two
+# Principal Type fields - into one rich text field, `creditsText`, and removes
+# the old fields from that document. Dry run unless "apply" is ticked; the dry
+# run prints each panel as text so it can be compared with the page.
+#
+# Order matters and is not enforceable from here:
+#   1. the SITE must render creditsText, and be LIVE in production
+#      (src/lib/credits.ts) - this removes the fields the previous site reads
+#   2. run this
+#   3. only then change the schema
+# See the header of scripts/migrate-credits-to-rich-text.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Write the changes (off = dry run)'
+        type: boolean
+        default: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: |
+          set -o pipefail
+          node scripts/migrate-credits-to-rich-text.mjs | tee /tmp/migrate.txt
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          APPLY: ${{ inputs.apply && '1' || '0' }}
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Credits → one rich field'
+            echo ''
+            echo '```'
+            cat /tmp/migrate.txt 2>/dev/null || echo '(the migration did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -12,6 +12,7 @@ import Video from '../../components/Video.astro';
 import { caseStudyNode } from '../../lib/structuredData';
 import { caseStudyDescription } from '../../lib/meta';
 import { readableOn } from '../../lib/color';
+import { creditsHtml, hasCreditsText } from '../../lib/credits';
 
 export async function getStaticPaths() {
   const slugs = await sanityClient.fetch(
@@ -91,6 +92,11 @@ const escapeHtml = (s: string) =>
     .replace(/"/g, '&quot;');
 
 const intro = caseStudy.summary ?? caseStudy.oneLineSummary;
+
+// The credits panel from the one rich field, or '' to fall back to the old
+// collaborator list and Principal Type. Serialised through the shared link
+// rule, so set:html is never handed raw CMS input. See lib/credits.ts.
+const creditsPanel = hasCreditsText(caseStudy) ? creditsHtml(caseStudy.creditsText) : '';
 const summaryHtml = Array.isArray(intro)
   ? renderPortableText(intro)
   : typeof intro === 'string' && intro.trim()
@@ -268,14 +274,25 @@ const markStyle =
         */}
         {caseStudy.resultStat && <p class="work-identity__stat">{caseStudy.resultStat}</p>}
       </div>
-      {(caseStudy.clientLogo || caseStudy.credits?.length > 0 || caseStudy.principalType) && (
+      {(caseStudy.clientLogo || creditsPanel || caseStudy.credits?.length > 0 || caseStudy.principalType) && (
         <div class="work-identity__aside">
           {caseStudy.clientLogo && (
             <div class="work-identity__mark" style={markStyle}>
               <Img image={caseStudy.clientLogo} alt={caseStudy.client ?? ''} field="clientLogo (Client's Logo)" width={340} sizes="170px" />
             </div>
           )}
-          {caseStudy.credits?.length > 0 && (
+          {/*
+            THE ONE CREDITS FIELD, when it has anything in it.
+
+            Chris asked for the panel to be a single rich text he links
+            himself, instead of a list of little forms plus two Principal
+            Type fields. creditsHtml() renders it line for line; an empty
+            line is the gap between groups. The two blocks below are the old
+            fields, kept as the fallback for any document not yet moved -
+            see lib/credits.ts. They never render alongside it.
+          */}
+          {creditsPanel && <div class="work-identity__credits" set:html={creditsPanel} />}
+          {!creditsPanel && caseStudy.credits?.length > 0 && (
             <div class="work-identity__credits">
               {/*
                 The name links out when a URL is given, the same treatment
@@ -300,7 +317,7 @@ const markStyle =
             with the credits because that is what it is - crediting the
             typographers the work borrows from, whether or not they know it.
           */}
-          {caseStudy.principalType && (
+          {!creditsPanel && caseStudy.principalType && (
             <div class="work-identity__credits work-identity__type">
               <p>
                 <strong>Principal Type</strong>{' - '}

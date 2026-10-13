@@ -34,6 +34,7 @@
 */
 export { stripStega as clean } from './stega';
 import { stripStega as clean } from './stega';
+import { contributorsOf } from './credits';
 
 /** Drops keys whose value is undefined, so empty Sanity fields leave no trace. */
 function compact<T extends Record<string, unknown>>(obj: T): Record<string, unknown> {
@@ -224,9 +225,14 @@ export function caseStudyNode(
     happens to sit near a name.
 
     Only credits with a name; a role on its own describes nobody.
+
+    Read through contributorsOf(), which answers from the one rich Credits
+    field when it is filled in and from the old collaborator list otherwise -
+    the panel became free text, and this is what stops the SEO going with it.
+    The Principal Type line is left out: a typeface is not a contributor.
   */
-  const contributors = (Array.isArray(study.credits) ? study.credits : [])
-    .map((c: any) =>
+  const contributors = contributorsOf(study)
+    .map((c) =>
       clean(c?.name)
         ? compact({
             '@type': 'Person',

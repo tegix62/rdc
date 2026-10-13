@@ -9,6 +9,7 @@
   functions with a test in front of them - see scripts/test-meta.mjs.
 */
 import { stripStega } from './stega';
+import { principalTypeOf } from './credits';
 
 export const DEFAULT_SITE_NAME = 'Rumeau Design Co';
 export const DEFAULT_LEGAL_NAME = 'Rumeau Design LLC';
@@ -180,6 +181,7 @@ interface CaseStudyMeta {
   category?: unknown;
   client?: unknown;
   principalType?: unknown;
+  creditsText?: unknown;
   seoDescription?: unknown;
   oneLineSummary?: unknown;
   summary?: unknown;
@@ -229,7 +231,9 @@ export function caseStudyDescription(
   const name = stripStega(siteName) ?? DEFAULT_SITE_NAME;
   const category = stripStega(study?.category);
   const subject = stripStega(study?.client) ?? stripStega(study?.title);
-  const type = stripStega(study?.principalType);
+  // From the rich Credits field's "Principal Type" line when there is one,
+  // the old principalType string otherwise - see lib/credits.ts.
+  const type = stripStega(principalTypeOf(study as Record<string, any>));
 
   const opener = category
     ? `${category} work${subject ? ` for ${subject}` : ''} by ${name}.`

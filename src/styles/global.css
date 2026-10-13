@@ -5569,6 +5569,22 @@ body {
   margin-top: calc(var(--space-2) - var(--space-4));
 }
 
+/*
+  The same paragraph break, inside the one rich Credits field.
+
+  When the credits became a single block of text (see lib/credits.ts), the
+  separate Principal Type container went with them, and with it the gap
+  above. An empty line in the field is how a group is started now, so an
+  empty paragraph is drawn as exactly that gap: --space-2, which is what the
+  rule above lands on between the two old containers. Zero margin of its own,
+  so it adds the gap and nothing else, and it holds height rather than
+  relying on margins that would collapse through an empty element.
+*/
+.work-identity__credits .credits__gap {
+  margin: 0;
+  height: var(--space-2);
+}
+
 /* The link treatment that used to live here now covers the whole navy band -
    see `.work-identity a`. Scoping it to this one element is what left every
    credit link navy-on-navy and invisible. */

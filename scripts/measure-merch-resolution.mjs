@@ -57,6 +57,12 @@ const measure = (page) =>
           file: fileW,
           ratio: +ratio.toFixed(2),
           upload: Number(new URL(img.currentSrc || img.src).pathname.match(/-(\d+)x\d+\./)?.[1] ?? 0),
+          // For working out WHY a file is the size it is.
+          src: (img.currentSrc || img.src).replace(/^https:\/\/cdn\.sanity\.io\/images\/[^/]+\/[^/]+\//, ''),
+          offered: (img.getAttribute('srcset') ?? '').split(', ').map((c) => c.split(' ').pop()).join(' '),
+          sizes: img.getAttribute('sizes'),
+          loaded: img.complete,
+          lazy: img.loading,
         }
       })
   })
@@ -66,7 +72,11 @@ const report = (label, rows) => {
   console.log(`\n${label}: ${rows.length} picture(s), ${soft.length} stretched`)
   for (const r of rows.sort((a, b) => a.ratio - b.ratio).slice(0, 12)) {
     const capped = r.upload && r.upload < r.need ? '  (the upload itself is only ' + r.upload + 'px)' : ''
-    console.log(`  ${r.ratio.toFixed(2)}  ${r.role.padEnd(6)} needs ${String(r.need).padStart(4)}px, file ${String(r.file).padStart(4)}px  ${r.title}${capped}`)
+    console.log(`  ${r.ratio.toFixed(2)}  ${r.role.padEnd(6)} needs ${String(r.need).padStart(4)}px, file ${String(r.file).padStart(4)}px  ${r.title.replace(/[\u200B-\u200D\u2060\uFEFF]+/g, '')}${capped}`)
+  }
+  for (const r of rows.slice(0, 2)) {
+    console.log(`    why: loaded=${r.loaded} loading=${r.lazy} sizes="${r.sizes}" offered=[${r.offered}]`)
+    console.log(`         src ${r.src}`)
   }
   return soft.length
 }

@@ -6,6 +6,7 @@
 */
 import Img from './Img.astro';
 import { renderPortableText } from '../lib/portableText';
+import { captionHtml, captionText } from '../lib/caption';
 import Video from './Video.astro';
 import { imageDimensions } from '../lib/image';
 import StripRule from './StripRule.astro';
@@ -664,11 +665,13 @@ function rowStyle(images: any[]): string {
               playback={section.videoPlayback}
               posterBackground={section.videoPosterBackground}
               muted={section.videoMuted}
-              title={section.caption ?? 'Video'}
+              title={captionText(section.caption) || 'Video'}
               width={1600}
             />
           </div>
-          {section.caption && <p class="work-video-caption">{section.caption}</p>}
+          {captionHtml(section.caption) && (
+            <p class="work-video-caption" set:html={captionHtml(section.caption)} />
+          )}
         </div>
       ) : null;
     case 'statCalloutSection':
@@ -930,7 +933,7 @@ function rowStyle(images: any[]): string {
                       playback={item.videoPlayback}
                       posterBackground={item.videoPosterBackground}
                       muted={item.videoMuted}
-                      title={item.caption ?? 'Video'}
+                      title={captionText(item.caption) || 'Video'}
                       width={slotWidth}
                       sizes={`(max-width: 40rem) 100vw, ${Math.round(100 / items.length)}vw`}
                     />
@@ -943,7 +946,15 @@ function rowStyle(images: any[]): string {
                     sizes={`(max-width: 40rem) 100vw, ${Math.round(100 / items.length)}vw`}
                   />
                 )}
-                {item.caption && <figcaption>{item.caption}</figcaption>}
+                {/*
+                  A caption can carry links now (a photographer's site), so
+                  it is serialised rather than printed - see lib/caption.ts,
+                  which also renders the plain strings that have not been
+                  converted yet. set:html is safe here: a string is escaped
+                  and rich text goes through the same link guard as the rest
+                  of the site's prose.
+                */}
+                {captionHtml(item.caption) && <figcaption set:html={captionHtml(item.caption)} />}
               </figure>
             ))}
           </div>

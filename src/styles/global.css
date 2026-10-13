@@ -6091,6 +6091,40 @@ body {
   color: var(--color-gray);
 }
 
+/*
+  A link in a caption - a photographer's name, mostly.
+
+  It keeps the caption's colour and is told apart by the underline alone,
+  which is the quietest thing that still reads as a link. A caption is an
+  annotation ON a picture; a coloured link in it would be the loudest thing
+  in the block, louder than the work it credits. The colour is inherited
+  rather than set, so the same rule is right on a dark panel without a
+  second one, and it darkens on hover to the ink colour so there is an
+  answer to the pointer.
+
+  Underline offset and thickness are set because the default sits against
+  the descenders at 12px and reads as a strikethrough-adjacent smear.
+*/
+.work-video-caption a,
+.media-row__item figcaption a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+.work-video-caption a:hover,
+.media-row__item figcaption a:hover {
+  color: var(--color-ink);
+}
+.media-row__panel[data-panel='dark'] .media-row__item figcaption a:hover {
+  color: var(--color-white);
+}
+
+/* One line per paragraph; see lib/caption.ts. */
+.caption__line {
+  display: block;
+}
+
 /* Three things side by side on a 390px screen is unreadable, whatever the
    block says - and the stacking that does that now lives with the other plate
    rows, since it is the same rule for all of them. Nothing here. */

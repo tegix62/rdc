@@ -21,18 +21,6 @@ import {chromium} from 'playwright'
 
 const BASE = (process.argv[2] ?? 'https://preview.rumeau-design-co.pages.dev').replace(/\/$/, '')
 const MERCH = '.merch-apparel'
-/*
-  See the cluster check. Calibrated against the two layouts, measured on
-  the preview gathering DumpStat's 22 pieces:
-
-    edges-first (rows)  mean 0.75, 2.33:1 wide, furthest 1.02
-    middle-out          mean 0.63, 1.11:1 wide, furthest 0.81
-
-  The limits sit between them, with the width ratio as a second guard now
-  that a cluster can be seen to be roughly as wide as it is tall.
-*/
-const CLUSTER_MEAN_MAX = Number(process.env.CLUSTER_MEAN_MAX ?? 0.69)
-const CLUSTER_ASPECT_MAX = 1.8
 const TYPE = '.type-lettering'
 
 let failures = 0
@@ -286,57 +274,72 @@ const press = async (page, filter) => {
     )
     check('the rest of the case study is half a tile', sizes.minorCount > 0 && Math.abs(sizes.minor - 0.5) < 0.05, `${sizes.minorCount} of ${sizes.famCount} at ${sizes.minor.toFixed(2)} tiles`)
     /*
-      MIDDLE OUT, NOT ROWS. Chris: "I would rather Gather populate from the
-      middle out, rather than going for long rows across the screen. More a
-      cluster-like look."
+      THE SHIRT'S HEIGHT FIRST, THE MIDDLE FIRST WITHIN IT.
 
-      Rows show up as a set much wider than it is tall: twenty pieces laid
-      out lowest-first at ten columns span the whole grid in two shallow
-      bands. A cluster is about as tall as it is wide. So: the gathered set's
-      width over its height, and how far its furthest piece is from the
-      opened shirt against the radius a perfectly round cluster of the same
-      area would need.
+      Chris, twice. First: "I would rather Gather populate from the middle
+      out, rather than going for long rows across the screen." Then, on a
+      version that grew a round cluster and pushed pieces under the shirt
+      and off the screen: "a lot of elements are appearing at the bottom...
+      okay with shrinking elements... if it means they can fit the viewport
+      as a row (but filling out the middle is priority)".
+
+      So, measured in underlying columns across the opened shirt's height:
+        band   no piece sits below the shirt while some column beside it
+               still has room in that height for the piece that went below
+        middle on each side, the column next to the shirt's strip is no
+               emptier than the outermost one - the middle fills first
     */
-    const shape = await page.evaluate(() => {
+    const band = await page.evaluate(() => {
       const grid = document.querySelector('#pf-grid')
-      const opened = grid.querySelector('.pf-item.is-expanded')
-      const set = Array.from(grid.querySelectorAll('.pf-item.is-sibling')).filter(
-        (el) => getComputedStyle(el).display !== 'none',
-      )
-      const boxes = set.map((el) => el.getBoundingClientRect())
-      const o = opened.getBoundingClientRect()
-      const ox = (o.left + o.right) / 2
-      const oy = (o.top + o.bottom) / 2
-      const left = Math.min(...boxes.map((r) => r.left))
-      const right = Math.max(...boxes.map((r) => r.right))
-      const top = Math.min(...boxes.map((r) => r.top))
-      const bottom = Math.max(...boxes.map((r) => r.bottom))
-      const area = boxes.reduce((n, r) => n + r.width * r.height, 0)
-      const dists = boxes.map((r) => Math.hypot((r.left + r.right) / 2 - ox, (r.top + r.bottom) / 2 - oy))
-      const far = Math.max(...dists)
-      const mean = dists.reduce((a, b) => a + b, 0) / dists.length
-      // The set sits in a half-disc under and beside the shirt (nothing can
-      // go above the top tile in a grid that fills downward), so the round
-      // reference is a half-disc of the same area.
-      const halfDisc = Math.sqrt((2 * area) / Math.PI)
-      return {aspect: (right - left) / (bottom - top), reach: far / halfDisc, meanReach: mean / halfDisc, n: set.length}
+      const g = grid.getBoundingClientRect()
+      const n = Math.round(g.width / grid.querySelector('.pf-sizer').getBoundingClientRect().width)
+      const colW = g.width / n
+      const opened = grid.querySelector('.pf-item.is-expanded').getBoundingClientRect()
+      const set = Array.from(grid.querySelectorAll('.pf-item.is-sibling'))
+        .filter((el) => getComputedStyle(el).display !== 'none' && !el.classList.contains('is-expanded'))
+        .map((el) => el.getBoundingClientRect())
+      // Free height inside the band, per column.
+      const free = []
+      for (let c = 0; c < n; c++) {
+        const l = g.left + c * colW
+        const r = l + colW
+        if (l >= opened.left - 1 && r <= opened.right + 1) {
+          free.push(null) // the shirt's own columns
+          continue
+        }
+        let used = 0
+        for (const b of set) {
+          if (b.left < r - 1 && b.right > l + 1) {
+            used += Math.max(0, Math.min(b.bottom, opened.bottom) - Math.max(b.top, opened.top))
+          }
+        }
+        free.push(Math.max(0, opened.bottom - opened.top - used))
+      }
+      const below = set.filter((b) => b.top >= opened.bottom - 2)
+      const smallest = below.length ? Math.min(...below.map((b) => b.height)) : Infinity
+      const roomy = free.filter((f) => f !== null && f >= smallest + 2).length
+      const firstOpen = free.findIndex((f) => f === null)
+      const lastOpen = free.length - 1 - [...free].reverse().findIndex((f) => f === null)
+      // Middle vs edge, per side: the column just outside the shirt's strip
+      // of shots (two columns out) against the outermost column.
+      const innerL = free[Math.max(0, firstOpen - 3)]
+      const innerR = free[Math.min(n - 1, lastOpen + 3)]
+      return {
+        n,
+        set: set.length,
+        below: below.length,
+        roomy,
+        free: free.map((f) => (f === null ? '#' : Math.round(f))),
+        middleFirst:
+          (innerL === null || innerL <= free[0] + 2) && (innerR === null || innerR <= free[n - 1] + 2),
+      }
     })
-    /*
-      The width-to-height ratio CANNOT tell the two apart, which the first
-      version of this check found the hard way: a mound under a shirt at the
-      top is about twice as wide as it is tall whichever way it was filled,
-      and the old edges-first layout passed at 2.33:1. What differs is where
-      the pieces sit on AVERAGE - edges-first spends its first pieces at the
-      far sides, middle-out spends them next to the shirt - so the check is
-      the mean distance from the shirt against the radius of a round cluster
-      of the same area. A solid half-disc averages about 0.67 of its radius.
-      The threshold is set between what the two layouts measured.
-    */
     check(
-      'the gather grows middle-out as a cluster, not in long rows',
-      shape.meanReach < CLUSTER_MEAN_MAX && shape.aspect < CLUSTER_ASPECT_MAX,
-      `${shape.n} pieces, mean distance ${shape.meanReach.toFixed(2)}x a round cluster's radius (limit ${CLUSTER_MEAN_MAX}), ${shape.aspect.toFixed(2)}:1 wide, furthest at ${shape.reach.toFixed(2)}x`,
+      'pieces fill the band beside the shirt before going below it',
+      band.below === 0 || band.roomy === 0,
+      `${band.set} pieces, ${band.below} below the shirt, ${band.roomy} column(s) with room left; free px per column [${band.free.join(' ')}]`,
     )
+    check('the middle fills before the outer edges', band.middleFirst, `free px per column [${band.free.join(' ')}]`)
     check('and shown whole, in its own proportions - not cropped square', sizes.cropped === 0, `${sizes.cropped} cropped`)
 
     // Closing it hides the revealed pieces again: the view is garments at rest.

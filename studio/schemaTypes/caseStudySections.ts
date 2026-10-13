@@ -1,6 +1,7 @@
 import {defineField, defineType} from 'sanity'
 import {imageSpec} from './imageFields'
 import {VIDEO_FIELDSET, videoBehaviourFields, videoFieldsets} from './videoFields'
+import {captionField, captionPlain} from './captionField'
 
 /*
   Every image in every section block goes through here, so alt text stays up
@@ -172,14 +173,14 @@ export const videoSection = defineType({
       type: 'url',
       description: 'YouTube or Vimeo URL.',
     }),
-    defineField({name: 'caption', type: 'string'}),
+    captionField(),
     ...videoBehaviourFields('primary'),
     labelField(),
   ],
   fieldsets: videoFieldsets('primary'),
   preview: {
     select: {label: 'label', caption: 'caption', url: 'url'},
-    prepare: ({label, caption, url}) => describe('Video Embed', label || caption, url),
+    prepare: ({label, caption, url}) => describe('Video Embed', label || captionPlain(caption), url),
   },
 })
 
@@ -372,15 +373,11 @@ export const mediaImage = defineType({
   type: 'object',
   fields: [
     image('image', 'Image'),
-    defineField({
-      name: 'caption',
-      type: 'string',
-      description: 'Optional line under this item.',
-    }),
+    captionField(),
   ],
   preview: {
     select: {media: 'image', title: 'caption', alt: 'image.alt'},
-    prepare: ({media, title, alt}) => ({title: title || alt || 'Image', media}),
+    prepare: ({media, title, alt}) => ({title: captionPlain(title) || alt || 'Image', media}),
   },
 })
 
@@ -404,16 +401,12 @@ export const mediaVideo = defineType({
         'instead. An upload wins if both are filled in.',
     }),
     ...videoBehaviourFields('primary'),
-    defineField({
-      name: 'caption',
-      type: 'string',
-      description: 'Optional line under this item.',
-    }),
+    captionField(),
   ],
   fieldsets: videoFieldsets('primary'),
   preview: {
     select: {title: 'caption', subtitle: 'url'},
-    prepare: ({title, subtitle}) => ({title: title || 'Video', subtitle}),
+    prepare: ({title, subtitle}) => ({title: captionPlain(title) || 'Video', subtitle}),
   },
 })
 

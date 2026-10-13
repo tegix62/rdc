@@ -208,6 +208,39 @@ check(
     pb.hidden({document: asGrid}) === false,
 )
 
+/*
+  CAPTIONS CAN HOLD A LINK, AND THE MIGRATION KNOWS WHICH TYPES.
+
+  scripts/migrate-captions-to-rich-text.mjs converts the caption on exactly
+  three block types. If one of them were switched back to a string, or a
+  fourth gained a rich caption the script does not know, the dataset and the
+  schema would disagree - which is the state a Studio marks invalid. So the
+  two lists are held together here.
+*/
+const CAPTION_TYPES = ['mediaImage', 'mediaVideo', 'videoSection']
+for (const name of CAPTION_TYPES) {
+  const cap = (byName.get(name)?.fields ?? []).find((f) => f.name === 'caption')
+  const block = cap?.of?.find((m) => m.type === 'block')
+  const link = block?.marks?.annotations?.find((a) => a.name === 'link')
+  check(
+    `${name}.caption is rich text with a link`,
+    cap?.type === 'array' && Boolean(link),
+    cap ? `type ${cap.type}` : 'no caption field',
+  )
+  check(
+    `${name}.caption offers no bold, italic or lists`,
+    (block?.marks?.decorators ?? []).length === 0 && (block?.lists ?? []).length === 0,
+  )
+}
+const strayRichCaptions = types
+  .filter((t) => !CAPTION_TYPES.includes(t.name))
+  .flatMap((t) => (t.fields ?? []).filter((f) => f.name === 'caption' && f.type === 'array').map(() => t.name))
+check(
+  'no other type has a rich caption the migration does not convert',
+  strayRichCaptions.length === 0,
+  strayRichCaptions.join(', ') || 'none',
+)
+
 // --- how much lighter did the form actually get? ---------------------------
 const visibleOnGrid = (byName.get('caseStudy')?.fields ?? []).filter(
   (f) => !(typeof f.hidden === 'function' && f.hidden({document: asGrid})),

@@ -517,11 +517,11 @@ if (emptyFilters.length > 0) {
     /*
       `cols` is the grid's UNDERLYING column count; `unit` is how many of
       them an ordinary tile spans. In the main grid and the type view a tile
-      is one column. In the merch view it is two, on a grid of six (four on a
-      phone), so the visible count is still three across (two on a phone) -
+      is one column. In the merch view it is two, on a grid of ten (four on a
+      phone), so the visible count is five across (two on a phone) -
       and a gather can step the sizes DOWN as well as up:
 
-        the shirt you opened   4 columns  (two thirds of the width)
+        the shirt you opened   4 columns  (two tiles)
         its own shots          2 columns  (an ordinary tile)
         the rest of the project 1 column  (half a tile)
 
@@ -533,7 +533,9 @@ if (emptyFilters.length > 0) {
       grid underneath is what makes the smaller size exist at all.
     */
     const VIEWS: Record<string, {cols: number; mobileCols: number; unit: number; cls: string}> = {
-      [MERCH_FILTER]: {cols: 6, mobileCols: 4, unit: 2, cls: 'is-merch-view'},
+      // Five across on desktop (Chris: "let's do 5 columns on desktop
+      // instead of 3"), two on a phone - on a grid twice as fine.
+      [MERCH_FILTER]: {cols: 10, mobileCols: 4, unit: 2, cls: 'is-merch-view'},
       [TYPE_FILTER]: {cols: 4, mobileCols: 2, unit: 1, cls: 'is-type-view'},
     };
     // How many underlying columns an ordinary tile spans in the current view.

@@ -100,7 +100,7 @@ const press = async (page, filter) => {
 
   await press(page, MERCH)
   const m = await state(page)
-  check('Merch switches to 3 columns', m.cols === 3, `${m.cols} columns`)
+  check('Merch switches to 5 columns', m.cols === 5, `${m.cols} columns`)
   check('Merch is the only active filter', m.active.length === 1 && m.active[0] === MERCH, JSON.stringify(m.active))
   check('only merch pieces are on screen', m.shown > 0 && m.shown === m.shownMerch, `${m.shownMerch} of ${m.shown}`)
   const firstLater = m.shownOrder.indexOf('later')
@@ -208,7 +208,7 @@ const press = async (page, filter) => {
       const grid = document.querySelector('#pf-grid')
       const href = (el) => el.querySelector('.pf-item__jump')?.getAttribute('href') ?? null
       const w = (el) => el.getBoundingClientRect().width
-      const tile = grid.clientWidth / 3
+      const tile = grid.clientWidth / 5
       const fam = Array.from(grid.querySelectorAll('.pf-item')).filter((el) => href(el) === h)
       const opened = fam.find((el) => el.classList.contains('is-expanded'))
       const minors = fam.filter((el) => el.classList.contains('is-minor'))
@@ -216,11 +216,25 @@ const press = async (page, filter) => {
         opened: opened ? w(opened) / tile : 0,
         minor: minors.length ? Math.max(...minors.map(w)) / tile : 0,
         minorCount: minors.length,
+        /*
+          Uncropped: each half-size picture drawn in its own proportions,
+          the way the All grid draws it. Compared with the file's natural
+          shape; a square crop of a wide logo would be off by a mile.
+        */
+        cropped: minors.filter((el) => {
+          const img = el.querySelector('.pf-item__img')
+          if (!img?.naturalWidth) return false
+          const r = img.getBoundingClientRect()
+          const pad = parseFloat(getComputedStyle(img).paddingLeft) * 2
+          const drawn = (r.width - pad) / (r.height - pad)
+          return Math.abs(drawn - img.naturalWidth / img.naturalHeight) > 0.03
+        }).length,
         famCount: fam.length,
       }
     }, target.h)
     check('the opened shirt is two tiles wide', Math.abs(sizes.opened - 2) < 0.05, `${sizes.opened.toFixed(2)} tiles`)
     check('the rest of the case study is half a tile', sizes.minorCount > 0 && Math.abs(sizes.minor - 0.5) < 0.05, `${sizes.minorCount} of ${sizes.famCount} at ${sizes.minor.toFixed(2)} tiles`)
+    check('and shown whole, in its own proportions - not cropped square', sizes.cropped === 0, `${sizes.cropped} cropped`)
 
     // Closing it hides the revealed pieces again: the view is garments at rest.
     await tile.locator('.pf-item__img').click()
@@ -261,7 +275,7 @@ const press = async (page, filter) => {
       return {
         shown: !!p && shown.includes(p),
         next: !!p && shown.indexOf(p) === shown.indexOf(opened) + 1,
-        ordinary: !!p && !p.classList.contains('is-minor') && Math.abs(p.getBoundingClientRect().width / (grid.clientWidth / 3) - 1) < 0.05,
+        ordinary: !!p && !p.classList.contains('is-minor') && Math.abs(p.getBoundingClientRect().width / (grid.clientWidth / 5) - 1) < 0.05,
       }
     }, child.parent)
     console.log('')
@@ -316,7 +330,7 @@ const press = async (page, filter) => {
 
   await press(page, MERCH)
   const tm = await state(page)
-  check('Merch from Type switches views cleanly', tm.merchView && !tm.typeView && tm.cols === 3, `${tm.cols} columns, ${JSON.stringify(tm.active)}`)
+  check('Merch from Type switches views cleanly', tm.merchView && !tm.typeView && tm.cols === 5, `${tm.cols} columns, ${JSON.stringify(tm.active)}`)
   await press(page, MERCH)
 
   // Merch again, then Merch once more: toggles back to everything.

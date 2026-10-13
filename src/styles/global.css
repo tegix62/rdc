@@ -2935,6 +2935,26 @@ main {
   width: var(--pf-col-w);
 }
 
+/*
+  THE REST OF THE PROJECT IS SHOWN WHOLE, NOT CROPPED.
+
+  Chris: the closeups and anything linked directly to the shirt keep the
+  square fill, "but anything after it (all the tertiary stuff) let's have
+  like the original ALL selection where it's not cropping."
+
+  Square crops make the pieces closest to the shirt read as one set of
+  views of one object - which they are. The rest of a case study is a mix
+  of logos, sketches, posters and photographs that share nothing but the
+  project, and cropping them to squares at half a tile would trim a wordmark
+  to its middle letters. So they go back to their own shapes, exactly as
+  the All grid draws them, and the size difference does the ranking.
+*/
+.pf-grid.is-merch-view .pf-item.is-minor:not(.is-expanded) .pf-item__img {
+  aspect-ratio: auto;
+  height: auto;
+  object-fit: fill;
+}
+
 .pf-grid.is-merch-view .pf-item__img,
 .pf-grid.is-type-view .pf-item__img {
   aspect-ratio: 1 / 1;

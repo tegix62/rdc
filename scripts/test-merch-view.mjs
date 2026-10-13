@@ -273,6 +273,17 @@ const press = async (page, filter) => {
       gap ? `empty column(s) ${JSON.stringify(gap.empty)} of ${gap.n}` : 'no opened tile',
     )
     check('the rest of the case study is half a tile', sizes.minorCount > 0 && Math.abs(sizes.minor - 0.5) < 0.05, `${sizes.minorCount} of ${sizes.famCount} at ${sizes.minor.toFixed(2)} tiles`)
+    const outer = await page.evaluate(() => {
+      const grid = document.querySelector('#pf-grid')
+      const g = grid.getBoundingClientRect()
+      const col = g.width / Math.round(g.width / grid.querySelector('.pf-sizer').getBoundingClientRect().width)
+      const minors = Array.from(grid.querySelectorAll('.pf-item.is-minor'))
+      return {
+        left: minors.filter((el) => el.getBoundingClientRect().left - g.left < col / 2).length,
+        right: minors.filter((el) => g.right - el.getBoundingClientRect().right < col / 2).length,
+      }
+    })
+    check('the smaller pieces start at the outer edges', outer.left > 0 && outer.right > 0, `${outer.left} at the left edge, ${outer.right} at the right`)
     check('and shown whole, in its own proportions - not cropped square', sizes.cropped === 0, `${sizes.cropped} cropped`)
 
     // Closing it hides the revealed pieces again: the view is garments at rest.
@@ -311,7 +322,22 @@ const press = async (page, filter) => {
       )
       const opened = grid.querySelector('.pf-item.is-expanded')
       const p = grid.querySelector(`.pf-item[data-piece="${parent}"]`)
+      /*
+        HUGGING: the piece's box shares an edge with the opened tile's -
+        side by side with their heights overlapping, or one directly on top
+        of the other with their widths overlapping. Boxes include the
+        padding, so neighbours meet exactly; 2px allows for rounding.
+      */
+      const touches = (a, b) => {
+        const side = (Math.abs(a.right - b.left) <= 2 || Math.abs(b.right - a.left) <= 2) && a.top < b.bottom - 2 && b.top < a.bottom - 2
+        const stack = (Math.abs(a.bottom - b.top) <= 2 || Math.abs(b.bottom - a.top) <= 2) && a.left < b.right - 2 && b.left < a.right - 2
+        return side || stack
+      }
+      const g = grid.getBoundingClientRect()
+      const o = opened.getBoundingClientRect()
       return {
+        hugs: !!p && touches(p.getBoundingClientRect(), o),
+        centred: Math.abs((o.left + o.right) / 2 - (g.left + g.right) / 2) <= g.width / 10,
         shown: !!p && shown.includes(p),
         next: !!p && shown.indexOf(p) === shown.indexOf(opened) + 1,
         ordinary: !!p && !p.classList.contains('is-minor') && Math.abs(p.getBoundingClientRect().width / (grid.clientWidth / 5) - 1) < 0.05,
@@ -320,6 +346,8 @@ const press = async (page, filter) => {
     console.log('')
     check("opening a piece brings the piece it hangs off right beside it", near.shown && near.next, JSON.stringify(near))
     check('at ordinary size, not half', near.ordinary)
+    check('and hugging it - sharing an edge with the opened piece', near.hugs)
+    check('with the opened piece in the centre of the grid', near.centred)
     await tile.locator('.pf-item__img').click()
     await page.waitForTimeout(1000)
   }

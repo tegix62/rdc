@@ -663,8 +663,9 @@ if (emptyFilters.length > 0) {
           for (let i = 0; i < this.colYs.length; i++) this.colYs[i] = floor;
         }
 
+        const role = item?.element?.__pfRole;
         const preferred = item?.element?.__pfCol;
-        if (typeof preferred !== 'number') return original(item);
+        if (typeof preferred !== 'number' && role !== 'near' && role !== 'minor') return original(item);
 
         item.getSize();
         /*
@@ -690,16 +691,79 @@ if (emptyFilters.length > 0) {
           1,
           Math.min(remainder && remainder < 1 ? Math.round(ratio) : Math.ceil(ratio), this.cols),
         );
+        const topOf = (c: number) => {
+          let y = 0;
+          for (let i = 0; i < colSpan; i++) y = Math.max(y, this.colYs[c + i]);
+          return y;
+        };
+        const place = (c: number, y: number) => {
+          for (let i = 0; i < colSpan; i++) this.colYs[c + i] = y + item.size.outerHeight;
+          return {x: this.columnWidth * c, y};
+        };
+
+        /*
+          THE MERCH GATHER IS A TARGET, NOT A FEED.
+
+          Chris, with a screenshot of the More Kilos tee opened: its one
+          parented shot sat at the far left and the half-size rest of the
+          project took the whole right side. "I'd like the variant
+          mockups/photography (the ones parented to the main mockup) to hug
+          the main mockup, and then anything else related to the ultimate
+          parent (the case study) to be smaller and on the outside. Think
+          three different sizes of tile."
+
+          Masonry cannot say that. Its one rule is "the shortest column",
+          which has no idea that a shot belongs against its shirt. So inside
+          a merch gather each tile is placed by what it IS:
+
+            opened  centred, so there is room to hug it on both sides (it
+                    arrives here through the preferred-column path below,
+                    with gather() setting that column to the centre)
+            near    the shirt's own shots: only in the columns touching it
+                    - its own and the two-column strip either side - at the
+                    lowest point there, closest first. So they fill beside
+                    it, left and right, then directly under it
+            minor   the rest of the case study: anywhere, lowest point
+                    first, but on a tie the column FURTHEST from the shirt.
+                    So they start at the outer edges and only come in
+                    underneath once the edges are taller than the middle
+
+          Placing by lowest point is what keeps it gap-free: every tile still
+          sits on whatever is already in its columns, exactly as masonry
+          would place it, only the choice of columns has a reason now.
+        */
+        if (role === 'near' || role === 'minor') {
+          const opened = this.__pfOpened as {col: number; span: number} | undefined;
+          const centre = opened ? opened.col + opened.span / 2 : this.cols / 2;
+          let lo = 0;
+          let hi = this.cols - colSpan;
+          if (role === 'near' && opened) {
+            lo = Math.max(0, opened.col - colSpan);
+            hi = Math.min(this.cols - colSpan, opened.col + opened.span);
+          }
+          let best = lo;
+          let bestY = Infinity;
+          let bestD = 0;
+          for (let c = lo; c <= hi; c++) {
+            const y = topOf(c);
+            const d = Math.abs(c + colSpan / 2 - centre);
+            const lower = y < bestY - 1;
+            const tie = Math.abs(y - bestY) <= 1;
+            if (lower || (tie && (role === 'near' ? d < bestD : d > bestD))) {
+              best = c;
+              bestY = y;
+              bestD = d;
+            }
+          }
+          return place(best, bestY);
+        }
+
         // Clamped so a tile in the last column spans the final pair rather
         // than running off the right-hand edge.
         const col = Math.max(0, Math.min(preferred, this.cols - colSpan));
-
-        let y = 0;
-        for (let i = 0; i < colSpan; i++) y = Math.max(y, this.colYs[col + i]);
-        const setY = y + item.size.outerHeight;
-        for (let i = 0; i < colSpan; i++) this.colYs[col + i] = setY;
-
-        return {x: this.columnWidth * col, y};
+        // Remembered for the shots and the rest that follow it in this pass.
+        if (role === 'opened') this.__pfOpened = {col, span: colSpan};
+        return place(col, topOf(col));
       };
     } else {
       // Not fatal: without it the grid behaves as it did before, which jumps.
@@ -719,6 +783,8 @@ if (emptyFilters.length > 0) {
     const clearShelves = () => {
       for (const el of grid.querySelectorAll<HTMLElement>('.pf-item')) {
         delete (el as any).__pfClear;
+        // The merch gather's roles belong to the same gather as its shelf.
+        delete (el as any).__pfRole;
       }
     };
 
@@ -2242,6 +2308,9 @@ if (emptyFilters.length > 0) {
         Only the order WITHIN the set changes. The deal is untouched, and
         restoreOrder still puts everything back exactly as it was.
       */
+      // Set in the merch view, applied after the shelf reset below - which
+      // clears roles along with shelves, so setting them earlier is a no-op.
+      let roles: {near: HTMLElement[]; rest: HTMLElement[]} | null = null;
       let packed = family
         .filter((el) => el !== item)
         .map((el) => ({el, h: el.getBoundingClientRect().height}))
@@ -2270,6 +2339,7 @@ if (emptyFilters.length > 0) {
         const rest = family.filter((el) => el !== item && !near.includes(el));
         for (const el of rest) el.classList.add('is-minor');
         packed = [...near, ...rest];
+        roles = {near, rest};
       }
       const frag = document.createDocumentFragment();
       for (let i = 0; i < others.length; i++) {
@@ -2304,6 +2374,20 @@ if (emptyFilters.length > 0) {
       for (let i = 0; i < run.length; i++) if (family.includes(run[i])) lastOfSet = i;
       const after = run[lastOfSet + 1];
       if (after) (after as any).__pfClear = true;
+
+      /*
+        Roles for the layout override, which places each by what it is - see
+        "THE MERCH GATHER IS A TARGET". The opened shirt goes to the centre of
+        the grid so its shots can hug it on both sides: on ten columns that is
+        columns 3-6, with a strip of two either side and an outer column
+        beyond each; on a phone it is the full width.
+      */
+      if (roles) {
+        (item as any).__pfRole = 'opened';
+        (item as any).__pfCol = Math.max(0, Math.floor((cols - 2 * unit()) / 2));
+        for (const el of roles.near) (el as any).__pfRole = 'near';
+        for (const el of roles.rest) (el as any).__pfRole = 'minor';
+      }
 
       /*
         Correct the scroll once the tiles have actually landed. Isotope

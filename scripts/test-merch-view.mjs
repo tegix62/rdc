@@ -21,8 +21,18 @@ import {chromium} from 'playwright'
 
 const BASE = (process.argv[2] ?? 'https://preview.rumeau-design-co.pages.dev').replace(/\/$/, '')
 const MERCH = '.merch-apparel'
-// See the cluster check. Calibrated against the two layouts measured on the preview.
-const CLUSTER_MEAN_MAX = Number(process.env.CLUSTER_MEAN_MAX ?? 0.01)
+/*
+  See the cluster check. Calibrated against the two layouts, measured on
+  the preview gathering DumpStat's 22 pieces:
+
+    edges-first (rows)  mean 0.75, 2.33:1 wide, furthest 1.02
+    middle-out          mean 0.63, 1.11:1 wide, furthest 0.81
+
+  The limits sit between them, with the width ratio as a second guard now
+  that a cluster can be seen to be roughly as wide as it is tall.
+*/
+const CLUSTER_MEAN_MAX = Number(process.env.CLUSTER_MEAN_MAX ?? 0.69)
+const CLUSTER_ASPECT_MAX = 1.8
 const TYPE = '.type-lettering'
 
 let failures = 0
@@ -324,7 +334,7 @@ const press = async (page, filter) => {
     */
     check(
       'the gather grows middle-out as a cluster, not in long rows',
-      shape.meanReach < CLUSTER_MEAN_MAX,
+      shape.meanReach < CLUSTER_MEAN_MAX && shape.aspect < CLUSTER_ASPECT_MAX,
       `${shape.n} pieces, mean distance ${shape.meanReach.toFixed(2)}x a round cluster's radius (limit ${CLUSTER_MEAN_MAX}), ${shape.aspect.toFixed(2)}:1 wide, furthest at ${shape.reach.toFixed(2)}x`,
     )
     check('and shown whole, in its own proportions - not cropped square', sizes.cropped === 0, `${sizes.cropped} cropped`)

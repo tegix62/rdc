@@ -273,17 +273,47 @@ const press = async (page, filter) => {
       gap ? `empty column(s) ${JSON.stringify(gap.empty)} of ${gap.n}` : 'no opened tile',
     )
     check('the rest of the case study is half a tile', sizes.minorCount > 0 && Math.abs(sizes.minor - 0.5) < 0.05, `${sizes.minorCount} of ${sizes.famCount} at ${sizes.minor.toFixed(2)} tiles`)
-    const outer = await page.evaluate(() => {
+    /*
+      MIDDLE OUT, NOT ROWS. Chris: "I would rather Gather populate from the
+      middle out, rather than going for long rows across the screen. More a
+      cluster-like look."
+
+      Rows show up as a set much wider than it is tall: twenty pieces laid
+      out lowest-first at ten columns span the whole grid in two shallow
+      bands. A cluster is about as tall as it is wide. So: the gathered set's
+      width over its height, and how far its furthest piece is from the
+      opened shirt against the radius a perfectly round cluster of the same
+      area would need.
+    */
+    const shape = await page.evaluate(() => {
       const grid = document.querySelector('#pf-grid')
-      const g = grid.getBoundingClientRect()
-      const col = g.width / Math.round(g.width / grid.querySelector('.pf-sizer').getBoundingClientRect().width)
-      const minors = Array.from(grid.querySelectorAll('.pf-item.is-minor'))
-      return {
-        left: minors.filter((el) => el.getBoundingClientRect().left - g.left < col / 2).length,
-        right: minors.filter((el) => g.right - el.getBoundingClientRect().right < col / 2).length,
-      }
+      const opened = grid.querySelector('.pf-item.is-expanded')
+      const set = Array.from(grid.querySelectorAll('.pf-item.is-sibling')).filter(
+        (el) => getComputedStyle(el).display !== 'none',
+      )
+      const boxes = set.map((el) => el.getBoundingClientRect())
+      const o = opened.getBoundingClientRect()
+      const ox = (o.left + o.right) / 2
+      const oy = (o.top + o.bottom) / 2
+      const left = Math.min(...boxes.map((r) => r.left))
+      const right = Math.max(...boxes.map((r) => r.right))
+      const top = Math.min(...boxes.map((r) => r.top))
+      const bottom = Math.max(...boxes.map((r) => r.bottom))
+      const area = boxes.reduce((n, r) => n + r.width * r.height, 0)
+      const far = Math.max(
+        ...boxes.map((r) => Math.hypot((r.left + r.right) / 2 - ox, (r.top + r.bottom) / 2 - oy)),
+      )
+      // The set sits in a half-disc under and beside the shirt (nothing can
+      // go above the top tile in a grid that fills downward), so the round
+      // reference is a half-disc of the same area.
+      const halfDisc = Math.sqrt((2 * area) / Math.PI)
+      return {aspect: (right - left) / (bottom - top), reach: far / halfDisc, n: set.length}
     })
-    check('the smaller pieces start at the outer edges', outer.left > 0 && outer.right > 0, `${outer.left} at the left edge, ${outer.right} at the right`)
+    check(
+      'the gather grows middle-out as a cluster, not in long rows',
+      shape.aspect < 3 && shape.reach < 1.6,
+      `${shape.n} pieces, ${shape.aspect.toFixed(2)}:1 wide, furthest piece at ${shape.reach.toFixed(2)}x a round cluster's radius`,
+    )
     check('and shown whole, in its own proportions - not cropped square', sizes.cropped === 0, `${sizes.cropped} cropped`)
 
     // Closing it hides the revealed pieces again: the view is garments at rest.

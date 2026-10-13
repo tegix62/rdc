@@ -21,6 +21,8 @@ import {chromium} from 'playwright'
 
 const BASE = (process.argv[2] ?? 'https://preview.rumeau-design-co.pages.dev').replace(/\/$/, '')
 const MERCH = '.merch-apparel'
+// See the cluster check. Calibrated against the two layouts measured on the preview.
+const CLUSTER_MEAN_MAX = Number(process.env.CLUSTER_MEAN_MAX ?? 0.01)
 const TYPE = '.type-lettering'
 
 let failures = 0
@@ -300,19 +302,30 @@ const press = async (page, filter) => {
       const top = Math.min(...boxes.map((r) => r.top))
       const bottom = Math.max(...boxes.map((r) => r.bottom))
       const area = boxes.reduce((n, r) => n + r.width * r.height, 0)
-      const far = Math.max(
-        ...boxes.map((r) => Math.hypot((r.left + r.right) / 2 - ox, (r.top + r.bottom) / 2 - oy)),
-      )
+      const dists = boxes.map((r) => Math.hypot((r.left + r.right) / 2 - ox, (r.top + r.bottom) / 2 - oy))
+      const far = Math.max(...dists)
+      const mean = dists.reduce((a, b) => a + b, 0) / dists.length
       // The set sits in a half-disc under and beside the shirt (nothing can
       // go above the top tile in a grid that fills downward), so the round
       // reference is a half-disc of the same area.
       const halfDisc = Math.sqrt((2 * area) / Math.PI)
-      return {aspect: (right - left) / (bottom - top), reach: far / halfDisc, n: set.length}
+      return {aspect: (right - left) / (bottom - top), reach: far / halfDisc, meanReach: mean / halfDisc, n: set.length}
     })
+    /*
+      The width-to-height ratio CANNOT tell the two apart, which the first
+      version of this check found the hard way: a mound under a shirt at the
+      top is about twice as wide as it is tall whichever way it was filled,
+      and the old edges-first layout passed at 2.33:1. What differs is where
+      the pieces sit on AVERAGE - edges-first spends its first pieces at the
+      far sides, middle-out spends them next to the shirt - so the check is
+      the mean distance from the shirt against the radius of a round cluster
+      of the same area. A solid half-disc averages about 0.67 of its radius.
+      The threshold is set between what the two layouts measured.
+    */
     check(
       'the gather grows middle-out as a cluster, not in long rows',
-      shape.aspect < 3 && shape.reach < 1.6,
-      `${shape.n} pieces, ${shape.aspect.toFixed(2)}:1 wide, furthest piece at ${shape.reach.toFixed(2)}x a round cluster's radius`,
+      shape.meanReach < CLUSTER_MEAN_MAX,
+      `${shape.n} pieces, mean distance ${shape.meanReach.toFixed(2)}x a round cluster's radius (limit ${CLUSTER_MEAN_MAX}), ${shape.aspect.toFixed(2)}:1 wide, furthest at ${shape.reach.toFixed(2)}x`,
     )
     check('and shown whole, in its own proportions - not cropped square', sizes.cropped === 0, `${sizes.cropped} cropped`)
 

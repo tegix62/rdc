@@ -233,6 +233,45 @@ const press = async (page, filter) => {
       }
     }, target.h)
     check('the opened shirt is two tiles wide', Math.abs(sizes.opened - 2) < 0.05, `${sizes.opened.toFixed(2)} tiles`)
+
+    /*
+      NO EMPTY COLUMN BESIDE THE OPENED SHIRT.
+
+      Chris's screenshot: a column left blank all the way down next to the
+      opened tile, mostly on the right. Across the opened tile's height,
+      every underlying column inside the set's width must hold some piece of
+      the set - a column with nothing in it there is the gap he saw.
+    */
+    const gap = await page.evaluate((h) => {
+      const grid = document.querySelector('#pf-grid')
+      const g = grid.getBoundingClientRect()
+      const href = (el) => el.querySelector('.pf-item__jump')?.getAttribute('href') ?? null
+      const fam = Array.from(grid.querySelectorAll('.pf-item')).filter(
+        (el) => href(el) === h && getComputedStyle(el).display !== 'none',
+      )
+      const opened = fam.find((el) => el.classList.contains('is-expanded'))
+      if (!opened) return null
+      const o = opened.getBoundingClientRect()
+      const boxes = fam.map((el) => el.getBoundingClientRect())
+      const left = Math.min(...boxes.map((r) => r.left))
+      const right = Math.max(...boxes.map((r) => r.right))
+      const n = Math.round(g.width / document.querySelector('#pf-grid .pf-sizer').getBoundingClientRect().width)
+      const colW = g.width / n
+      const empty = []
+      for (let c = 0; c < n; c++) {
+        const cl = g.left + c * colW
+        const cr = cl + colW
+        if (cl < left - 1 || cr > right + 1) continue
+        const used = boxes.some((r) => r.left < cr - 1 && r.right > cl + 1 && r.top < o.bottom - 1 && r.bottom > o.top + 1)
+        if (!used) empty.push(c)
+      }
+      return {empty, n}
+    }, target.h)
+    check(
+      'no empty column runs beside the opened shirt',
+      gap && gap.empty.length === 0,
+      gap ? `empty column(s) ${JSON.stringify(gap.empty)} of ${gap.n}` : 'no opened tile',
+    )
     check('the rest of the case study is half a tile', sizes.minorCount > 0 && Math.abs(sizes.minor - 0.5) < 0.05, `${sizes.minorCount} of ${sizes.famCount} at ${sizes.minor.toFixed(2)} tiles`)
     check('and shown whole, in its own proportions - not cropped square', sizes.cropped === 0, `${sizes.cropped} cropped`)
 

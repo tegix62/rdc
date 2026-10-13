@@ -67,6 +67,12 @@ eq(
 eq('and its plain text is empty', captionText([block([span('')])]), '')
 eq('an empty array is no caption', captionHtml([]), '')
 
+// The preview's editing markers ride on empty strings too (see test-credits).
+const MARK = '\u200B\u200B\u200C\u200D'
+eq('a cleared caption carrying only preview markers is no caption', captionHtml([block([span(MARK)])]), '')
+eq('nor is a string of only markers', captionHtml(MARK), '')
+eq('the plain text of a marked caption has no markers', captionText(`Photo: Jane${MARK}`), 'Photo: Jane')
+
 // --- the point of the whole change --------------------------------------
 const linked = [block([span('Photo: '), span('Jane Doe', ['L'])], [link('https://janedoe.com')])]
 eq(

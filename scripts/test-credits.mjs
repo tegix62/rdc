@@ -143,6 +143,25 @@ check(
   !/<a /.test(creditsHtml([line([span('x', ['j'])], [link('j', 'javascript:alert(1)')])])),
 )
 
+// --- the preview's editing markers ------------------------------------------
+/*
+  Found on the preview, not imagined: Sanity appends a run of zero-width
+  characters to every CMS string there, including an empty one. The blank
+  line between groups therefore arrived as invisible characters, the gap
+  rendered as a plain empty <p>, and the parse credited a person called
+  nothing. Same run of characters test-meta uses.
+*/
+const MARK = '\u200B\u200B\u200C\u200D'
+const markedGap = line([span(MARK)])
+const marked = [line([span(`Producer${MARK}`, ['strong']), span(` - Henry${MARK}`)]), markedGap, line([span('Principal Type', ['strong']), span(` - Caslon${MARK}`)])]
+eq('a marked blank line still draws the gap', (creditsHtml(marked).match(/credits__gap/g) ?? []).length, 1)
+eq('and credits nobody', parseCreditLines([markedGap]), [])
+eq('names and roles come out without markers', parseCreditLines(marked), [
+  {role: 'Producer', name: 'Henry'},
+  {role: 'Principal Type', name: 'Caslon'},
+])
+eq('a field of only marked blank lines is empty', hasCreditsText({creditsText: [markedGap, markedGap]}), false)
+
 // --- the round trip --------------------------------------------------------
 /*
   The migration and the site's parser were written separately, and the SEO

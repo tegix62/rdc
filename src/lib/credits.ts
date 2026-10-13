@@ -35,6 +35,7 @@
 */
 import { toHTML } from '@portabletext/to-html';
 import { linkMark } from './linkMark';
+import { stripStegaKey } from './stega';
 
 export interface Credit {
   role?: string;
@@ -51,8 +52,19 @@ type Block = {
 const blocksOf = (value: unknown): Block[] =>
   Array.isArray(value) ? (value as Block[]).filter((b) => b?._type === 'block') : [];
 
+/*
+  The words of a line with the preview's click-to-edit markers removed.
+
+  The preview build has Sanity append a run of zero-width characters to every
+  CMS string - INCLUDING an empty one. So the blank line Chris leaves between
+  groups arrives as a string of invisible characters, and "is this line
+  empty?" answered no: the gap rendered as an ordinary empty paragraph with no
+  height, and the parse credited a person whose name was nothing but markers.
+  Measured on the preview, not guessed. Every emptiness test and every name
+  read out here goes through this, so the preview and production agree.
+*/
 const textOf = (b: Block) =>
-  (b.children ?? []).map((s) => (typeof s?.text === 'string' ? s.text : '')).join('');
+  stripStegaKey((b.children ?? []).map((s) => (typeof s?.text === 'string' ? s.text : '')).join(''));
 
 /** True when the rich field holds any words at all. A cleared field may be [] or one empty block. */
 export function hasCreditsText(study: { creditsText?: unknown } | null | undefined): boolean {
@@ -64,7 +76,7 @@ export function hasCreditsText(study: { creditsText?: unknown } | null | undefin
   both, so "Producer -", "Producer:" and "Producer –" all give "Producer".
 */
 const SEP = /^[\s\-–—:|,]+|[\s\-–—:|,]+$/g;
-const tidy = (s: string) => s.replace(SEP, '').replace(/\s+/g, ' ').trim();
+const tidy = (s: string) => stripStegaKey(s).replace(SEP, '').replace(/\s+/g, ' ').trim();
 
 /**
  * One entry per credited person. A line with two linked names ("Photography -
@@ -159,7 +171,7 @@ export function creditsHtml(value: unknown): string {
       marks: { link: linkMark as never },
       block: {
         normal: ({ children }: { children?: string }) =>
-          children && children.replace(/<[^>]*>/g, '').trim()
+          children && stripStegaKey(children.replace(/<[^>]*>/g, ''))
             ? `<p>${children}</p>`
             : '<p class="credits__gap" aria-hidden="true"></p>',
       } as never,

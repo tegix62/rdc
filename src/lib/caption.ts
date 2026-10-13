@@ -19,6 +19,7 @@
 */
 import { toHTML } from '@portabletext/to-html';
 import { linkMark } from './linkMark';
+import { stripStegaKey } from './stega';
 
 export type Caption = string | readonly unknown[] | null | undefined;
 
@@ -34,7 +35,10 @@ const escapeHtml = (s: string) =>
  * iframe's title attribute, a preview line, a structured-data caption.
  */
 export function captionText(caption: Caption): string {
-  if (typeof caption === 'string') return caption.trim();
+  // Without the preview's zero-width editing markers, which Sanity attaches
+  // even to an empty string: a cleared caption must read as empty there too,
+  // not as a run of invisible characters that draws an empty box.
+  if (typeof caption === 'string') return stripStegaKey(caption);
   if (!Array.isArray(caption)) return '';
   return caption
     .filter((b: any) => b?._type === 'block' && Array.isArray(b.children))
@@ -43,7 +47,7 @@ export function captionText(caption: Caption): string {
         .map((span: any) => (typeof span?.text === 'string' ? span.text : ''))
         .join(''),
     )
-    .map((line: string) => line.trim())
+    .map((line: string) => stripStegaKey(line))
     .filter(Boolean)
     .join(' ');
 }

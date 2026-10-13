@@ -2955,6 +2955,17 @@ main {
   object-fit: fill;
 }
 
+/*
+  No project bar on the half-size tiles. The case study's own tile wears its
+  bar at rest everywhere else, and squeezed onto half a tile it broke the
+  project's name mid-word ("DUMPSTA / T, A D&...") in Chris's screenshot. The
+  opened shirt right beside it already carries the same bar to the same
+  page, so the small one was saying it twice, badly.
+*/
+.pf-grid.is-merch-view .pf-item.is-minor:not(.is-expanded) .pf-item__jump {
+  display: none;
+}
+
 .pf-grid.is-merch-view .pf-item__img,
 .pf-grid.is-type-view .pf-item__img {
   aspect-ratio: 1 / 1;

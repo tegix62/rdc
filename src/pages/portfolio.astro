@@ -667,9 +667,28 @@ if (emptyFilters.length > 0) {
         if (typeof preferred !== 'number') return original(item);
 
         item.getSize();
+        /*
+          SUB-PIXEL WIDTHS MUST NOT BUY A WHOLE EXTRA COLUMN.
+
+          This was Math.ceil(width / column), and widths are percentages that
+          the browser resolves to fractions of a pixel: an opened merch tile
+          four columns wide measured 760.003px against 190px columns, and ceil
+          turned 4.00002 into FIVE. The fifth column was then marked as
+          occupied to the bottom of the tile with nothing in it - Chris's
+          screenshot: an empty column running down beside the opened shirt,
+          "mostly on the right side for most things", because the ten-column
+          merch grid produces fractions almost every time.
+
+          Masonry's own span calculation already forgives this - it rounds
+          when the remainder is under a pixel and only rounds up past that -
+          and this copies its rule exactly, so the tile it is pinning and the
+          tiles it is not are measured the same way.
+        */
+        const ratio = item.size.outerWidth / this.columnWidth;
+        const remainder = item.size.outerWidth % this.columnWidth;
         const colSpan = Math.max(
           1,
-          Math.min(Math.ceil(item.size.outerWidth / this.columnWidth), this.cols),
+          Math.min(remainder && remainder < 1 ? Math.round(ratio) : Math.ceil(ratio), this.cols),
         );
         // Clamped so a tile in the last column spans the final pair rather
         // than running off the right-hand edge.

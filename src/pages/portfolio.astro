@@ -1129,11 +1129,31 @@ if (emptyFilters.length > 0) {
       there. Pictures with no srcset (served as uploaded) have nothing to
       choose between and are left alone.
     */
+    /*
+      A wide photo cropped to fill a square needs MORE than the square's
+      width: the crop throws away the sides, so the file has to be as tall as
+      the square, and a 4:3 photo that tall is a third wider than it. Measured
+      after the first fix: the gym shot, the on-body and the photography -
+      landscape photos cover-cropped in the merch view - still came out at
+      0.85-0.92 of the pixels a phone needed. So for a picture that is being
+      cropped to fill, every width in its sizes is scaled by its own aspect.
+      Its width and height attributes are the file's intrinsic shape, which
+      is known before it loads.
+    */
+    const scaleFor = (img: HTMLImageElement) => {
+      if (getComputedStyle(img).objectFit !== 'cover') return 1;
+      const w = Number(img.getAttribute('width'));
+      const h = Number(img.getAttribute('height'));
+      return w > 0 && h > 0 ? Math.max(1, w / h) : 1;
+    };
+    const scaled = (sizes: string, k: number) =>
+      k === 1 ? sizes : sizes.replace(/(\d+(?:\.\d+)?)vw/g, (_, n) => `${Math.min(200, Math.round(Number(n) * k))}vw`);
+
     const resize = (to: string | null) => {
       for (const img of grid.querySelectorAll<HTMLImageElement>('.pf-item__img[srcset]')) {
         if (to) {
           if (img.dataset.sizesBase === undefined) img.dataset.sizesBase = img.sizes;
-          img.sizes = to;
+          img.sizes = scaled(to, scaleFor(img));
         } else if (img.dataset.sizesBase !== undefined) {
           img.sizes = img.dataset.sizesBase;
           delete img.dataset.sizesBase;
@@ -1143,11 +1163,13 @@ if (emptyFilters.length > 0) {
 
     const enterView = (f: string) => {
       ungatherSilently();
-      resize(VIEWS[f].sizes);
       dealBeforeView = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item'));
       if (f === MERCH_FILTER) putBack(merchOrder(dealBeforeView));
       view = f;
       grid.classList.add(VIEWS[f].cls);
+      // After the class, so each picture's object-fit is already the view's
+      // when resize() asks whether it is being cropped.
+      resize(VIEWS[f].sizes);
       // A view change resets the size: the visitor's zoom belonged to the
       // grid they were looking at, and the view's own count IS the view.
       zoomed = false;
@@ -1377,7 +1399,7 @@ if (emptyFilters.length > 0) {
         than two thirds of it. And a picture already upgraded in the main
         grid still needs telling, or it keeps the old, smaller promise.
       */
-      const openSizes = view ? VIEWS[view].openSizes : undefined;
+      const openSizes = view ? scaled(VIEWS[view].openSizes, scaleFor(img)) : undefined;
       if (img.dataset.upgraded) {
         if (img.dataset.upgraded === '1' && openSizes) img.sizes = openSizes;
         return;

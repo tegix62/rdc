@@ -532,11 +532,27 @@ if (emptyFilters.length > 0) {
       its column, so half a tile needs a column half as wide; doubling the
       grid underneath is what makes the smaller size exist at all.
     */
-    const VIEWS: Record<string, {cols: number; mobileCols: number; unit: number; cls: string}> = {
+    /*
+      `sizes` / `openSizes`: how wide a resting and an opened tile really are
+      in this view, told to the browser so it picks a file with enough
+      pixels. See "EACH VIEW TELLS THE BROWSER ITS OWN SIZES".
+    */
+    const VIEWS: Record<
+      string,
+      {cols: number; mobileCols: number; unit: number; cls: string; sizes: string; openSizes: string}
+    > = {
       // Five across on desktop (Chris: "let's do 5 columns on desktop
       // instead of 3"), two on a phone - on a grid twice as fine.
-      [MERCH_FILTER]: {cols: 10, mobileCols: 4, unit: 2, cls: 'is-merch-view'},
-      [TYPE_FILTER]: {cols: 4, mobileCols: 2, unit: 1, cls: 'is-type-view'},
+      [MERCH_FILTER]: {
+        cols: 10, mobileCols: 4, unit: 2, cls: 'is-merch-view',
+        sizes: '(max-width: 48rem) 50vw, 20vw',
+        openSizes: '(max-width: 48rem) 100vw, 40vw',
+      },
+      [TYPE_FILTER]: {
+        cols: 4, mobileCols: 2, unit: 1, cls: 'is-type-view',
+        sizes: '(max-width: 48rem) 50vw, 25vw',
+        openSizes: '(max-width: 48rem) 100vw, 50vw',
+      },
     };
     // How many underlying columns an ordinary tile spans in the current view.
     const unit = () => (view ? VIEWS[view].unit : 1);
@@ -719,22 +735,33 @@ if (emptyFilters.length > 0) {
             opened  centred, so there is room to hug it on both sides (it
                     arrives here through the preferred-column path below,
                     with gather() setting that column to the centre)
-            near    the shirt's own shots: only in the columns touching it
-                    - its own and the two-column strip either side - at the
-                    lowest point there, closest first. So they fill beside
-                    it, left and right, then directly under it
-            minor   the rest of the case study: anywhere, lowest point
-                    first, but on a tie the column FURTHEST from the shirt.
-                    So they start at the outer edges and only come in
-                    underneath once the edges are taller than the middle
+            near    the shirt's own shots: within the columns touching it
+                    - its own and the two-column strip either side
+            minor   the rest of the case study: anywhere
 
-          Placing by lowest point is what keeps it gap-free: every tile still
-          sits on whatever is already in its columns, exactly as masonry
-          would place it, only the choice of columns has a reason now.
+          Both by ONE rule: the column whose resulting position puts the
+          tile's centre nearest the shirt's centre, as the crow flies. The
+          shots are placed first, so they take the nearest spots and hug it;
+          the rest fill the next ring out, and the ring after that.
+
+          Chris, on a first version that sent the rest to the outer edges:
+          "I would rather Gather populate from the middle out, rather than
+          going for long rows across the screen. More a cluster-like look."
+          Lowest-point-first spreads every row the full width of the grid
+          before it starts the next - rows, by construction. Nearest-first
+          grows a roughly round cluster outward from the shirt instead, and
+          leaves the grid's far edges empty until the set is big enough to
+          need them.
+
+          Every tile still sits ON whatever is already in its columns, so
+          nothing overlaps; the whitespace this leaves is around the outside
+          of the cluster, which is the shape asked for.
         */
         if (role === 'near' || role === 'minor') {
-          const opened = this.__pfOpened as {col: number; span: number} | undefined;
-          const centre = opened ? opened.col + opened.span / 2 : this.cols / 2;
+          const opened = this.__pfOpened as {col: number; span: number; y: number; h: number} | undefined;
+          // The opened shirt's centre, in pixels: what everything grows from.
+          const ox = opened ? (opened.col + opened.span / 2) * this.columnWidth : (this.cols / 2) * this.columnWidth;
+          const oy = opened ? opened.y + opened.h / 2 : 0;
           let lo = 0;
           let hi = this.cols - colSpan;
           if (role === 'near' && opened) {
@@ -743,13 +770,15 @@ if (emptyFilters.length > 0) {
           }
           let best = lo;
           let bestY = Infinity;
-          let bestD = 0;
+          let bestD = Infinity;
           for (let c = lo; c <= hi; c++) {
             const y = topOf(c);
-            const d = Math.abs(c + colSpan / 2 - centre);
-            const lower = y < bestY - 1;
-            const tie = Math.abs(y - bestY) <= 1;
-            if (lower || (tie && (role === 'near' ? d < bestD : d > bestD))) {
+            // Where this tile's centre would land in that column.
+            const d = Math.hypot(
+              (c + colSpan / 2) * this.columnWidth - ox,
+              y + item.size.outerHeight / 2 - oy,
+            );
+            if (d < bestD - 1 || (Math.abs(d - bestD) <= 1 && y < bestY)) {
               best = c;
               bestY = y;
               bestD = d;
@@ -762,8 +791,9 @@ if (emptyFilters.length > 0) {
         // than running off the right-hand edge.
         const col = Math.max(0, Math.min(preferred, this.cols - colSpan));
         // Remembered for the shots and the rest that follow it in this pass.
-        if (role === 'opened') this.__pfOpened = {col, span: colSpan};
-        return place(col, topOf(col));
+        const at = topOf(col);
+        if (role === 'opened') this.__pfOpened = {col, span: colSpan, y: at, h: item.size.outerHeight};
+        return place(col, at);
       };
     } else {
       // Not fatal: without it the grid behaves as it did before, which jumps.
@@ -1082,8 +1112,38 @@ if (emptyFilters.length > 0) {
     const merchFilter = (el: HTMLElement) =>
       (el.matches(MERCH_FILTER) && !shirtOf(el)) || revealed.has(el);
 
+    /*
+      EACH VIEW TELLS THE BROWSER ITS OWN SIZES.
+
+      Chris: "let's make sure the resolutions are good looking at this
+      view". Every picture ships with a `sizes` written for the main grid -
+      a seventh of the window on desktop, a third on a phone - and the
+      browser chooses its file from that promise. The merch view draws a
+      tile at a fifth and a HALF, and an opened shirt at two fifths and the
+      full width, so a phone was handed files a third too small: measured on
+      the preview, a merch tile needing 559 device pixels showing a 480px
+      file, and the opened shirt worse.
+
+      A browser re-chooses when `sizes` changes, so entering a view rewrites
+      it to the view's real widths and leaving puts back exactly what was
+      there. Pictures with no srcset (served as uploaded) have nothing to
+      choose between and are left alone.
+    */
+    const resize = (to: string | null) => {
+      for (const img of grid.querySelectorAll<HTMLImageElement>('.pf-item__img[srcset]')) {
+        if (to) {
+          if (img.dataset.sizesBase === undefined) img.dataset.sizesBase = img.sizes;
+          img.sizes = to;
+        } else if (img.dataset.sizesBase !== undefined) {
+          img.sizes = img.dataset.sizesBase;
+          delete img.dataset.sizesBase;
+        }
+      }
+    };
+
     const enterView = (f: string) => {
       ungatherSilently();
+      resize(VIEWS[f].sizes);
       dealBeforeView = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item'));
       if (f === MERCH_FILTER) putBack(merchOrder(dealBeforeView));
       view = f;
@@ -1106,6 +1166,7 @@ if (emptyFilters.length > 0) {
       revealed.clear();
       document.querySelector(`.pf-btn[data-filter="${view}"]`)?.classList.remove('is-active');
       grid.classList.remove(VIEWS[view].cls);
+      resize(null);
       view = null;
       zoomed = false;
       cols = defaultCols();
@@ -1309,7 +1370,19 @@ if (emptyFilters.length > 0) {
     */
     const sharpen = (item: HTMLElement) => {
       const img = item.querySelector<HTMLImageElement>('img');
-      if (!img || img.dataset.upgraded) return;
+      if (!img) return;
+      /*
+        In a view, an opened tile is the view's width, not the main grid's
+        doubled tile: the full width of a phone in the merch view rather
+        than two thirds of it. And a picture already upgraded in the main
+        grid still needs telling, or it keeps the old, smaller promise.
+      */
+      const openSizes = view ? VIEWS[view].openSizes : undefined;
+      if (img.dataset.upgraded) {
+        if (img.dataset.upgraded === '1' && openSizes) img.sizes = openSizes;
+        return;
+      }
+      const upSizes = openSizes ?? img.dataset.upgradeSizes;
       const next = img.dataset.upgradeSrcset;
       if (!next) {
         img.dataset.upgraded = 'none';
@@ -1348,12 +1421,12 @@ if (emptyFilters.length > 0) {
         tile on its small file, so both paths end in the same assignment.
       */
       const apply = () => {
-        if (img.dataset.upgradeSizes) img.sizes = img.dataset.upgradeSizes;
+        if (upSizes) img.sizes = upSizes;
         img.srcset = next;
       };
 
       const pre = new Image();
-      if (img.dataset.upgradeSizes) pre.sizes = img.dataset.upgradeSizes;
+      if (upSizes) pre.sizes = upSizes;
       pre.srcset = next;
       if (typeof pre.decode === 'function') {
         pre.decode().then(apply, apply);

@@ -34,8 +34,20 @@ const measure = (page) =>
         // what matters is the larger of the two sides the image fills.
         const needW = r.width * dpr
         const needH = r.height * dpr
-        const fileW = img.naturalWidth
-        const fileH = img.naturalHeight
+        /*
+          THE FILE'S REAL WIDTH, NOT naturalWidth.
+
+          The first run of this reported 128px files on a phone that had
+          actually loaded w=480. For an image chosen from a srcset by a w
+          descriptor, naturalWidth is DENSITY-CORRECTED - the file's width
+          divided by the density the browser picked it for - so it reads in
+          CSS pixels, not file pixels, and every ratio built on it was wrong
+          by that density. The width the CDN was asked for is in the URL;
+          an image with no srcset reports its real width as normal.
+        */
+        const asked = Number(new URL(img.currentSrc || img.src).searchParams.get('w'))
+        const fileW = asked || img.naturalWidth
+        const fileH = asked ? (asked * img.naturalHeight) / img.naturalWidth : img.naturalHeight
         /*
           How far the file is scaled to fill its box, inverted: 1.0 is one
           file pixel per screen pixel, under 1 is stretched.

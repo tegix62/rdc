@@ -2885,6 +2885,67 @@ main {
   box-shadow: inset 0 0 0 1px var(--color-navy);
 }
 
+/*
+  THE TWO VIEWS, WHICH CHANGE THE TILE RATHER THAN ONLY THE COUNT.
+
+  Both set the picture square, on the image itself rather than the frame:
+  the project bar sits BELOW the image inside the frame, and squaring the
+  frame would squash the picture to make room for it. Square pictures with
+  the bar underneath keep every row level, which is the point.
+
+  Hero tiles stop spanning two columns in either view, because a spread among
+  uniform squares is the one tile that is not uniform. An expanded tile still
+  doubles - that is the click, not the resting shape.
+
+  MERCH & APPAREL. Chris: "on the t-shirt view [I want it] to have uniform
+  height and width". A tee cut out on transparency is CONTAINED in its
+  square, so no sleeve or hem is ever cropped off - the garment is the work.
+  Anything opaque (a photo, a scene, a detail) is cropped to FILL, the way a
+  photograph sits in a contact sheet. A logomark keeps its air, as it does
+  everywhere: it is drawn to sit in space, not to be trimmed.
+*/
+.pf-grid.is-merch-view .pf-item--hero:not(.is-expanded),
+.pf-grid.is-type-view .pf-item--hero:not(.is-expanded) {
+  width: var(--pf-col-w);
+}
+
+.pf-grid.is-merch-view .pf-item__img,
+.pf-grid.is-type-view .pf-item__img {
+  aspect-ratio: 1 / 1;
+  height: auto;
+  object-fit: cover;
+}
+
+.pf-grid.is-merch-view .pf-item[data-merch='lead'] .pf-item__img,
+.pf-grid.is-merch-view .pf-item--mark .pf-item__img {
+  object-fit: contain;
+}
+
+/*
+  TYPE / LETTERING. Chris: margins "really, really, really thin" and "some
+  cropping going on". So 1px of padding a side - a 2px seam between pieces,
+  enough to say where one ends and the next begins and no more - and every
+  piece cropped to fill its square, the logomark air included: here the crop
+  IS the presentation, a close look at the letterforms rather than the whole
+  mark sitting politely in space.
+
+  The full piece comes back on click. An expanded tile shows its whole image
+  contained in the larger square, so cropping in the grid never hides
+  anything a visitor cannot get to in one tap.
+*/
+.pf-grid.is-type-view .pf-sizer,
+.pf-grid.is-type-view .pf-item {
+  padding: 1px;
+}
+
+.pf-grid.is-type-view .pf-item__img {
+  padding: 0;
+}
+
+.pf-grid.is-type-view .pf-item.is-expanded .pf-item__img {
+  object-fit: contain;
+}
+
 .pf-item__jump {
   display: none;
 }

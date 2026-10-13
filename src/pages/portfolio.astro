@@ -487,15 +487,33 @@ if (emptyFilters.length > 0) {
       screen are 90px thumbnails, and the default four is the thing this view
       exists to get away from.
 
-      Declared above defaultCols(), which reads it: a `let` used before its
+      TYPE/LETTERING IS THE SECOND VIEW. Chris: margins "really, really,
+      really thin", "some cropping going on", "two columns on mobile and I'm
+      not sure what on desktop". Four on desktop: it is the step between the
+      merch view's three (look at each one) and the main grid's six or seven
+      (scan everything). With 2px gutters and square crops, four across reads
+      as a specimen sheet - one field of letterforms - where three is a row of
+      separate pictures and six shrinks a wordmark below the size its detail
+      needs. One number below to change if he wants it otherwise.
+
+      Declared above defaultCols(), which reads them: a `let` used before its
       declaration is a ReferenceError, and defaultCols() runs on the very
       next line.
     */
-    const MERCH_COLS = 3;
-    const MERCH_MOBILE_COLS = 2;
-    let merchView = false;
+    const MERCH_FILTER = '.merch-apparel';
+    const TYPE_FILTER = '.type-lettering';
+    const VIEWS: Record<string, {cols: number; mobileCols: number; cls: string}> = {
+      [MERCH_FILTER]: {cols: 3, mobileCols: 2, cls: 'is-merch-view'},
+      [TYPE_FILTER]: {cols: 4, mobileCols: 2, cls: 'is-type-view'},
+    };
+    // The filter whose view is open, or null for the ordinary grid.
+    let view: string | null = null;
+    // Kept as a name because the merch view has rules the type view does not
+    // (front/back order, gathering the whole case study).
+    const inMerch = () => view === MERCH_FILTER;
     const defaultCols = () => {
-      if (merchView) return window.innerWidth < 768 ? MERCH_MOBILE_COLS : MERCH_COLS;
+      const v = view ? VIEWS[view] : null;
+      if (v) return window.innerWidth < 768 ? v.mobileCols : v.cols;
       if (window.innerWidth < 768) return MOBILE_COLS;
       return window.innerWidth >= WIDE_FROM ? WIDE_COLS : DESKTOP_COLS;
     };
@@ -876,8 +894,7 @@ if (emptyFilters.length > 0) {
       lettering tiles in three columns, which is neither thing. So Merch
       clears the others, and pressing any other filter leaves Merch.
     */
-    const MERCH_FILTER = '.merch-apparel';
-    let dealBeforeMerch: HTMLElement[] | null = null;
+    let dealBeforeView: HTMLElement[] | null = null;
 
     const putBack = (order: HTMLElement[]) => {
       const frag = document.createDocumentFragment();
@@ -903,29 +920,50 @@ if (emptyFilters.length > 0) {
       ];
     };
 
-    const enterMerch = () => {
+    /*
+      THE WHOLE CASE STUDY, IN THE MERCH VIEW ONLY.
+
+      Chris: "I'd like everything, regardless of filter, that's attached to
+      the corresponding case study to gather around that shirt. That's just
+      in the t-shirt view." The view stays garments-only at rest - which also
+      means he can move the camera angles and scene shots out of the Merch
+      category and they will still turn up around their shirt.
+
+      So the merch view's filter is a function rather than a selector: merch
+      tiles, plus whatever is in `revealed`. Clicking a shirt fills
+      `revealed` with its whole project and the gather's arrange() shows
+      them; closing it, or clicking another, empties it and they hide again.
+      Isotope re-runs the filter on every arrange(), so nothing else has to
+      know the view is any different.
+    */
+    const revealed = new Set<HTMLElement>();
+    const merchFilter = (el: HTMLElement) => el.matches(MERCH_FILTER) || revealed.has(el);
+
+    const enterView = (f: string) => {
       ungatherSilently();
-      dealBeforeMerch = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item'));
-      putBack(merchOrder(dealBeforeMerch));
-      merchView = true;
-      grid.classList.add('is-merch-view');
+      dealBeforeView = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item'));
+      if (f === MERCH_FILTER) putBack(merchOrder(dealBeforeView));
+      view = f;
+      grid.classList.add(VIEWS[f].cls);
       // A view change resets the size: the visitor's zoom belonged to the
-      // grid they were looking at, and three columns IS this view.
+      // grid they were looking at, and the view's own count IS the view.
       zoomed = false;
       cols = defaultCols();
       setColWidth();
       reloadItems();
-      iso.arrange({ filter: MERCH_FILTER });
+      iso.arrange({ filter: f === MERCH_FILTER ? merchFilter : f });
     };
 
     // Does not arrange: every caller arranges straight after, with its own filter.
-    const leaveMerch = () => {
-      if (!merchView) return;
+    const leaveView = () => {
+      if (!view) return;
       ungatherSilently();
-      if (dealBeforeMerch) putBack(dealBeforeMerch);
-      dealBeforeMerch = null;
-      merchView = false;
-      grid.classList.remove('is-merch-view');
+      if (dealBeforeView) putBack(dealBeforeView);
+      dealBeforeView = null;
+      revealed.clear();
+      document.querySelector(`.pf-btn[data-filter="${view}"]`)?.classList.remove('is-active');
+      grid.classList.remove(VIEWS[view].cls);
+      view = null;
       zoomed = false;
       cols = defaultCols();
       setColWidth();
@@ -952,25 +990,30 @@ if (emptyFilters.length > 0) {
         // that are no longer on it.
         clearFamily();
         const allFilterBtns = document.querySelectorAll('.pf-btn[data-filter]');
-        if (filterVal === MERCH_FILTER) {
+        /*
+          A VIEW IS EXCLUSIVE. Chris: "switching to merch would be singular,
+          can't multi select it and type/lettering". Merch and Type/Lettering
+          each change the columns and the tile shape, so combining either
+          with anything gives a grid that is neither. Pressing a view clears
+          every other filter; pressing it again goes back to everything;
+          pressing anything else leaves it. Brand Identity and Photography
+          stay ordinary filters that combine with each other.
+        */
+        if (VIEWS[filterVal]) {
+          const again = view === filterVal;
+          leaveView();
           allFilterBtns.forEach((b) => b.classList.remove('is-active'));
-          // Pressing it again leaves the view, the way the other buttons
-          // toggle off - back to everything.
-          if (merchView) {
-            leaveMerch();
+          if (again) {
             allBtn?.classList.add('is-active');
             iso.arrange({ filter: '*' });
             return;
           }
           btn.classList.add('is-active');
-          enterMerch();
+          enterView(filterVal);
           return;
         }
-        // Any other filter leaves the merch view rather than combining with it.
-        if (merchView) {
-          leaveMerch();
-          document.querySelector(`.pf-btn[data-filter="${MERCH_FILTER}"]`)?.classList.remove('is-active');
-        }
+        // Any other filter leaves a view rather than combining with it.
+        leaveView();
         if (filterVal === '*') {
           allFilterBtns.forEach((b) => b.classList.remove('is-active'));
           btn.classList.add('is-active');
@@ -1015,7 +1058,7 @@ if (emptyFilters.length > 0) {
         mockups re-deal among themselves, and the extra shots among
         themselves, and the line between the two stays where it was.
       */
-      if (merchView) {
+      if (inMerch()) {
         ungatherSilently();
         const all = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item'));
         const rotate = (list: HTMLElement[]) => {
@@ -1261,11 +1304,18 @@ if (emptyFilters.length > 0) {
 
     /*
       Four pieces is the smallest set worth dimming eighty tiles for. In a
-      view of nineteen garments one sibling is already worth bringing over:
-      Hug a Mug has three merch pieces and would otherwise never gather.
+      view of a couple of dozen pieces one sibling is already worth bringing
+      over: Hug a Mug has three merch pieces and would otherwise never gather.
     */
-    const MERCH_FAMILY_MIN = 2;
-    const familyMin = () => (merchView ? MERCH_FAMILY_MIN : FAMILY_MIN);
+    const VIEW_FAMILY_MIN = 2;
+    const familyMin = () => (view ? VIEW_FAMILY_MIN : FAMILY_MIN);
+
+    /*
+      Every piece of a project, whatever the filter shows. The merch view
+      gathers from this, revealing what the filter hid - see `revealed`.
+    */
+    const wholeFamilyOf = (href: string) =>
+      Array.from(grid.querySelectorAll<HTMLElement>('.pf-item')).filter((el) => projectOf(el) === href);
 
     /*
       LINES BETWEEN THE PIECES.
@@ -1276,6 +1326,10 @@ if (emptyFilters.length > 0) {
       the gate it was sharing.
     */
     const clearFamily = () => {
+      // Pieces the merch view revealed for a gather go back to hidden at the
+      // next arrange() - restoreOrder's on close, the next gather's on a new
+      // click, the filter's on a filter change.
+      revealed.clear();
       grid.classList.remove('has-focus');
       grid.querySelectorAll('.pf-item.is-sibling').forEach((el) => el.classList.remove('is-sibling'));
       grid.querySelector('.pf-links')?.remove();
@@ -2778,7 +2832,12 @@ if (emptyFilters.length > 0) {
       // show. Dimming the page around a lone tile would read as a fault.
       if (!href) return;
 
-      const family = familyOf(href);
+      /*
+        In the merch view the set is the WHOLE case study, hidden pieces and
+        all, and they are marked for the gather's arrange() to reveal. In
+        every other view it is what the filter shows. See `revealed`.
+      */
+      const family = inMerch() ? wholeFamilyOf(href) : familyOf(href);
 
       /*
         Below the threshold the effect is worse than nothing: Chateau Seven is
@@ -2790,6 +2849,7 @@ if (emptyFilters.length > 0) {
       if (family.length < familyMin()) return;
 
       for (const el of family) el.classList.add('is-sibling');
+      if (inMerch()) for (const el of family) revealed.add(el);
       grid.classList.add('has-focus');
       focusItem = item;
       focusFamily = family;

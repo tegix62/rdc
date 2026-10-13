@@ -21,6 +21,7 @@ import {chromium} from 'playwright'
 
 const BASE = (process.argv[2] ?? 'https://preview.rumeau-design-co.pages.dev').replace(/\/$/, '')
 const MERCH = '.merch-apparel'
+const TYPE = '.type-lettering'
 
 let failures = 0
 const check = (name, ok, detail = '') => {
@@ -61,6 +62,13 @@ const state = (page) =>
       cols: Math.round(grid.clientWidth / sizer.getBoundingClientRect().width),
       active,
       merchView: grid.classList.contains('is-merch-view'),
+      typeView: grid.classList.contains('is-type-view'),
+      // Pictures that are not square, among tiles at rest. Uniform means none.
+      notSquare: shown.filter((el) => {
+        if (el.classList.contains('is-expanded')) return false
+        const r = el.querySelector('.pf-item__img')?.getBoundingClientRect()
+        return r && Math.abs(r.width - r.height) > 1.5
+      }).length,
       shown: shown.length,
       shownMerch: shown.filter((el) => el.matches(MERCH)).length,
       // DOM order of what is on screen: lead/later sequence.
@@ -92,9 +100,13 @@ const press = async (page, filter) => {
     `${m.shownOrder.filter((x) => x === 'lead').length} front, ${m.shownOrder.filter((x) => x === 'later').length} back: ${m.shownOrder.join(' ')}`,
   )
 
+  check('every merch picture is the same square shape', m.notSquare === 0, `${m.notSquare} not square`)
+
   /*
-    The gather. A front-row piece from the project with the most merch
-    siblings on screen, so the check is about a real set and not a pair.
+    The gather. A front-row piece from the project with the most pieces IN
+    TOTAL - merch or not - so the check covers the hidden ones too. Chris:
+    "everything, regardless of filter, that's attached to the corresponding
+    case study to gather around that shirt".
   */
   const target = await page.evaluate((MERCH) => {
     const grid = document.querySelector('#pf-grid')
@@ -104,18 +116,21 @@ const press = async (page, filter) => {
       ),
     )
     const href = (el) => el.querySelector('.pf-item__jump')?.getAttribute('href') ?? null
-    const counts = new Map()
-    for (const el of shown) {
-      const h = href(el)
-      if (h) counts.set(h, (counts.get(h) ?? 0) + 1)
-    }
     const all = Array.from(grid.querySelectorAll('.pf-item'))
+    const total = new Map()
+    const hidden = new Map()
+    for (const el of all) {
+      const h = href(el)
+      if (!h) continue
+      total.set(h, (total.get(h) ?? 0) + 1)
+      if (!shown.has(el)) hidden.set(h, (hidden.get(h) ?? 0) + 1)
+    }
     let best = null
     for (const el of shown) {
       const h = href(el)
-      if (!h || el.dataset.merch !== 'lead') continue
-      const n = counts.get(h)
-      if (n >= 2 && (!best || n > best.n)) best = {i: all.indexOf(el), h, n}
+      if (!h || el.dataset.merch !== 'lead' || !(hidden.get(h) > 0)) continue
+      const n = total.get(h)
+      if (!best || n > best.n) best = {i: all.indexOf(el), h, n, hidden: hidden.get(h)}
     }
     return best
   }, MERCH)
@@ -134,6 +149,7 @@ const press = async (page, filter) => {
       const shown = Array.from(grid.querySelectorAll('.pf-item')).filter(
         (el) => getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().width > 0,
       )
+      const whole = Array.from(grid.querySelectorAll('.pf-item')).filter((el) => href(el) === h)
       const fam = shown.filter((el) => href(el) === h)
       const idx = fam.map((el) => shown.indexOf(el))
       const contiguous = Math.max(...idx) - Math.min(...idx) + 1 === fam.length
@@ -155,20 +171,29 @@ const press = async (page, filter) => {
       ).length
       return {
         n: fam.length,
+        whole: whole.length,
+        nonMerch: fam.filter((el) => !el.classList.contains('merch-apparel')).length,
         contiguous,
         intruders,
         hiddenLit,
         expanded: !!grid.querySelector('.pf-item.is-expanded'),
-        stillMerch: shown.every((el) => el.classList.contains('merch-apparel')),
         onScreen: top < innerHeight && bottom > 0,
       }
     }, target.h)
-    console.log(`\nclicked a piece from ${target.h} (${target.n} merch pieces on screen)`)
+    console.log(`\nclicked a shirt from ${target.h} (${target.n} pieces in the case study, ${target.hidden} hidden by the filter)`)
     check('the clicked piece opens', g.expanded)
-    check('its merch siblings are gathered next to it', g.contiguous, `${g.n} pieces, contiguous: ${g.contiguous}`)
+    check('the WHOLE case study is on screen, hidden pieces included', g.n === g.whole, `${g.n} of ${g.whole}`)
+    check('including pieces outside Merch', g.nonMerch > 0, `${g.nonMerch} non-merch piece(s) revealed`)
+    check('gathered next to it in one run', g.contiguous, `contiguous: ${g.contiguous}`)
     check('nothing else sits inside the gathered set', g.intruders === 0, `${g.intruders} intruder(s)`)
-    check('no hidden (non-merch) piece is lit or pulled in', g.hiddenLit === 0 && g.stillMerch, `${g.hiddenLit} hidden lit`)
+    check('nothing lit is left invisible', g.hiddenLit === 0, `${g.hiddenLit} hidden lit`)
     check('the gathered set is on screen', g.onScreen)
+
+    // Closing it hides the revealed pieces again: the view is garments at rest.
+    await tile.locator('.pf-item__img').click()
+    await page.waitForTimeout(1200)
+    const closed = await state(page)
+    check('closing hides the revealed pieces again', closed.shown === closed.shownMerch && closed.shownMerch === m.shownMerch, `${closed.shown} on screen, ${closed.shownMerch} merch`)
   }
 
   // Another filter leaves the merch view entirely.
@@ -176,7 +201,7 @@ const press = async (page, filter) => {
     (MERCH) =>
       Array.from(document.querySelectorAll('.pf-btn[data-filter]'))
         .map((b) => b.dataset.filter)
-        .find((f) => f !== '*' && f !== MERCH) ?? null,
+        .find((f) => f !== '*' && f !== MERCH && f !== TYPE) ?? null,
     MERCH,
   )
   if (other) {
@@ -187,6 +212,36 @@ const press = async (page, filter) => {
     check(`${other} restores the normal columns`, o.cols === before.cols, `${o.cols} columns, was ${before.cols}`)
     check(`only ${other} is on screen`, o.shown > 0, `${o.shown} tiles`)
   }
+
+  /*
+    TYPE / LETTERING: four columns, a 2px seam, every picture cropped square.
+    And views are exclusive of each other as well as of the filters.
+  */
+  await press(page, TYPE)
+  const t = await state(page)
+  console.log('')
+  check('Type/Lettering switches to 4 columns', t.cols === 4, `${t.cols} columns`)
+  check('Type/Lettering is the only active filter', t.active.length === 1 && t.active[0] === TYPE, JSON.stringify(t.active))
+  check('and it is a view, not a combined filter', t.typeView && !t.merchView)
+  check('every type picture is cropped square', t.notSquare === 0, `${t.notSquare} not square`)
+  const seam = await page.evaluate(() => {
+    const imgs = Array.from(document.querySelectorAll('#pf-grid .pf-item'))
+      .filter((el) => getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().width > 0)
+      .map((el) => el.querySelector('.pf-item__img').getBoundingClientRect())
+    // Horizontal neighbours: same top, the nearest picture to the right.
+    const gaps = []
+    for (const a of imgs) {
+      const right = imgs.filter((b) => Math.abs(b.top - a.top) < 2 && b.left > a.left).sort((x, y) => x.left - y.left)[0]
+      if (right) gaps.push(right.left - a.right)
+    }
+    return gaps.length ? {min: Math.min(...gaps), max: Math.max(...gaps), n: gaps.length} : null
+  })
+  check('the seam between pieces is really thin', seam && seam.max <= 3, seam ? `${seam.min.toFixed(1)}-${seam.max.toFixed(1)}px across ${seam.n} pairs` : 'no neighbours found')
+
+  await press(page, MERCH)
+  const tm = await state(page)
+  check('Merch from Type switches views cleanly', tm.merchView && !tm.typeView && tm.cols === 3, `${tm.cols} columns, ${JSON.stringify(tm.active)}`)
+  await press(page, MERCH)
 
   // Merch again, then Merch once more: toggles back to everything.
   await press(page, MERCH)
@@ -206,6 +261,9 @@ const press = async (page, filter) => {
   const p = await state(page)
   console.log('')
   check('on a phone the merch view is 2 columns', p.cols === 2, `${p.cols} columns`)
+  await press(page, TYPE)
+  const pt = await state(page)
+  check('and so is the type view', pt.cols === 2, `${pt.cols} columns`)
   const docW = await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth])
   check('and nothing scrolls sideways', docW[0] <= docW[1], `${docW[0]} vs ${docW[1]}`)
   await page.close()

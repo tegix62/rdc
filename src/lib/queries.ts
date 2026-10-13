@@ -176,19 +176,24 @@ export function getContactForm() {
 // Everything a tile needs to render, wherever it is rendered. Shared so the
 // homepage grid and the Portfolio grid cannot drift into showing different
 // things about the same piece of work.
+/*
+  `tileOpaque` is whether the picture the tile shows has real transparency -
+  a garment cut out on nothing. select() makes the same choice tileImage()
+  makes about which picture to show: the thumbnail when it has an asset, the
+  main image otherwise. Not coalesce(), which would fall through to the main
+  image's flag whenever the thumbnail's was missing - reading one picture's
+  transparency for a tile that shows another. See merchPlacement() in
+  lib/tiles.ts for what it decides.
+
+  OUT HERE, NOT INSIDE THE QUERY. GROQ takes // comments and nothing else;
+  a block comment inside the template string failed every build with
+  "expected '}' following object body", on the homepage, which shares this
+  projection.
+*/
 const TILE = `
   _id,
   title, slug, pageType, thumbnail, mainImage, category, archiveMark, heroTile,
   tileTreatment, assetType, merchPlacement,
-  /*
-    Whether the picture the tile shows has real transparency - a garment cut
-    out on nothing. select() makes the same choice tileImage() makes about
-    which picture to show: the thumbnail when it has an asset, the main image
-    otherwise. Not coalesce(), which would fall through to the main image's
-    flag whenever the thumbnail's was missing - reading one picture's
-    transparency for a tile that shows another. See merchPlacement() in
-    lib/tiles.ts for what it decides.
-  */
   "tileOpaque": select(
     defined(thumbnail.asset) => thumbnail.asset->metadata.isOpaque,
     mainImage.asset->metadata.isOpaque

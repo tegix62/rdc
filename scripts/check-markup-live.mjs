@@ -9,7 +9,7 @@
 
   READ-ONLY.
 
-  Usage: node scripts/check-markup-live.mjs <base-url> <path,path> <selector-class>
+  Usage: node scripts/check-markup-live.mjs <base-url> <path,path> <selector-class> [only-if-containing]
          e.g. ... https://rumeaudesign.co /work/two-point-oh figcaption
 */
 const BASE = (process.argv[2] ?? 'https://preview.rumeau-design-co.pages.dev').replace(/\/$/, '')
@@ -23,7 +23,12 @@ for (const p of PATHS) {
   const re = /^[a-z][a-z0-9-]*$/.test(TAG)
     ? new RegExp(`<${TAG}\\b[^>]*>([\\s\\S]*?)</${TAG}>`, 'gi')
     : new RegExp(`<(\\w+)[^>]*class="[^"]*\\b${TAG}\\b[^"]*"[^>]*>([\\s\\S]*?)</\\1>`, 'gi')
-  const hits = [...html.matchAll(re)].map((m) => (m.length > 2 ? m[2] : m[1]))
+  // An optional 4th argument keeps only the matches containing it - for a
+  // tag like <script>, where the page has many and one of them is wanted.
+  const ONLY = process.argv[5] ?? ''
+  const hits = [...html.matchAll(re)]
+    .map((m) => (m.length > 2 ? m[2] : m[1]))
+    .filter((h) => !ONLY || h.includes(ONLY))
   console.log(`${p} - ${hits.length} <${TAG}>`)
   // The preview build carries Sanity's click-to-edit markers: long runs of
   // zero-width characters after every CMS string. Invisible on the page,

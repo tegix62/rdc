@@ -15,6 +15,9 @@ on:
       selector:
         description: 'A tag name (figcaption) or a class (work-identity__credits)'
         default: 'figcaption'
+      contains:
+        description: 'Only print matches containing this text (optional)'
+        default: ''
 
 jobs:
   check:
@@ -27,11 +30,12 @@ jobs:
           node-version: 22
       - run: |
           set -o pipefail
-          node scripts/check-markup-live.mjs "$BASE" "$PATHS" "$SEL" | tee /tmp/markup.txt
+          node scripts/check-markup-live.mjs "$BASE" "$PATHS" "$SEL" "$ONLY" | tee /tmp/markup.txt
         env:
           BASE: ${{ inputs.base_url }}
           PATHS: ${{ inputs.paths }}
           SEL: ${{ inputs.selector }}
+          ONLY: ${{ inputs.contains }}
       - name: Publish to the run summary
         if: always()
         run: |

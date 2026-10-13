@@ -1,0 +1,44 @@
+name: Check markup live
+
+# Print what a live page serves for one tag or class. See
+# scripts/check-markup-live.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+      paths:
+        description: 'Comma-separated paths'
+        default: '/work/two-point-oh,/video'
+      selector:
+        description: 'A tag name (figcaption) or a class (work-identity__credits)'
+        default: 'figcaption'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: |
+          set -o pipefail
+          node scripts/check-markup-live.mjs "$BASE" "$PATHS" "$SEL" | tee /tmp/markup.txt
+        env:
+          BASE: ${{ inputs.base_url }}
+          PATHS: ${{ inputs.paths }}
+          SEL: ${{ inputs.selector }}
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Live markup'
+            echo ''
+            echo '```'
+            cat /tmp/markup.txt 2>/dev/null || echo '(the check did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

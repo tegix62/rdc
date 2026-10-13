@@ -1,0 +1,44 @@
+name: Measure merch resolution
+
+# Whether every picture in the Merch & Apparel view has enough pixels for the
+# screen it is on, at rest and with a shirt opened. See
+# scripts/measure-merch-resolution.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to measure'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+      name:
+        description: 'Part of the title of the piece to open'
+        default: 'More Kilos Tee'
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          set -o pipefail
+          node scripts/measure-merch-resolution.mjs \
+            "${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}" \
+            "${{ inputs.name || 'More Kilos Tee' }}" | tee /tmp/rows.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Merch resolution'
+            echo ''
+            echo '```'
+            cat /tmp/rows.txt 2>/dev/null || echo '(the measurement did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+

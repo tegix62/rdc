@@ -197,12 +197,13 @@ const press = async (page, filter) => {
   }
 
   // Another filter leaves the merch view entirely.
+  // Both constants passed in: the page cannot see this script's variables.
   const other = await page.evaluate(
-    (MERCH) =>
+    ([MERCH, TYPE]) =>
       Array.from(document.querySelectorAll('.pf-btn[data-filter]'))
         .map((b) => b.dataset.filter)
         .find((f) => f !== '*' && f !== MERCH && f !== TYPE) ?? null,
-    MERCH,
+    [MERCH, TYPE],
   )
   if (other) {
     await press(page, other)

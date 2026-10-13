@@ -4064,9 +4064,24 @@ main {
 
   Declared on the band rather than per block so there is one number to change,
   and so a block only has to opt in by using it.
+
+  .page-sections IS THE SAME KIND OF CONTAINER. It holds the same Page Builder
+  blocks on the Video and Collage pages, and it did not declare this - so a
+  Media Row there fell back to 100% of the 72rem text column. Measured on the
+  preview before this changed: a row on a case study was 1376px wide at a
+  1440px window (32px from each edge), and on /video 1104px (168px from each
+  edge); at 1920px, 1600px against 1104px. The same blocks, built by the same
+  code, two different widths, because one container declared the picture
+  measure and the other did not.
+
+  The breakout arithmetic needs the container centred on the window, which
+  .page-sections is: it sits in .wrap, which is centred with symmetric padding.
+  It does not need the band's accent colour or anything else, so the two share
+  one declaration and cannot drift apart.
 */
 @media (min-width: 64rem) {
-  .work-band__inner {
+  .work-band__inner,
+  .page-sections {
     --wide-room: min(100vw - 2 * var(--space-4), 100rem);
   }
 }

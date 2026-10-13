@@ -159,8 +159,8 @@ check(
 const PAGE_ONLY = [
   'heroVideo', 'heroVideoSrc', 'heroVideoFile', 'heroVideoWebm', 'heroVideoPlayback',
   'headline', 'subtitle', 'oneLineSummary', 'summary', 'resultStat',
-  'client', 'clientLogo', 'sections', 'principalType', 'principalTypeUrl',
-  'credits', 'body', 'servicesRendered', 'merchGrid', 'flyerGrid', 'processGrid',
+  'client', 'clientLogo', 'sections', 'creditsText',
+  'body', 'servicesRendered', 'merchGrid', 'flyerGrid', 'processGrid',
   'filmEmbed', 'accentColor',
 ]
 const TILE_ALWAYS = [
@@ -240,6 +240,25 @@ check(
   strayRichCaptions.length === 0,
   strayRichCaptions.join(', ') || 'none',
 )
+
+/*
+  THE CREDITS PANEL IS ONE FIELD.
+
+  It replaced a collaborator list and two Principal Type fields, and
+  scripts/migrate-credits-to-rich-text.mjs removed those from every
+  document. If one came back in the schema, Studio would offer two places
+  to write the same credit and the page would only ever show one of them.
+*/
+const creditsText = csFields.get('creditsText')
+const creditsBlock = creditsText?.of?.find((m) => m.type === 'block')
+check(
+  'credits are one rich field with bold and a link',
+  creditsText?.type === 'array' &&
+    (creditsBlock?.marks?.decorators ?? []).some((d) => d.value === 'strong') &&
+    (creditsBlock?.marks?.annotations ?? []).some((a) => a.name === 'link'),
+)
+const oldCredits = ['credits', 'principalType', 'principalTypeUrl'].filter((n) => csFields.has(n))
+check('the three old credits fields are gone', oldCredits.length === 0, oldCredits.join(', ') || 'none')
 
 // --- how much lighter did the form actually get? ---------------------------
 const visibleOnGrid = (byName.get('caseStudy')?.fields ?? []).filter(

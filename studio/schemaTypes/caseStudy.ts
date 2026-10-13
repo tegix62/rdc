@@ -648,60 +648,63 @@ export default defineType({
     }),
 
     // --- Credits -----------------------------------------------------------
+    /*
+      ONE FIELD, TYPED THE WAY THE PANEL READS.
+
+      This was three inputs: a list of collaborator objects (each a little
+      form with a name, a role and a link), a Principal Type string and a
+      Principal Type URL. Chris: "I really just need a rich text on the right
+      side that I can hyperlink myself rather than the many different
+      options." So it is the panel itself:
+
+        **Producer** - Henry Heissenbuttel
+        **Audio Engineer** - Adam Cichocki      <- name linked
+                                                <- an empty line starts a group
+        **Principal Type** - Forevs by OhNo Type Co
+
+      Bold and a link are the whole toolbar. The page still reads structure
+      out of it - bold is the role, a link is a person - because the
+      collaborators go into the structured data as contributors and Principal
+      Type feeds the derived search description. See src/lib/credits.ts.
+
+      The five panels that existed were moved into this field, and the three
+      old fields removed from those documents, in one transaction - see
+      scripts/migrate-credits-to-rich-text.mjs.
+    */
     defineField({
-      name: 'principalType',
-      title: 'Principal Type - the typeface this is built on',
-      type: 'string',
-      group: 'credits',
-      hidden: onlyOnCaseStudies,
-      description:
-        'Credited the way a typography book lists the principal type used - ' +
-        'e.g. "Söhne, Klim Type Foundry" or "Cooper Black, Oswald Cooper". ' +
-        'Credit the people you borrowed from whether or not they know you: it ' +
-        'is the kind of detail that tells a client how you think.',
-    }),
-    defineField({
-      name: 'principalTypeUrl',
-      title: 'Principal Type - link to the foundry',
-      type: 'url',
-      group: 'credits',
-      hidden: onlyOnCaseStudies,
-      description:
-        'Optional. Makes the typeface credit above a real link. Left empty it ' +
-        'just reads as text.',
-    }),
-    defineField({
-      name: 'credits',
-      title: 'Collaborators',
+      name: 'creditsText',
+      title: 'Credits',
       type: 'array',
       group: 'credits',
       hidden: onlyOnCaseStudies,
       description:
-        'Everyone else who worked on this. Add a link and the name becomes a ' +
-        'real link to their work: good manners, and the credit also goes into ' +
-        "the page's structured data so search engines read them as " +
-        'contributors rather than as decoration.',
+        'The panel beside the title, one credit per line. Bold the role, then ' +
+        'select a name and press the link button to link their work. Leave an ' +
+        'empty line to start a new group - the way Principal Type sits apart ' +
+        'from the collaborators.',
       of: [
         {
-          type: 'object',
-          fields: [
-            {name: 'name', type: 'string'},
-            {name: 'role', title: 'Role on this project', type: 'string'},
-            /*
-              Named `url` rather than `link` so lib/sanity.ts excludes it from
-              stega without another entry in NON_TEXT_FIELDS - a URL with
-              zero-width characters in it is a broken link, and that list is
-              keyed on field name.
-            */
-            {
-              name: 'url',
-              title: 'Link to their work',
-              type: 'url',
-              description: 'Optional. Left empty the name is just text.',
-            },
-          ],
-          preview: {
-            select: {title: 'name', subtitle: 'role'},
+          type: 'block',
+          styles: [{title: 'Normal', value: 'normal'}],
+          lists: [],
+          marks: {
+            decorators: [{title: 'Bold', value: 'strong'}],
+            annotations: [
+              {
+                name: 'link',
+                type: 'object',
+                title: 'Link',
+                fields: [
+                  {
+                    name: 'href',
+                    type: 'url',
+                    title: 'URL',
+                    validation: (Rule: any) =>
+                      Rule.uri({scheme: ['http', 'https', 'mailto']}).required(),
+                  },
+                ],
+              },
+            ],
           },
         },
       ],

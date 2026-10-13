@@ -1,0 +1,33 @@
+name: Diagnose merch tiles
+
+# Every Merch & Apparel tile with the facts a "lead with the flat tees" rule
+# could use: transparency, file type, size, dominant background. See
+# scripts/diagnose-merch-tiles.mjs.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: |
+          set -o pipefail
+          node scripts/diagnose-merch-tiles.mjs | tee /tmp/merch.txt
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Merch tiles'
+            echo ''
+            echo '```'
+            cat /tmp/merch.txt 2>/dev/null || echo '(the diagnosis did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

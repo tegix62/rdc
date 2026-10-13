@@ -35,3 +35,28 @@ for (const d of docs) {
 const base = (id) => id.replace(/^drafts\./, '')
 const ids = new Set(docs.map((d) => base(d._id)))
 console.log(`${ids.size} distinct document(s) once drafts are paired with their published copies.`)
+
+/*
+  ONE DOCUMENT CAN STILL BE SEEN TWICE - THROUGH ITS PICTURE.
+
+  If another tile shows the same image file, the grid has two tiles that
+  look identical and, at a glance, read as the same piece twice. So every
+  other document using any of these images is listed too.
+*/
+const refs = [...new Set(docs.flatMap((d) => [d.thumb, d.main]).filter(Boolean))]
+if (refs.length) {
+  const q2 = `*[_type == "caseStudy" && (thumbnail.asset._ref in $refs || mainImage.asset._ref in $refs)]{
+    _id, title, pageType, category, "parent": parentBrand->title,
+    "thumb": thumbnail.asset._ref, "main": mainImage.asset._ref
+  }`
+  const r2 = await fetch(
+    `https://8337vjtf.api.sanity.io/v2024-01-01/data/query/production?query=${encodeURIComponent(q2)}&$refs=${encodeURIComponent(JSON.stringify(refs))}&perspective=raw`,
+    {headers: TOKEN ? {Authorization: `Bearer ${TOKEN}`} : {}},
+  )
+  const same = ((await r2.json()).result ?? []).filter((d) => !docs.some((x) => x._id === d._id))
+  console.log(`\n${same.length} OTHER document(s) using the same picture:`)
+  for (const d of same) {
+    const which = refs.includes(d.thumb) ? 'as its Tile Image (thumbnail)' : 'as its Main Image (and the tile falls back to it)'
+    console.log(`  ${d._id}  "${d.title}" [${d.pageType}, ${d.category ?? 'no category'}], parent ${d.parent ?? '(none)'} - ${which}`)
+  }
+}

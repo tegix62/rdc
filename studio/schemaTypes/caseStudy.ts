@@ -248,6 +248,35 @@ export default defineType({
         'fill. Left empty it is inferred, so work already tagged with an Asset ' +
         'Type needs no re-entry.',
     }),
+    /*
+      Where the piece sits in the Merch & Apparel view: the simple mockups
+      first, other angles and scenes after. Inferred from the picture - a
+      garment cut out on transparency leads - so this is only for the
+      exceptions, the way Tile Layout above is. The one known exception on
+      the day this was added: Two Point Oh's Luna Tee, a flat tee on a solid
+      grey ground. See merchPlacement() in src/lib/tiles.ts.
+
+      Hidden unless the piece is Merch & Apparel, where it means nothing.
+    */
+    defineField({
+      name: 'merchPlacement',
+      title: 'Merch View - front or back',
+      type: 'string',
+      group: 'tile',
+      fieldset: 'tileOptions',
+      hidden: ({document}) => document?.category !== 'Merch & Apparel',
+      options: {
+        list: [
+          {title: 'Front - a single mockup, shown first', value: 'lead'},
+          {title: 'Back - other angles, scenes and details', value: 'later'},
+        ],
+        layout: 'radio',
+      },
+      description:
+        'Only needed when it is sorted wrong. Left empty, a garment on a ' +
+        'transparent background goes to the front and anything with a ' +
+        'background - a photo, a scene, a detail shot - goes to the back.',
+    }),
     imageSpec({
       name: 'archiveMark',
       title: 'Archive Mark - hand-drawn B&W alternate',

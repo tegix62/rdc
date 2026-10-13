@@ -8,7 +8,7 @@ import Sections from '../components/Sections.astro';
 import { getPage, getAllGridItems } from '../lib/queries';
 // Shared with the homepage's miniature grid, so the two cannot disagree about
 // what counts as a logomark or how wide a hero tile is. See lib/tiles.ts.
-import { cleanKey, treatmentOf, explicitTreatment, tileHref, heroHeight, HERO_RATIO_PORTFOLIO } from '../lib/tiles';
+import { cleanKey, treatmentOf, explicitTreatment, tileHref, heroHeight, HERO_RATIO_PORTFOLIO, merchPlacement } from '../lib/tiles';
 import { orderTiles, isCaseStudy } from '../lib/gridOrder';
 import { tileImage } from '../lib/image';
 
@@ -258,6 +258,10 @@ if (emptyFilters.length > 0) {
         const img = tileImage(item);
         const cat = CATEGORY_FILTER[cleanKey(item.category)] ?? '';
         const parentHref = tileHref(item);
+        // Lead or later in the Merch & Apparel view: the simple mockup first,
+        // other angles and scenes after. Only on merch tiles, since it means
+        // nothing anywhere else. See merchPlacement() in lib/tiles.ts.
+        const merch = cat === 'merch-apparel' ? merchPlacement(item) : undefined;
         // The category has to be a real CLASS, not just a data attribute:
         // Isotope filters with CSS selectors (".brand-identity"), so with the
         // value only in data-category every filter matched zero tiles and the
@@ -280,6 +284,7 @@ if (emptyFilters.length > 0) {
               item.heroTile && 'pf-item--hero',
             ]}
             data-category={cat}
+            data-merch={merch}
           >
             {/*
               The frame wraps the image and the jump button so a selected tile
@@ -469,7 +474,28 @@ if (emptyFilters.length > 0) {
     const DESKTOP_COLS = 6;
     const WIDE_COLS = 7;
     const WIDE_FROM = 1280;
+    /*
+      THE MERCH & APPAREL VIEW IS A DIFFERENT KIND OF PAGE, NOT A SUBSET.
+
+      Chris: "the Merch & Apparel tab, let's have this switch the view to 3
+      columns on desktop". Seven columns is a way to scan eighty pieces of
+      everything; nineteen garments want to be looked at. Three across makes
+      a tee roughly 450px wide on a laptop instead of 180 - big enough to read
+      the print, which is the whole point of the work.
+
+      Two on a phone, by the same reasoning: four columns of tees on a 390px
+      screen are 90px thumbnails, and the default four is the thing this view
+      exists to get away from.
+
+      Declared above defaultCols(), which reads it: a `let` used before its
+      declaration is a ReferenceError, and defaultCols() runs on the very
+      next line.
+    */
+    const MERCH_COLS = 3;
+    const MERCH_MOBILE_COLS = 2;
+    let merchView = false;
     const defaultCols = () => {
+      if (merchView) return window.innerWidth < 768 ? MERCH_MOBILE_COLS : MERCH_COLS;
       if (window.innerWidth < 768) return MOBILE_COLS;
       return window.innerWidth >= WIDE_FROM ? WIDE_COLS : DESKTOP_COLS;
     };
@@ -793,6 +819,93 @@ if (emptyFilters.length > 0) {
       window.addEventListener('resize', remeasure);
     }
 
+    /*
+      THE MERCH & APPAREL VIEW: ITS OWN ORDER, ITS OWN COLUMNS, ON ITS OWN.
+
+      Chris: "I primarily want the single-mockup shirts to appear here. The
+      extra stuff (other camera angles and mockups that aren't just a simple
+      tee with no background) maybe I throw in at the end."
+
+      So entering the view re-deals the merch tiles: every 'lead' piece in
+      the order the build dealt them, then every 'later' one. The build
+      decided which is which (data-merch, from merchPlacement()), so the
+      browser only sorts.
+
+      By DOM order, NOT Isotope's sortBy, and that is load-bearing. Gather
+      works by moving a project's pieces next to each other in the DOM and
+      letting masonry lay them out in that order. A sortBy would re-sort
+      them straight back - the 'later' camera angles of the shirt you
+      clicked would be sent to the end of the grid again, which is the exact
+      opposite of "it Gathers adjacent stuff from that case study around
+      it". Sorting the DOM once, on the way in, leaves gather working
+      unchanged.
+
+      The deal from before is kept and put back on the way out, so leaving
+      the view returns the main grid exactly as it was.
+
+      EXCLUSIVE. Chris: "those filters wouldn't be inclusive to each other,
+      switching to merch would be singular, can't multi select it and
+      type/lettering." Two of the categories combined is still a grid of
+      everything; merch and lettering combined would be this view with
+      lettering tiles in three columns, which is neither thing. So Merch
+      clears the others, and pressing any other filter leaves Merch.
+    */
+    const MERCH_FILTER = '.merch-apparel';
+    let dealBeforeMerch: HTMLElement[] | null = null;
+
+    const putBack = (order: HTMLElement[]) => {
+      const frag = document.createDocumentFragment();
+      for (const el of order) frag.appendChild(el);
+      grid.appendChild(frag);
+    };
+
+    /* A gathered set is undone silently first, so neither view inherits the
+       other's arrangement - see gather() on why that has to be silent. */
+    const ungatherSilently = () => {
+      if (!preGather) return;
+      putBack(preGather);
+      preGather = null;
+      clearShelves();
+    };
+
+    const merchOrder = (tiles: HTMLElement[]) => {
+      const merch = (el: HTMLElement) => el.matches(MERCH_FILTER);
+      return [
+        ...tiles.filter((el) => merch(el) && el.dataset.merch === 'lead'),
+        ...tiles.filter((el) => merch(el) && el.dataset.merch !== 'lead'),
+        ...tiles.filter((el) => !merch(el)),
+      ];
+    };
+
+    const enterMerch = () => {
+      ungatherSilently();
+      dealBeforeMerch = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item'));
+      putBack(merchOrder(dealBeforeMerch));
+      merchView = true;
+      grid.classList.add('is-merch-view');
+      // A view change resets the size: the visitor's zoom belonged to the
+      // grid they were looking at, and three columns IS this view.
+      zoomed = false;
+      cols = defaultCols();
+      setColWidth();
+      iso.reloadItems();
+      iso.arrange({ filter: MERCH_FILTER });
+    };
+
+    // Does not arrange: every caller arranges straight after, with its own filter.
+    const leaveMerch = () => {
+      if (!merchView) return;
+      ungatherSilently();
+      if (dealBeforeMerch) putBack(dealBeforeMerch);
+      dealBeforeMerch = null;
+      merchView = false;
+      grid.classList.remove('is-merch-view');
+      zoomed = false;
+      cols = defaultCols();
+      setColWidth();
+      iso.reloadItems();
+    };
+
     document.querySelectorAll<HTMLElement>('.pf-btn[data-filter]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const filterVal = btn.dataset.filter!;
@@ -812,8 +925,28 @@ if (emptyFilters.length > 0) {
         // where most of its members are hidden - dimming a grid around tiles
         // that are no longer on it.
         clearFamily();
+        const allFilterBtns = document.querySelectorAll('.pf-btn[data-filter]');
+        if (filterVal === MERCH_FILTER) {
+          allFilterBtns.forEach((b) => b.classList.remove('is-active'));
+          // Pressing it again leaves the view, the way the other buttons
+          // toggle off - back to everything.
+          if (merchView) {
+            leaveMerch();
+            allBtn?.classList.add('is-active');
+            iso.arrange({ filter: '*' });
+            return;
+          }
+          btn.classList.add('is-active');
+          enterMerch();
+          return;
+        }
+        // Any other filter leaves the merch view rather than combining with it.
+        if (merchView) {
+          leaveMerch();
+          document.querySelector(`.pf-btn[data-filter="${MERCH_FILTER}"]`)?.classList.remove('is-active');
+        }
         if (filterVal === '*') {
-          document.querySelectorAll('.pf-btn[data-filter]').forEach((b) => b.classList.remove('is-active'));
+          allFilterBtns.forEach((b) => b.classList.remove('is-active'));
           btn.classList.add('is-active');
           iso.arrange({ filter: '*' });
           return;
@@ -850,6 +983,27 @@ if (emptyFilters.length > 0) {
       and come back in the new order when the filter clears.
     */
     document.querySelector('#pf-shuffle')?.addEventListener('click', () => {
+      /*
+        In the merch view a whole-grid rotation would carry camera angles into
+        the front row, undoing the one thing the view promises. So the simple
+        mockups re-deal among themselves, and the extra shots among
+        themselves, and the line between the two stays where it was.
+      */
+      if (merchView) {
+        ungatherSilently();
+        const all = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item'));
+        const rotate = (list: HTMLElement[]) => {
+          if (list.length < 3) return list;
+          const by = 1 + Math.floor(Math.random() * (list.length - 1));
+          return [...list.slice(by), ...list.slice(0, by)];
+        };
+        const lead = all.filter((el) => el.matches(MERCH_FILTER) && el.dataset.merch === 'lead');
+        const later = all.filter((el) => el.matches(MERCH_FILTER) && el.dataset.merch !== 'lead');
+        putBack([...rotate(lead), ...rotate(later), ...all.filter((el) => !el.matches(MERCH_FILTER))]);
+        iso.reloadItems();
+        iso.arrange();
+        return;
+      }
       const tiles = Array.from(grid.querySelectorAll('.pf-item'));
       if (tiles.length < 3) return;
       /*
@@ -1054,6 +1208,38 @@ if (emptyFilters.length > 0) {
 
     const projectOf = (el: Element) =>
       el.querySelector('.pf-item__jump')?.getAttribute('href') ?? null;
+
+    /*
+      A PROJECT'S PIECES THAT ARE ACTUALLY ON THE PAGE.
+
+      This was every tile with the same project link, including tiles the
+      active filter has hidden. In the main grid that mostly cost nothing -
+      the hidden ones were "gathered" invisibly - but it was quietly wrong in
+      three ways that the merch view makes impossible to ignore: a project
+      met the four-piece threshold on pieces nobody could see; on a phone the
+      set's box was measured from hidden tiles at 0,0, so the scroll aimed at
+      the top of the document; and the shelf after the set could land on a
+      hidden tile and level nothing.
+
+      Chris: "if you click on one shirt, it Gathers adjacent stuff from that
+      case study around it". In the merch view the adjacent stuff is the
+      project's other garments and shots - the ones in the view - and that is
+      what this returns.
+    */
+    const familyOf = (href: string) => {
+      const shown = new Set(iso.getFilteredItemElements());
+      return Array.from(grid.querySelectorAll<HTMLElement>('.pf-item')).filter(
+        (el) => projectOf(el) === href && shown.has(el),
+      );
+    };
+
+    /*
+      Four pieces is the smallest set worth dimming eighty tiles for. In a
+      view of nineteen garments one sibling is already worth bringing over:
+      Hug a Mug has three merch pieces and would otherwise never gather.
+    */
+    const MERCH_FAMILY_MIN = 2;
+    const familyMin = () => (merchView ? MERCH_FAMILY_MIN : FAMILY_MIN);
 
     /*
       LINES BETWEEN THE PIECES.
@@ -2543,12 +2729,10 @@ if (emptyFilters.length > 0) {
           scheduleDrop();
           return;
         }
-        const family = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item')).filter(
-          (el) => projectOf(el) === href,
-        );
+        const family = familyOf(href);
         // Same threshold as the click path. A pair is not a set, and the two
         // must agree or hovering teaches the wrong lesson about clicking.
-        if (family.length < FAMILY_MIN) {
+        if (family.length < familyMin()) {
           scheduleDrop();
           return;
         }
@@ -2568,9 +2752,7 @@ if (emptyFilters.length > 0) {
       // show. Dimming the page around a lone tile would read as a fault.
       if (!href) return;
 
-      const family = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item')).filter(
-        (el) => projectOf(el) === href,
-      );
+      const family = familyOf(href);
 
       /*
         Below the threshold the effect is worse than nothing: Chateau Seven is
@@ -2579,7 +2761,7 @@ if (emptyFilters.length > 0) {
         where the lit tiles read as a set - it takes in DumpStat's nineteen,
         Adelante's ten and Two Point Oh's seven, and leaves the pairs alone.
       */
-      if (family.length < FAMILY_MIN) return;
+      if (family.length < familyMin()) return;
 
       for (const el of family) el.classList.add('is-sibling');
       grid.classList.add('has-focus');
@@ -2662,7 +2844,7 @@ if (emptyFilters.length > 0) {
             trying to choose between.
           */
           if (gatherMode) {
-            if (focusItem && focusFamily.length >= FAMILY_MIN) {
+            if (focusItem && focusFamily.length >= familyMin()) {
               /*
                 THE LINES EXPLAIN THE MOVE, THEN THE MOVE HAPPENS.
 
@@ -2752,7 +2934,7 @@ if (emptyFilters.length > 0) {
               draw attention to the correction instead of hiding it.
             */
             window.setTimeout(() => {
-              if (focusItem && focusFamily.length >= FAMILY_MIN) {
+              if (focusItem && focusFamily.length >= familyMin()) {
                 drawLinks(focusItem, focusFamily, 'flash');
               }
             }, 420);

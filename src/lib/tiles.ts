@@ -133,3 +133,34 @@ export function tileHref(item: {
     ? `/work/${item.parentSlug}`
     : null;
 }
+
+/*
+  WHERE A PIECE SITS IN THE MERCH & APPAREL VIEW.
+
+  Chris: in that view "I primarily want the single-mockup shirts to appear
+  here. The extra stuff (other camera angles and mockups that aren't just a
+  simple tee with no background) maybe I throw in at the end."
+
+  'lead' is the simple tee; 'later' is everything else. The images already
+  say which is which, so nothing needs filling in: a garment cut out on
+  transparency is an image with an alpha channel, and Sanity records that per
+  asset. Measured across the 19 Merch tiles: 13 transparent, and they are the
+  flat tees, hoodies and the hat; the 6 opaque ones are the gym shot, the
+  on-body, the detail, the photography and a print animation - the extra
+  stuff, almost exactly.
+
+  Almost: Two Point Oh's Luna Tee is a flat tee on a solid grey ground, so
+  its picture is opaque and the rule would put it at the back. That is what
+  the override is for, the same way Tile Layout overrides Asset Type.
+
+  `tileOpaque` is the shown image's own flag (see TILE in queries.ts), read
+  from whichever image the tile actually displays. Unknown counts as opaque:
+  a tile is only promoted on evidence.
+*/
+export type MerchPlacement = 'lead' | 'later';
+
+export function merchPlacement(item: {merchPlacement?: unknown; tileOpaque?: unknown}): MerchPlacement {
+  const set = cleanKey(item?.merchPlacement);
+  if (set === 'lead' || set === 'later') return set;
+  return item?.tileOpaque === false ? 'lead' : 'later';
+}

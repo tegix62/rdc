@@ -383,6 +383,81 @@ const press = async (page, filter) => {
   await page.close()
 }
 
+// ------------------------------------------- ALL view: pieces of pieces
+/*
+  Chris, about to parent More Kilos closeups straight to the More Kilos tee:
+  "make sure they Gather when you click to anything that is parented to the
+  Case Study" - in the ALL view, not just the merch one.
+
+  The DumpStat pieces that already hang off another DumpStat piece are the
+  same shape of data, so they stand in. In the All grid, opening ANY of
+  three kinds of tile must gather the whole project, nested pieces
+  included: a nested piece, the piece it hangs off, and the case study.
+*/
+{
+  const page = await open(1440, 900)
+  const setup = await page.evaluate(() => {
+    const all = Array.from(document.querySelectorAll('#pf-grid .pf-item'))
+    const href = (el) => el.querySelector('.pf-item__jump')?.getAttribute('href') ?? null
+    const nested = all.find((el) => el.dataset.pieceParent && href(el))
+    if (!nested) return null
+    const parent = all.find((el) => el.dataset.piece === nested.dataset.pieceParent)
+    const h = href(nested)
+    const study = all.find((el) => el.classList.contains('pf-item--study') && href(el) === h)
+    return {
+      h,
+      nestedCount: all.filter((el) => el.dataset.pieceParent && href(el) === h).length,
+      total: all.filter((el) => href(el) === h).length,
+      sameLink: !!parent && href(parent) === h,
+      starts: {nested: all.indexOf(nested), parent: all.indexOf(parent), study: study ? all.indexOf(study) : -1},
+    }
+  })
+  console.log('')
+  if (!setup) {
+    check('a nested piece exists to test the All view with', false)
+  } else {
+    console.log(`ALL view: ${setup.h} has ${setup.total} pieces, ${setup.nestedCount} of them hanging off another piece`)
+    check('a nested piece links to the case study, same as the piece it hangs off', setup.sameLink)
+    for (const [kind, i] of Object.entries(setup.starts)) {
+      if (i < 0) {
+        check(`(${kind}) tile found`, false)
+        continue
+      }
+      // Each from a fresh page, so one gather cannot set up the next.
+      await page.reload({waitUntil: 'domcontentloaded'})
+      await page.waitForSelector('#pf-grid .pf-item', {state: 'visible'})
+      await page.waitForTimeout(2000)
+      // The index from the first load is the build's order, which a reload repeats.
+      const tile = page.locator('#pf-grid .pf-item').nth(i)
+      await tile.scrollIntoViewIfNeeded()
+      await tile.locator('.pf-item__img').click()
+      await page.waitForTimeout(1800)
+      const r = await page.evaluate((h) => {
+        const grid = document.querySelector('#pf-grid')
+        const href = (el) => el.querySelector('.pf-item__jump')?.getAttribute('href') ?? null
+        const shown = Array.from(grid.querySelectorAll('.pf-item')).filter(
+          (el) => getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().width > 0,
+        )
+        const fam = shown.filter((el) => href(el) === h)
+        const lit = fam.filter((el) => el.classList.contains('is-sibling'))
+        const idx = fam.map((el) => shown.indexOf(el))
+        return {
+          n: fam.length,
+          lit: lit.length,
+          nestedLit: lit.filter((el) => el.dataset.pieceParent).length,
+          contiguous: Math.max(...idx) - Math.min(...idx) + 1 === fam.length,
+        }
+      }, setup.h)
+      check(
+        `opening the ${kind} gathers the whole project, nested pieces included`,
+        r.lit === setup.total && r.nestedLit === setup.nestedCount && r.contiguous,
+        `${r.lit} of ${setup.total} lit, ${r.nestedLit} of ${setup.nestedCount} nested, contiguous: ${r.contiguous}`,
+      )
+    }
+  }
+  await page.close()
+}
+
 // ---------------------------------------------------------------- phone
 {
   const page = await open(390, 844)

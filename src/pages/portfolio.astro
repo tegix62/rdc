@@ -519,6 +519,32 @@ if (emptyFilters.length > 0) {
     });
 
     /*
+      REBUILD ISOTOPE'S LIST WITHOUT LOSING WHAT IT HAD HIDDEN.
+
+      Every reorder here - shuffle, gather, putting the deal back, entering
+      or leaving the merch view - moves the DOM and calls reloadItems() so
+      Isotope picks up the new order. reloadItems() builds a fresh record for
+      every tile, and a fresh record does not know the tile is hidden. The
+      element still is: a filtered-out tile is left at display:none.
+
+      Isotope's filter only REVEALS a tile whose record says isHidden. So
+      after a rebuild, a tile hidden before it could never come back -
+      measured on the preview: leave the merch view for Brand Identity and
+      0 tiles were on screen; press Merch again to go back to All and 0 of
+      82. The same thing was already waiting in the main grid for anyone who
+      shuffled under a filter and then cleared it.
+
+      So the hidden state is carried across the rebuild, read from the one
+      place that cannot be stale - the element's own style.
+    */
+    const reloadItems = () => {
+      iso.reloadItems();
+      for (const it of iso.items) {
+        if ((it.element as HTMLElement).style.display === 'none') it.isHidden = true;
+      }
+    };
+
+    /*
       KEEP AN EXPANDED TILE IN ITS OWN COLUMNS.
 
       Masonry places a two-column item in the leftmost column pair with the
@@ -888,7 +914,7 @@ if (emptyFilters.length > 0) {
       zoomed = false;
       cols = defaultCols();
       setColWidth();
-      iso.reloadItems();
+      reloadItems();
       iso.arrange({ filter: MERCH_FILTER });
     };
 
@@ -903,7 +929,7 @@ if (emptyFilters.length > 0) {
       zoomed = false;
       cols = defaultCols();
       setColWidth();
-      iso.reloadItems();
+      reloadItems();
     };
 
     document.querySelectorAll<HTMLElement>('.pf-btn[data-filter]').forEach((btn) => {
@@ -1000,7 +1026,7 @@ if (emptyFilters.length > 0) {
         const lead = all.filter((el) => el.matches(MERCH_FILTER) && el.dataset.merch === 'lead');
         const later = all.filter((el) => el.matches(MERCH_FILTER) && el.dataset.merch !== 'lead');
         putBack([...rotate(lead), ...rotate(later), ...all.filter((el) => !el.matches(MERCH_FILTER))]);
-        iso.reloadItems();
+        reloadItems();
         iso.arrange();
         return;
       }
@@ -1046,7 +1072,7 @@ if (emptyFilters.length > 0) {
         the existing sortBy, and reloadItems() resets itemGUID so
         'original-order' is reassigned in the new DOM order.
       */
-      iso.reloadItems();
+      reloadItems();
       iso.arrange();
     });
 
@@ -1913,7 +1939,7 @@ if (emptyFilters.length > 0) {
       // arrange(), not layout() - layout() repositions a stale filteredItems
       // array and the reorder never reaches the screen. See the Shuffle
       // handler for the full account.
-      iso.reloadItems();
+      reloadItems();
       iso.arrange();
     };
 
@@ -2229,7 +2255,7 @@ if (emptyFilters.length > 0) {
       // arrange(), not layout() - layout() repositions a stale filteredItems
       // array and the reorder never reaches the screen. See the Shuffle
       // handler for the full account.
-      iso.reloadItems();
+      reloadItems();
       iso.arrange();
     };
 

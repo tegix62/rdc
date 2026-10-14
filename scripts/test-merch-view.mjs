@@ -675,7 +675,9 @@ const press = async (page, filter) => {
     const tile = page.locator('#pf-grid .pf-item').nth(i)
     await tile.scrollIntoViewIfNeeded()
     await tile.locator('.pf-item__img').click()
-    await page.waitForTimeout(2000)
+    // Long enough for the revealed lazy pictures to arrive - overlap shows
+    // up as they land, not before.
+    await page.waitForTimeout(3500)
     const r = await page.evaluate(() => {
       const grid = document.querySelector('#pf-grid')
       const g = grid.getBoundingClientRect()
@@ -687,7 +689,36 @@ const press = async (page, filter) => {
         return b.bottom > innerHeight + 1 || b.top < -1
       }).length
       const f = ((o.left + o.right) / 2 - g.left) / g.width
+      /*
+        OVERLAP. Chris: "there's overlapping imagery". Every pair of tiles on
+        screen, by their boxes; more than 2px of shared area in both
+        directions is two pictures on top of each other.
+      */
+      const shown = Array.from(grid.querySelectorAll('.pf-item'))
+        .filter((el) => getComputedStyle(el).display !== 'none')
+        .map((el) => ({el, b: el.getBoundingClientRect()}))
+      let overlaps = 0
+      const pairs = []
+      for (let a = 0; a < shown.length; a++) {
+        for (let z = a + 1; z < shown.length; z++) {
+          const p = shown[a].b
+          const q = shown[z].b
+          const w = Math.min(p.right, q.right) - Math.max(p.left, q.left)
+          const h = Math.min(p.bottom, q.bottom) - Math.max(p.top, q.top)
+          if (w > 2 && h > 2) {
+            overlaps++
+            if (pairs.length < 3) pairs.push(`${shown[a].el.dataset.slug}/${shown[z].el.dataset.slug} ${Math.round(w)}x${Math.round(h)}`)
+          }
+        }
+      }
+      // Cut-outs (drawn on transparency) contained, never cropped like a photo.
+      const croppedCutouts = set.filter(
+        (el) => el.hasAttribute('data-cutout') && getComputedStyle(el.querySelector('.pf-item__img')).objectFit === 'cover',
+      ).length
       return {
+        overlaps,
+        pairs,
+        croppedCutouts,
         side: f < 0.3 ? 'left' : f > 0.7 ? 'right' : 'middle',
         blockSide: c ? (c.left >= o.right - 2 ? 'right of it' : 'left of it') : 'none',
         out,
@@ -696,6 +727,8 @@ const press = async (page, filter) => {
     })
     check(`clicked in the ${pick} third, the shirt opens ${pick}`, r.side === pick, `${r.side}, block ${r.blockSide}`)
     check(`  and none of its ${r.n} pieces falls out of the window`, r.out === 0, `${r.out} outside`)
+    check('  and no two pictures overlap', r.overlaps === 0, r.overlaps ? `${r.overlaps}: ${r.pairs.join(', ')}` : '0')
+    check('  and no cut-out is cropped like a photograph', r.croppedCutouts === 0, `${r.croppedCutouts} cropped`)
     await page.close()
   }
 }

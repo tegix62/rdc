@@ -542,6 +542,66 @@ const press = async (page, filter) => {
   await page.close()
 }
 
+/*
+  ---------------------------------------------------------------- in the window
+
+  Chris: "the way it puts together is not fully in the viewport, so you kind
+  of have to scroll down a little bit (on desktop that is)". Measured before
+  the fix: 12 of 12 gathers ran 9-137px off the bottom of laptop windows.
+
+  Each shirt is clicked where a visitor scrolling down would meet it - the
+  middle of the window - and the whole gathered set must then sit inside the
+  window. 1536x730 is a common laptop with browser toolbars; 2560x1000 is a
+  wide, short window where the opened shirt (four tenths of the width) would
+  be taller than the window if nothing capped it.
+*/
+for (const [w, h] of [[1536, 730], [2560, 1000]]) {
+  console.log('')
+  const misses = []
+  let tried = 0
+  // A fresh page per shirt, so one gather's reordering cannot steer the next.
+  for (const pick of ['first', 'middle', 'last']) {
+    const page = await open(w, h)
+    await press(page, MERCH)
+    const i = await page.evaluate((pick) => {
+      const all = Array.from(document.querySelectorAll('#pf-grid .pf-item'))
+      const leads = all.filter((el) => getComputedStyle(el).display !== 'none' && el.dataset.merch === 'lead')
+      const k = pick === 'first' ? 0 : pick === 'middle' ? Math.floor(leads.length / 2) : leads.length - 1
+      return leads[k] ? all.indexOf(leads[k]) : -1
+    }, pick)
+    if (i >= 0) {
+      tried++
+      const tile = page.locator('#pf-grid .pf-item').nth(i)
+      await tile.evaluate((el) => el.scrollIntoView({block: 'center'}))
+      await page.waitForTimeout(400)
+      await tile.locator('.pf-item__img').click()
+      await page.waitForTimeout(2200)
+      const r = await page.evaluate(() => {
+        const grid = document.querySelector('#pf-grid')
+        const opened = grid.querySelector('.pf-item.is-expanded')
+        const href = (el) => el.querySelector('.pf-item__jump')?.getAttribute('href')
+        let top = Infinity
+        let bottom = -Infinity
+        for (const el of grid.querySelectorAll('.pf-item')) {
+          if (href(el) !== href(opened) || getComputedStyle(el).display === 'none') continue
+          const b = el.getBoundingClientRect()
+          top = Math.min(top, b.top)
+          bottom = Math.max(bottom, b.bottom)
+        }
+        return {top: Math.round(top), bottom: Math.round(bottom), vh: innerHeight}
+      })
+      if (r.top < 0 || r.bottom > r.vh) misses.push(`${pick} ${r.top}..${r.bottom} of ${r.vh}`)
+      else console.log(`      ${pick}: ${r.top}..${r.bottom} of ${r.vh}`)
+    }
+    await page.close()
+  }
+  check(
+    `at ${w}x${h} the gathered set lands inside the window`,
+    tried > 0 && misses.length === 0,
+    misses.length ? `${misses.length} of ${tried} cut: ${misses.join(', ')}` : `${tried} of ${tried} whole`,
+  )
+}
+
 // ---------------------------------------------------------------- phone
 {
   const page = await open(390, 844)

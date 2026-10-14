@@ -582,8 +582,10 @@ for (const [w, h] of [[1536, 730], [2560, 1000]]) {
         const href = (el) => el.querySelector('.pf-item__jump')?.getAttribute('href')
         let top = Infinity
         let bottom = -Infinity
+        // A piece with no case study opens alone: no link is not a project.
+        const h = href(opened)
         for (const el of grid.querySelectorAll('.pf-item')) {
-          if (href(el) !== href(opened) || getComputedStyle(el).display === 'none') continue
+          if (el !== opened && (!h || href(el) !== h || getComputedStyle(el).display === 'none')) continue
           const b = el.getBoundingClientRect()
           top = Math.min(top, b.top)
           bottom = Math.max(bottom, b.bottom)

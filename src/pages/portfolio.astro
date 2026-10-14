@@ -3191,6 +3191,34 @@ if (emptyFilters.length > 0) {
       focusFamily = family;
     };
 
+    /*
+      A MERCH PIECE WITH NOTHING TO GATHER STILL OPENS IN VIEW.
+
+      Terremoto, SAMSARA and the BalloonShop hat belong to no case study, so
+      opening one gathers nothing and none of gather()'s scroll handling runs.
+      It still doubles to four tenths of the grid's width where it was
+      clicked, and measured from the middle of a 1536x730 window that ran
+      91px off the bottom. So once it has finished growing it is scrolled
+      just far enough to be whole, with a little air - and not at all if the
+      visitor has already scrolled or it already fits.
+    */
+    const showWhole = (item: HTMLElement) => {
+      const startY = window.scrollY;
+      window.setTimeout(() => {
+        if (!item.classList.contains('is-expanded') || window.scrollY !== startY) return;
+        const r = item.getBoundingClientRect();
+        const slack = window.innerHeight - r.height;
+        const air = Math.max(0, Math.min(32, slack / 2));
+        const by =
+          r.bottom > window.innerHeight - air
+            ? Math.min(r.bottom - (window.innerHeight - air), r.top - air)
+            : r.top < air
+              ? r.top - air
+              : 0;
+        if (Math.abs(by) > 1) window.scrollBy({top: by, behavior: 'smooth'});
+      }, 450);
+    };
+
     grid.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
 
@@ -3334,6 +3362,7 @@ if (emptyFilters.length > 0) {
                 window.setTimeout(go, EXPLAIN_HOLD);
               }
             } else if (wasExpanded) restoreOrder();
+            else if (inMerch()) showWhole(item);
           } else {
             // A third frame: layout() moves tiles, and lines measured before
             // that settles point at where things USED to be.

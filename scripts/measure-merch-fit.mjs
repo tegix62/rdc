@@ -63,8 +63,10 @@ for (const [w, h] of SIZES) {
       const grid = document.querySelector('#pf-grid')
       const opened = grid.querySelector('.pf-item.is-expanded')
       const href = (el) => el.querySelector('.pf-item__jump')?.getAttribute('href')
+      // A piece with no case study opens alone: no link is not a project.
+      const h = href(opened)
       const set = Array.from(grid.querySelectorAll('.pf-item')).filter(
-        (el) => href(el) === href(opened) && getComputedStyle(el).display !== 'none',
+        (el) => el === opened || (h && href(el) === h && getComputedStyle(el).display !== 'none'),
       )
       let top = Infinity
       let bottom = -Infinity

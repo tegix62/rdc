@@ -402,14 +402,29 @@ if (emptyFilters.length > 0) {
               )}
             </div>
             {card && (
-              <a class="pf-card" href={parentHref}>
-                {card.kicker && <span class="pf-card__kicker">{card.kicker}</span>}
-                <span class="pf-card__title">{card.title}</span>
-                {card.client && <span class="pf-card__client">For {card.client}</span>}
-                {card.line && <span class="pf-card__line">{card.line}</span>}
-                {card.result && <span class="pf-card__result">{card.result}</span>}
-                <span class="pf-card__go">
-                  See the project <span aria-hidden="true">&rarr;</span>
+              <a class:list={['pf-card', item.clientLogo?.asset && 'pf-card--marked']} href={parentHref}>
+                {/*
+                  The project's own logo beside its type. Chris: the case
+                  study's logo is "usually a variant of the main grid image I
+                  selected for that case study", so the block should sit next
+                  to it. The Client's Logo field, the one the project page
+                  shows beside its intro. Lazy, inside a block that is hidden
+                  until a gather shows it, so it costs nothing until then.
+                */}
+                {item.clientLogo?.asset && (
+                  <span class="pf-card__mark">
+                    <Img image={item.clientLogo} alt="" field="clientLogo (Client's Logo)" width={400} sizes="12rem" />
+                  </span>
+                )}
+                <span class="pf-card__text">
+                  {card.kicker && <span class="pf-card__kicker">{card.kicker}</span>}
+                  <span class="pf-card__title">{card.title}</span>
+                  {card.client && <span class="pf-card__client">For {card.client}</span>}
+                  {card.line && <span class="pf-card__line">{card.line}</span>}
+                  {card.result && <span class="pf-card__result">{card.result}</span>}
+                  <span class="pf-card__go">
+                    See the project <span aria-hidden="true">&rarr;</span>
+                  </span>
                 </span>
               </a>
             )}
@@ -2538,6 +2553,24 @@ if (emptyFilters.length > 0) {
         */
         card = family.find((el) => el !== item && el.querySelector('.pf-card')) ?? null;
         const rest = family.filter((el) => el !== item && el !== card && !near.includes(el));
+        /*
+          THE REST IN ORDER OF KIND. Chris: "For Merch filter, we have any
+          related merch follow, then anything that's not merch comes after
+          that, but ideally things like wordmarks/logos are seen together
+          here. This might look dumb though, so I might roll it back."
+
+          Placement is nearest-first in this order, so the project's other
+          garments land closest to the shirt, its logos and wordmarks next -
+          one after another, so they settle together - and the photographs,
+          sketches and the rest beyond. The sort is stable, so within a kind
+          the deal's order holds.
+
+          ROLLING IT BACK is setting REST_BY_KIND to false.
+        */
+        const REST_BY_KIND = true;
+        const kindOf = (el: HTMLElement) =>
+          el.matches(MERCH_FILTER) ? 0 : el.classList.contains('pf-item--mark') ? 1 : 2;
+        if (REST_BY_KIND) rest.sort((a, b) => kindOf(a) - kindOf(b));
         for (const el of rest) el.classList.add('is-minor');
         if (card) {
           card.classList.add('is-card');

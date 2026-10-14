@@ -342,8 +342,15 @@ const press = async (page, filter) => {
         below: below.length,
         roomy,
         free: free.map((f) => (f === null ? '#' : Math.round(f))),
+        /*
+          40px of tolerance, less than any piece is tall: the failure this
+          exists for is a whole outer column left standing empty (610px free
+          beside a full middle), not 13px of difference between two columns
+          that are both full - which is what a left-anchored shirt with
+          every column packed measured.
+        */
         middleFirst:
-          (innerL === null || innerL <= free[0] + 2) && (innerR === null || innerR <= free[n - 1] + 2),
+          (innerL === null || innerL <= free[0] + 40) && (innerR === null || innerR <= free[n - 1] + 40),
       }
     })
     check(
@@ -380,6 +387,19 @@ const press = async (page, filter) => {
         geometry: `block ${Math.round(b.left)},${Math.round(b.top)} ${Math.round(b.width)}x${Math.round(b.height)}; shirt ${Math.round(s.left)},${Math.round(s.top)} ${Math.round(s.width)}x${Math.round(s.height)}`,
         href: link.getAttribute('href'),
         title: link.querySelector('.pf-card__title')?.textContent.trim(),
+        mark: (() => {
+          const img = link.querySelector('.pf-card__mark img')
+          if (!img) return 'none set'
+          const r = img.getBoundingClientRect()
+          return r.width > 0 && r.right <= link.querySelector('.pf-card__text').getBoundingClientRect().left + 1
+            ? 'beside the type'
+            : 'misplaced'
+        })(),
+        // Kinds of the rest, in the order they were laid out: 0 merch,
+        // 1 logo/wordmark, 2 everything else.
+        kinds: Array.from(grid.querySelectorAll('.pf-item.is-minor')).map((x) =>
+          x.classList.contains('merch-apparel') ? 0 : x.classList.contains('pf-item--mark') ? 1 : 2,
+        ),
       }
     }, target.h)
     if (!blk.hasOne) {
@@ -389,6 +409,10 @@ const press = async (page, filter) => {
       // Chris: "move the main shirt object to the left, and put the text to the right of it".
       check('the shirt at the left edge, the block to its right, level with its top', blk.beside, blk.geometry)
       check('and the whole of it one link into the project', blk.href === target.h, blk.href)
+      check("the project's logo sits beside the type, when it has one", blk.mark !== 'misplaced', blk.mark)
+      // Chris: related merch first, then logos/wordmarks together, then the rest.
+      const sorted = blk.kinds.every((k, i) => i === 0 || blk.kinds[i - 1] <= k)
+      check('the rest runs merch, then logos and wordmarks, then everything else', sorted, blk.kinds.join(''))
     }
 
     // Closing it hides the revealed pieces again: the view is garments at rest.

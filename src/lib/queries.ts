@@ -223,8 +223,8 @@ const IN_PROJECT = (id: string) => `(parentBrand._ref == ${id} || parentBrand->p
   "expected '}' following object body", on the homepage, which shares this
   projection.
 
-  headline, subtitle, client, resultStat and the summary as plain text are
-  the words on a project's block above its merch cluster - see
+  headline, subtitle, client, clientLogo, resultStat and the summary as plain
+  text are what a project's block beside its merch cluster shows - see
   src/lib/clusterCard.ts. Only case studies have them; on a piece they are
   null and cost nothing.
 */
@@ -232,7 +232,7 @@ const TILE = `
   _id,
   title, slug, pageType, thumbnail, mainImage, category, archiveMark, heroTile,
   tileTreatment, assetType, merchPlacement,
-  headline, subtitle, client, resultStat, "summaryText": pt::text(summary),
+  headline, subtitle, client, clientLogo, resultStat, "summaryText": pt::text(summary),
   "tileOpaque": select(
     defined(thumbnail.asset) => thumbnail.asset->metadata.isOpaque,
     mainImage.asset->metadata.isOpaque

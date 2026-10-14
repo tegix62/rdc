@@ -796,12 +796,20 @@ if (emptyFilters.length > 0) {
           const opened = this.__pfOpened as {col: number; span: number; y: number; h: number; top: number} | undefined;
           // The opened shirt's centre, in pixels: what everything grows from.
           const ox = opened ? (opened.col + opened.span / 2) * this.columnWidth : (this.cols / 2) * this.columnWidth;
-          let lo = 0;
-          let hi = this.cols - colSpan;
-          if (role === 'near' && opened) {
-            lo = Math.max(0, opened.col - colSpan);
-            hi = Math.min(this.cols - colSpan, opened.col + opened.span);
-          }
+          const lo = 0;
+          const hi = this.cols - colSpan;
+          /*
+            The shirt's own shots PREFER the columns touching it - its own
+            span and a tile's width either side - but are no longer confined
+            to them. Confined, a shirt at the grid's left edge had one strip
+            of two columns beside it, under the project's block, and its
+            second shot went below the shirt and out of the window while
+            three columns on the right stood empty: Chris's "some images are
+            falling out of view". Now the strip is a tier inside the band:
+            touching the shirt, then anywhere else in its height, then below.
+          */
+          const inStrip = (c: number) =>
+            !opened || (c >= opened.col - colSpan && c <= opened.col + opened.span);
           /*
             THE SHIRT'S HEIGHT FIRST, THE MIDDLE FIRST WITHIN IT.
 
@@ -849,7 +857,7 @@ if (emptyFilters.length > 0) {
             */
             const d = overflow > 1
               ? 1e6 + overflow * 3 + dx
-              : dx + 0.15 * Math.max(0, y - bandTop);
+              : (role === 'near' && !inStrip(c) ? 1e5 : 0) + dx + 0.15 * Math.max(0, y - bandTop);
             if (d < bestD - 1 || (Math.abs(d - bestD) <= 1 && y < bestY)) {
               best = c;
               bestY = y;
@@ -1650,7 +1658,10 @@ if (emptyFilters.length > 0) {
       // click, the filter's on a filter change.
       revealed.clear();
       grid.querySelectorAll('.pf-item.is-minor').forEach((el) => el.classList.remove('is-minor'));
-      grid.querySelectorAll('.pf-item.is-card').forEach((el) => el.classList.remove('is-card', 'is-card--beside'));
+      grid.querySelectorAll<HTMLElement>('.pf-item.is-card').forEach((el) => {
+        el.classList.remove('is-card', 'is-card--beside', 'is-card--before');
+        el.style.removeProperty('--card-span');
+      });
       grid.style.removeProperty('--pf-card-h');
       grid.classList.remove('has-focus');
       grid.querySelectorAll('.pf-item.is-sibling').forEach((el) => el.classList.remove('is-sibling'));
@@ -2651,11 +2662,51 @@ if (emptyFilters.length > 0) {
         on both sides. On a phone it is the full width either way.
       */
       if (roles) {
+        /*
+          LEFT, MIDDLE OR RIGHT, BY WHERE IT WAS CLICKED.
+
+          Chris: "variants where the shirt can snap left, middle, or right
+          based on where it was clicked in the grid, so that the click isn't
+          as disorienting." A shirt clicked on the right of the grid opens on
+          the right, with its block to its left; the middle opens in the
+          middle with the block on its right, three columns wide; the left
+          opens at the left edge as before. The thirds are read from the
+          column the tile sat in when it was clicked (__pfCol, recorded by
+          the click handler before anything moved).
+
+          ROLLING IT BACK to always-left is setting SNAP_BY_CLICK to false.
+        */
+        const SNAP_BY_CLICK = true;
+        const S = 2 * unit();
+        const clickedCol = (item as any).__pfCol;
+        let zone: 'left' | 'middle' | 'right' = 'left';
+        if (SNAP_BY_CLICK && typeof clickedCol === 'number') {
+          const f = (clickedCol + unit() / 2) / cols;
+          zone = f < 1 / 3 ? 'left' : f > 2 / 3 ? 'right' : 'middle';
+        }
+        let shirtCol = Math.max(0, Math.floor((cols - S) / 2));
+        let cardCol = shirtCol;
+        let cardSpan = S;
+        if (cardBeside) {
+          if (zone === 'left') {
+            shirtCol = 0;
+            cardCol = S;
+          } else if (zone === 'right') {
+            shirtCol = cols - S;
+            cardCol = shirtCol - S;
+          } else {
+            cardCol = shirtCol + S;
+            cardSpan = cols - cardCol;
+          }
+        }
         (item as any).__pfRole = 'opened';
-        (item as any).__pfCol = cardBeside ? 0 : Math.max(0, Math.floor((cols - 2 * unit()) / 2));
+        (item as any).__pfCol = shirtCol;
         if (card) {
           (card as any).__pfRole = 'card';
-          (card as any).__pfCol = cardBeside ? 2 * unit() : (item as any).__pfCol;
+          (card as any).__pfCol = cardCol;
+          card.style.setProperty('--card-span', String(cardSpan));
+          // Left of the shirt, its type sits against the shirt's edge.
+          card.classList.toggle('is-card--before', cardBeside && zone === 'right');
         }
         for (const el of roles.near) (el as any).__pfRole = 'near';
         for (const el of roles.rest) (el as any).__pfRole = 'minor';

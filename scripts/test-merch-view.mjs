@@ -381,8 +381,8 @@ const press = async (page, filter) => {
         hasOne,
         shown: getComputedStyle(el).display !== 'none' && b.height > 0 && getComputedStyle(link).display !== 'none',
         picture: getComputedStyle(el.querySelector('.pf-item__frame')).display !== 'none',
-        // Desktop: to the shirt's right, level with its top. Phone: on top of it.
-        beside: Math.abs(b.left - s.right) < 2 && Math.abs(b.top - s.top) < 2 && s.left - grid.getBoundingClientRect().left < 2,
+        // Desktop: beside the shirt - either side, by where it was clicked - level with its top.
+        beside: (Math.abs(b.left - s.right) < 2 || Math.abs(b.right - s.left) < 2) && Math.abs(b.top - s.top) < 2,
         over: Math.abs(b.left - s.left) < 2 && Math.abs(b.width - s.width) < 2 && Math.abs(b.bottom - s.top) < 2,
         geometry: `block ${Math.round(b.left)},${Math.round(b.top)} ${Math.round(b.width)}x${Math.round(b.height)}; shirt ${Math.round(s.left)},${Math.round(s.top)} ${Math.round(s.width)}x${Math.round(s.height)}`,
         href: link.getAttribute('href'),
@@ -407,7 +407,7 @@ const press = async (page, filter) => {
     } else {
       check("the project's block is on screen", blk.shown && !blk.picture, `title "${blk.title}"`)
       // Chris: "move the main shirt object to the left, and put the text to the right of it".
-      check('the shirt at the left edge, the block to its right, level with its top', blk.beside, blk.geometry)
+      check('the block beside the shirt, level with its top', blk.beside, blk.geometry)
       check('and the whole of it one link into the project', blk.href === target.h, blk.href)
       check("the project's logo sits beside the type, when it has one", blk.mark !== 'misplaced', blk.mark)
       // Chris: related merch first, then logos/wordmarks together, then the rest.
@@ -468,10 +468,13 @@ const press = async (page, filter) => {
       const o = opened.getBoundingClientRect()
       return {
         hugs: !!p && touches(p.getBoundingClientRect(), o),
-        // Centred when there is no project block; at the left edge beside one.
-        placed: grid.querySelector('.pf-item.is-card')
-          ? o.left - g.left < 2
-          : Math.abs((o.left + o.right) / 2 - (g.left + g.right) / 2) <= g.width / 10,
+        // Beside its project block when there is one; centred when not.
+        placed: (() => {
+          const c = grid.querySelector('.pf-item.is-card')?.getBoundingClientRect()
+          return c
+            ? Math.abs(c.left - o.right) < 2 || Math.abs(c.right - o.left) < 2
+            : Math.abs((o.left + o.right) / 2 - (g.left + g.right) / 2) <= g.width / 10
+        })(),
         shown: !!p && shown.includes(p),
         next: !!p && shown.indexOf(p) === shown.indexOf(opened) + 1,
         ordinary: !!p && !p.classList.contains('is-minor') && Math.abs(p.getBoundingClientRect().width / (grid.clientWidth / 5) - 1) < 0.05,
@@ -481,7 +484,7 @@ const press = async (page, filter) => {
     check("opening a piece brings the piece it hangs off right beside it", near.shown && near.next, JSON.stringify(near))
     check('at ordinary size, not half', near.ordinary)
     check('and hugging it - sharing an edge with the opened piece', near.hugs)
-    check('with the opened piece where its layout puts it (left beside its block, else centred)', near.placed)
+    check('with the opened piece beside its block (or centred without one)', near.placed)
     await page.locator('#pf-grid .pf-item.is-expanded .pf-item__img').click()
     await page.waitForTimeout(1000)
   }
@@ -620,6 +623,77 @@ const press = async (page, filter) => {
     }
   }
   await page.close()
+}
+
+/*
+  ---------------------------------------------------------------- left, middle, right
+
+  Chris: "variants where the shirt can snap left, middle, or right based on
+  where it was clicked in the grid, so that the click isn't as
+  disorienting". And, on the left-only version: "some images are falling
+  out of view" - a shot pushed under the shirt and off the window while
+  columns on the right stood empty.
+
+  For a shirt clicked in the first, middle and last column of the view:
+  it opens on that side, its block beside it, and no piece of the set sits
+  below the window.
+*/
+{
+  console.log('')
+  for (const pick of ['left', 'middle', 'right']) {
+    const page = await open(1440, 900)
+    await press(page, MERCH)
+    const i = await page.evaluate((pick) => {
+      const grid = document.querySelector('#pf-grid')
+      const g = grid.getBoundingClientRect()
+      const href = (el) => el.querySelector('.pf-item__jump')?.getAttribute('href')
+      const all = Array.from(grid.querySelectorAll('.pf-item'))
+      const third = (el) => {
+        const r = el.getBoundingClientRect()
+        const f = ((r.left + r.right) / 2 - g.left) / g.width
+        return f < 1 / 3 ? 'left' : f > 2 / 3 ? 'right' : 'middle'
+      }
+      // A shirt with a project block, in the wanted third of the grid.
+      const el = all.find(
+        (x) =>
+          getComputedStyle(x).display !== 'none' &&
+          x.dataset.merch === 'lead' &&
+          third(x) === pick &&
+          all.some((y) => y.querySelector('.pf-card') && y.querySelector('.pf-card').getAttribute('href') === href(x)),
+      )
+      return el ? all.indexOf(el) : -1
+    }, pick)
+    if (i < 0) {
+      console.log(`      (no shirt with a project block in the ${pick} third)`)
+      await page.close()
+      continue
+    }
+    const tile = page.locator('#pf-grid .pf-item').nth(i)
+    await tile.scrollIntoViewIfNeeded()
+    await tile.locator('.pf-item__img').click()
+    await page.waitForTimeout(2000)
+    const r = await page.evaluate(() => {
+      const grid = document.querySelector('#pf-grid')
+      const g = grid.getBoundingClientRect()
+      const o = grid.querySelector('.pf-item.is-expanded').getBoundingClientRect()
+      const c = grid.querySelector('.pf-item.is-card')?.getBoundingClientRect()
+      const set = Array.from(grid.querySelectorAll('.pf-item.is-sibling')).filter((el) => getComputedStyle(el).display !== 'none')
+      const out = set.filter((el) => {
+        const b = el.getBoundingClientRect()
+        return b.bottom > innerHeight + 1 || b.top < -1
+      }).length
+      const f = ((o.left + o.right) / 2 - g.left) / g.width
+      return {
+        side: f < 0.3 ? 'left' : f > 0.7 ? 'right' : 'middle',
+        blockSide: c ? (c.left >= o.right - 2 ? 'right of it' : 'left of it') : 'none',
+        out,
+        n: set.length,
+      }
+    })
+    check(`clicked in the ${pick} third, the shirt opens ${pick}`, r.side === pick, `${r.side}, block ${r.blockSide}`)
+    check(`  and none of its ${r.n} pieces falls out of the window`, r.out === 0, `${r.out} outside`)
+    await page.close()
+  }
 }
 
 /*

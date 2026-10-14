@@ -2976,8 +2976,9 @@ main {
   display: none;
 }
 
+/* Four underlying columns, or three when the shirt opens in the middle. */
 .pf-grid.is-merch-view .pf-item.is-card {
-  width: calc(var(--pf-col-w) * 4);
+  width: calc(var(--pf-col-w) * var(--card-span, 4));
 }
 
 .pf-grid.is-merch-view .pf-item.is-card .pf-item__frame,
@@ -3032,6 +3033,11 @@ main {
 */
 .pf-grid.is-merch-view .pf-item.is-card--beside .pf-card {
   padding: 0.5rem 0.5rem 0.75rem 1.25rem;
+}
+
+/* Left of the shirt: the air goes on the shirt's side instead. */
+.pf-grid.is-merch-view .pf-item.is-card--before .pf-card {
+  padding: 0.5rem 1.25rem 0.75rem 0.5rem;
 }
 
 .pf-card__kicker {

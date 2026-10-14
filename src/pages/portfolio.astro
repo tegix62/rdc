@@ -2498,6 +2498,22 @@ if (emptyFilters.length > 0) {
       const aimAtSet = narrow || inMerch();
       const driftNow = () => {
         if (!aimAtSet) return item.getBoundingClientRect().top - anchorBefore;
+        /*
+          ON A PHONE, THE SHIRT AND ITS CAPTION ARE WHAT HAS TO FIT. A merch
+          set runs longer than a phone screen by design - the shots and the
+          rest are the tease below - so air worked out from the whole set
+          came to nothing and put the shirt hard against the top of the
+          screen, which Chris asked not to see ("snap to the top but not
+          absolute top"). The first screenful is the shirt and the block
+          under it; the air comes from what they leave, kept small so the
+          tease stays generous.
+        */
+        const head = narrow && card && !cardBeside ? card.getBoundingClientRect() : null;
+        if (head) {
+          const top = item.getBoundingClientRect().top;
+          const slack = window.innerHeight - (head.bottom - top);
+          return top - Math.max(0, Math.min(24, slack / 2));
+        }
         const box = setBox();
         const slack = window.innerHeight - (box.bottom - box.top);
         const air = Math.max(0, Math.min(SET_AIR, slack / 2));

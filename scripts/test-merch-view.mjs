@@ -876,6 +876,8 @@ for (const [w, h] of [[1536, 730], [2560, 1000]]) {
         under: !!c && Math.abs(c.top - s.bottom) < 3 && c.width > g.width - 4,
         geometry: c ? `shirt ${Math.round(s.top)}..${Math.round(s.bottom)}, block ${Math.round(c.top)}..${Math.round(c.bottom)} of ${innerHeight}` : 'no block',
         fits: s.top >= -1 && !!c && c.bottom <= innerHeight + 1,
+        // Chris, long ago: "snap to the top but not absolute top".
+        aired: s.top >= 8,
         teased: rest.some((el) => el.getBoundingClientRect().top < innerHeight - 20),
         near: near.length,
         aligned,
@@ -886,6 +888,7 @@ for (const [w, h] of [[1536, 730], [2560, 1000]]) {
     console.log(`phone: opened ${r.name}`)
     check('phone: the block sits directly under the shirt, full width', r.under, r.geometry)
     check('phone: shirt and block both fit on the screen', r.fits, r.geometry)
+    check('phone: with a little air above the shirt, not hard against the top', r.aired, r.geometry)
     check('phone: the rest of the project peeks in below them', r.teased)
     check('phone: the shirt\'s own shots sit on the halves, not down the middle', r.aligned, `${r.near} shot(s)`)
     check('phone: and pair up two across', r.paired, `${r.near} shot(s)`)

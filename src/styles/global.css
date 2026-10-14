@@ -2981,62 +2981,68 @@ main {
   width: calc(var(--pf-col-w) * var(--card-span, 4));
 }
 
-.pf-grid.is-merch-view .pf-item.is-card .pf-item__frame,
+/*
+  ITS OWN PICTURE, TUCKED BESIDE THE TYPE. Chris: the logomark should "just
+  really be the grid item of the case study. Not duplicate of it or
+  anything, just tuck it next to the text". So the case study's tile keeps
+  its picture - the one he chose for it - small, in a fixed column so the
+  type always starts in the same place, whole rather than cropped, and
+  without the project bar or plate number it wears in the grid: the block
+  already says where it goes.
+*/
+.pf-grid.is-merch-view .pf-item.is-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+}
+
+.pf-grid.is-merch-view .pf-item.is-card .pf-item__frame {
+  flex: 0 0 8.5rem;
+  cursor: pointer;
+}
+
+.pf-grid.is-merch-view .pf-item.is-card .pf-item__img {
+  aspect-ratio: auto;
+  height: auto;
+  max-height: 8.5rem;
+  object-fit: contain;
+  object-position: left top;
+}
+
+.pf-grid.is-merch-view .pf-item.is-card .pf-item__jump,
 .pf-grid.is-merch-view .pf-item.is-card .pf-item__plate {
   display: none;
 }
 
+@media (max-width: 30rem) {
+  .pf-grid.is-merch-view .pf-item.is-card .pf-item__frame {
+    flex-basis: 5.5rem;
+  }
+}
+
 .pf-grid.is-merch-view .pf-item.is-card .pf-card {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
-  gap: 1.25rem;
+  gap: 0.4rem;
+  flex: 1 1 auto;
+  min-width: 0;
   padding: 0.25rem 0 0.5rem;
   color: var(--color-ink);
   text-decoration: none;
 }
 
-.pf-card__text {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.4rem;
-  min-width: 0;
-}
-
-/*
-  The project's logo, beside the type. A fixed column so the type always
-  starts in the same place whatever the logo's shape; contained, never
-  cropped, because a mark is drawn to be seen whole.
-*/
-.pf-card__mark {
-  flex: 0 0 7.5rem;
-}
-
-.pf-card__mark img {
-  display: block;
-  width: 100%;
-  height: auto;
-  max-height: 7.5rem;
-  object-fit: contain;
-  object-position: left top;
-}
-
-@media (max-width: 30rem) {
-  .pf-card__mark {
-    flex-basis: 5rem;
-  }
-}
 
 /*
   Beside the shirt, the text needs air from the garment rather than a hairline
   of tile padding - and it starts level with the shirt's top edge.
 */
-.pf-grid.is-merch-view .pf-item.is-card--beside .pf-card {
+.pf-grid.is-merch-view .pf-item.is-card--beside {
   padding: 0.5rem 0.5rem 0.75rem 1.25rem;
 }
 
 /* Left of the shirt: the air goes on the shirt's side instead. */
-.pf-grid.is-merch-view .pf-item.is-card--before .pf-card {
+.pf-grid.is-merch-view .pf-item.is-card--before {
   padding: 0.5rem 1.25rem 0.75rem 0.5rem;
 }
 

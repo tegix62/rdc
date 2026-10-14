@@ -387,14 +387,17 @@ const press = async (page, filter) => {
         geometry: `block ${Math.round(b.left)},${Math.round(b.top)} ${Math.round(b.width)}x${Math.round(b.height)}; shirt ${Math.round(s.left)},${Math.round(s.top)} ${Math.round(s.width)}x${Math.round(s.height)}`,
         href: link.getAttribute('href'),
         title: link.querySelector('.pf-card__title')?.textContent.trim(),
+        // Its OWN tile picture, tucked beside the type - not a second copy of anything.
         mark: (() => {
-          const img = link.querySelector('.pf-card__mark img')
-          if (!img) return 'none set'
-          const r = img.getBoundingClientRect()
-          return r.width > 0 && r.right <= link.querySelector('.pf-card__text').getBoundingClientRect().left + 1
-            ? 'beside the type'
-            : 'misplaced'
+          const img = el.querySelector('.pf-item__frame .pf-item__img')
+          const r = img?.getBoundingClientRect()
+          const t = link.getBoundingClientRect()
+          const pictures = el.querySelectorAll('img').length
+          if (!r || r.width === 0) return 'not shown'
+          if (pictures !== 1) return `${pictures} pictures`
+          return r.right <= t.left + 1 && r.top < t.bottom && r.bottom > t.top ? 'beside the type' : 'misplaced'
         })(),
+        bar: getComputedStyle(el.querySelector('.pf-item__jump') ?? el).display === 'none' || !el.querySelector('.pf-item__jump'),
         // Kinds of the rest, in the order they were laid out: 0 merch,
         // 1 logo/wordmark, 2 everything else.
         kinds: Array.from(grid.querySelectorAll('.pf-item.is-minor')).map((x) =>
@@ -405,11 +408,12 @@ const press = async (page, filter) => {
     if (!blk.hasOne) {
       console.log('      (this project has no case study block to show)')
     } else {
-      check("the project's block is on screen", blk.shown && !blk.picture, `title "${blk.title}"`)
+      check("the project's block is on screen", blk.shown, `title "${blk.title}"`)
       // Chris: "move the main shirt object to the left, and put the text to the right of it".
       check('the block beside the shirt, level with its top', blk.beside, blk.geometry)
       check('and the whole of it one link into the project', blk.href === target.h, blk.href)
-      check("the project's logo sits beside the type, when it has one", blk.mark !== 'misplaced', blk.mark)
+      check("the block's picture is the case study's own tile picture, beside the type", blk.mark === 'beside the type', blk.mark)
+      check('without its grid bar - the block already says where it goes', blk.bar)
       // Chris: related merch first, then logos/wordmarks together, then the rest.
       const sorted = blk.kinds.every((k, i) => i === 0 || blk.kinds[i - 1] <= k)
       check('the rest runs merch, then logos and wordmarks, then everything else', sorted, blk.kinds.join(''))

@@ -402,29 +402,14 @@ if (emptyFilters.length > 0) {
               )}
             </div>
             {card && (
-              <a class:list={['pf-card', item.clientLogo?.asset && 'pf-card--marked']} href={parentHref}>
-                {/*
-                  The project's own logo beside its type. Chris: the case
-                  study's logo is "usually a variant of the main grid image I
-                  selected for that case study", so the block should sit next
-                  to it. The Client's Logo field, the one the project page
-                  shows beside its intro. Lazy, inside a block that is hidden
-                  until a gather shows it, so it costs nothing until then.
-                */}
-                {item.clientLogo?.asset && (
-                  <span class="pf-card__mark">
-                    <Img image={item.clientLogo} alt="" field="clientLogo (Client's Logo)" width={400} sizes="12rem" />
-                  </span>
-                )}
-                <span class="pf-card__text">
-                  {card.kicker && <span class="pf-card__kicker">{card.kicker}</span>}
-                  <span class="pf-card__title">{card.title}</span>
-                  {card.client && <span class="pf-card__client">For {card.client}</span>}
-                  {card.line && <span class="pf-card__line">{card.line}</span>}
-                  {card.result && <span class="pf-card__result">{card.result}</span>}
-                  <span class="pf-card__go">
-                    See the project <span aria-hidden="true">&rarr;</span>
-                  </span>
+              <a class="pf-card" href={parentHref}>
+                {card.kicker && <span class="pf-card__kicker">{card.kicker}</span>}
+                <span class="pf-card__title">{card.title}</span>
+                {card.client && <span class="pf-card__client">For {card.client}</span>}
+                {card.line && <span class="pf-card__line">{card.line}</span>}
+                {card.result && <span class="pf-card__result">{card.result}</span>}
+                <span class="pf-card__go">
+                  See the project <span aria-hidden="true">&rarr;</span>
                 </span>
               </a>
             )}
@@ -3507,6 +3492,19 @@ if (emptyFilters.length > 0) {
 
       const item = target.closest<HTMLElement>('.pf-item');
       if (!item) return;
+      /*
+        The project's block keeps its own tile picture beside the type (Chris:
+        the logomark "to just really be the grid item of the case study. Not
+        duplicate of it or anything, just tuck it next to the text"). That
+        picture is outside the block's link, so a click on it lands here -
+        and as a block it means what the rest of the block means: go to the
+        project, not open the tile.
+      */
+      if (item.classList.contains('is-card')) {
+        const go = item.querySelector<HTMLAnchorElement>('.pf-card');
+        if (go) window.location.href = go.href;
+        return;
+      }
       /*
         The preview has done its job the moment you commit. clearFamily()
         below removes the svg either way, but the hover state has to be

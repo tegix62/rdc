@@ -2936,6 +2936,15 @@ main {
   width: calc(var(--pf-col-w) * var(--minor-span, 1));
 }
 
+/*
+  No hand-set air on the small pieces of a gather: at a quarter or a tenth of
+  the grid the 10% inset Chris gave a wordmark for the full-size grid shrank
+  it to a sliver. Everywhere else it keeps its air; ink mode keeps its own.
+*/
+:root:not([data-ink]) .pf-grid.is-merch-view .pf-item.is-minor .pf-item__img {
+  padding: 0;
+}
+
 /* ...and one row tall, so it ends flat above the button. Whole, contained. */
 .pf-grid.is-merch-view .pf-item.is-minor.is-row-end:not(.is-expanded) .pf-item__img {
   aspect-ratio: var(--minor-span, 1) / 1;

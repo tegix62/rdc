@@ -732,7 +732,19 @@ const press = async (page, filter) => {
       const croppedCutouts = set.filter(
         (el) => el.hasAttribute('data-cutout') && getComputedStyle(el.querySelector('.pf-item__img')).objectFit === 'cover',
       ).length
+      // Chris: "one of the wordmark tiles is pretty small". A wordmark among
+      // the rest takes two columns when the project is small enough to have
+      // room, and loses the hand-set air it has in the full grid.
+      const colW = g.width / Math.round(g.width / grid.querySelector('.pf-sizer').getBoundingClientRect().width)
+      const minors = set.filter((el) => el.classList.contains('is-minor'))
+      const slivers = minors.length <= 10
+        ? minors.filter((el) => el.hasAttribute('data-wide') && el.getBoundingClientRect().width < 2 * colW - 2).length
+        : 0
+      const padded = minors.filter((el) => parseFloat(getComputedStyle(el.querySelector('.pf-item__img')).paddingLeft) > 0.5).length
       return {
+        slivers,
+        padded,
+        wordmarks: minors.filter((el) => el.hasAttribute('data-wide')).length,
         overlaps,
         pairs,
         croppedCutouts,
@@ -747,6 +759,7 @@ const press = async (page, filter) => {
     check(`  and none of its ${r.n} pieces falls out of the window`, r.out === 0, `${r.out} outside`)
     check('  and no two pictures overlap', r.overlaps === 0, r.overlaps ? `${r.overlaps}: ${r.pairs.join(', ')}` : '0')
     check('  and no cut-out is cropped like a photograph', r.croppedCutouts === 0, `${r.croppedCutouts} cropped`)
+    check('  and no wordmark is left a sliver', r.slivers === 0 && r.padded === 0, `${r.wordmarks} wordmark(s), ${r.slivers} at one column, ${r.padded} padded`)
     await page.close()
   }
 }
@@ -920,6 +933,9 @@ for (const [w, h] of [[1536, 730], [2560, 1000]]) {
         quarters,
         geometry: `${Math.round(b.left - g.left)}..${Math.round(b.right - g.left)} of ${Math.round(g.width)}, top ${Math.round(b.top)}`,
         caption: block && go ? {go: Math.round(go.width), block: Math.round(block.width)} : null,
+        // On a phone every wordmark among the rest is at least half the width.
+        slivers: Array.from(grid.querySelectorAll('.pf-item.is-minor[data-wide]'))
+          .filter((x) => getComputedStyle(x).display !== 'none' && x.getBoundingClientRect().width < g.width / 2 - 3).length,
       }
     })
     check('phone: the set ends on a button into the project', !!end && !!end.href && !!end.project && new URL(end.href, 'http://x').pathname === new URL(end.project, 'http://x').pathname && end.last, end ? `${end.href}, ${end.geometry}` : 'no end button')
@@ -931,6 +947,7 @@ for (const [w, h] of [[1536, 730], [2560, 1000]]) {
       JSON.stringify(end?.caption),
     )
     check('phone: and there is no X any more', await page.evaluate(() => !document.querySelector('.pf-close')))
+    check('phone: every wordmark among the rest is at least half the width', end?.slivers === 0, `${end?.slivers} narrower`)
     await page.locator('#pf-grid .pf-item.is-expanded .pf-item__img').click()
     await page.waitForTimeout(1500)
 

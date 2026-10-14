@@ -944,6 +944,9 @@ if (emptyFilters.length > 0) {
         // in a merch gather is held to, so a tall poster does not eat a
         // column's worth of the shirt's height.
         img.style.setProperty('--ar-sq', w < h ? '1 / 1' : `${w} / ${h}`);
+        // Twice as wide as tall or more: a wordmark, which a merch gather
+        // gives two columns so it is not a sliver (see A WORDMARK GETS TWO).
+        if (w >= 2 * h) img.closest<HTMLElement>('.pf-item')?.setAttribute('data-wide', '');
       }
     }
 
@@ -2665,6 +2668,22 @@ if (emptyFilters.length > 0) {
           el.matches(MERCH_FILTER) ? 0 : el.classList.contains('pf-item--mark') ? 1 : 2;
         if (REST_BY_KIND) rest.sort((a, b) => kindOf(a) - kindOf(b));
         for (const el of rest) el.classList.add('is-minor');
+        /*
+          A WORDMARK GETS TWO COLUMNS. Chris: "one of the wordmark tiles is
+          pretty small" - the Adelante wordmark, more than twice as wide as
+          tall, at a quarter of a phone or a tenth of a desktop was a few
+          dozen pixels high. Anything that wide (data-wide, from its own
+          shape) takes two columns instead of one. On a phone the page
+          scrolls, so always; on a desktop only when the project is small
+          enough to have room beside the shirt - DumpStat's nineteen pieces
+          fill that band to the pixel, and widening its six wordmarks put
+          pieces back off the screen.
+        */
+        const roomy = cols <= 4 || rest.length <= 10;
+        const baseSpan = (el: HTMLElement) => (roomy && el.dataset.wide !== undefined ? 2 : 1);
+        if (cols > 4) {
+          for (const el of rest) if (baseSpan(el) > 1) el.style.setProperty('--minor-span', '2');
+        }
         if (card) {
           card.classList.add('is-card');
           /*
@@ -2718,31 +2737,33 @@ if (emptyFilters.length > 0) {
             one borrows from the row before so that five read 1+1+2 / 2+2.
             Larger, never cropped.
           */
-          const r = rest.length % cols;
-          const spans =
-            cols !== 4 || r === 0
-              ? []
-              : r === 3
-                ? [1, 1, 2]
-                : r === 2
-                  ? [2, 2]
-                  : rest.length >= 5
-                    ? [1, 1, 2, 2, 2]
-                    : [2];
-          /*
-            And level: the widened row (and the one it borrowed from) is one
-            row tall - each box as wide as its span and a quarter high, the
-            picture contained in it - so the row ends flat and the button sits
-            right under it. Measured before: the More Kilos tee's last row
-            ended 40, 95 and 190px down, and the button under the tallest
-            left holes under the other two.
-          */
-          if (spans.length) {
-            rest.slice(-spans.length).forEach((el, i) => {
-              el.style.setProperty('--minor-span', String(spans[i]));
-              el.classList.add('is-row-end');
-            });
+          const spans = rest.map(baseSpan);
+          if (cols === 4) {
+            // Widen from the end until the cells come to whole rows.
+            let need = (cols - (spans.reduce((a, b) => a + b, 0) % cols)) % cols;
+            for (let k = spans.length - 1; k >= 0 && need > 0; k--) {
+              if (spans[k] === 1) {
+                spans[k] = 2;
+                need--;
+              }
+            }
+            /*
+              And level: the last row (and any it borrowed from) is one row
+              tall - each box as wide as its span and a quarter high, the
+              picture contained in it - so it ends flat and the button sits
+              right under it. Measured before: the More Kilos tee's last row
+              ended 40, 95 and 190px down, and the button under the tallest
+              left holes under the other two.
+            */
+            let acc = 0;
+            for (let k = spans.length - 1; k >= 0 && acc < cols; k--) {
+              acc += spans[k];
+              rest[k].classList.add('is-row-end');
+            }
           }
+          rest.forEach((el, k) => {
+            if (spans[k] > 1) el.style.setProperty('--minor-span', String(spans[k]));
+          });
           const go = card.querySelector<HTMLAnchorElement>('.pf-card');
           if (go) {
             endTile = endTile ?? makeEndTile();

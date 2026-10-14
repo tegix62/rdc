@@ -1,0 +1,30 @@
+name: Diagnose cluster copy
+
+# What each project could say around its cluster: kicker, client, result
+# stat, summary. Read-only. See scripts/diagnose-cluster-copy.mjs.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: |
+          set -o pipefail
+          node scripts/diagnose-cluster-copy.mjs | tee /tmp/copy.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Cluster copy'
+            echo ''
+            echo '```'
+            cat /tmp/copy.txt 2>/dev/null || echo '(the diagnosis did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

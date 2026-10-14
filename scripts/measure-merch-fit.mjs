@@ -74,7 +74,14 @@ for (const [w, h] of SIZES) {
         bottom = Math.max(bottom, b.bottom)
       }
       const o = opened.getBoundingClientRect()
+      const members = set.map((el) => {
+        const b = el.getBoundingClientRect()
+        return `${el === opened ? 'OPENED' : el.classList.contains('is-minor') ? 'minor' : 'near'} ${Math.round(b.left)},${Math.round(b.top)} ${Math.round(b.width)}x${Math.round(b.height)} ${(el.querySelector('.pf-item__img')?.getAttribute('alt') ?? '').replace(/[\u200b-\u200f\u2060-\u2064\ufeff]/g, '').slice(0, 40)}`
+      })
       return {
+        members,
+        scrollY: Math.round(scrollY),
+        maxScroll: Math.round(document.documentElement.scrollHeight - innerHeight),
         n: set.length,
         openedH: Math.round(o.height),
         openedW: Math.round(o.width),
@@ -90,6 +97,10 @@ for (const [w, h] of SIZES) {
       `  ${pick.padEnd(6)} ${String(title).slice(0, 40).padEnd(40)} ${r.n} pieces  shirt ${r.openedW}x${r.openedH}  set ${r.setH}px tall, ${r.setTop}..${r.setBottom} of ${r.vh}  ` +
         (cutBottom || cutTop ? `CUT ${cutTop}px top, ${cutBottom}px bottom` : 'fits'),
     )
+    if (cutBottom || cutTop) {
+      console.log(`         scrolled ${r.scrollY} of ${r.maxScroll}`)
+      for (const m of r.members) console.log(`         ${m}`)
+    }
   }
   await page.close()
 }

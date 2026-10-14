@@ -893,6 +893,70 @@ for (const [w, h] of [[1536, 730], [2560, 1000]]) {
     check('phone: the shirt\'s own shots sit on the halves, not down the middle', r.aligned, `${r.near} shot(s)`)
     check('phone: and pair up two across', r.paired, `${r.near} shot(s)`)
     check('phone: no two pictures overlap', r.overlaps === 0, `${r.overlaps}`)
+
+    // Chris: "it should end with a button".
+    const end = await page.evaluate(() => {
+      const grid = document.querySelector('#pf-grid')
+      const g = grid.getBoundingClientRect()
+      const el = grid.querySelector('.pf-item.pf-end')
+      if (!el || getComputedStyle(el).display === 'none') return null
+      const b = el.getBoundingClientRect()
+      const others = Array.from(grid.querySelectorAll('.pf-item.is-sibling'))
+        .filter((x) => x !== el && getComputedStyle(x).display !== 'none')
+        .map((x) => x.getBoundingClientRect())
+      return {
+        href: el.querySelector('a')?.getAttribute('href'),
+        project: grid.querySelector('.pf-item.is-card .pf-card')?.getAttribute('href'),
+        last: others.every((o) => o.top <= b.top + 2),
+        right: Math.abs(b.right - g.right) < 3,
+        // Nothing left empty beside it: it fills the row, or meets a piece on its left.
+        closed: Math.abs(b.left - g.left) < 3 || others.some((o) => Math.abs(o.right - b.left) < 3 && o.top < b.bottom - 2 && o.bottom > b.top + 2),
+        geometry: `${Math.round(b.left - g.left)}..${Math.round(b.right - g.left)} of ${Math.round(g.width)}, top ${Math.round(b.top)}`,
+      }
+    })
+    check('phone: the set ends on a button into the project', !!end && !!end.href && !!end.project && new URL(end.href, 'http://x').pathname === new URL(end.project, 'http://x').pathname && end.last, end ? `${end.href}, ${end.geometry}` : 'no end button')
+    check('phone: and the button closes the last row - no orphaned gap', !!end && end.right && end.closed, end?.geometry)
+
+    // Chris: "let's also just put an X in the top right".
+    const x = await page.evaluate(() => {
+      const b = document.querySelector('.pf-close')
+      if (!b || b.hidden) return null
+      const r = b.getBoundingClientRect()
+      return {top: Math.round(r.top), right: Math.round(innerWidth - r.right), w: Math.round(r.width)}
+    })
+    check('phone: an X sits top right while the shirt is open', !!x && x.top < 60 && x.right < 30 && x.w >= 40, JSON.stringify(x))
+    await page.locator('.pf-close').click()
+    await page.waitForTimeout(1500)
+    const afterX = await page.evaluate(() => ({
+      open: !!document.querySelector('#pf-grid .pf-item.is-expanded'),
+      xHidden: document.querySelector('.pf-close')?.hidden,
+      merch: document.querySelector('#pf-grid').classList.contains('is-merch-view'),
+      endGone: !document.querySelector('#pf-grid .pf-end'),
+      path: location.pathname,
+    }))
+    check('phone: tapping the X closes it, back to the merch grid', !afterX.open && afterX.xHidden && afterX.merch && afterX.endGone && /portfolio/.test(afterX.path), JSON.stringify(afterX))
+
+    // The Back gesture closes the shirt instead of leaving the portfolio.
+    const tile2 = page.locator('#pf-grid .pf-item[data-merch="lead"]:visible').first()
+    await tile2.locator('.pf-item__img').click()
+    await page.waitForTimeout(1500)
+    const opened2 = await page.evaluate(() => !!document.querySelector('#pf-grid .pf-item.is-expanded'))
+    await page.goBack()
+    await page.waitForTimeout(1500)
+    const afterBack = await page.evaluate(() => ({
+      open: !!document.querySelector('#pf-grid .pf-item.is-expanded'),
+      merch: document.querySelector('#pf-grid')?.classList.contains('is-merch-view'),
+      path: location.pathname,
+    }))
+    check('phone: Back closes the open shirt and stays on the portfolio', opened2 && !afterBack.open && afterBack.merch && /portfolio/.test(afterBack.path), JSON.stringify({opened2, ...afterBack}))
+
+    // Closing by tapping the shirt takes its Back step off again: no dead Back press.
+    await tile2.locator('.pf-item__img').click()
+    await page.waitForTimeout(1500)
+    await page.locator('#pf-grid .pf-item.is-expanded .pf-item__img').click()
+    await page.waitForTimeout(1500)
+    const state = await page.evaluate(() => history.state?.pfOpen ?? false)
+    check('phone: closing by a tap leaves no dead Back press behind', state === false, `pfOpen: ${state}`)
   }
   await page.close()
 }

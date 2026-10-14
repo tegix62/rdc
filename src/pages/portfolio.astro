@@ -419,6 +419,16 @@ if (emptyFilters.length > 0) {
       })}
     </div>
     {/*
+      The way out of an open piece on a phone. Chris: on a phone an open
+      shirt "occupies the whole screen" and "somebody using this might not
+      know that you could unclick the shirt and then go see other shirts" -
+      "let's also just put an X in the top right". Shown by the page script
+      only while something is open on a narrow screen; see THE WAY OUT.
+    */}
+    <button type="button" class="pf-close" aria-label="Close and see all" hidden>
+      <span aria-hidden="true">&times;</span>
+    </button>
+    {/*
       Inline and immediately after the grid on purpose. It has to run during
       parsing, before the browser has had a chance to paint the float layout -
       a module script is deferred and would run after that first paint, which
@@ -1694,7 +1704,23 @@ if (emptyFilters.length > 0) {
       decision now - see the note on LINES above - and the collage keeps
       the gate it was sharing.
     */
+    // The phone gather's closing button - see THE SET ENDS ON A BUTTON.
+    let endTile: HTMLElement | null = null;
+    const makeEndTile = () => {
+      const el = document.createElement('div');
+      el.className = 'pf-item pf-end';
+      el.innerHTML =
+        '<a class="pf-end__go"><span class="pf-end__count"></span>' +
+        '<span class="pf-end__label">See the project <span aria-hidden="true">&rarr;</span></span></a>';
+      return el;
+    };
+
     const clearFamily = () => {
+      if (endTile?.isConnected) {
+        revealed.delete(endTile);
+        iso.remove(endTile);
+        endTile.remove();
+      }
       // Pieces the merch view revealed for a gather go back to hidden at the
       // next arrange() - restoreOrder's on close, the next gather's on a new
       // click, the filter's on a filter change.
@@ -2677,6 +2703,29 @@ if (emptyFilters.length > 0) {
         }
         packed = [...near, ...rest];
         roles = {near, rest};
+        /*
+          THE SET ENDS ON A BUTTON, on a phone. Chris, on the More Kilos tee:
+          "the bottom has very few assets, I guess, so it looks a little
+          orphaned" - three quarter-width pieces in a four-across row - and
+          "it should end with a button". So the set closes on a tile that
+          takes whatever the last row leaves (the rest are a quarter wide
+          each, so it is four minus the remainder, or the full row) and says
+          where the project is. Made for this gather only, removed with it.
+        */
+        if (card && !cardBeside) {
+          const go = card.querySelector<HTMLAnchorElement>('.pf-card');
+          if (go) {
+            endTile = endTile ?? makeEndTile();
+            const left = rest.length % cols;
+            endTile.style.setProperty('--end-span', String(left ? cols - left : cols));
+            const a = endTile.querySelector<HTMLAnchorElement>('a')!;
+            a.href = go.href;
+            endTile.querySelector('.pf-end__count')!.textContent = `All ${family.length} pieces`;
+            endTile.classList.add('is-sibling');
+            revealed.add(endTile);
+            packed.push(endTile);
+          }
+        }
       }
       const frag = document.createDocumentFragment();
       for (let i = 0; i < others.length; i++) {
@@ -2716,7 +2765,7 @@ if (emptyFilters.length > 0) {
       // The family is contiguous now, so the last member's neighbour is
       // the first tile that is not part of the set.
       let lastOfSet = -1;
-      for (let i = 0; i < run.length; i++) if (family.includes(run[i])) lastOfSet = i;
+      for (let i = 0; i < run.length; i++) if (family.includes(run[i]) || run[i] === endTile) lastOfSet = i;
       const after = run[lastOfSet + 1];
       if (after) (after as any).__pfClear = true;
 
@@ -2785,6 +2834,12 @@ if (emptyFilters.length > 0) {
         for (const el of roles.near) {
           (el as any).__pfRole = 'near';
           el.classList.add('is-near');
+        }
+        // The end button: right-aligned, so it sits in the gap the last row leaves.
+        if (endTile?.isConnected && packed.includes(endTile)) {
+          const span = Number(endTile.style.getPropertyValue('--end-span')) || cols;
+          (endTile as any).__pfRole = 'end';
+          (endTile as any).__pfCol = cols - span;
         }
         for (const el of roles.rest) (el as any).__pfRole = 'minor';
       }
@@ -3484,6 +3539,61 @@ if (emptyFilters.length > 0) {
     document.addEventListener('click', queueLink);
     document.addEventListener('keyup', queueLink);
 
+    /*
+      THE WAY OUT, ON A PHONE.
+
+      Chris: on a phone an open shirt takes the whole screen, so the way back
+      to the other shirts stops looking available. Two ways out, both where a
+      phone user already looks:
+
+        THE X, top right, shown while anything is open on a narrow screen.
+        THE BACK GESTURE. Opening a piece from the resting grid adds ONE
+        history entry, so swiping back closes it instead of leaving the
+        portfolio. Moving from one open piece to another adds nothing - Back
+        is never a walk through every shirt looked at - and closing by the X
+        or by tapping the piece takes that entry back off, so there is never
+        a dead Back press that closes something already closed.
+
+      Desktop is untouched: Back leaves the page there, as it always has.
+    */
+    const closeBtn = document.querySelector<HTMLButtonElement>('.pf-close');
+    const narrowNow = () => window.matchMedia('(max-width: 48rem)').matches;
+    const isOpen = () => !!grid.querySelector('.pf-item.is-expanded');
+    const closeOpen = () =>
+      grid
+        .querySelector('.pf-item.is-expanded .pf-item__img')
+        ?.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+    const syncClose = () => {
+      if (closeBtn) closeBtn.hidden = !(isOpen() && narrowNow());
+    };
+    let openBefore = false;
+    /*
+      On the document, not the grid: a filter button closes an open piece
+      too, and that click never reaches the grid. Capture reads the state
+      before any handler changes it; the bubble listener, registered after
+      them all, reads what they did.
+    */
+    document.addEventListener('click', () => (openBefore = isOpen()), true);
+    document.addEventListener('click', () => {
+      const openAfter = isOpen();
+      if (narrowNow() && !openBefore && openAfter) {
+        history.pushState({pfOpen: true}, '', window.location.href);
+      } else if (openBefore && !openAfter && history.state?.pfOpen) {
+        // Closed by a tap: take the entry back off so Back means Back.
+        history.back();
+      }
+      syncClose();
+    });
+    window.addEventListener('popstate', () => {
+      if (isOpen()) closeOpen();
+      syncClose();
+    });
+    closeBtn?.addEventListener('click', () => {
+      if (history.state?.pfOpen) history.back();
+      else closeOpen();
+    });
+    window.addEventListener('resize', syncClose);
+
     if (LINES && FINE_POINTER) {
       grid.addEventListener('mouseover', (e) => {
         /*
@@ -3592,6 +3702,8 @@ if (emptyFilters.length > 0) {
         and as a block it means what the rest of the block means: go to the
         project, not open the tile.
       */
+      // The end button's tile is a button, not a piece: its link does the work.
+      if (item.classList.contains('pf-end')) return;
       if (item.classList.contains('is-card')) {
         const go = item.querySelector<HTMLAnchorElement>('.pf-card');
         if (go) window.location.href = go.href;

@@ -2936,6 +2936,12 @@ main {
   width: calc(var(--pf-col-w) * var(--minor-span, 1));
 }
 
+/* ...and one row tall, so it ends flat above the button. Whole, contained. */
+.pf-grid.is-merch-view .pf-item.is-minor.is-row-end:not(.is-expanded) .pf-item__img {
+  aspect-ratio: var(--minor-span, 1) / 1;
+  object-fit: contain;
+}
+
 /*
   THE OPENED SHIRT NEVER OUTGROWS THE WINDOW.
 

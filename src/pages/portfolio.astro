@@ -1714,7 +1714,10 @@ if (emptyFilters.length > 0) {
         iso.remove(endTile);
         endTile.remove();
       }
-      grid.querySelectorAll<HTMLElement>('.pf-item').forEach((el) => el.style.removeProperty('--minor-span'));
+      grid.querySelectorAll<HTMLElement>('.pf-item').forEach((el) => {
+        el.style.removeProperty('--minor-span');
+        el.classList.remove('is-row-end');
+      });
       // Pieces the merch view revealed for a gather go back to hidden at the
       // next arrange() - restoreOrder's on close, the next gather's on a new
       // click, the filter's on a filter change.
@@ -2726,8 +2729,19 @@ if (emptyFilters.length > 0) {
                   : rest.length >= 5
                     ? [1, 1, 2, 2, 2]
                     : [2];
+          /*
+            And level: the widened row (and the one it borrowed from) is one
+            row tall - each box as wide as its span and a quarter high, the
+            picture contained in it - so the row ends flat and the button sits
+            right under it. Measured before: the More Kilos tee's last row
+            ended 40, 95 and 190px down, and the button under the tallest
+            left holes under the other two.
+          */
           if (spans.length) {
-            rest.slice(-spans.length).forEach((el, i) => el.style.setProperty('--minor-span', String(spans[i])));
+            rest.slice(-spans.length).forEach((el, i) => {
+              el.style.setProperty('--minor-span', String(spans[i]));
+              el.classList.add('is-row-end');
+            });
           }
           const go = card.querySelector<HTMLAnchorElement>('.pf-card');
           if (go) {

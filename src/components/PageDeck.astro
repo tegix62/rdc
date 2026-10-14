@@ -473,8 +473,23 @@ const live = at >= 0 && (prev || next);
         component's own style block rather than global.css so the whole
         mechanism only exists where the deck renders - which is preview.
       */
-      @view-transition {
-        navigation: auto;
+      /*
+        TOUCH ONLY. Chris: "I see a page transition animation on desktop -
+        let's drop that, it's just adding latency effect to the click."
+
+        The opt-in is all-or-nothing per navigation, so on a desktop every
+        link - not just the arrow keys - got the browser's fade, and the old
+        page hung on screen for its length after the click. A swipe earns a
+        slide because the finger is already moving the page; a click wants
+        the next page, now. So the opt-in only exists where the primary
+        pointer cannot hover: phones and tablets. A desktop changes page the
+        ordinary way, arrow keys included, and the nav underline simply
+        appears under the new page instead of sliding there.
+      */
+      @media (hover: none) {
+        @view-transition {
+          navigation: auto;
+        }
       }
 
       /*

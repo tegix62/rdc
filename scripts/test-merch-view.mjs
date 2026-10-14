@@ -646,6 +646,16 @@ const press = async (page, filter) => {
   console.log('')
   for (const pick of ['left', 'middle', 'right']) {
     const page = await open(1440, 900)
+    /*
+      Pictures arrive late, as they do on a real connection: a fast CI
+      runner has every file before the layout runs, which hides exactly the
+      overlap Chris saw - a picture growing into its neighbours as it lands.
+      Only after the grid is up, so the page itself loads as normal.
+    */
+    await page.route('https://cdn.sanity.io/images/**', async (route) => {
+      await new Promise((r) => setTimeout(r, 1200))
+      await route.continue()
+    })
     await press(page, MERCH)
     const i = await page.evaluate((pick) => {
       const grid = document.querySelector('#pf-grid')
@@ -675,9 +685,9 @@ const press = async (page, filter) => {
     const tile = page.locator('#pf-grid .pf-item').nth(i)
     await tile.scrollIntoViewIfNeeded()
     await tile.locator('.pf-item__img').click()
-    // Long enough for the revealed lazy pictures to arrive - overlap shows
-    // up as they land, not before.
-    await page.waitForTimeout(3500)
+    // Long enough for the revealed lazy pictures to arrive, late - overlap
+    // shows up as they land, not before.
+    await page.waitForTimeout(5000)
     const r = await page.evaluate(() => {
       const grid = document.querySelector('#pf-grid')
       const g = grid.getBoundingClientRect()

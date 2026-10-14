@@ -108,6 +108,9 @@ jobs:
       # transparency, unless overridden in Studio. Pure logic.
       - run: node scripts/test-merch-placement.mjs
 
+      # The words on a project's block above its merch cluster. Pure logic.
+      - run: node scripts/test-cluster-card.mjs
+
       # Keeps the built-HTML gate below honest. It found two bugs in that gate
       # in its first minutes: a decode bug that failed every correct og:image,
       # and a check that flagged a pipe in og:title when the defect is restating

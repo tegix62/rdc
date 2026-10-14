@@ -11,6 +11,7 @@ import { getPage, getAllGridItems } from '../lib/queries';
 import { cleanKey, treatmentOf, explicitTreatment, tileHref, heroHeight, HERO_RATIO_PORTFOLIO, merchPlacement } from '../lib/tiles';
 import { orderTiles, isCaseStudy } from '../lib/gridOrder';
 import { tileImage } from '../lib/image';
+import { clusterCard } from '../lib/clusterCard';
 
 const page = await getPage('portfolio');
 const allItems = await getAllGridItems();
@@ -274,6 +275,10 @@ if (emptyFilters.length > 0) {
         const pieceParent = item.pieceParent ? cleanKey(item.pieceParent) : undefined;
         // What a shared link names this piece by - see SHAREABLE LINKS.
         const pieceSlug = item.slug?.current ? cleanKey(item.slug.current) : undefined;
+        // A project's block of type above its merch cluster. Rendered on the
+        // case study's own tile and hidden until a merch gather calls on it -
+        // see THE PROJECT'S BLOCK in gather() and lib/clusterCard.ts.
+        const card = isCaseStudy(item) && parentHref ? clusterCard(item) : null;
         // The category has to be a real CLASS, not just a data attribute:
         // Isotope filters with CSS selectors (".brand-identity"), so with the
         // value only in data-category every filter matched zero tiles and the
@@ -396,6 +401,18 @@ if (emptyFilters.length > 0) {
                 </a>
               )}
             </div>
+            {card && (
+              <a class="pf-card" href={parentHref}>
+                {card.kicker && <span class="pf-card__kicker">{card.kicker}</span>}
+                <span class="pf-card__title">{card.title}</span>
+                {card.client && <span class="pf-card__client">For {card.client}</span>}
+                {card.line && <span class="pf-card__line">{card.line}</span>}
+                {card.result && <span class="pf-card__result">{card.result}</span>}
+                <span class="pf-card__go">
+                  See the project <span aria-hidden="true">&rarr;</span>
+                </span>
+              </a>
+            )}
           </div>
         ) : null;
       })}
@@ -761,7 +778,7 @@ if (emptyFilters.length > 0) {
           of the cluster, which is the shape asked for.
         */
         if (role === 'near' || role === 'minor') {
-          const opened = this.__pfOpened as {col: number; span: number; y: number; h: number} | undefined;
+          const opened = this.__pfOpened as {col: number; span: number; y: number; h: number; top: number} | undefined;
           // The opened shirt's centre, in pixels: what everything grows from.
           const ox = opened ? (opened.col + opened.span / 2) * this.columnWidth : (this.cols / 2) * this.columnWidth;
           let lo = 0;
@@ -793,7 +810,9 @@ if (emptyFilters.length > 0) {
             shirt holds roughly twenty-four half tiles, more than the biggest
             project has, so smaller tiles would only have cost legibility.
           */
-          const bandTop = opened ? opened.y : 0;
+          // From the top of the project's block when there is one: the
+          // pieces fill beside the block and the shirt together.
+          const bandTop = opened ? opened.top : 0;
           const bandBottom = opened ? opened.y + opened.h : Infinity;
           let best = lo;
           let bestY = Infinity;
@@ -830,7 +849,13 @@ if (emptyFilters.length > 0) {
         const col = Math.max(0, Math.min(preferred, this.cols - colSpan));
         // Remembered for the shots and the rest that follow it in this pass.
         const at = topOf(col);
-        if (role === 'opened') this.__pfOpened = {col, span: colSpan, y: at, h: item.size.outerHeight};
+        // The project's block sits on the shelf first and the shirt under it;
+        // the band the rest fills runs from the block's top to the shirt's foot.
+        if (role === 'card') this.__pfCardTop = at;
+        if (role === 'opened') {
+          this.__pfOpened = {col, span: colSpan, y: at, h: item.size.outerHeight, top: this.__pfCardTop ?? at};
+          this.__pfCardTop = undefined;
+        }
         return place(col, at);
       };
     } else {
@@ -1609,6 +1634,8 @@ if (emptyFilters.length > 0) {
       // click, the filter's on a filter change.
       revealed.clear();
       grid.querySelectorAll('.pf-item.is-minor').forEach((el) => el.classList.remove('is-minor'));
+      grid.querySelectorAll('.pf-item.is-card').forEach((el) => el.classList.remove('is-card'));
+      grid.style.removeProperty('--pf-card-h');
       grid.classList.remove('has-focus');
       grid.querySelectorAll('.pf-item.is-sibling').forEach((el) => el.classList.remove('is-sibling'));
       grid.querySelector('.pf-links')?.remove();
@@ -2462,6 +2489,8 @@ if (emptyFilters.length > 0) {
       // Set in the merch view, applied after the shelf reset below - which
       // clears roles along with shelves, so setting them earlier is a no-op.
       let roles: {near: HTMLElement[]; rest: HTMLElement[]} | null = null;
+      // The project's block of type, when this is a merch gather - see below.
+      let card: HTMLElement | null = null;
       let packed = family
         .filter((el) => el !== item)
         .map((el) => ({el, h: el.getBoundingClientRect().height}))
@@ -2487,13 +2516,43 @@ if (emptyFilters.length > 0) {
             ((own && el.dataset.pieceParent === own) ||
               (up && (el.dataset.piece === up || el.dataset.pieceParent === up))),
         );
-        const rest = family.filter((el) => el !== item && !near.includes(el));
+        /*
+          THE PROJECT'S BLOCK, ABOVE THE SHIRT.
+
+          Chris: "the cluster with type, the main clickable block above it,
+          and maybe a result block". And before that: "making the main case
+          study grid item the most clickable when you click a shirt in the
+          merch tab".
+
+          The case study's own tile is already in the family - it is the one
+          that carries the project's bar. In a merch gather it stops being a
+          half-size picture at the edge and becomes the block: the shirt's
+          width, directly on top of it, set in type (lib/clusterCard.ts),
+          and the whole of it a link into the project. The shirt below it,
+          the shots hugging both, the rest of the project around the outside.
+
+          Its height is published as --pf-card-h so the shirt's cap can give
+          the block its room: the set still has to fit the window.
+        */
+        card = family.find((el) => el !== item && el.querySelector('.pf-card')) ?? null;
+        const rest = family.filter((el) => el !== item && el !== card && !near.includes(el));
         for (const el of rest) el.classList.add('is-minor');
+        if (card) {
+          card.classList.add('is-card');
+          // Measured shown: the filter still has it display:none until the
+          // arrange() below reveals it, and a hidden box measures 0.
+          const was = card.style.display;
+          card.style.display = '';
+          grid.style.setProperty('--pf-card-h', `${card.offsetHeight}px`);
+          card.style.display = was;
+        }
         packed = [...near, ...rest];
         roles = {near, rest};
       }
       const frag = document.createDocumentFragment();
       for (let i = 0; i < others.length; i++) {
+        // The block goes in FRONT of the opened shirt, so masonry seats it first.
+        if (i === at && card) frag.appendChild(card);
         frag.appendChild(others[i]);
         // Immediately after the clicked tile, so masonry lays the set out
         // as one run starting from where that tile already sat.
@@ -2517,7 +2576,8 @@ if (emptyFilters.length > 0) {
         See the layout override for the mechanism.
       */
       clearShelves();
-      (item as any).__pfClear = true;
+      // The head of the run levels the columns: the block when there is one.
+      ((card ?? item) as any).__pfClear = true;
       const run = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item'));
       // The family is contiguous now, so the last member's neighbour is
       // the first tile that is not part of the set.
@@ -2536,6 +2596,10 @@ if (emptyFilters.length > 0) {
       if (roles) {
         (item as any).__pfRole = 'opened';
         (item as any).__pfCol = Math.max(0, Math.floor((cols - 2 * unit()) / 2));
+        if (card) {
+          (card as any).__pfRole = 'card';
+          (card as any).__pfCol = (item as any).__pfCol;
+        }
         for (const el of roles.near) (el as any).__pfRole = 'near';
         for (const el of roles.rest) (el as any).__pfRole = 'minor';
       }

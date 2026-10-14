@@ -294,9 +294,18 @@ const press = async (page, filter) => {
       const g = grid.getBoundingClientRect()
       const n = Math.round(g.width / grid.querySelector('.pf-sizer').getBoundingClientRect().width)
       const colW = g.width / n
-      const opened = grid.querySelector('.pf-item.is-expanded').getBoundingClientRect()
+      const shirt = grid.querySelector('.pf-item.is-expanded').getBoundingClientRect()
+      // The band runs from the top of the project's block, when there is
+      // one, to the foot of the shirt: the block and the shirt are one stack.
+      const block = grid.querySelector('.pf-item.is-card')?.getBoundingClientRect()
+      const opened = {left: shirt.left, right: shirt.right, bottom: shirt.bottom, top: block ? block.top : shirt.top}
       const set = Array.from(grid.querySelectorAll('.pf-item.is-sibling'))
-        .filter((el) => getComputedStyle(el).display !== 'none' && !el.classList.contains('is-expanded'))
+        .filter(
+          (el) =>
+            getComputedStyle(el).display !== 'none' &&
+            !el.classList.contains('is-expanded') &&
+            !el.classList.contains('is-card'),
+        )
         .map((el) => el.getBoundingClientRect())
       // Free height inside the band, per column.
       const free = []
@@ -341,6 +350,40 @@ const press = async (page, filter) => {
     )
     check('the middle fills before the outer edges', band.middleFirst, `free px per column [${band.free.join(' ')}]`)
     check('and shown whole, in its own proportions - not cropped square', sizes.cropped === 0, `${sizes.cropped} cropped`)
+
+    /*
+      THE PROJECT'S BLOCK. Chris: "the cluster with type, the main clickable
+      block above it". The case study's own tile, set in type, at the shirt's
+      width directly on top of it, and one link into the project.
+    */
+    const blk = await page.evaluate((h) => {
+      const grid = document.querySelector('#pf-grid')
+      const el = grid.querySelector('.pf-item.is-card')
+      const shirt = grid.querySelector('.pf-item.is-expanded')
+      const hasOne = Array.from(grid.querySelectorAll('.pf-item')).some(
+        (x) => x.querySelector('.pf-card')?.getAttribute('href') === h,
+      )
+      if (!el) return {hasOne, shown: false}
+      const b = el.getBoundingClientRect()
+      const s = shirt.getBoundingClientRect()
+      const link = el.querySelector('.pf-card')
+      return {
+        hasOne,
+        shown: getComputedStyle(el).display !== 'none' && b.height > 0 && getComputedStyle(link).display !== 'none',
+        picture: getComputedStyle(el.querySelector('.pf-item__frame')).display !== 'none',
+        over: Math.abs(b.left - s.left) < 2 && Math.abs(b.width - s.width) < 2 && Math.abs(b.bottom - s.top) < 2,
+        geometry: `block ${Math.round(b.left)},${Math.round(b.top)} ${Math.round(b.width)}x${Math.round(b.height)}; shirt ${Math.round(s.left)},${Math.round(s.top)} ${Math.round(s.width)}x${Math.round(s.height)}`,
+        href: link.getAttribute('href'),
+        title: link.querySelector('.pf-card__title')?.textContent.trim(),
+      }
+    }, target.h)
+    if (!blk.hasOne) {
+      console.log('      (this project has no case study block to show)')
+    } else {
+      check("the project's block is on screen", blk.shown && !blk.picture, `title "${blk.title}"`)
+      check('sitting directly on top of the shirt, at its width', blk.over, blk.geometry)
+      check('and the whole of it one link into the project', blk.href === target.h, blk.href)
+    }
 
     // Closing it hides the revealed pieces again: the view is garments at rest.
     await tile.locator('.pf-item__img').click()

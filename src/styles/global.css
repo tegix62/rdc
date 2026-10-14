@@ -2948,8 +2948,116 @@ main {
 */
 @media (min-width: 48rem) {
   .pf-grid.is-merch-view .pf-item.is-expanded .pf-item__img {
-    max-height: calc(100svh - 6rem);
+    /* Less the project's block above it, when the gather has one. */
+    max-height: calc(100svh - 6rem - var(--pf-card-h, 0px));
   }
+}
+
+/*
+  THE PROJECT'S BLOCK.
+
+  Chris: "the cluster with type, the main clickable block above it, and
+  maybe a result block". The case study's own tile, set in type and sitting
+  on top of the opened shirt at the shirt's width - see THE PROJECT'S BLOCK
+  in portfolio.astro and lib/clusterCard.ts for the words.
+
+  Hidden everywhere else: in the All grid and at rest the case study is its
+  picture, as it always was.
+
+  The block is ONE link, so the whole of it is the target - the most
+  clickable thing in the set, which is what Chris asked of it. The navy bar
+  at its foot is the same navy as every project bar on the grid, so it reads
+  as the same promise ("this goes to the project") at a larger size.
+
+  The result sits below a rule, apart from the description: it is a claim,
+  not a description, and the gap is what lets it be scanned on its own.
+*/
+.pf-card {
+  display: none;
+}
+
+.pf-grid.is-merch-view .pf-item.is-card {
+  width: calc(var(--pf-col-w) * 4);
+}
+
+.pf-grid.is-merch-view .pf-item.is-card .pf-item__frame,
+.pf-grid.is-merch-view .pf-item.is-card .pf-item__plate {
+  display: none;
+}
+
+.pf-grid.is-merch-view .pf-item.is-card .pf-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  padding: 0.25rem 0 0.5rem;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.pf-card__kicker {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-navy);
+}
+
+.pf-card__title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: clamp(1.75rem, 2.6vw, 2.75rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--color-navy);
+  text-wrap: balance;
+}
+
+.pf-card__client {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: color-mix(in srgb, var(--color-ink) 70%, transparent);
+}
+
+.pf-card__line {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.4;
+  max-width: 34em;
+  text-wrap: pretty;
+}
+
+.pf-card__result {
+  align-self: stretch;
+  margin-top: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 2px solid var(--color-navy);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 1.125rem;
+  line-height: 1.25;
+  color: var(--color-navy);
+}
+
+.pf-card__go {
+  margin-top: 0.35rem;
+  padding: 0.6rem 0.9rem;
+  background: var(--color-navy);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  line-height: 1;
+}
+
+.pf-card:hover .pf-card__go,
+.pf-card:focus-visible .pf-card__go {
+  background: var(--color-navy-dark);
+}
+
+.pf-card:focus-visible {
+  outline: 2px solid var(--color-navy);
+  outline-offset: 4px;
 }
 
 /*

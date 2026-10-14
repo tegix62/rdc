@@ -919,7 +919,13 @@ if (emptyFilters.length > 0) {
     for (const img of grid.querySelectorAll<HTMLImageElement>('.pf-item__img')) {
       const w = Number(img.getAttribute('width'));
       const h = Number(img.getAttribute('height'));
-      if (w > 0 && h > 0) img.style.setProperty('--ar', `${w} / ${h}`);
+      if (w > 0 && h > 0) {
+        img.style.setProperty('--ar', `${w} / ${h}`);
+        // The same shape, but never taller than square: what a half-size piece
+        // in a merch gather is held to, so a tall poster does not eat a
+        // column's worth of the shirt's height.
+        img.style.setProperty('--ar-sq', w < h ? '1 / 1' : `${w} / ${h}`);
+      }
     }
 
     /*
@@ -1678,6 +1684,7 @@ if (emptyFilters.length > 0) {
       // click, the filter's on a filter change.
       revealed.clear();
       grid.querySelectorAll('.pf-item.is-minor').forEach((el) => el.classList.remove('is-minor'));
+      grid.querySelectorAll('.pf-item.is-near').forEach((el) => el.classList.remove('is-near'));
       grid.querySelectorAll<HTMLElement>('.pf-item.is-card').forEach((el) => {
         el.classList.remove('is-card', 'is-card--beside', 'is-card--before');
         el.style.removeProperty('--card-span');
@@ -2735,7 +2742,10 @@ if (emptyFilters.length > 0) {
           // Left of the shirt, its type sits against the shirt's edge.
           card.classList.toggle('is-card--before', cardBeside && zone === 'right');
         }
-        for (const el of roles.near) (el as any).__pfRole = 'near';
+        for (const el of roles.near) {
+          (el as any).__pfRole = 'near';
+          el.classList.add('is-near');
+        }
         for (const el of roles.rest) (el as any).__pfRole = 'minor';
       }
 

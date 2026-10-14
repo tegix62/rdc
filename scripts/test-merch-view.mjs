@@ -224,6 +224,9 @@ const press = async (page, filter) => {
         cropped: minors.filter((el) => {
           const img = el.querySelector('.pf-item__img')
           if (!img?.naturalWidth) return false
+          // Contained is whole by definition, whatever its box: a tall piece
+          // is held to a square and drawn inside it, not trimmed.
+          if (getComputedStyle(img).objectFit === 'contain') return false
           const r = img.getBoundingClientRect()
           const pad = parseFloat(getComputedStyle(img).paddingLeft) * 2
           const drawn = (r.width - pad) / (r.height - pad)

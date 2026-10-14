@@ -3005,14 +3005,14 @@ main {
 }
 
 .pf-grid.is-merch-view .pf-item.is-card .pf-item__frame {
-  flex: 0 0 8.5rem;
+  flex: 0 0 6.5rem;
   cursor: pointer;
 }
 
 .pf-grid.is-merch-view .pf-item.is-card .pf-item__img {
   aspect-ratio: var(--ar, auto);
   height: auto;
-  max-height: 8.5rem;
+  max-height: 6.5rem;
   object-fit: contain;
   object-position: left top;
 }
@@ -3065,7 +3065,9 @@ main {
 .pf-card__title {
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: clamp(1.75rem, 2.6vw, 2.75rem);
+  /* Sized to keep most names on one line beside the shirt: every line the
+     block grows by is a row of pieces the band beside the shirt loses. */
+  font-size: clamp(1.5rem, 2vw, 2.25rem);
   line-height: 1;
   letter-spacing: -0.02em;
   color: var(--color-navy);
@@ -3142,9 +3144,28 @@ main {
     masonry placed its neighbours against a zero-height box, the picture
     then grew into them - Chris: "there's overlapping imagery".
   */
-  aspect-ratio: var(--ar, auto);
+  aspect-ratio: var(--ar-sq, var(--ar, auto));
   height: auto;
-  object-fit: fill;
+  object-fit: contain;
+}
+
+/*
+  ROOM FOR THE WHOLE PROJECT BESIDE THE SHIRT. Measured at 1536x730 with
+  DumpStat's hoodie open on the left: the band beside it full to within a
+  few pixels and three pieces pushed below the window. Three things were
+  spending room they did not need:
+
+    - a half-size piece taller than it is wide - a poster, a sketch - ran
+      to 210px in a 152px column. It is now held to a square (--ar-sq) and
+      contained in it: whole, a little smaller.
+    - a cut-out among the shirt's own shots - the Desperate Foes wordmark
+      on the hoodie - filled a 304px square to show a wordmark half that
+      tall. A cut-out shot keeps its own shape; a photograph still fills.
+    - the project's block, below.
+*/
+.pf-grid.is-merch-view .pf-item.is-near[data-cutout]:not(.is-expanded) .pf-item__img {
+  aspect-ratio: var(--ar, 1 / 1);
+  object-fit: contain;
 }
 
 /*

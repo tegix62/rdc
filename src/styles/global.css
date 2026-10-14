@@ -2995,6 +2995,14 @@ main {
   text-decoration: none;
 }
 
+/*
+  Beside the shirt, the text needs air from the garment rather than a hairline
+  of tile padding - and it starts level with the shirt's top edge.
+*/
+.pf-grid.is-merch-view .pf-item.is-card--beside .pf-card {
+  padding: 0.5rem 0.5rem 0.75rem 1.25rem;
+}
+
 .pf-card__kicker {
   font-family: var(--font-body);
   font-size: 0.75rem;

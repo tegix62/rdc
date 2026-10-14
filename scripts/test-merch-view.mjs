@@ -307,6 +307,9 @@ const press = async (page, filter) => {
             !el.classList.contains('is-card'),
         )
         .map((el) => el.getBoundingClientRect())
+      // The block takes room in its columns like any piece, but is not one of
+      // the pieces that could have gone below.
+      const occupied = block ? [...set, block] : set
       // Free height inside the band, per column.
       const free = []
       for (let c = 0; c < n; c++) {
@@ -317,7 +320,7 @@ const press = async (page, filter) => {
           continue
         }
         let used = 0
-        for (const b of set) {
+        for (const b of occupied) {
           if (b.left < r - 1 && b.right > l + 1) {
             used += Math.max(0, Math.min(b.bottom, opened.bottom) - Math.max(b.top, opened.top))
           }
@@ -371,6 +374,8 @@ const press = async (page, filter) => {
         hasOne,
         shown: getComputedStyle(el).display !== 'none' && b.height > 0 && getComputedStyle(link).display !== 'none',
         picture: getComputedStyle(el.querySelector('.pf-item__frame')).display !== 'none',
+        // Desktop: to the shirt's right, level with its top. Phone: on top of it.
+        beside: Math.abs(b.left - s.right) < 2 && Math.abs(b.top - s.top) < 2 && s.left - grid.getBoundingClientRect().left < 2,
         over: Math.abs(b.left - s.left) < 2 && Math.abs(b.width - s.width) < 2 && Math.abs(b.bottom - s.top) < 2,
         geometry: `block ${Math.round(b.left)},${Math.round(b.top)} ${Math.round(b.width)}x${Math.round(b.height)}; shirt ${Math.round(s.left)},${Math.round(s.top)} ${Math.round(s.width)}x${Math.round(s.height)}`,
         href: link.getAttribute('href'),
@@ -381,7 +386,8 @@ const press = async (page, filter) => {
       console.log('      (this project has no case study block to show)')
     } else {
       check("the project's block is on screen", blk.shown && !blk.picture, `title "${blk.title}"`)
-      check('sitting directly on top of the shirt, at its width', blk.over, blk.geometry)
+      // Chris: "move the main shirt object to the left, and put the text to the right of it".
+      check('the shirt at the left edge, the block to its right, level with its top', blk.beside, blk.geometry)
       check('and the whole of it one link into the project', blk.href === target.h, blk.href)
     }
 
@@ -438,7 +444,10 @@ const press = async (page, filter) => {
       const o = opened.getBoundingClientRect()
       return {
         hugs: !!p && touches(p.getBoundingClientRect(), o),
-        centred: Math.abs((o.left + o.right) / 2 - (g.left + g.right) / 2) <= g.width / 10,
+        // Centred when there is no project block; at the left edge beside one.
+        placed: grid.querySelector('.pf-item.is-card')
+          ? o.left - g.left < 2
+          : Math.abs((o.left + o.right) / 2 - (g.left + g.right) / 2) <= g.width / 10,
         shown: !!p && shown.includes(p),
         next: !!p && shown.indexOf(p) === shown.indexOf(opened) + 1,
         ordinary: !!p && !p.classList.contains('is-minor') && Math.abs(p.getBoundingClientRect().width / (grid.clientWidth / 5) - 1) < 0.05,
@@ -448,8 +457,8 @@ const press = async (page, filter) => {
     check("opening a piece brings the piece it hangs off right beside it", near.shown && near.next, JSON.stringify(near))
     check('at ordinary size, not half', near.ordinary)
     check('and hugging it - sharing an edge with the opened piece', near.hugs)
-    check('with the opened piece in the centre of the grid', near.centred)
-    await tile.locator('.pf-item__img').click()
+    check('with the opened piece where its layout puts it (left beside its block, else centred)', near.placed)
+    await page.locator('#pf-grid .pf-item.is-expanded .pf-item__img').click()
     await page.waitForTimeout(1000)
   }
 

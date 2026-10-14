@@ -2378,8 +2378,26 @@ if (emptyFilters.length > 0) {
         }
         return {top, bottom};
       };
+      /*
+        THE MERCH VIEW AIMS AT THE SET ON A DESKTOP TOO.
+
+        Chris: "the way it puts together is not fully in the viewport, so you
+        kind of have to scroll down a little bit (on desktop that is)".
+
+        Holding the clicked tile still assumes the set grows around it by a
+        row or two. A merch gather does not: the shirt doubles to four tenths
+        of the grid's width and becomes the whole band the set fills, 546-
+        802px tall on laptop windows. Measured with the tile held where it was
+        clicked, 12 of 12 gathers (three shirts, four window sizes) ran 9-137px
+        past the bottom of the window - while every one of those sets was
+        shorter than its window. It was never too big, only aimed wrong.
+
+        So it takes the phone's rule: the set comes to the top of the window,
+        with air out of whatever room is left over.
+      */
+      const aimAtSet = narrow || inMerch();
       const driftNow = () => {
-        if (!narrow) return item.getBoundingClientRect().top - anchorBefore;
+        if (!aimAtSet) return item.getBoundingClientRect().top - anchorBefore;
         const box = setBox();
         const slack = window.innerHeight - (box.bottom - box.top);
         const air = Math.max(0, Math.min(SET_AIR, slack / 2));

@@ -2936,6 +2936,23 @@ main {
 }
 
 /*
+  THE OPENED SHIRT NEVER OUTGROWS THE WINDOW.
+
+  Its height is the set's height - everything else packs into the band
+  beside it - so a shirt taller than the window is a set that cannot be seen
+  whole however it is scrolled. On ordinary laptop shapes it fits with room
+  to spare (802px in a 950px window at 1920); a wide, short window does not
+  (four tenths of 3440px is 1376px). There the picture stops at the window's
+  height less its 40px project bar and some air, and a cut-out tee is
+  contained, so it simply draws a little smaller inside the same tile.
+*/
+@media (min-width: 48rem) {
+  .pf-grid.is-merch-view .pf-item.is-expanded .pf-item__img {
+    max-height: calc(100svh - 6rem);
+  }
+}
+
+/*
   THE REST OF THE PROJECT IS SHOWN WHOLE, NOT CROPPED.
 
   Chris: the closeups and anything linked directly to the shirt keep the

@@ -272,6 +272,8 @@ if (emptyFilters.length > 0) {
         */
         const pieceId = cleanKey(item._id).replace(/^drafts\./, '');
         const pieceParent = item.pieceParent ? cleanKey(item.pieceParent) : undefined;
+        // What a shared link names this piece by - see SHAREABLE LINKS.
+        const pieceSlug = item.slug?.current ? cleanKey(item.slug.current) : undefined;
         // The category has to be a real CLASS, not just a data attribute:
         // Isotope filters with CSS selectors (".brand-identity"), so with the
         // value only in data-category every filter matched zero tiles and the
@@ -297,6 +299,7 @@ if (emptyFilters.length > 0) {
             data-merch={merch}
             data-piece={pieceId}
             data-piece-parent={pieceParent}
+            data-slug={pieceSlug}
           >
             {/*
               The frame wraps the image and the jump button so a selected tile
@@ -2921,9 +2924,12 @@ if (emptyFilters.length > 0) {
       No demo when a project was asked for by name. The visitor has
       already chosen something; flashing four other projects at them
       first would be answering a question nobody asked, and the two would
-      race for the same grid.
+      race for the same grid. The same goes for a shared link that names a
+      view or a piece (see SHAREABLE LINKS) - read here directly, since
+      that block runs later.
     */
-    if (LINES && !FINE_POINTER && !reducedMotion.matches && !PROJECT) {
+    const LINKED = /[?&](view|open)=/.test(window.location.search);
+    if (LINES && !FINE_POINTER && !reducedMotion.matches && !PROJECT && !LINKED) {
       let seen = false;
       try {
         seen = sessionStorage.getItem(DEMO_KEY) === '1';
@@ -3127,6 +3133,107 @@ if (emptyFilters.length > 0) {
         tile.querySelector('img')?.dispatchEvent(new MouseEvent('click', {bubbles: true}));
       }, 1200);
     }
+
+    /*
+      SHAREABLE LINKS. THE ADDRESS BAR SAYS WHAT IS ON SCREEN.
+
+      Chris wants to send a creative director straight to his merch, or to
+      one shirt with its project gathered round it - "as long as it stays
+      speedy". So the page keeps its address in step with the view and the
+      open piece:
+
+        /portfolio?view=merch                     the Merch & Apparel view
+        /portfolio?view=merch&open=more-kilos-tee that shirt, opened, gathered
+        /portfolio?view=brand                     a plain filter works too
+
+      and arriving at such an address puts the page in that state.
+
+      SPEED. replaceState, not pushState: the address changes in place, so
+      browsing forty pieces does not leave forty entries for Back to walk
+      through - Back leaves the portfolio, as it always has. It runs once per
+      frame at most, after the click has done its work, and compares before
+      writing, so a click that changes nothing writes nothing. Nothing is
+      fetched and nothing is laid out; the cost is a string comparison.
+
+      A piece is named by its slug, which reads as words in an email; the
+      Sanity id is the fallback for a piece without one.
+    */
+    const NAME_OF: Record<string, string> = {
+      [MERCH_FILTER]: 'merch',
+      [TYPE_FILTER]: 'type',
+      '.brand-identity': 'brand',
+    };
+    const filterNamed = (name: string) =>
+      Object.keys(NAME_OF).find((f) => NAME_OF[f] === name) ??
+      (/^[a-z0-9-]+$/.test(name) ? `.${name}` : null);
+    const keyOf = (el: HTMLElement) => el.dataset.slug || el.dataset.piece || null;
+
+    const writeLink = () => {
+      const url = new URL(window.location.href);
+      const active = Array.from(document.querySelectorAll<HTMLElement>('.pf-btn[data-filter].is-active'))
+        .map((b) => b.dataset.filter!)
+        .filter((f) => f !== '*');
+      if (active.length) url.searchParams.set('view', active.map((f) => NAME_OF[f] ?? f.replace(/^\./, '')).join(','));
+      else url.searchParams.delete('view');
+      const open = grid.querySelector<HTMLElement>('.pf-item.is-expanded');
+      const key = open ? keyOf(open) : null;
+      if (key) url.searchParams.set('open', key);
+      else url.searchParams.delete('open');
+      // The homepage's arrival hint is spent once the visitor is steering;
+      // the open piece now says the same thing more precisely.
+      url.searchParams.delete('project');
+      if (url.href !== window.location.href) history.replaceState(history.state, '', url);
+    };
+    let linkQueued = false;
+    const queueLink = () => {
+      if (linkQueued) return;
+      linkQueued = true;
+      requestAnimationFrame(() => {
+        linkQueued = false;
+        writeLink();
+      });
+    };
+
+    /*
+      ARRIVING ON A SHARED LINK. The view first, at once - it is a button
+      press, and the tiles can be filtered before anything has been placed.
+      The open piece after the same 1200ms the homepage's ?project= waits,
+      for the same reason: gather() anchors to where the tile sits, so
+      masonry has to have put it somewhere first.
+    */
+    const ARRIVE = new URLSearchParams(window.location.search);
+    const ARRIVE_VIEW = ARRIVE.get('view');
+    const ARRIVE_OPEN = ARRIVE.get('open');
+    if (ARRIVE_VIEW) {
+      for (const name of ARRIVE_VIEW.split(',')) {
+        const f = filterNamed(name.trim());
+        const btn = f ? document.querySelector<HTMLElement>(`.pf-btn[data-filter="${f}"]`) : null;
+        if (btn && !btn.classList.contains('is-active')) btn.click();
+      }
+    }
+    if (ARRIVE_OPEN && !PROJECT) {
+      window.setTimeout(() => {
+        const all = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item'));
+        const shown = (el: HTMLElement) => el.style.display !== 'none';
+        let tile = all.find((el) => keyOf(el) === ARRIVE_OPEN || el.dataset.piece === ARRIVE_OPEN);
+        /*
+          A closeup parented to a shirt waits under it in the Merch view, so
+          a link to the closeup opens its shirt, which brings it out. Anything
+          else that is filtered away leaves the grid as it is - the same quiet
+          failure as a ?project= that matches nothing.
+        */
+        if (tile && !shown(tile) && tile.dataset.pieceParent) {
+          tile = all.find((el) => el.dataset.piece === tile!.dataset.pieceParent);
+        }
+        if (!tile || !shown(tile)) return;
+        tile.scrollIntoView({block: 'center', behavior: 'instant' as ScrollBehavior});
+        tile.querySelector('img')?.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+      }, 1200);
+    }
+    // Registered after arrival, so replaying a link does not rewrite it
+    // half-way; from here on every click and key brings the address up to date.
+    document.addEventListener('click', queueLink);
+    document.addEventListener('keyup', queueLink);
 
     if (LINES && FINE_POINTER) {
       grid.addEventListener('mouseover', (e) => {

@@ -1,0 +1,38 @@
+name: Test shareable links
+
+# Shareable Portfolio links: the address follows the view and the open
+# piece, and arriving at it restores them. See scripts/test-shareable-links.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to test'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          set -o pipefail
+          node scripts/test-shareable-links.mjs "$BASE" | tee /tmp/links.txt
+        env:
+          BASE: ${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Shareable links'
+            echo ''
+            echo '```'
+            cat /tmp/links.txt 2>/dev/null || echo '(the test did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

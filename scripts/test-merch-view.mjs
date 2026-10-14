@@ -813,6 +813,87 @@ for (const [w, h] of [[1536, 730], [2560, 1000]]) {
   )
 }
 
+/*
+  ---------------------------------------------------------------- phone gather
+
+  Chris, on his phone: "There's a long descending line of the mockup
+  alternate shots, and lots of negative space. Can we try the text and
+  auxiliary stuff below the main image on mobile ... fit in the viewport in
+  a way that teases the rest of the stuff to be viewed."
+
+  On a 390x664 phone (Safari's bars taken), opening the shirt with the most
+  shots of its own: the caption block directly under the shirt at full
+  width, both on screen with the next pieces peeking in at the bottom, the
+  shots paired two across rather than stacked down the middle, and nothing
+  overlapping.
+*/
+{
+  const page = await open(390, 664)
+  await press(page, MERCH)
+  const i = await page.evaluate(() => {
+    const all = Array.from(document.querySelectorAll('#pf-grid .pf-item'))
+    const href = (el) => el.querySelector('.pf-item__jump')?.getAttribute('href')
+    const shown = all.filter((el) => getComputedStyle(el).display !== 'none' && el.dataset.merch === 'lead')
+    const score = (el) =>
+      all.filter((x) => x.dataset.pieceParent === el.dataset.piece).length * 100 +
+      all.filter((x) => href(x) && href(x) === href(el)).length
+    const best = shown.filter((el) => all.some((y) => y.querySelector('.pf-card')?.getAttribute('href') === href(el)))
+      .sort((a, b) => score(b) - score(a))[0]
+    return best ? all.indexOf(best) : -1
+  })
+  console.log('')
+  if (i < 0) {
+    check('phone: a shirt with a project block exists to open', false)
+  } else {
+    const tile = page.locator('#pf-grid .pf-item').nth(i)
+    await tile.scrollIntoViewIfNeeded()
+    await tile.locator('.pf-item__img').click()
+    await page.waitForTimeout(3000)
+    const r = await page.evaluate(() => {
+      const grid = document.querySelector('#pf-grid')
+      const g = grid.getBoundingClientRect()
+      const shirtEl = grid.querySelector('.pf-item.is-expanded')
+      const s = shirtEl.getBoundingClientRect()
+      const c = grid.querySelector('.pf-item.is-card')?.getBoundingClientRect()
+      const set = Array.from(grid.querySelectorAll('.pf-item.is-sibling')).filter((el) => getComputedStyle(el).display !== 'none')
+      const rest = set.filter((el) => !el.classList.contains('is-expanded') && !el.classList.contains('is-card'))
+      const near = rest.filter((el) => el.classList.contains('is-near')).map((el) => el.getBoundingClientRect())
+      const half = g.width / 2
+      const aligned = near.every((b) => Math.abs((b.left - g.left) % half) < 3 || Math.abs(((b.left - g.left) % half) - half) < 3)
+      const paired = near.length < 2 || near.some((a) => near.some((b) => a !== b && Math.abs(a.top - b.top) < 3))
+      const boxes = Array.from(grid.querySelectorAll('.pf-item'))
+        .filter((el) => getComputedStyle(el).display !== 'none')
+        .map((el) => el.getBoundingClientRect())
+      let overlaps = 0
+      for (let a = 0; a < boxes.length; a++)
+        for (let z = a + 1; z < boxes.length; z++) {
+          const w = Math.min(boxes[a].right, boxes[z].right) - Math.max(boxes[a].left, boxes[z].left)
+          const h = Math.min(boxes[a].bottom, boxes[z].bottom) - Math.max(boxes[a].top, boxes[z].top)
+          if (w > 2 && h > 2) overlaps++
+        }
+      return {
+        name: shirtEl.dataset.slug,
+        under: !!c && Math.abs(c.top - s.bottom) < 3 && c.width > g.width - 4,
+        geometry: c ? `shirt ${Math.round(s.top)}..${Math.round(s.bottom)}, block ${Math.round(c.top)}..${Math.round(c.bottom)} of ${innerHeight}` : 'no block',
+        fits: s.top >= -1 && !!c && c.bottom <= innerHeight + 1,
+        teased: rest.some((el) => el.getBoundingClientRect().top < innerHeight - 20),
+        near: near.length,
+        aligned,
+        paired,
+        overlaps,
+      }
+    })
+    console.log(`phone: opened ${r.name}`)
+    check('phone: the block sits directly under the shirt, full width', r.under, r.geometry)
+    check('phone: shirt and block both fit on the screen', r.fits, r.geometry)
+    check('phone: the rest of the project peeks in below them', r.teased)
+    check('phone: the shirt\'s own shots sit on the halves, not down the middle', r.aligned, `${r.near} shot(s)`)
+    check('phone: and pair up two across', r.paired, `${r.near} shot(s)`)
+    check('phone: no two pictures overlap', r.overlaps === 0, `${r.overlaps}`)
+  }
+  await page.close()
+}
+
 // ---------------------------------------------------------------- phone
 {
   const page = await open(390, 844)

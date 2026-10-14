@@ -32,16 +32,15 @@ for (const [w, h] of SIZES) {
       sessionStorage.setItem('pf-demo-shown', '1')
     } catch {}
   })
-  await page.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60_000})
-  await page.waitForSelector('#pf-grid .pf-item', {state: 'visible'})
-  await page.waitForTimeout(2500)
   console.log(`\n${w}x${h}`)
   // First, middle and last shirts on the page - a click near the top, the
   // middle and the bottom of the window lands differently.
   for (const pick of ['first', 'middle', 'last']) {
-    await page.evaluate(() => window.scrollTo(0, 0))
-    const active = await page.evaluate(() => document.querySelector('.pf-btn[data-filter=".merch-apparel"]')?.classList.contains('is-active'))
-    if (!active) await page.click('.pf-btn[data-filter=".merch-apparel"]')
+    // A fresh page for each, so nothing from the last gather carries over.
+    await page.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+    await page.waitForSelector('#pf-grid .pf-item', {state: 'visible'})
+    await page.waitForTimeout(2500)
+    await page.click('.pf-btn[data-filter=".merch-apparel"]')
     await page.waitForTimeout(1000)
     const idx = await page.evaluate((pick) => {
       const all = Array.from(document.querySelectorAll('#pf-grid .pf-item'))
@@ -91,9 +90,6 @@ for (const [w, h] of SIZES) {
       `  ${pick.padEnd(6)} ${String(title).slice(0, 40).padEnd(40)} ${r.n} pieces  shirt ${r.openedW}x${r.openedH}  set ${r.setH}px tall, ${r.setTop}..${r.setBottom} of ${r.vh}  ` +
         (cutBottom || cutTop ? `CUT ${cutTop}px top, ${cutBottom}px bottom` : 'fits'),
     )
-    // Close it again.
-    await page.keyboard.press('Escape')
-    await page.waitForTimeout(900)
   }
   await page.close()
 }

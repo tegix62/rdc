@@ -2982,6 +2982,14 @@ main {
 }
 
 /*
+  A CUT-OUT IS NEVER CROPPED IN THE MERCH VIEW. Chris's screenshot: the
+  Desperate Foes wordmark, parented to the hoodie as one of its shots, came
+  out as "ERATE" - square-cropped like a photograph. Anything drawn on
+  transparency (data-cutout, from the picture's own metadata) is contained
+  in its square instead, the way the cut-out tees already are.
+*/
+
+/*
   ITS OWN PICTURE, TUCKED BESIDE THE TYPE. Chris: the logomark should "just
   really be the grid item of the case study. Not duplicate of it or
   anything, just tuck it next to the text". So the case study's tile keeps
@@ -3002,7 +3010,7 @@ main {
 }
 
 .pf-grid.is-merch-view .pf-item.is-card .pf-item__img {
-  aspect-ratio: auto;
+  aspect-ratio: var(--ar, auto);
   height: auto;
   max-height: 8.5rem;
   object-fit: contain;
@@ -3126,7 +3134,15 @@ main {
   the All grid draws them, and the size difference does the ranking.
 */
 .pf-grid.is-merch-view .pf-item.is-minor:not(.is-expanded) .pf-item__img {
-  aspect-ratio: auto;
+  /*
+    The picture's own shape, from its width and height attributes (copied
+    into --ar by the page script), NOT `auto`. `aspect-ratio: auto` throws
+    away the shape the attributes give the browser before the file arrives,
+    so a lazy picture revealed by a gather had no height until it loaded:
+    masonry placed its neighbours against a zero-height box, the picture
+    then grew into them - Chris: "there's overlapping imagery".
+  */
+  aspect-ratio: var(--ar, auto);
   height: auto;
   object-fit: fill;
 }
@@ -3150,7 +3166,8 @@ main {
 }
 
 .pf-grid.is-merch-view .pf-item[data-merch='lead'] .pf-item__img,
-.pf-grid.is-merch-view .pf-item--mark .pf-item__img {
+.pf-grid.is-merch-view .pf-item--mark .pf-item__img,
+.pf-grid.is-merch-view .pf-item[data-cutout] .pf-item__img {
   object-fit: contain;
 }
 

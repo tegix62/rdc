@@ -644,8 +644,12 @@ const press = async (page, filter) => {
 */
 {
   console.log('')
-  for (const pick of ['left', 'middle', 'right']) {
-    const page = await open(1440, 900)
+  // Chris's screen is about 1900px wide, as well as the common laptop size.
+  for (const [pick, w, h] of [
+    ['left', 1440, 900], ['middle', 1440, 900], ['right', 1440, 900],
+    ['left', 1920, 1080], ['middle', 1920, 1080], ['right', 1920, 1080],
+  ]) {
+    const page = await open(w, h)
     /*
       Pictures arrive late, as they do on a real connection: a fast CI
       runner has every file before the layout runs, which hides exactly the
@@ -729,13 +733,14 @@ const press = async (page, filter) => {
         overlaps,
         pairs,
         croppedCutouts,
-        side: f < 0.3 ? 'left' : f > 0.7 ? 'right' : 'middle',
+        // Shirt centres: left 0.2, middle 0.3 (the shirt-and-block pair centred), right 0.8.
+        side: f < 0.25 ? 'left' : f > 0.75 ? 'right' : 'middle',
         blockSide: c ? (c.left >= o.right - 2 ? 'right of it' : 'left of it') : 'none',
         out,
         n: set.length,
       }
     })
-    check(`clicked in the ${pick} third, the shirt opens ${pick}`, r.side === pick, `${r.side}, block ${r.blockSide}`)
+    check(`${w}px: clicked in the ${pick} third, the shirt opens ${pick}`, r.side === pick, `${r.side}, block ${r.blockSide}`)
     check(`  and none of its ${r.n} pieces falls out of the window`, r.out === 0, `${r.out} outside`)
     check('  and no two pictures overlap', r.overlaps === 0, r.overlaps ? `${r.overlaps}: ${r.pairs.join(', ')}` : '0')
     check('  and no cut-out is cropped like a photograph', r.croppedCutouts === 0, `${r.croppedCutouts} cropped`)

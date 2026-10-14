@@ -305,6 +305,7 @@ if (emptyFilters.length > 0) {
             data-piece={pieceId}
             data-piece-parent={pieceParent}
             data-slug={pieceSlug}
+            data-cutout={item.tileOpaque === false ? '' : undefined}
           >
             {/*
               The frame wraps the image and the jump button so a selected tile
@@ -908,6 +909,40 @@ if (emptyFilters.length > 0) {
       the CDN did not report.
     */
     imagesLoaded(grid).on('always', () => iso.layout());
+
+    /*
+      EVERY PICTURE'S SHAPE, AVAILABLE TO CSS. The width and height attributes
+      are each file's intrinsic shape; the merch view draws some pictures in
+      their own proportions and needs that shape as a value it can use while
+      the file is still on its way (see the is-minor rule in global.css).
+    */
+    for (const img of grid.querySelectorAll<HTMLImageElement>('.pf-item__img')) {
+      const w = Number(img.getAttribute('width'));
+      const h = Number(img.getAttribute('height'));
+      if (w > 0 && h > 0) img.style.setProperty('--ar', `${w} / ${h}`);
+    }
+
+    /*
+      AND A SAFETY NET FOR A GATHER'S LATE ARRIVALS. A gather reveals lazy
+      pictures that had never been on screen; if any of them still changes
+      size as it lands, one relayout per frame puts its neighbours right
+      instead of leaving them overlapped. With the shapes reserved above it
+      normally finds nothing to move.
+    */
+    let lateLayout = false;
+    grid.addEventListener(
+      'load',
+      (e) => {
+        const img = e.target as HTMLElement;
+        if (!(img instanceof HTMLImageElement) || !grid.classList.contains('has-focus') || lateLayout) return;
+        lateLayout = true;
+        requestAnimationFrame(() => {
+          lateLayout = false;
+          iso.layout();
+        });
+      },
+      true,
+    );
 
     /*
       Re-layout when coming BACK to this page, which is the mobile bug where
@@ -2654,8 +2689,8 @@ if (emptyFilters.length > 0) {
           based on where it was clicked in the grid, so that the click isn't
           as disorienting." A shirt clicked on the right of the grid opens on
           the right, with its block to its left; the middle opens in the
-          middle with the block on its right, three columns wide; the left
-          opens at the left edge as before. The thirds are read from the
+          middle with the block on its right; the left opens at the left edge
+          as before. The thirds are read from the
           column the tile sat in when it was clicked (__pfCol, recorded by
           the click handler before anything moved).
 
@@ -2680,8 +2715,15 @@ if (emptyFilters.length > 0) {
             shirtCol = cols - S;
             cardCol = shirtCol - S;
           } else {
+            /*
+              The middle: the shirt one column in from centre, so the block
+              beside it keeps its full four columns. A three-column block
+              wrapped its title onto three lines and grew tall enough to
+              crowd the band - measured: DumpStat's set ran 836px in a 730px
+              window from the middle while left and right both fit.
+            */
+            shirtCol = Math.max(0, Math.floor((cols - 2 * S) / 2));
             cardCol = shirtCol + S;
-            cardSpan = cols - cardCol;
           }
         }
         (item as any).__pfRole = 'opened';

@@ -695,6 +695,8 @@ if (emptyFilters.length > 0) {
           above the set, in exchange for the set reading as one thing.
         */
         if (item?.element?.__pfClear) {
+          // A new run: whatever the last one knew about its block is stale.
+          this.__pfCardTop = undefined;
           let floor = 0;
           for (const y of this.colYs) floor = Math.max(floor, y);
           for (let i = 0; i < this.colYs.length; i++) this.colYs[i] = floor;
@@ -841,8 +843,22 @@ if (emptyFilters.length > 0) {
               outranks every spot below, and distance only orders within a
               tier.
             */
+            /*
+              BELOW THE BAND, PACK - DO NOT CENTRE. Chris, on a phone: "a long
+              descending line of the mockup alternate shots, and lots of
+              negative space". A phone's shirt spans the screen, so every
+              piece is below it, and "nearest the shirt's centre" put each
+              half-width shot in the MIDDLE two of four columns - which
+              blocks both halves, so the next went under it, and the next:
+              one column down the middle with a quarter of empty screen
+              either side. Below the band a spot off the piece's own
+              alignment (a two-column tile starting on an odd column) pays
+              more than any distance can win back, so shots pair up 2-up and
+              the rest packs 4-up.
+            */
+            const misaligned = colSpan > 1 && c % colSpan !== 0 ? 2 * this.columnWidth : 0;
             const d = overflow > 1
-              ? 1e6 + overflow * 3 + dx
+              ? 1e6 + overflow * 3 + misaligned + dx
               : (role === 'near' && !inStrip(c) ? 1e5 : 0) + dx + 0.15 * Math.max(0, y - bandTop);
             if (d < bestD - 1 || (Math.abs(d - bestD) <= 1 && y < bestY)) {
               best = c;
@@ -2620,7 +2636,10 @@ if (emptyFilters.length > 0) {
             right of it. Anything else can fill out." So on a desktop the
             shirt opens at the grid's left edge and the block sits to its
             right, level with its top. A phone has no room beside a shirt
-            that already spans the screen, so there the block stays on top.
+            that already spans the screen, so there the block goes directly
+            UNDER the shirt as its caption - Chris: "try the text and
+            auxiliary stuff below the main image on mobile" - with the
+            shots and the rest packed below it.
 
             Only a stacked block takes height from the shirt (--pf-card-h,
             for the cap that keeps the set inside the window); beside it,
@@ -2645,12 +2664,17 @@ if (emptyFilters.length > 0) {
       }
       const frag = document.createDocumentFragment();
       for (let i = 0; i < others.length; i++) {
-        // The block goes in FRONT of the opened shirt, so masonry seats it first.
-        if (i === at && card) frag.appendChild(card);
+        // Beside the shirt (desktop), the block goes in FRONT of it, so
+        // masonry seats it first on the shelf and the shirt next to it.
+        if (i === at && card && cardBeside) frag.appendChild(card);
         frag.appendChild(others[i]);
         // Immediately after the clicked tile, so masonry lays the set out
-        // as one run starting from where that tile already sat.
-        if (i === at) for (const el of packed) frag.appendChild(el);
+        // as one run starting from where that tile already sat. On a phone
+        // the block comes first in that run, as the shirt's caption.
+        if (i === at) {
+          if (card && !cardBeside) frag.appendChild(card);
+          for (const el of packed) frag.appendChild(el);
+        }
       }
       grid.appendChild(frag);
 
@@ -2671,7 +2695,7 @@ if (emptyFilters.length > 0) {
       */
       clearShelves();
       // The head of the run levels the columns: the block when there is one.
-      ((card ?? item) as any).__pfClear = true;
+      ((card && cardBeside ? card : item) as any).__pfClear = true;
       const run = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item'));
       // The family is contiguous now, so the last member's neighbour is
       // the first tile that is not part of the set.

@@ -3022,9 +3022,62 @@ main {
   display: none;
 }
 
-@media (max-width: 30rem) {
+/*
+  ON A PHONE THE BLOCK IS THE SHIRT'S CAPTION. Chris: "try the text and
+  auxiliary stuff below the main image on mobile ... fit in the viewport in a
+  way that teases the rest of the stuff to be viewed."
+
+  The budget, on a 390x664 phone with Safari's bars: the shirt capped at a
+  little over half the screen, the caption under it kept to its title, client,
+  two lines of summary and the button, and what is left - roughly the top
+  third of the first row of shots - shows below as the tease that there is
+  more. The shirt's own project bar goes, because the caption under it says
+  the same thing with the button in it.
+*/
+@media (max-width: 48rem) {
+  .pf-grid.is-merch-view .pf-item.is-expanded .pf-item__img {
+    max-height: 52svh;
+  }
+
+  .pf-grid.is-merch-view:has(.pf-item.is-card) .pf-item.is-expanded .pf-item__jump {
+    display: none;
+  }
+
+  .pf-grid.is-merch-view .pf-item.is-card {
+    gap: 0.75rem;
+    padding: 0.625rem 0.25rem 0.5rem;
+  }
+
   .pf-grid.is-merch-view .pf-item.is-card .pf-item__frame {
-    flex-basis: 5.5rem;
+    flex-basis: 3.75rem;
+  }
+
+  .pf-grid.is-merch-view .pf-item.is-card .pf-item__img {
+    max-height: 3.75rem;
+  }
+
+  .pf-grid.is-merch-view .pf-item.is-card .pf-card {
+    gap: 0.3rem;
+    padding: 0;
+  }
+
+  .pf-card__title {
+    font-size: 1.375rem;
+  }
+
+  .pf-card__line {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    font-size: 0.9375rem;
+    line-height: 1.35;
+  }
+
+  .pf-card__go {
+    margin-top: 0.2rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
   }
 }
 

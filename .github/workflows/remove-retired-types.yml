@@ -1,0 +1,39 @@
+name: Remove retired data types
+
+# Deletes every formFunnel and submission document so the two types can leave
+# Studio. Prints ids and types only. Dry run unless "apply" is ticked.
+# See scripts/remove-retired-types.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Delete the documents (off = dry run)'
+        type: boolean
+        default: false
+
+jobs:
+  remove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: |
+          set -o pipefail
+          node scripts/remove-retired-types.mjs | tee /tmp/remove.txt
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          APPLY: ${{ inputs.apply && '1' || '0' }}
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Retired data types'
+            echo ''
+            echo '```'
+            cat /tmp/remove.txt 2>/dev/null || echo '(the script did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

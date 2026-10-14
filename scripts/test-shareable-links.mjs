@@ -89,8 +89,11 @@ let sharedNested = null
   // A closeup parented to a shirt, for the nested arrival.
   sharedNested = await page.evaluate(() => {
     const all = Array.from(document.querySelectorAll('#pf-grid .pf-item'))
-    const pieces = new Set(all.map((el) => el.dataset.piece))
-    const child = all.find((el) => el.dataset.pieceParent && pieces.has(el.dataset.pieceParent) && el.dataset.slug)
+        // A merch closeup hanging off a merch shirt: the kind the Merch view
+    // keeps under its shirt until the shirt is opened.
+    const merch = (el) => el.classList.contains('merch-apparel')
+    const shirts = new Set(all.filter(merch).map((el) => el.dataset.piece))
+    const child = all.find((el) => merch(el) && el.dataset.slug && shirts.has(el.dataset.pieceParent))
     return child ? {slug: child.dataset.slug, parent: child.dataset.pieceParent} : null
   })
 
@@ -149,7 +152,10 @@ for (const [label, size] of [
       top = Math.min(top, b.top)
       bottom = Math.max(bottom, b.bottom)
     }
+    const o = el?.getBoundingClientRect()
     return {
+      openedTop: o ? Math.round(o.top) : null,
+      openedBottom: o ? Math.round(o.bottom) : null,
       merch: grid.classList.contains('is-merch-view'),
       active: document.querySelector(`.pf-btn[data-filter="${MERCH}"]`)?.classList.contains('is-active'),
       slug: el?.dataset.slug ?? null,
@@ -162,7 +168,17 @@ for (const [label, size] of [
   check(`${label}: a link to a shirt arrives in the Merch view`, s.merch && s.active)
   check(`${label}: with that shirt open`, s.slug === shared, `${s.slug}, opened ${ms}ms after the request`)
   check(`${label}: its project gathered round it`, s.set >= 3, `${s.set} pieces`)
-  check(`${label}: and the whole set in the window`, s.top >= 0 && s.bottom <= s.vh, `${s.top}..${s.bottom} of ${s.vh}`)
+  if (label === 'desktop') {
+    check(`${label}: and the whole set in the window`, s.top >= 0 && s.bottom <= s.vh, `${s.top}..${s.bottom} of ${s.vh}`)
+  } else {
+    // Four columns make DumpStat's 22 pieces taller than a phone; there the
+    // set starts at the top of the screen with the shirt itself whole.
+    check(
+      `${label}: the set starts at the top with the shirt whole`,
+      s.top >= 0 && s.top < 80 && s.openedBottom <= s.vh,
+      `set ${s.top}..${s.bottom}, shirt ${s.openedTop}..${s.openedBottom} of ${s.vh}`,
+    )
+  }
   check(`${label}: the address is left as it was sent`, (await query(page)).open === shared)
   await page.close()
 }

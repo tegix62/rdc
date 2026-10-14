@@ -508,7 +508,9 @@ const press = async (page, filter) => {
         continue
       }
       // Each from a fresh page, so one gather cannot set up the next.
-      await page.reload({waitUntil: 'domcontentloaded'})
+      // A clean address, not reload(): the page now writes the open piece
+      // into its address, and reloading would replay it - see SHAREABLE LINKS.
+      await page.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded'})
       await page.waitForSelector('#pf-grid .pf-item', {state: 'visible'})
       await page.waitForTimeout(2000)
       // The index from the first load is the build's order, which a reload repeats.

@@ -87,6 +87,26 @@ const state = (page) =>
     }
   }, MERCH)
 
+/*
+  WORDMARKS TOGETHER. Chris: "wordmarks of a parent brand will generally
+  stick together". Every wordmark among the rest (marked in Studio, or twice
+  as wide as tall) shares an edge with at least one other - one block, not
+  scattered singles.
+*/
+const marksTogether = (page) =>
+  page.evaluate(() => {
+    const grid = document.querySelector('#pf-grid')
+    const marks = Array.from(grid.querySelectorAll('.pf-item.is-minor'))
+      .filter((x) => getComputedStyle(x).display !== 'none' && !x.classList.contains('merch-apparel'))
+      .filter((x) => x.classList.contains('pf-item--mark') || x.hasAttribute('data-wide'))
+      .map((x) => x.getBoundingClientRect())
+    const touch = (a, b) =>
+      ((Math.abs(a.right - b.left) <= 3 || Math.abs(b.right - a.left) <= 3) && a.top < b.bottom - 3 && b.top < a.bottom - 3) ||
+      ((Math.abs(a.bottom - b.top) <= 3 || Math.abs(b.bottom - a.top) <= 3) && a.left < b.right - 3 && b.left < a.right - 3)
+    const alone = marks.filter((a) => !marks.some((b) => b !== a && touch(a, b))).length
+    return {n: marks.length, alone}
+  })
+
 const press = async (page, filter) => {
   await page.click(`.pf-btn[data-filter="${filter}"]`)
   await page.waitForTimeout(900)
@@ -404,7 +424,7 @@ const press = async (page, filter) => {
         // Kinds of the rest, in the order they were laid out: 0 merch,
         // 1 logo/wordmark, 2 everything else.
         kinds: Array.from(grid.querySelectorAll('.pf-item.is-minor')).map((x) =>
-          x.classList.contains('merch-apparel') ? 0 : x.classList.contains('pf-item--mark') ? 1 : 2,
+          x.classList.contains('merch-apparel') ? 0 : x.classList.contains('pf-item--mark') || x.hasAttribute('data-wide') ? 1 : 2,
         ),
       }
     }, target.h)
@@ -760,6 +780,8 @@ const press = async (page, filter) => {
     check('  and no two pictures overlap', r.overlaps === 0, r.overlaps ? `${r.overlaps}: ${r.pairs.join(', ')}` : '0')
     check('  and no cut-out is cropped like a photograph', r.croppedCutouts === 0, `${r.croppedCutouts} cropped`)
     check('  and no wordmark is left a sliver', r.slivers === 0 && r.padded === 0, `${r.wordmarks} wordmark(s), ${r.slivers} at one column, ${r.padded} padded`)
+    const mt = await marksTogether(page)
+    check('  and its wordmarks stick together', mt.n < 2 || mt.alone === 0, `${mt.n} wordmark(s), ${mt.alone} on their own`)
     await page.close()
   }
 }
@@ -948,6 +970,8 @@ for (const [w, h] of [[1536, 730], [2560, 1000]]) {
     )
     check('phone: and there is no X any more', await page.evaluate(() => !document.querySelector('.pf-close')))
     check('phone: every wordmark among the rest is at least half the width', end?.slivers === 0, `${end?.slivers} narrower`)
+    const pm = await marksTogether(page)
+    check('phone: and the wordmarks stick together', pm.n < 2 || pm.alone === 0, `${pm.n} wordmark(s), ${pm.alone} on their own`)
     await page.locator('#pf-grid .pf-item.is-expanded .pf-item__img').click()
     await page.waitForTimeout(1500)
 

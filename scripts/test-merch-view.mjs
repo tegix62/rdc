@@ -386,7 +386,9 @@ const press = async (page, filter) => {
     }
 
     // Closing it hides the revealed pieces again: the view is garments at rest.
-    await tile.locator('.pf-item__img').click()
+    // By the open tile itself, not its old place in the grid: the project's
+    // block now goes in front of it.
+    await page.locator('#pf-grid .pf-item.is-expanded .pf-item__img').click()
     await page.waitForTimeout(1200)
     const closed = await state(page)
     check('closing hides the revealed pieces again', closed.shown === closed.shownMerch && closed.shownMerch === m.shownMerch, `${closed.shown} on screen, ${closed.shownMerch} merch`)

@@ -1,0 +1,38 @@
+name: Measure merch fit
+
+# Open shirts in the Merch & Apparel view at common laptop window sizes and
+# report whether the gathered set lands inside the window.
+# See scripts/measure-merch-fit.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to measure'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          set -o pipefail
+          node scripts/measure-merch-fit.mjs \
+            "${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}" | tee /tmp/fit.txt
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Merch fit'
+            echo ''
+            echo '```'
+            cat /tmp/fit.txt 2>/dev/null || echo '(the measurement did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

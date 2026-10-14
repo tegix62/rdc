@@ -99,7 +99,21 @@ console.log(`  all: ${baseline} visible`)
 
 for (const sel of markup.buttons.filter((b) => b !== '*')) {
   const cls = sel.replace('.', '')
-  const expected = markup.categoryClasses[cls] ?? 0
+  /*
+    The Merch view shows garments at rest: a shot Chris has parented to a
+    shirt waits under that shirt and comes out when it is opened (see
+    shirtOf in portfolio.astro). So those are not expected on screen.
+  */
+  const nested =
+    sel === '.merch-apparel'
+      ? await page.evaluate((s) => {
+          const all = [...document.querySelectorAll('.pf-item')]
+          const shirts = new Set(all.filter((el) => el.matches(s)).map((el) => el.dataset.piece))
+          return all.filter((el) => el.matches(s) && shirts.has(el.dataset.pieceParent)).length
+        }, sel)
+      : 0
+  const expected = (markup.categoryClasses[cls] ?? 0) - nested
+  if (nested) console.log(`  (${nested} ${sel} tile(s) hang off a shirt and wait under it)`)
 
   await page.click(`.pf-btn[data-filter="${sel}"]`)
   await page.waitForTimeout(700)

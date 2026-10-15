@@ -888,7 +888,10 @@ if (emptyFilters.length > 0) {
                 const gy = Math.max(0, m.y - (y + bh), y - (m.y + m.h));
                 near = Math.min(near, gx + gy);
               }
-              cohesion = near * 3;
+              // Twice the weight of distance from the shirt: keeping the block
+              // together matters more than its being a column nearer the middle
+              // (at 3, DumpStat opened mid-grid at 1920px still left one apart).
+              cohesion = near * 6;
             }
             const d = overflow > 1
               ? 1e6 + overflow * 3 + misaligned + across + cohesion

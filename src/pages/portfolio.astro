@@ -1368,8 +1368,10 @@ if (emptyFilters.length > 0) {
         // A width change moves every tile, so any open constellation's lines
         // now point at where things used to be. Redrawn from the new
         // positions rather than stretched, which is what leaving an svg with
-        // a stale viewBox would do.
-        requestAnimationFrame(() => drawLinks());
+        // a stale viewBox would do. Only lines that are THERE: the shared
+        // gather changes the column width on open, and redrawing then drew a
+        // thread over a gather that has none.
+        if (grid.querySelector('.pf-links')) requestAnimationFrame(() => drawLinks());
       });
     }
 

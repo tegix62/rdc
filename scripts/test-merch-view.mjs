@@ -161,7 +161,8 @@ const justifiedRows = (page) =>
     const block = grid.querySelector('.pf-item.is-card')?.getBoundingClientRect()
     const top = block && shirt ? Math.min(block.top, shirt.top) : shirt?.top
     const reach = shirt && rest.length ? (Math.max(...rest.map((b) => b.bottom)) - top) / (shirt.bottom - top) : null
-    return {rows: rows.length, pieces: rest.length, uneven, ragged, dominant, reach, merchOverMarks,
+    const shape = rows.map((r) => `${['merch', 'mark', 'other'][r.kind]}@${Math.round(r.top)}:${Math.round((r.left - g.left) / colW * 10) / 10}-${Math.round((r.right - g.left) / colW * 10) / 10}x${r.heights.length}`).join(' ')
+    return {rows: rows.length, pieces: rest.length, uneven, ragged, dominant, reach, merchOverMarks, shape,
       sizes: `merch ${merchH ? Math.round(merchH) : '-'}px, wordmarks ${markH ? Math.round(markH) : '-'}px`}
   })
 
@@ -860,7 +861,7 @@ const press = async (page, filter) => {
     check('  and no cut-out is cropped like a photograph', r.croppedCutouts === 0, `${r.croppedCutouts} cropped`)
     check('  and its wordmarks are legible, without the hand-set air', r.slivers === 0 && r.padded === 0, `${r.wordmarks} wordmark(s), ${r.slivers} under 40px, ${r.padded} padded`)
     const jr2 = await justifiedRows(page)
-    check('  and the rest sits in level, flush rows', jr2.uneven === 0 && jr2.ragged === 0, `${jr2.pieces} pieces in ${jr2.rows} rows, ${jr2.uneven} uneven, ${jr2.ragged} ragged`)
+    check('  and the rest sits in level, flush rows', jr2.uneven === 0 && jr2.ragged === 0, `${jr2.pieces} pieces in ${jr2.rows} rows, ${jr2.uneven} uneven, ${jr2.ragged} ragged${jr2.ragged ? ` [${jr2.shape}]` : ''}`)
     check('  where no wordmark takes more than its share of a row', jr2.dominant === 0, `${jr2.dominant} too wide`)
     check('  and the merch is larger than the wordmarks', jr2.merchOverMarks, jr2.sizes)
     // Chris's Hug a Mug screenshot: ten pieces filling half the shirt's height.

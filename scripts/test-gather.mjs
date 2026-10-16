@@ -201,6 +201,17 @@ if (!chosen) {
         behaviour and would now fail on correct code.
       */
       leadsItsRun: Math.min(...idx) === idx[0] && tiles[Math.min(...idx)] === probe,
+      /*
+        THE SHARED GATHER (preview): the run leads with the project's block,
+        then the clicked tile, and the set comes to the top of the window -
+        the merch view's behaviour, brought to every view.
+      */
+      cluster: document.querySelector('#pf-grid').classList.contains('is-cluster'),
+      blockThenTile: (() => {
+        const first = tiles[Math.min(...idx)]
+        return first?.classList.contains('is-card') && tiles[Math.min(...idx) + 1] === probe
+      })(),
+      setTop: Math.round(Math.min(...tiles.filter((el, i) => idx.includes(i)).map((el) => el.getBoundingClientRect().top))),
       spreadAfter: Math.max(...idx) - Math.min(...idx),
       familySize: idx.length,
       lines: document.querySelectorAll('.pf-links line').length,
@@ -220,12 +231,17 @@ if (!chosen) {
     after.spreadAfter === after.familySize - 1,
     `spread ${chosen.spreadBefore} -> ${after.spreadAfter} across ${after.familySize} pieces`,
   )
-  check('the clicked tile leads its own run', after.leadsItsRun)
-  check(
-    'and the visitor keeps their place - the clicked tile barely moves on screen',
-    Math.abs(after.top - chosen.top) <= 24,
-    `${chosen.top}px -> ${after.top}px (${after.top - chosen.top >= 0 ? '+' : ''}${after.top - chosen.top}px)`,
-  )
+  if (after.cluster) {
+    check('the run leads with the project\'s block, then the clicked tile', after.blockThenTile)
+    check('and the set comes to the top of the window', after.setTop >= 0 && after.setTop <= 80, `set top ${after.setTop}px`)
+  } else {
+    check('the clicked tile leads its own run', after.leadsItsRun)
+    check(
+      'and the visitor keeps their place - the clicked tile barely moves on screen',
+      Math.abs(after.top - chosen.top) <= 24,
+      `${chosen.top}px -> ${after.top}px (${after.top - chosen.top >= 0 ? '+' : ''}${after.top - chosen.top}px)`,
+    )
+  }
   check(
     'no constellation lines are drawn in gather mode',
     after.lines === 0,

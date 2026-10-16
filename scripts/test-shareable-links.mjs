@@ -104,7 +104,7 @@ let sharedNested = null
 
   // A run of ordinary browsing.
   for (let k = 0; k < 6; k++) {
-    await page.locator('#pf-grid .pf-item:visible .pf-item__img').nth(k * 2).click()
+    await page.locator('#pf-grid .pf-item:visible .pf-item__img:visible').nth(k * 2).click()
     await page.waitForTimeout(500)
   }
   await page.click('.pf-btn[data-filter="*"]')

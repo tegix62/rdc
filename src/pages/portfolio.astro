@@ -3075,14 +3075,22 @@ if (emptyFilters.length > 0) {
             Mug screenshot). A full-width block leaves one clean stretch
             under it for the rows.
           */
+          /*
+            Only when the shirt's own shots fit in ONE row under it, though -
+            three at most. The More Kilos tee has four: under a six-column
+            block the fourth went below the shirt and out of the window
+            (measured 43px past a 730px window); a four-column block leaves
+            the strip beside it for two more, stacked from the top.
+          */
+          const wideCard = JUSTIFY_REST && roles.near.length * S / 2 <= cols - S;
           if (zone === 'left') {
             shirtCol = 0;
             cardCol = S;
-            if (JUSTIFY_REST) cardSpan = cols - S;
+            if (wideCard) cardSpan = cols - S;
           } else if (zone === 'right') {
             shirtCol = cols - S;
-            cardCol = JUSTIFY_REST ? 0 : shirtCol - S;
-            if (JUSTIFY_REST) cardSpan = cols - S;
+            cardCol = wideCard ? 0 : shirtCol - S;
+            if (wideCard) cardSpan = cols - S;
           } else {
             /*
               The middle: the shirt in columns 2-5 and the block in 6-9, so

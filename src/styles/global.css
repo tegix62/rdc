@@ -2979,6 +2979,19 @@ main {
     /* Less the project's block above it, when the gather has one. */
     max-height: calc(100svh - 6rem - var(--pf-card-h, 0px));
   }
+
+  /*
+    And a shot of the shirt's own is never taller than half the shirt's
+    height, so two stack beside it. On a wide, short window a two-column
+    shot is a 512px square against a 944px shirt (2560x1000): two did not
+    fit and the second ran 188px out of the window. At ordinary laptop
+    sizes this is larger than the shot already is and changes nothing; a
+    photograph capped by it fills a slightly wider box, a cut-out draws a
+    little smaller.
+  */
+  .pf-grid.is-merch-view .pf-item.is-near:not(.is-expanded) .pf-item__img {
+    max-height: calc((100svh - 6rem) / 2 - 0.5rem);
+  }
 }
 
 /*

@@ -107,6 +107,39 @@ const marksTogether = (page) =>
     return {n: marks.length, alone}
   })
 
+/*
+  JUSTIFIED ROWS. Chris: "could we make these such that they occupy and fill
+  a certain space, like this row becomes more neatly organized?" The rest of
+  a gathered project sits in rows: every piece in a row the same height, and
+  every row but the last running flush across whole columns.
+*/
+const justifiedRows = (page) =>
+  page.evaluate(() => {
+    const grid = document.querySelector('#pf-grid')
+    const g = grid.getBoundingClientRect()
+    const colW = g.width / Math.round(g.width / grid.querySelector('.pf-sizer').getBoundingClientRect().width)
+    const rest = Array.from(grid.querySelectorAll('.pf-item.is-minor'))
+      .filter((el) => getComputedStyle(el).display !== 'none')
+      .map((el) => el.getBoundingClientRect())
+    const rows = []
+    for (const b of rest) {
+      const r = rows.find((x) => Math.abs(x.top - b.top) < 2 && (Math.abs(x.right - b.left) < 2 || Math.abs(b.right - x.left) < 2))
+      if (r) {
+        r.heights.push(b.height)
+        r.left = Math.min(r.left, b.left)
+        r.right = Math.max(r.right, b.right)
+      } else rows.push({top: b.top, left: b.left, right: b.right, heights: [b.height]})
+    }
+    const last = Math.max(...rows.map((r) => r.top))
+    const uneven = rows.filter((r) => Math.max(...r.heights) - Math.min(...r.heights) > 2).length
+    const ragged = rows.filter((r) => {
+      if (Math.abs(r.top - last) < 2 || r.heights.length < 2) return false
+      const span = (r.right - r.left) / colW
+      return Math.abs(span - Math.round(span)) > 0.05
+    }).length
+    return {rows: rows.length, pieces: rest.length, uneven, ragged}
+  })
+
 const press = async (page, filter) => {
   await page.click(`.pf-btn[data-filter="${filter}"]`)
   await page.waitForTimeout(900)
@@ -295,7 +328,10 @@ const press = async (page, filter) => {
       gap && gap.empty.length === 0,
       gap ? `empty column(s) ${JSON.stringify(gap.empty)} of ${gap.n}` : 'no opened tile',
     )
-    check('the rest of the case study is half a tile', sizes.minorCount > 0 && Math.abs(sizes.minor - 0.5) < 0.05, `${sizes.minorCount} of ${sizes.famCount} at ${sizes.minor.toFixed(2)} tiles`)
+    const jr = await justifiedRows(page)
+    check('the rest of the case study sits in rows of one height', sizes.minorCount > 0 && jr.uneven === 0, `${jr.pieces} pieces in ${jr.rows} rows, ${jr.uneven} uneven`)
+    check('  each row flush across whole columns, but the last', jr.ragged === 0, `${jr.ragged} ragged`)
+    check('  and no smaller than the half-tile they replace', sizes.minor > 0.3, `widest ${sizes.minor.toFixed(2)} tiles`)
     /*
       THE SHIRT'S HEIGHT FIRST, THE MIDDLE FIRST WITHIN IT.
 
@@ -757,9 +793,8 @@ const press = async (page, filter) => {
       // room, and loses the hand-set air it has in the full grid.
       const colW = g.width / Math.round(g.width / grid.querySelector('.pf-sizer').getBoundingClientRect().width)
       const minors = set.filter((el) => el.classList.contains('is-minor'))
-      // Desktop: one column, never two - Chris's Adelante screenshot had a
-      // two-column wordmark at 1920px louder than the shirt's own photographs.
-      const slivers = minors.filter((el) => el.hasAttribute('data-wide') && el.getBoundingClientRect().width > 1.5 * colW).length
+      // Legible: no wordmark drawn shorter than 40px.
+      const slivers = minors.filter((el) => el.hasAttribute('data-wide') && el.querySelector('.pf-item__img').getBoundingClientRect().height < 40).length
       const padded = minors.filter((el) => parseFloat(getComputedStyle(el.querySelector('.pf-item__img')).paddingLeft) > 0.5).length
       return {
         slivers,
@@ -779,7 +814,9 @@ const press = async (page, filter) => {
     check(`  and none of its ${r.n} pieces falls out of the window`, r.out === 0, `${r.out} outside`)
     check('  and no two pictures overlap', r.overlaps === 0, r.overlaps ? `${r.overlaps}: ${r.pairs.join(', ')}` : '0')
     check('  and no cut-out is cropped like a photograph', r.croppedCutouts === 0, `${r.croppedCutouts} cropped`)
-    check('  and its wordmarks are one column, without the hand-set air', r.slivers === 0 && r.padded === 0, `${r.wordmarks} wordmark(s), ${r.slivers} wider, ${r.padded} padded`)
+    check('  and its wordmarks are legible, without the hand-set air', r.slivers === 0 && r.padded === 0, `${r.wordmarks} wordmark(s), ${r.slivers} under 40px, ${r.padded} padded`)
+    const jr2 = await justifiedRows(page)
+    check('  and the rest sits in level, flush rows', jr2.uneven === 0 && jr2.ragged === 0, `${jr2.pieces} pieces in ${jr2.rows} rows, ${jr2.uneven} uneven, ${jr2.ragged} ragged`)
     const mt = await marksTogether(page)
     check('  and its wordmarks stick together', mt.n < 2 || mt.alone === 0, `${mt.n} wordmark(s), ${mt.alone} on their own`)
     await page.close()
@@ -981,12 +1018,8 @@ for (const [w, h] of [[1536, 730], [2560, 1000]]) {
       const others = Array.from(grid.querySelectorAll('.pf-item.is-sibling'))
         .filter((x) => x !== el && getComputedStyle(x).display !== 'none')
         .map((x) => x.getBoundingClientRect())
-      // The row above it whole: every quarter of the width has a piece ending
-      // near the bar's top edge.
-      const q = g.width / 4
-      const quarters = [0, 1, 2, 3].map((k) =>
-        others.some((o) => o.left < g.left + (k + 1) * q - 2 && o.right > g.left + k * q + 2 && o.bottom >= b.top - q * 0.75),
-      )
+      // Right under the rest: no band of empty page between the last row and it.
+      const under = b.top - Math.max(...others.map((o) => o.bottom))
       const block = grid.querySelector('.pf-item.is-card')?.getBoundingClientRect()
       const go = grid.querySelector('.pf-item.is-card .pf-card__go')?.getBoundingClientRect()
       return {
@@ -994,24 +1027,26 @@ for (const [w, h] of [[1536, 730], [2560, 1000]]) {
         project: grid.querySelector('.pf-item.is-card .pf-card')?.getAttribute('href'),
         last: others.every((o) => o.top <= b.top + 2),
         full: Math.abs(b.left - g.left) < 3 && Math.abs(b.right - g.right) < 3,
-        quarters,
+        under: Math.round(under),
         geometry: `${Math.round(b.left - g.left)}..${Math.round(b.right - g.left)} of ${Math.round(g.width)}, top ${Math.round(b.top)}`,
         caption: block && go ? {go: Math.round(go.width), block: Math.round(block.width)} : null,
-        // On a phone every wordmark among the rest is at least half the width.
+        // Legible on a phone: no wordmark drawn shorter than 40px.
         slivers: Array.from(grid.querySelectorAll('.pf-item.is-minor[data-wide]'))
-          .filter((x) => getComputedStyle(x).display !== 'none' && x.getBoundingClientRect().width < g.width / 2 - 3).length,
+          .filter((x) => getComputedStyle(x).display !== 'none' && x.querySelector('.pf-item__img').getBoundingClientRect().height < 40).length,
       }
     })
     check('phone: the set ends on a button into the project', !!end && !!end.href && !!end.project && new URL(end.href, 'http://x').pathname === new URL(end.project, 'http://x').pathname && end.last, end ? `${end.href}, ${end.geometry}` : 'no end button')
     check('phone: the end button runs the full width of the grid', !!end && end.full, end?.geometry)
-    check('phone: and the row above it is whole - no orphaned gap', !!end && end.quarters.every(Boolean), JSON.stringify(end?.quarters))
+    check('phone: and it sits right under the last row - no orphaned gap', !!end && end.under >= -1 && end.under <= 4, `${end?.under}px`)
+    const pr = await justifiedRows(page)
+    check('phone: the rest sits in level, flush rows', pr.uneven === 0 && pr.ragged === 0, `${pr.pieces} pieces in ${pr.rows} rows, ${pr.uneven} uneven, ${pr.ragged} ragged`)
     check(
       "phone: the caption's button runs the width of the block",
       !!end?.caption && end.caption.go >= end.caption.block - 16,
       JSON.stringify(end?.caption),
     )
     check('phone: and there is no X any more', await page.evaluate(() => !document.querySelector('.pf-close')))
-    check('phone: every wordmark among the rest is at least half the width', end?.slivers === 0, `${end?.slivers} narrower`)
+    check('phone: every wordmark among the rest is legible', end?.slivers === 0, `${end?.slivers} under 40px`)
     const pm = await marksTogether(page)
     check('phone: and the wordmarks stick together', pm.n < 2 || pm.alone === 0, `${pm.n} wordmark(s), ${pm.alone} on their own`)
     await page.locator('#pf-grid .pf-item.is-expanded .pf-item__img').click()

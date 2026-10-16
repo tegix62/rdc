@@ -664,6 +664,89 @@ if (emptyFilters.length > 0) {
       the grid making room, which is what was asked for - it is sideways
       travel that made the click feel wrong.
     */
+    /*
+      THE REST IN JUSTIFIED ROWS.
+
+      Chris, on the Adelante set: "could we make these such that they occupy
+      and fill a certain space, like this row becomes more neatly organized?
+      Would that require some 'fill' style images or could we do it as is?"
+
+      As is. In columns, a wide wordmark, a tall logo sheet and a square logo
+      can never end level, so the set's edge is always ragged - short of
+      cropping them all to one box, which is the fill he did not want for
+      these. So the rest of a project leaves the columns: it is laid out in
+      ROWS, every piece in a row the same height and its own shape, the
+      height chosen so the row runs flush from one end of the free space to
+      the other (the way a photo library lays out a day). Nothing cropped,
+      nothing stretched; a wordmark is simply as wide as its shape asks.
+
+      Each row goes in the lowest stretch of two or more columns there is,
+      so the rows fill beside the shirt under its shots first, and below it
+      only when that is full. A last row with too few pieces to fill the
+      width is not blown up to do it: it keeps a natural height and sits
+      left. Wordmarks come one after another in the order, so they share
+      rows.
+
+      ROLLING IT BACK is setting JUSTIFY_REST to false: the rest returns to
+      columns, with the phone's last-row widening.
+    */
+    const JUSTIFY_REST = true;
+    let justifyRest: HTMLElement[] = [];
+    const aspectOf = (el: HTMLElement) => {
+      const img = el.querySelector('.pf-item__img');
+      const w = Number(img?.getAttribute('width'));
+      const h = Number(img?.getAttribute('height'));
+      return w > 0 && h > 0 ? w / h : 1;
+    };
+    const planJustified = (m: any) => {
+      const out = new Map<HTMLElement, {x: number; y: number}>();
+      const els = justifyRest.filter((el) => el.isConnected);
+      if (!els.length) return out;
+      const colW: number = m.columnWidth;
+      const n: number = m.cols;
+      const pad = parseFloat(getComputedStyle(els[0]).paddingLeft) || 0;
+      // A row about one column tall: the size the rest had as squares.
+      const target = colW;
+      let k = 0;
+      while (k < els.length) {
+        // The lowest stretch of two or more columns; the widest of equals.
+        let best = {a: 0, b: n - 1, top: Infinity, width: 0};
+        for (let a = 0; a < n; a++) {
+          let top = m.colYs[a];
+          for (let b = a + 1; b < n; b++) {
+            top = Math.max(top, m.colYs[b]);
+            const width = (b - a + 1) * colW;
+            if (top < best.top - 1 || (Math.abs(top - best.top) <= 1 && width > best.width)) best = {a, b, top, width};
+          }
+        }
+        const row: {el: HTMLElement; a: number}[] = [];
+        let sumA = 0;
+        let full = false;
+        while (k < els.length) {
+          const a = aspectOf(els[k]);
+          row.push({el: els[k], a});
+          sumA += a;
+          k++;
+          if ((target - 2 * pad) * sumA + 2 * pad * row.length >= best.width) {
+            full = true;
+            break;
+          }
+        }
+        // Flush: the height at which the row's widths add up to the stretch.
+        // Never more than 1.6 rows tall - one very wide piece alone.
+        const h = full ? Math.min((best.width - 2 * pad * row.length) / sumA + 2 * pad, target * 1.6) : target;
+        let x = best.a * colW;
+        for (const r of row) {
+          const w = (h - 2 * pad) * r.a + 2 * pad;
+          r.el.style.width = `${w}px`;
+          out.set(r.el, {x, y: best.top});
+          x += w;
+        }
+        for (let c = best.a; c <= best.b; c++) m.colYs[c] = best.top + h;
+      }
+      return out;
+    };
+
     const masonry: any = (iso as any).modes?.masonry;
     if (masonry && typeof masonry._getItemLayoutPosition === 'function') {
       const original = masonry._getItemLayoutPosition.bind(masonry);
@@ -698,6 +781,7 @@ if (emptyFilters.length > 0) {
           // A new run: whatever the last one knew about its block is stale.
           this.__pfCardTop = undefined;
           this.__pfMarks = undefined;
+          this.__pfJust = undefined;
           let floor = 0;
           for (const y of this.colYs) floor = Math.max(floor, y);
           for (let i = 0; i < this.colYs.length; i++) this.colYs[i] = floor;
@@ -781,6 +865,17 @@ if (emptyFilters.length > 0) {
           nothing overlaps; the whitespace this leaves is around the outside
           of the cluster, which is the shape asked for.
         */
+        // The rest, in justified rows - planned once per pass, at the first
+        // of them, against the columns as the shots left them.
+        if (role === 'minor' && JUSTIFY_REST && justifyRest.includes(item.element)) {
+          if (!this.__pfJust) this.__pfJust = planJustified(this);
+          const spot = this.__pfJust.get(item.element);
+          if (spot) {
+            item.getSize();
+            return {x: spot.x, y: spot.y};
+          }
+        }
+
         if (role === 'near' || role === 'minor') {
           const opened = this.__pfOpened as {col: number; span: number; y: number; h: number; top: number} | undefined;
           // The opened shirt's centre, in pixels: what everything grows from.
@@ -1762,6 +1857,11 @@ if (emptyFilters.length > 0) {
         el.style.removeProperty('--minor-span');
         el.classList.remove('is-row-end');
       });
+      for (const el of justifyRest) {
+        el.classList.remove('is-justified');
+        el.style.removeProperty('width');
+      }
+      justifyRest = [];
       // Pieces the merch view revealed for a gather go back to hidden at the
       // next arrange() - restoreOrder's on close, the next gather's on a new
       // click, the filter's on a filter change.
@@ -2726,9 +2826,11 @@ if (emptyFilters.length > 0) {
         */
         const roomy = cols <= 4;
         const baseSpan = (el: HTMLElement) => (roomy && el.dataset.wide !== undefined ? 2 : 1);
-        if (cols > 4) {
+        if (cols > 4 && !JUSTIFY_REST) {
           for (const el of rest) if (baseSpan(el) > 1) el.style.setProperty('--minor-span', '2');
         }
+        justifyRest = JUSTIFY_REST ? rest.slice() : [];
+        for (const el of justifyRest) el.classList.add('is-justified');
         if (card) {
           card.classList.add('is-card');
           /*
@@ -2783,7 +2885,7 @@ if (emptyFilters.length > 0) {
             Larger, never cropped.
           */
           const spans = rest.map(baseSpan);
-          if (cols === 4) {
+          if (cols === 4 && !JUSTIFY_REST) {
             // Widen from the end until the cells come to whole rows.
             let need = (cols - (spans.reduce((a, b) => a + b, 0) % cols)) % cols;
             for (let k = spans.length - 1; k >= 0 && need > 0; k--) {
@@ -2806,9 +2908,11 @@ if (emptyFilters.length > 0) {
               rest[k].classList.add('is-row-end');
             }
           }
-          rest.forEach((el, k) => {
-            if (spans[k] > 1) el.style.setProperty('--minor-span', String(spans[k]));
-          });
+          if (!JUSTIFY_REST) {
+            rest.forEach((el, k) => {
+              if (spans[k] > 1) el.style.setProperty('--minor-span', String(spans[k]));
+            });
+          }
           const go = card.querySelector<HTMLAnchorElement>('.pf-card');
           if (go) {
             endTile = endTile ?? makeEndTile();

@@ -2945,6 +2945,17 @@ main {
   padding: 0;
 }
 
+/*
+  THE REST IN JUSTIFIED ROWS: each piece's width is set by the page script so
+  every piece in a row is the same height; the picture keeps its own shape
+  (--ar, not the square cap) and is never cropped. See THE REST IN JUSTIFIED
+  ROWS in portfolio.astro.
+*/
+.pf-grid.is-merch-view .pf-item.is-minor.is-justified:not(.is-expanded) .pf-item__img {
+  aspect-ratio: var(--ar, auto);
+  object-fit: contain;
+}
+
 /* ...and one row tall, so it ends flat above the button. Whole, contained. */
 .pf-grid.is-merch-view .pf-item.is-minor.is-row-end:not(.is-expanded) .pf-item__img {
   aspect-ratio: var(--minor-span, 1) / 1;

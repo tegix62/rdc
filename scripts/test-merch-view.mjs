@@ -151,6 +151,23 @@ const justifiedRows = (page) =>
     return {rows: rows.length, pieces: rest.length, uneven, ragged, dominant, reach}
   })
 
+/*
+  AIR BETWEEN THE ROWS at rest. Chris: "a slight bit more distance
+  vertically between the rows ... looks slightly cramped". The smallest gap
+  between one picture's foot and the next picture's top in the same column.
+*/
+const rowAir = (page) =>
+  page.evaluate(() => {
+    const imgs = Array.from(document.querySelectorAll('#pf-grid .pf-item'))
+      .filter((el) => getComputedStyle(el).display !== 'none')
+      .map((el) => el.querySelector('.pf-item__img').getBoundingClientRect())
+    let min = Infinity
+    for (const a of imgs)
+      for (const b of imgs)
+        if (a !== b && Math.abs(a.left - b.left) < 2 && b.top > a.top + 2) min = Math.min(min, b.top - a.bottom)
+    return Math.round(min)
+  })
+
 const press = async (page, filter) => {
   await page.click(`.pf-btn[data-filter="${filter}"]`)
   await page.waitForTimeout(900)
@@ -165,6 +182,8 @@ const press = async (page, filter) => {
   await press(page, MERCH)
   const m = await state(page)
   check('Merch switches to 5 columns', m.cols === 5, `${m.cols} columns`)
+  const dAir = await rowAir(page)
+  check('and its rows have air between them', dAir >= 16, `${dAir}px at the closest`)
   check('Merch is the only active filter', m.active.length === 1 && m.active[0] === MERCH, JSON.stringify(m.active))
   check('only merch pieces are on screen', m.shown > 0 && m.shown === m.shownMerch, `${m.shownMerch} of ${m.shown}`)
   const firstLater = m.shownOrder.indexOf('later')
@@ -1102,6 +1121,8 @@ for (const [w, h] of [[1536, 730], [2560, 1000]]) {
   const p = await state(page)
   console.log('')
   check('on a phone the merch view is 2 columns', p.cols === 2, `${p.cols} columns`)
+  const pAir = await rowAir(page)
+  check('and its rows have air between them', pAir >= 12, `${pAir}px at the closest`)
   await press(page, TYPE)
   const pt = await state(page)
   check('and so is the type view', pt.cols === 2, `${pt.cols} columns`)

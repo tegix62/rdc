@@ -2926,6 +2926,25 @@ main {
   width: calc(var(--pf-col-w) * 2);
 }
 
+/*
+  AIR BETWEEN THE ROWS. Chris, on his phone: "a slight bit more distance
+  vertically between the rows to typographically/design-wise mind the
+  distance between shirts? looks slightly cramped right now". The gap across
+  stays tight; the gap down opens to about 20px on a desktop and 14px on a
+  phone, so the shirts read as rows of a sheet rather than one block. The
+  open shirt, its block, the end button and the small pieces of a gather
+  keep their own spacing - the rows there are measured to fit.
+*/
+.pf-grid.is-merch-view .pf-item:not(.is-expanded):not(.is-minor):not(.is-card):not(.pf-end) {
+  padding-bottom: 1rem;
+}
+
+@media (max-width: 30rem) {
+  .pf-grid.is-merch-view .pf-item:not(.is-expanded):not(.is-minor):not(.is-card):not(.pf-end) {
+    padding-bottom: 0.75rem;
+  }
+}
+
 .pf-grid.is-merch-view .pf-item.is-expanded,
 .pf-grid.is-merch-view .pf-item--hero.is-expanded {
   width: calc(var(--pf-col-w) * 4);

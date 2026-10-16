@@ -748,6 +748,8 @@ if (emptyFilters.length > 0) {
     const simulateRows = (els: HTMLElement[], colYs: number[], colW: number, n: number, pad: number, t0: number) => {
       const ys = colYs.slice();
       const rows: {items: {el: HTMLElement; a: number}[]; x: number; top: number; h: number; cols: [number, number]}[] = [];
+      // Where each kind's last row went, so the next row of it stacks under it.
+      const lastOf: {a: number; b: number}[] = [];
       let k = 0;
       while (k < els.length) {
         // The lowest stretch of two or more columns; the widest of equals.
@@ -766,6 +768,18 @@ if (emptyFilters.length > 0) {
         // This row's kind and height; a row never mixes kinds.
         const kind = rowKind(els[k]);
         const t = t0 * KIND_HEIGHT[kind];
+        /*
+          A kind keeps together: its next row goes straight under its last
+          when that is about as high as the lowest free stretch (within a
+          row). With two stretches - either side of a shirt opened mid-grid -
+          a wordmark row otherwise went to the other side, alone.
+        */
+        const prev = lastOf[kind];
+        if (prev) {
+          let top = 0;
+          for (let c = prev.a; c <= prev.b; c++) top = Math.max(top, ys[c]);
+          if (top <= best.top + t) best = {a: prev.a, b: prev.b, top, width: (prev.b - prev.a + 1) * colW};
+        }
         while (k < els.length && rowKind(els[k]) === kind) {
           const a = aspectOf(els[k]);
           items.push({el: els[k], a});
@@ -785,6 +799,7 @@ if (emptyFilters.length > 0) {
         // Kinds end mid-row, so a row 60% of the way across is stretched too.
         const h = full || reach >= 0.6 ? Math.min(flush, t * 1.6) : t;
         rows.push({items, x: best.a * colW, top: best.top, h, cols: [best.a, best.b]});
+        lastOf[kind] = {a: best.a, b: best.b};
         for (let c = best.a; c <= best.b; c++) ys[c] = best.top + h;
       }
       return {rows, bottom: rows.length ? Math.max(...rows.map((r) => r.top + r.h)) : 0, ys};

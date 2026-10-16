@@ -689,8 +689,15 @@ if (emptyFilters.length > 0) {
 
       ROLLING IT BACK is setting JUSTIFY_REST to false: the rest returns to
       columns, with the phone's last-row widening.
+
+      PREVIEW ONLY while it is a trial - Chris: "give it a shot on preview,
+      but it may also be rolled back". A Sanity publish deploys main to the
+      live site, so a constant would ship it the first time he published
+      anything; PUBLIC_IS_PREVIEW is set on the preview build alone (the
+      production gate refuses a build where it appears). Shipping it is
+      making this `true`.
     */
-    const JUSTIFY_REST = true;
+    const JUSTIFY_REST = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
     let justifyRest: HTMLElement[] = [];
     const aspectOf = (el: HTMLElement) => {
       const img = el.querySelector('.pf-item__img');

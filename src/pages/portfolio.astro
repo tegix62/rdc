@@ -1371,7 +1371,11 @@ if (emptyFilters.length > 0) {
         // a stale viewBox would do. Only lines that are THERE: the shared
         // gather changes the column width on open, and redrawing then drew a
         // thread over a gather that has none.
-        if (grid.querySelector('.pf-links')) requestAnimationFrame(() => drawLinks());
+        // (Nor lines on their way out - the hover's thread fades as a gather
+        // starts, and it was still in the page when the columns changed.)
+        if (!grid.classList.contains('is-cluster') && grid.querySelector('.pf-links:not(.is-leaving)')) {
+          requestAnimationFrame(() => drawLinks());
+        }
       });
     }
 

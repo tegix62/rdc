@@ -723,10 +723,12 @@ if (emptyFilters.length > 0) {
       Chris's Hug a Mug screenshot: rows of one fixed height filled half the
       shirt's height and left the rest of the band empty, while DumpStat in a
       wide, short window ran off the bottom. So the row height is chosen per
-      gather: the tallest, from 1.6 columns down to 0.6, at which the whole
+      gather: the tallest, from 1.8 columns down to 0.6, at which the whole
       of the rest still ends by the foot of the shirt. A small project's
-      pieces grow to fill the space beside it - never past 1.6 columns, so
-      they stay smaller than the shirt's own shots at two - and a big one's
+      pieces grow to fill the space beside it - never past 1.8 columns, so
+      they stay smaller than the shirt's own shots at two (Chris: the
+      closeups "larger than the rest of the tertiary stuff"); at 1.6 Hug a
+      Mug opened mid-grid at 1440px filled 55% of the shirt's height - and a big one's
       shrink just enough to fit, to a floor that stays legible. Under a
       full-width shirt (phone) there is no band to fit, and rows are a
       column tall.
@@ -784,7 +786,7 @@ if (emptyFilters.length > 0) {
       if (opened && opened.span < n) {
         const foot = opened.y + opened.h;
         let chosen = null;
-        for (let t = colW * 1.6; t >= colW * 0.6 - 0.5; t -= colW * 0.05) {
+        for (let t = colW * 1.8; t >= colW * 0.6 - 0.5; t -= colW * 0.05) {
           const p = simulateRows(els, m.colYs, colW, n, pad, t);
           if (p.bottom <= foot + 1) {
             chosen = p;

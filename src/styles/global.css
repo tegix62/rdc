@@ -2909,6 +2909,34 @@ main {
 }
 
 /*
+  THE SHARED GATHER'S GRID (preview trial). While a piece is open outside the
+  merch view, the grid runs on columns half as wide (see THE SHARED GATHER in
+  portfolio.astro), so every resting tile spans twice as many of them and
+  looks exactly as it did. The open piece, its block, shots and rows then
+  use the merch view's rules below, which name .is-cluster beside it.
+*/
+.pf-grid.is-cluster .pf-item {
+  width: calc(var(--pf-col-w) * 2);
+}
+
+.pf-grid.is-cluster .pf-item--hero {
+  width: calc(var(--pf-col-w) * 4);
+}
+
+.pf-grid.is-cluster.is-type-view .pf-item--hero:not(.is-expanded) {
+  width: calc(var(--pf-col-w) * 2);
+}
+
+/* A capped picture keeps its shape: the All grid's pictures have no fit of their own. */
+.pf-grid.is-cluster .pf-item.is-expanded .pf-item__img {
+  object-fit: contain;
+}
+
+.pf-grid.is-cluster .pf-item.is-near:not(.is-expanded) .pf-item__img {
+  object-fit: cover;
+}
+
+/*
   The merch view runs on a grid twice as fine as it looks (see VIEWS in
   portfolio.astro), so its sizes are counted in half-tiles: an ordinary
   tile spans two columns, an opened one four, and the rest of a project
@@ -2945,13 +2973,15 @@ main {
   }
 }
 
-.pf-grid.is-merch-view .pf-item.is-expanded,
-.pf-grid.is-merch-view .pf-item--hero.is-expanded {
-  width: calc(var(--pf-col-w) * 4);
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-expanded,
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item--hero.is-expanded {
+  /* --pf-open-span: set by the gather - four of ten here, six of fourteen in
+     the All grid's shared gather, the whole width on a phone. */
+  width: calc(var(--pf-col-w) * var(--pf-open-span, 4));
 }
 
 /* --minor-span: the phone's last row widening to stay whole - see portfolio.astro. */
-.pf-grid.is-merch-view .pf-item.is-minor:not(.is-expanded) {
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-minor:not(.is-expanded) {
   width: calc(var(--pf-col-w) * var(--minor-span, 1));
 }
 
@@ -2960,7 +2990,7 @@ main {
   the grid the 10% inset Chris gave a wordmark for the full-size grid shrank
   it to a sliver. Everywhere else it keeps its air; ink mode keeps its own.
 */
-:root:not([data-ink]) .pf-grid.is-merch-view .pf-item.is-minor .pf-item__img {
+:root:not([data-ink]) :is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-minor .pf-item__img {
   padding: 0;
 }
 
@@ -2970,14 +3000,14 @@ main {
   (--ar, not the square cap) and is never cropped. See THE REST IN JUSTIFIED
   ROWS in portfolio.astro.
 */
-.pf-grid.is-merch-view .pf-item.is-minor.is-justified:not(.is-expanded) .pf-item__img {
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-minor.is-justified:not(.is-expanded) .pf-item__img {
   /* The row box's shape (--jar): the picture's own, or capped for a wordmark. */
   aspect-ratio: var(--jar, var(--ar, auto));
   object-fit: contain;
 }
 
 /* ...and one row tall, so it ends flat above the button. Whole, contained. */
-.pf-grid.is-merch-view .pf-item.is-minor.is-row-end:not(.is-expanded) .pf-item__img {
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-minor.is-row-end:not(.is-expanded) .pf-item__img {
   aspect-ratio: var(--minor-span, 1) / 1;
   object-fit: contain;
 }
@@ -2994,7 +3024,7 @@ main {
   contained, so it simply draws a little smaller inside the same tile.
 */
 @media (min-width: 48rem) {
-  .pf-grid.is-merch-view .pf-item.is-expanded .pf-item__img {
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-expanded .pf-item__img {
     /* Less the project's block above it, when the gather has one. */
     max-height: calc(100svh - 6rem - var(--pf-card-h, 0px));
   }
@@ -3008,7 +3038,7 @@ main {
     photograph capped by it fills a slightly wider box, a cut-out draws a
     little smaller.
   */
-  .pf-grid.is-merch-view .pf-item.is-near:not(.is-expanded) .pf-item__img {
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-near:not(.is-expanded) .pf-item__img {
     max-height: calc((100svh - 6rem) / 2 - 0.5rem);
   }
 }
@@ -3037,7 +3067,7 @@ main {
 }
 
 /* Four underlying columns, or three when the shirt opens in the middle. */
-.pf-grid.is-merch-view .pf-item.is-card {
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-card {
   width: calc(var(--pf-col-w) * var(--card-span, 4));
 }
 
@@ -3058,18 +3088,18 @@ main {
   without the project bar or plate number it wears in the grid: the block
   already says where it goes.
 */
-.pf-grid.is-merch-view .pf-item.is-card {
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-card {
   display: flex;
   align-items: flex-start;
   gap: 1.25rem;
 }
 
-.pf-grid.is-merch-view .pf-item.is-card .pf-item__frame {
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-card .pf-item__frame {
   flex: 0 0 6.5rem;
   cursor: pointer;
 }
 
-.pf-grid.is-merch-view .pf-item.is-card .pf-item__img {
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-card .pf-item__img {
   aspect-ratio: var(--ar, auto);
   height: auto;
   max-height: 6.5rem;
@@ -3077,8 +3107,8 @@ main {
   object-position: left top;
 }
 
-.pf-grid.is-merch-view .pf-item.is-card .pf-item__jump,
-.pf-grid.is-merch-view .pf-item.is-card .pf-item__plate {
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-card .pf-item__jump,
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-card .pf-item__plate {
   display: none;
 }
 
@@ -3140,28 +3170,28 @@ main {
   the same thing with the button in it.
 */
 @media (max-width: 48rem) {
-  .pf-grid.is-merch-view .pf-item.is-expanded .pf-item__img {
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-expanded .pf-item__img {
     max-height: 52svh;
   }
 
-  .pf-grid.is-merch-view:has(.pf-item.is-card) .pf-item.is-expanded .pf-item__jump {
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster):has(.pf-item.is-card) .pf-item.is-expanded .pf-item__jump {
     display: none;
   }
 
-  .pf-grid.is-merch-view .pf-item.is-card {
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-card {
     gap: 0.75rem;
     padding: 0.625rem 0.25rem 0.5rem;
   }
 
-  .pf-grid.is-merch-view .pf-item.is-card .pf-item__frame {
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-card .pf-item__frame {
     flex-basis: 3.75rem;
   }
 
-  .pf-grid.is-merch-view .pf-item.is-card .pf-item__img {
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-card .pf-item__img {
     max-height: 3.75rem;
   }
 
-  .pf-grid.is-merch-view .pf-item.is-card .pf-card {
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-card .pf-card {
     gap: 0.3rem;
     padding: 0;
   }
@@ -3196,7 +3226,7 @@ main {
   }
 }
 
-.pf-grid.is-merch-view .pf-item.is-card .pf-card {
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-card .pf-card {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -3213,12 +3243,12 @@ main {
   Beside the shirt, the text needs air from the garment rather than a hairline
   of tile padding - and it starts level with the shirt's top edge.
 */
-.pf-grid.is-merch-view .pf-item.is-card--beside {
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-card--beside {
   padding: 0.5rem 0.5rem 0.75rem 1.25rem;
 }
 
 /* Left of the shirt: the air goes on the shirt's side instead. */
-.pf-grid.is-merch-view .pf-item.is-card--before {
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-card--before {
   padding: 0.5rem 1.25rem 0.75rem 0.5rem;
 }
 
@@ -3303,7 +3333,7 @@ main {
   to its middle letters. So they go back to their own shapes, exactly as
   the All grid draws them, and the size difference does the ranking.
 */
-.pf-grid.is-merch-view .pf-item.is-minor:not(.is-expanded) .pf-item__img {
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-minor:not(.is-expanded) .pf-item__img {
   /*
     The picture's own shape, from its width and height attributes (copied
     into --ar by the page script), NOT `auto`. `aspect-ratio: auto` throws
@@ -3331,7 +3361,7 @@ main {
       tall. A cut-out shot keeps its own shape; a photograph still fills.
     - the project's block, below.
 */
-.pf-grid.is-merch-view .pf-item.is-near[data-cutout]:not(.is-expanded) .pf-item__img {
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-near[data-cutout]:not(.is-expanded) .pf-item__img {
   aspect-ratio: var(--ar, 1 / 1);
   object-fit: contain;
 }
@@ -3343,7 +3373,7 @@ main {
   opened shirt right beside it already carries the same bar to the same
   page, so the small one was saying it twice, badly.
 */
-.pf-grid.is-merch-view .pf-item.is-minor:not(.is-expanded) .pf-item__jump {
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-minor:not(.is-expanded) .pf-item__jump {
   display: none;
 }
 

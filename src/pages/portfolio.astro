@@ -575,13 +575,37 @@ if (emptyFilters.length > 0) {
         openSizes: '(max-width: 48rem) 100vw, 50vw',
       },
     };
+    /*
+      THE SHARED GATHER (preview trial). Chris: "we've now developed merch
+      category better than the others - what can we do to match the
+      presentation/efficacy", then "start with 1 on preview": every view
+      opens a piece the way the Merch view opens a shirt - the project's
+      block beside it, its own shots hugging it, the rest in rows by kind,
+      snapped by where it was clicked, fitted to the window, and on a phone
+      the caption, the closing button and Back.
+
+      The machinery is the merch gather's. What the other views lacked is
+      its finer grid: the merch view runs on columns half a tile wide, which
+      is what lets a shot hug a shirt and the rest sit at half size. So
+      while a piece is open in any other view the grid doubles its columns
+      (clusterScale) and every resting tile doubles its span with them, so
+      nothing outside the set changes width; closing halves them back.
+      Ink mode keeps the old gather - its tiles are a different system.
+
+      PREVIEW ONLY while it is a trial, on PUBLIC_IS_PREVIEW like the rows.
+      Shipping it is making CLUSTER_ALL `true`; rolling it back, `false`.
+    */
+    const CLUSTER_ALL = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+    let clusterScale = 1;
     // How many underlying columns an ordinary tile spans in the current view.
-    const unit = () => (view ? VIEWS[view].unit : 1);
+    const unit = () => (view ? VIEWS[view].unit : 1) * clusterScale;
     // The filter whose view is open, or null for the ordinary grid.
     let view: string | null = null;
     // Kept as a name because the merch view has rules the type view does not
     // (front/back order, gathering the whole case study).
     const inMerch = () => view === MERCH_FILTER;
+    // Does a gather here use the merch gather's layout? See THE SHARED GATHER.
+    const clustered = () => inMerch() || (CLUSTER_ALL && !document.documentElement.hasAttribute('data-ink'));
     const defaultCols = () => {
       const v = view ? VIEWS[view] : null;
       if (v) return window.innerWidth < 768 ? v.mobileCols : v.cols;
@@ -1332,7 +1356,9 @@ if (emptyFilters.length > 0) {
         */
         if (gridW === lastGridW && sizerW === lastSizerW) return;
         lastGridW = gridW;
-        const next = defaultCols();
+        // Scaled while a piece is open in the shared gather, so a resize keeps
+        // the finer grid rather than dropping back to the resting one.
+        const next = defaultCols() * clusterScale;
         if (!zoomed && next !== cols) {
           cols = next;
           setColWidth();
@@ -1783,7 +1809,11 @@ if (emptyFilters.length > 0) {
         than two thirds of it. And a picture already upgraded in the main
         grid still needs telling, or it keeps the old, smaller promise.
       */
-      const openSizes = view ? scaled(VIEWS[view].openSizes, scaleFor(img)) : undefined;
+      const openSizes = view
+          ? scaled(VIEWS[view].openSizes, scaleFor(img))
+          : clustered()
+            ? '(max-width: 48rem) 100vw, 45vw' // three of the All grid's seven, opened
+            : undefined;
       if (img.dataset.upgraded) {
         if (img.dataset.upgraded === '1' && openSizes) img.sizes = openSizes;
         return;
@@ -1949,6 +1979,19 @@ if (emptyFilters.length > 0) {
       decision now - see the note on LINES above - and the collage keeps
       the gate it was sharing.
     */
+    /*
+      How wide an opened piece is, in underlying columns: the whole width on
+      a phone; on a desktop two tiles of the merch view's five and the type
+      view's four, three of the All grid's seven (two of seven would be a
+      smaller shirt than the merch view's for the same click).
+    */
+    const openSpan = () => {
+      if (window.matchMedia('(max-width: 48rem)').matches) return cols;
+      const tiles = Math.round(cols / unit());
+      return (tiles >= 7 ? 3 : 2) * unit();
+    };
+    let filterBeforeCluster: string | null = null;
+
     // The phone gather's closing button - see THE SET ENDS ON A BUTTON.
     let endTile: HTMLElement | null = null;
     const makeEndTile = () => {
@@ -1961,6 +2004,16 @@ if (emptyFilters.length > 0) {
     };
 
     const clearFamily = () => {
+      // Leaving the shared gather: the resting grid's columns and filter.
+      if (clusterScale > 1) {
+        clusterScale = 1;
+        cols = Math.round(cols / 2);
+        setColWidth();
+        grid.classList.remove('is-cluster');
+        if (filterBeforeCluster) (iso as any).options.filter = filterBeforeCluster;
+        filterBeforeCluster = null;
+      }
+      grid.style.removeProperty('--pf-open-span');
       if (endTile?.isConnected) {
         revealed.delete(endTile);
         iso.remove(endTile);
@@ -2776,7 +2829,7 @@ if (emptyFilters.length > 0) {
         So it takes the phone's rule: the set comes to the top of the window,
         with air out of whatever room is left over.
       */
-      const aimAtSet = narrow || inMerch();
+      const aimAtSet = narrow || clustered();
       const driftNow = () => {
         if (!aimAtSet) return item.getBoundingClientRect().top - anchorBefore;
         /*
@@ -2875,7 +2928,24 @@ if (emptyFilters.length > 0) {
         shirt. Opening one of the shots instead treats its shirt, and the
         shirt's other shots, as the close ones - you asked about that shirt.
       */
-      if (inMerch()) {
+      if (clustered()) {
+        // Outside the merch view, switch to the finer grid while it is open.
+        if (!inMerch() && clusterScale === 1) {
+          clusterScale = 2;
+          cols *= 2;
+          setColWidth();
+          grid.classList.add('is-cluster');
+          /*
+            A filter by selector would hide the project's pieces outside it
+            again at the arrange below; the merch view's own filter already
+            lets `revealed` through, and this does the same for the others.
+          */
+          const f = (iso as any).options.filter;
+          if (typeof f === 'string' && f !== '*') {
+            filterBeforeCluster = f;
+            (iso as any).options.filter = (el: HTMLElement) => el.matches(f) || revealed.has(el);
+          }
+        }
         const own = item.dataset.piece;
         const up = item.dataset.pieceParent;
         const near = family.filter(
@@ -2965,7 +3035,7 @@ if (emptyFilters.length > 0) {
             the two share the same height.
           */
           // Two units for the shirt and two for the block: eight of ten columns.
-          cardBeside = cols >= 4 * unit();
+          cardBeside = cols - openSpan() >= 2 * unit();
           card.classList.toggle('is-card--beside', cardBeside);
           if (cardBeside) {
             grid.style.removeProperty('--pf-card-h');
@@ -3106,11 +3176,12 @@ if (emptyFilters.length > 0) {
           ROLLING IT BACK to always-left is setting SNAP_BY_CLICK to false.
         */
         const SNAP_BY_CLICK = true;
-        const S = 2 * unit();
-        const clickedCol = (item as any).__pfCol;
+        const S = openSpan();
+        grid.style.setProperty('--pf-open-span', String(S));
+        const clickedF = (item as any).__pfClickF;
         let zone: 'left' | 'middle' | 'right' = 'left';
-        if (SNAP_BY_CLICK && typeof clickedCol === 'number') {
-          const f = (clickedCol + unit() / 2) / cols;
+        if (SNAP_BY_CLICK && typeof clickedF === 'number') {
+          const f = clickedF;
           zone = f < 1 / 3 ? 'left' : f > 2 / 3 ? 'right' : 'middle';
         }
         let shirtCol = Math.max(0, Math.floor((cols - S) / 2));
@@ -3131,7 +3202,7 @@ if (emptyFilters.length > 0) {
             (measured 43px past a 730px window); a four-column block leaves
             the strip beside it for two more, stacked from the top.
           */
-          const wideCard = JUSTIFY_REST && roles.near.length * S / 2 <= cols - S;
+          const wideCard = JUSTIFY_REST && roles.near.length * unit() <= cols - S;
           if (zone === 'left') {
             shirtCol = 0;
             cardCol = S;
@@ -3966,7 +4037,7 @@ if (emptyFilters.length > 0) {
         all, and they are marked for the gather's arrange() to reveal. In
         every other view it is what the filter shows. See `revealed`.
       */
-      const family = inMerch() ? wholeFamilyOf(href) : familyOf(href);
+      const family = clustered() ? wholeFamilyOf(href) : familyOf(href);
 
       /*
         Below the threshold the effect is worse than nothing: Chateau Seven is
@@ -3978,7 +4049,7 @@ if (emptyFilters.length > 0) {
       if (family.length < familyMin()) return;
 
       for (const el of family) el.classList.add('is-sibling');
-      if (inMerch()) for (const el of family) revealed.add(el);
+      if (clustered()) for (const el of family) revealed.add(el);
       grid.classList.add('has-focus');
       focusItem = item;
       focusFamily = family;
@@ -4077,8 +4148,12 @@ if (emptyFilters.length > 0) {
         const gridBox = grid.getBoundingClientRect();
         const colW = sizer.offsetWidth;
         if (colW > 0) {
-          const left = item.getBoundingClientRect().left - gridBox.left;
+          const box = item.getBoundingClientRect();
+          const left = box.left - gridBox.left;
           (item as any).__pfCol = Math.max(0, Math.round(left / colW));
+          // Where across the grid it was clicked, for the gather's snap -
+          // a fraction, so it survives the shared gather's change of grid.
+          (item as any).__pfClickF = (left + box.width / 2) / gridBox.width;
         }
         item.classList.add('is-expanded');
         markFamily(item);
@@ -4170,7 +4245,7 @@ if (emptyFilters.length > 0) {
                 window.setTimeout(go, EXPLAIN_HOLD);
               }
             } else if (wasExpanded) restoreOrder();
-            else if (inMerch()) showWhole(item);
+            else if (clustered()) showWhole(item);
           } else {
             // A third frame: layout() moves tiles, and lines measured before
             // that settles point at where things USED to be.

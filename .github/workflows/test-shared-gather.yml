@@ -1,6 +1,6 @@
 name: Test shared gather
 
-# Every view opens a piece the way the Shared gather opens a shirt (preview).
+# Every view opens a piece the way the Merch view opens a shirt (preview).
 
 on:
   workflow_dispatch:

@@ -118,9 +118,15 @@ const justifiedRows = (page) =>
     const grid = document.querySelector('#pf-grid')
     const g = grid.getBoundingClientRect()
     const colW = g.width / Math.round(g.width / grid.querySelector('.pf-sizer').getBoundingClientRect().width)
-    const rest = Array.from(grid.querySelectorAll('.pf-item.is-minor'))
-      .filter((el) => getComputedStyle(el).display !== 'none')
-      .map((el) => el.getBoundingClientRect())
+    const restEls = Array.from(grid.querySelectorAll('.pf-item.is-minor')).filter((el) => getComputedStyle(el).display !== 'none')
+    const rest = restEls.map((el) => el.getBoundingClientRect())
+    // Chris: "the wordmarks on this one are dominating". No wordmark's box wider
+    // than 1.5 times its height - the width goes to the other pieces.
+    const dominant = restEls.filter((el) => {
+      if (!el.hasAttribute('data-wide')) return false
+      const b = el.getBoundingClientRect()
+      return b.width > b.height * 1.5 + 4
+    }).length
     const rows = []
     for (const b of rest) {
       const r = rows.find((x) => Math.abs(x.top - b.top) < 2 && (Math.abs(x.right - b.left) < 2 || Math.abs(b.right - x.left) < 2))
@@ -137,7 +143,7 @@ const justifiedRows = (page) =>
       const span = (r.right - r.left) / colW
       return Math.abs(span - Math.round(span)) > 0.05
     }).length
-    return {rows: rows.length, pieces: rest.length, uneven, ragged}
+    return {rows: rows.length, pieces: rest.length, uneven, ragged, dominant}
   })
 
 const press = async (page, filter) => {
@@ -817,6 +823,7 @@ const press = async (page, filter) => {
     check('  and its wordmarks are legible, without the hand-set air', r.slivers === 0 && r.padded === 0, `${r.wordmarks} wordmark(s), ${r.slivers} under 40px, ${r.padded} padded`)
     const jr2 = await justifiedRows(page)
     check('  and the rest sits in level, flush rows', jr2.uneven === 0 && jr2.ragged === 0, `${jr2.pieces} pieces in ${jr2.rows} rows, ${jr2.uneven} uneven, ${jr2.ragged} ragged`)
+    check('  where no wordmark takes more than its share of a row', jr2.dominant === 0, `${jr2.dominant} too wide`)
     const mt = await marksTogether(page)
     check('  and its wordmarks stick together', mt.n < 2 || mt.alone === 0, `${mt.n} wordmark(s), ${mt.alone} on their own`)
     await page.close()

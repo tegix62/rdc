@@ -699,11 +699,23 @@ if (emptyFilters.length > 0) {
     */
     const JUSTIFY_REST = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
     let justifyRest: HTMLElement[] = [];
+    /*
+      A WORDMARK'S BOX IS CAPPED. Chris, on DumpStat: "the wordmarks on this
+      one are dominating, whereas other images should be taking up that
+      larger space." At one row height a piece's width is its shape, so a
+      wordmark three times wider than tall took three photographs' width -
+      two of them filled a row. So in the rows no box is wider than 1.5
+      times its height; a wider picture is contained in it, whole and
+      centred, smaller than its box. The rows stay flush and level, and the
+      width the wordmarks gave up goes to the photographs, sketches and
+      merch.
+    */
+    const ROW_BOX_MAX = 1.5;
     const aspectOf = (el: HTMLElement) => {
       const img = el.querySelector('.pf-item__img');
       const w = Number(img?.getAttribute('width'));
       const h = Number(img?.getAttribute('height'));
-      return w > 0 && h > 0 ? w / h : 1;
+      return Math.min(ROW_BOX_MAX, w > 0 && h > 0 ? w / h : 1);
     };
     const planJustified = (m: any) => {
       const out = new Map<HTMLElement, {x: number; y: number}>();
@@ -746,6 +758,8 @@ if (emptyFilters.length > 0) {
         for (const r of row) {
           const w = (h - 2 * pad) * r.a + 2 * pad;
           r.el.style.width = `${w}px`;
+          // The box's shape, which a capped wordmark is contained in.
+          r.el.style.setProperty('--jar', String(r.a));
           out.set(r.el, {x, y: best.top});
           x += w;
         }
@@ -1867,6 +1881,7 @@ if (emptyFilters.length > 0) {
       for (const el of justifyRest) {
         el.classList.remove('is-justified');
         el.style.removeProperty('width');
+        el.style.removeProperty('--jar');
       }
       justifyRest = [];
       // Pieces the merch view revealed for a gather go back to hidden at the

@@ -2952,7 +2952,8 @@ main {
   ROWS in portfolio.astro.
 */
 .pf-grid.is-merch-view .pf-item.is-minor.is-justified:not(.is-expanded) .pf-item__img {
-  aspect-ratio: var(--ar, auto);
+  /* The row box's shape (--jar): the picture's own, or capped for a wordmark. */
+  aspect-ratio: var(--jar, var(--ar, auto));
   object-fit: contain;
 }
 

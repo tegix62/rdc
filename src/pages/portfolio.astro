@@ -780,24 +780,42 @@ if (emptyFilters.length > 0) {
           for (let c = prev.a; c <= prev.b; c++) top = Math.max(top, ys[c]);
           if (top <= best.top + t) best = {a: prev.a, b: prev.b, top, width: (prev.b - prev.a + 1) * colW};
         }
+        /*
+          As many pieces as bring the row's flush height CLOSEST to this
+          kind's height - not the first count that overshoots, which let a
+          row land anywhere from a little under to well over it, so the
+          kinds' sizes blurred (wordmarks measured nearly as tall as the
+          merch they are meant to sit under).
+        */
+        const flushAt = (sum: number, count: number) => (best.width - 2 * pad * count) / sum + 2 * pad;
         while (k < els.length && rowKind(els[k]) === kind) {
           const a = aspectOf(els[k]);
+          if (items.length && flushAt(sumA + a, items.length + 1) < t) {
+            full = true;
+            // Take it only if that lands nearer the kind's height.
+            if (Math.abs(flushAt(sumA + a, items.length + 1) - t) < Math.abs(flushAt(sumA, items.length) - t)) {
+              items.push({el: els[k], a});
+              sumA += a;
+              k++;
+            }
+            break;
+          }
           items.push({el: els[k], a});
           sumA += a;
           k++;
-          if ((t - 2 * pad) * sumA + 2 * pad * items.length >= best.width) {
+          if (flushAt(sumA, items.length) <= t) {
             full = true;
             break;
           }
         }
         // Flush: the height at which the row's widths add up to the stretch.
         // A row that runs out of its kind early keeps its height and sits
-        // left unless it is most of the way across. Never taller than 1.6
-        // of its kind's rows - one very wide piece alone.
+        // left unless it is most of the way across, and then grows at most a
+        // quarter to get there.
         const flush = (best.width - 2 * pad * items.length) / sumA + 2 * pad;
         const reach = ((t - 2 * pad) * sumA + 2 * pad * items.length) / best.width;
         // Kinds end mid-row, so a row 60% of the way across is stretched too.
-        const h = full || reach >= 0.6 ? Math.min(flush, t * 1.6) : t;
+        const h = full ? flush : reach >= 0.6 ? Math.min(flush, t * 1.25) : t;
         rows.push({items, x: best.a * colW, top: best.top, h, cols: [best.a, best.b]});
         lastOf[kind] = {a: best.a, b: best.b};
         for (let c = best.a; c <= best.b; c++) ys[c] = best.top + h;

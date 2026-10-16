@@ -127,28 +127,42 @@ const justifiedRows = (page) =>
       const b = el.getBoundingClientRect()
       return b.width > b.height * 1.5 + 4
     }).length
+    const kindOf = (el) =>
+      el.classList.contains('merch-apparel') ? 0 : el.classList.contains('pf-item--mark') || el.hasAttribute('data-wide') ? 1 : 2
     const rows = []
-    for (const b of rest) {
+    restEls.forEach((el, i) => {
+      const b = rest[i]
       const r = rows.find((x) => Math.abs(x.top - b.top) < 2 && (Math.abs(x.right - b.left) < 2 || Math.abs(b.right - x.left) < 2))
       if (r) {
         r.heights.push(b.height)
         r.left = Math.min(r.left, b.left)
         r.right = Math.max(r.right, b.right)
-      } else rows.push({top: b.top, left: b.left, right: b.right, heights: [b.height]})
-    }
-    const last = Math.max(...rows.map((r) => r.top))
+      } else rows.push({top: b.top, left: b.left, right: b.right, heights: [b.height], kind: kindOf(el)})
+    })
     const uneven = rows.filter((r) => Math.max(...r.heights) - Math.min(...r.heights) > 2).length
+    // A row may stop short only where its kind runs out: the last row of each kind.
+    const lastOfKind = new Map()
+    for (const r of rows) if (!lastOfKind.has(r.kind) || r.top > lastOfKind.get(r.kind).top) lastOfKind.set(r.kind, r)
     const ragged = rows.filter((r) => {
-      if (Math.abs(r.top - last) < 2 || r.heights.length < 2) return false
+      if (lastOfKind.get(r.kind) === r || r.heights.length < 2) return false
       const span = (r.right - r.left) / colW
       return Math.abs(span - Math.round(span)) > 0.05
     }).length
+    // Chris: "logos are dominating here where perhaps shirts/merch should be larger".
+    const meanH = (k) => {
+      const hs = rows.filter((r) => r.kind === k).flatMap((r) => r.heights)
+      return hs.length ? hs.reduce((a, b) => a + b, 0) / hs.length : null
+    }
+    const merchH = meanH(0)
+    const markH = meanH(1)
+    const merchOverMarks = merchH === null || markH === null || merchH > markH * 1.3
     // How far down the shirt's height the rest reaches (Hug a Mug: half).
     const shirt = grid.querySelector('.pf-item.is-expanded')?.getBoundingClientRect()
     const block = grid.querySelector('.pf-item.is-card')?.getBoundingClientRect()
     const top = block && shirt ? Math.min(block.top, shirt.top) : shirt?.top
     const reach = shirt && rest.length ? (Math.max(...rest.map((b) => b.bottom)) - top) / (shirt.bottom - top) : null
-    return {rows: rows.length, pieces: rest.length, uneven, ragged, dominant, reach}
+    return {rows: rows.length, pieces: rest.length, uneven, ragged, dominant, reach, merchOverMarks,
+      sizes: `merch ${merchH ? Math.round(merchH) : '-'}px, wordmarks ${markH ? Math.round(markH) : '-'}px`}
   })
 
 /*
@@ -848,6 +862,7 @@ const press = async (page, filter) => {
     const jr2 = await justifiedRows(page)
     check('  and the rest sits in level, flush rows', jr2.uneven === 0 && jr2.ragged === 0, `${jr2.pieces} pieces in ${jr2.rows} rows, ${jr2.uneven} uneven, ${jr2.ragged} ragged`)
     check('  where no wordmark takes more than its share of a row', jr2.dominant === 0, `${jr2.dominant} too wide`)
+    check('  and the merch is larger than the wordmarks', jr2.merchOverMarks, jr2.sizes)
     // Chris's Hug a Mug screenshot: ten pieces filling half the shirt's height.
     check(
       '  and the rows fill the space beside the shirt',
@@ -1077,6 +1092,7 @@ for (const [w, h] of [[1536, 730], [2560, 1000]]) {
     check('phone: and it sits right under the last row - no orphaned gap', !!end && end.under >= -1 && end.under <= 4, `${end?.under}px`)
     const pr = await justifiedRows(page)
     check('phone: the rest sits in level, flush rows', pr.uneven === 0 && pr.ragged === 0, `${pr.pieces} pieces in ${pr.rows} rows, ${pr.uneven} uneven, ${pr.ragged} ragged`)
+    check('phone: and the merch is larger than the wordmarks', pr.merchOverMarks, pr.sizes)
     check(
       "phone: the caption's button runs the width of the block",
       !!end?.caption && end.caption.go >= end.caption.block - 16,
@@ -1111,6 +1127,29 @@ for (const [w, h] of [[1536, 730], [2560, 1000]]) {
     const state = await page.evaluate(() => history.state?.pfOpen ?? false)
     check('phone: closing by a tap leaves no dead Back press behind', state === false, `pfOpen: ${state}`)
   }
+  await page.close()
+}
+
+/*
+  ---------------------------------------------------------------- phone, DumpStat
+
+  Chris's screenshot: DumpStat on his phone with the wordmarks outsizing the
+  project's other shirts. Opened by link at 390x664.
+*/
+{
+  const page = await browser.newPage({viewport: {width: 390, height: 664}})
+  await page.addInitScript(() => {
+    try {
+      sessionStorage.setItem('pf-demo-shown', '1')
+    } catch {}
+  })
+  await page.goto(`${BASE}/portfolio?view=merch&open=dumpstat-deathknight-tee`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.waitForSelector('#pf-grid .pf-item.is-expanded', {timeout: 10_000}).catch(() => {})
+  await page.waitForTimeout(3500)
+  const d = await justifiedRows(page)
+  console.log('')
+  check('phone, DumpStat: the merch is larger than the wordmarks', d.merchOverMarks, d.sizes)
+  check('phone, DumpStat: in level, flush rows', d.uneven === 0 && d.ragged === 0, `${d.pieces} pieces in ${d.rows} rows, ${d.uneven} uneven, ${d.ragged} ragged`)
   await page.close()
 }
 

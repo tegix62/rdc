@@ -733,7 +733,19 @@ if (emptyFilters.length > 0) {
       full-width shirt (phone) there is no band to fit, and rows are a
       column tall.
     */
-    const simulateRows = (els: HTMLElement[], colYs: number[], colW: number, n: number, pad: number, t: number) => {
+    /*
+      A SIZE ORDER BY KIND. Chris, on DumpStat on his phone: "logos are
+      dominating here where perhaps shirts/merch should be larger". One row
+      height for everything made a wordmark - wide, and mostly solid black -
+      the loudest thing in the set. So each kind gets its own rows and its
+      own height: the project's other merch the tallest, its logos and
+      wordmarks the shortest, everything else between. The order already
+      runs merch, then wordmarks, then the rest, so the rows follow it.
+    */
+    const KIND_HEIGHT = [1.4, 0.75, 1];
+    const rowKind = (el: HTMLElement) =>
+      el.matches(MERCH_FILTER) ? 0 : el.classList.contains('pf-item--mark') || el.dataset.wide !== undefined ? 1 : 2;
+    const simulateRows = (els: HTMLElement[], colYs: number[], colW: number, n: number, pad: number, t0: number) => {
       const ys = colYs.slice();
       const rows: {items: {el: HTMLElement; a: number}[]; x: number; top: number; h: number; cols: [number, number]}[] = [];
       let k = 0;
@@ -751,7 +763,10 @@ if (emptyFilters.length > 0) {
         const items: {el: HTMLElement; a: number}[] = [];
         let sumA = 0;
         let full = false;
-        while (k < els.length) {
+        // This row's kind and height; a row never mixes kinds.
+        const kind = rowKind(els[k]);
+        const t = t0 * KIND_HEIGHT[kind];
+        while (k < els.length && rowKind(els[k]) === kind) {
           const a = aspectOf(els[k]);
           items.push({el: els[k], a});
           sumA += a;
@@ -762,12 +777,13 @@ if (emptyFilters.length > 0) {
           }
         }
         // Flush: the height at which the row's widths add up to the stretch.
-        // A last row three-quarters of the way there is stretched to flush
-        // too; one emptier than that keeps its height and sits left. Never
-        // taller than 1.6 rows - one very wide piece alone.
+        // A row that runs out of its kind early keeps its height and sits
+        // left unless it is most of the way across. Never taller than 1.6
+        // of its kind's rows - one very wide piece alone.
         const flush = (best.width - 2 * pad * items.length) / sumA + 2 * pad;
         const reach = ((t - 2 * pad) * sumA + 2 * pad * items.length) / best.width;
-        const h = full || reach >= 0.75 ? Math.min(flush, t * 1.6) : t;
+        // Kinds end mid-row, so a row 60% of the way across is stretched too.
+        const h = full || reach >= 0.6 ? Math.min(flush, t * 1.6) : t;
         rows.push({items, x: best.a * colW, top: best.top, h, cols: [best.a, best.b]});
         for (let c = best.a; c <= best.b; c++) ys[c] = best.top + h;
       }

@@ -717,6 +717,61 @@ if (emptyFilters.length > 0) {
       const h = Number(img?.getAttribute('height'));
       return Math.min(ROW_BOX_MAX, w > 0 && h > 0 ? w / h : 1);
     };
+    /*
+      THE ROWS FIT THE SPACE: GROW TO FILL, SHRINK TO FIT.
+
+      Chris's Hug a Mug screenshot: rows of one fixed height filled half the
+      shirt's height and left the rest of the band empty, while DumpStat in a
+      wide, short window ran off the bottom. So the row height is chosen per
+      gather: the tallest, from 1.6 columns down to 0.6, at which the whole
+      of the rest still ends by the foot of the shirt. A small project's
+      pieces grow to fill the space beside it - never past 1.6 columns, so
+      they stay smaller than the shirt's own shots at two - and a big one's
+      shrink just enough to fit, to a floor that stays legible. Under a
+      full-width shirt (phone) there is no band to fit, and rows are a
+      column tall.
+    */
+    const simulateRows = (els: HTMLElement[], colYs: number[], colW: number, n: number, pad: number, t: number) => {
+      const ys = colYs.slice();
+      const rows: {items: {el: HTMLElement; a: number}[]; x: number; top: number; h: number; cols: [number, number]}[] = [];
+      let k = 0;
+      while (k < els.length) {
+        // The lowest stretch of two or more columns; the widest of equals.
+        let best = {a: 0, b: n - 1, top: Infinity, width: 0};
+        for (let a = 0; a < n; a++) {
+          let top = ys[a];
+          for (let b = a + 1; b < n; b++) {
+            top = Math.max(top, ys[b]);
+            const width = (b - a + 1) * colW;
+            if (top < best.top - 1 || (Math.abs(top - best.top) <= 1 && width > best.width)) best = {a, b, top, width};
+          }
+        }
+        const items: {el: HTMLElement; a: number}[] = [];
+        let sumA = 0;
+        let full = false;
+        while (k < els.length) {
+          const a = aspectOf(els[k]);
+          items.push({el: els[k], a});
+          sumA += a;
+          k++;
+          if ((t - 2 * pad) * sumA + 2 * pad * items.length >= best.width) {
+            full = true;
+            break;
+          }
+        }
+        // Flush: the height at which the row's widths add up to the stretch.
+        // A last row three-quarters of the way there is stretched to flush
+        // too; one emptier than that keeps its height and sits left. Never
+        // taller than 1.6 rows - one very wide piece alone.
+        const flush = (best.width - 2 * pad * items.length) / sumA + 2 * pad;
+        const reach = ((t - 2 * pad) * sumA + 2 * pad * items.length) / best.width;
+        const h = full || reach >= 0.75 ? Math.min(flush, t * 1.6) : t;
+        rows.push({items, x: best.a * colW, top: best.top, h, cols: [best.a, best.b]});
+        for (let c = best.a; c <= best.b; c++) ys[c] = best.top + h;
+      }
+      return {rows, bottom: rows.length ? Math.max(...rows.map((r) => r.top + r.h)) : 0, ys};
+    };
+
     const planJustified = (m: any) => {
       const out = new Map<HTMLElement, {x: number; y: number}>();
       const els = justifyRest.filter((el) => el.isConnected);
@@ -724,47 +779,33 @@ if (emptyFilters.length > 0) {
       const colW: number = m.columnWidth;
       const n: number = m.cols;
       const pad = parseFloat(getComputedStyle(els[0]).paddingLeft) || 0;
-      // A row about one column tall: the size the rest had as squares.
-      const target = colW;
-      let k = 0;
-      while (k < els.length) {
-        // The lowest stretch of two or more columns; the widest of equals.
-        let best = {a: 0, b: n - 1, top: Infinity, width: 0};
-        for (let a = 0; a < n; a++) {
-          let top = m.colYs[a];
-          for (let b = a + 1; b < n; b++) {
-            top = Math.max(top, m.colYs[b]);
-            const width = (b - a + 1) * colW;
-            if (top < best.top - 1 || (Math.abs(top - best.top) <= 1 && width > best.width)) best = {a, b, top, width};
-          }
-        }
-        const row: {el: HTMLElement; a: number}[] = [];
-        let sumA = 0;
-        let full = false;
-        while (k < els.length) {
-          const a = aspectOf(els[k]);
-          row.push({el: els[k], a});
-          sumA += a;
-          k++;
-          if ((target - 2 * pad) * sumA + 2 * pad * row.length >= best.width) {
-            full = true;
+      const opened = m.__pfOpened as {span: number; y: number; h: number} | undefined;
+      let plan = simulateRows(els, m.colYs, colW, n, pad, colW);
+      if (opened && opened.span < n) {
+        const foot = opened.y + opened.h;
+        let chosen = null;
+        for (let t = colW * 1.6; t >= colW * 0.6 - 0.5; t -= colW * 0.05) {
+          const p = simulateRows(els, m.colYs, colW, n, pad, t);
+          if (p.bottom <= foot + 1) {
+            chosen = p;
             break;
           }
+          chosen = p; // the smallest, if none fits
         }
-        // Flush: the height at which the row's widths add up to the stretch.
-        // Never more than 1.6 rows tall - one very wide piece alone.
-        const h = full ? Math.min((best.width - 2 * pad * row.length) / sumA + 2 * pad, target * 1.6) : target;
-        let x = best.a * colW;
-        for (const r of row) {
-          const w = (h - 2 * pad) * r.a + 2 * pad;
+        if (chosen) plan = chosen;
+      }
+      for (const row of plan.rows) {
+        let x = row.x;
+        for (const r of row.items) {
+          const w = (row.h - 2 * pad) * r.a + 2 * pad;
           r.el.style.width = `${w}px`;
           // The box's shape, which a capped wordmark is contained in.
           r.el.style.setProperty('--jar', String(r.a));
-          out.set(r.el, {x, y: best.top});
+          out.set(r.el, {x, y: row.top});
           x += w;
         }
-        for (let c = best.a; c <= best.b; c++) m.colYs[c] = best.top + h;
       }
+      for (let c = 0; c < n; c++) m.colYs[c] = plan.ys[c];
       return out;
     };
 
@@ -3025,12 +3066,21 @@ if (emptyFilters.length > 0) {
         let cardCol = shirtCol;
         let cardSpan = S;
         if (cardBeside) {
+          /*
+            With the rest in rows, the block takes the whole side beside the
+            shirt: a four-column block left a two-column pocket at the far
+            edge, which the rows filled first and narrowest (Chris's Hug a
+            Mug screenshot). A full-width block leaves one clean stretch
+            under it for the rows.
+          */
           if (zone === 'left') {
             shirtCol = 0;
             cardCol = S;
+            if (JUSTIFY_REST) cardSpan = cols - S;
           } else if (zone === 'right') {
             shirtCol = cols - S;
-            cardCol = shirtCol - S;
+            cardCol = JUSTIFY_REST ? 0 : shirtCol - S;
+            if (JUSTIFY_REST) cardSpan = cols - S;
           } else {
             /*
               The middle: the shirt in columns 2-5 and the block in 6-9, so

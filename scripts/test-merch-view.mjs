@@ -143,7 +143,12 @@ const justifiedRows = (page) =>
       const span = (r.right - r.left) / colW
       return Math.abs(span - Math.round(span)) > 0.05
     }).length
-    return {rows: rows.length, pieces: rest.length, uneven, ragged, dominant}
+    // How far down the shirt's height the rest reaches (Hug a Mug: half).
+    const shirt = grid.querySelector('.pf-item.is-expanded')?.getBoundingClientRect()
+    const block = grid.querySelector('.pf-item.is-card')?.getBoundingClientRect()
+    const top = block && shirt ? Math.min(block.top, shirt.top) : shirt?.top
+    const reach = shirt && rest.length ? (Math.max(...rest.map((b) => b.bottom)) - top) / (shirt.bottom - top) : null
+    return {rows: rows.length, pieces: rest.length, uneven, ragged, dominant, reach}
   })
 
 const press = async (page, filter) => {
@@ -824,6 +829,12 @@ const press = async (page, filter) => {
     const jr2 = await justifiedRows(page)
     check('  and the rest sits in level, flush rows', jr2.uneven === 0 && jr2.ragged === 0, `${jr2.pieces} pieces in ${jr2.rows} rows, ${jr2.uneven} uneven, ${jr2.ragged} ragged`)
     check('  where no wordmark takes more than its share of a row', jr2.dominant === 0, `${jr2.dominant} too wide`)
+    // Chris's Hug a Mug screenshot: ten pieces filling half the shirt's height.
+    check(
+      '  and the rows fill the space beside the shirt',
+      jr2.pieces < 6 || (jr2.reach !== null && jr2.reach >= 0.75 && jr2.reach <= 1.01),
+      `${jr2.pieces} pieces reaching ${jr2.reach === null ? '-' : Math.round(jr2.reach * 100)}% of the way down`,
+    )
     const mt = await marksTogether(page)
     check('  and its wordmarks stick together', mt.n < 2 || mt.alone === 0, `${mt.n} wordmark(s), ${mt.alone} on their own`)
     await page.close()

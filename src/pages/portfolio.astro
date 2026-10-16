@@ -2714,15 +2714,17 @@ if (emptyFilters.length > 0) {
         /*
           A WORDMARK GETS TWO COLUMNS. Chris: "one of the wordmark tiles is
           pretty small" - the Adelante wordmark, more than twice as wide as
-          tall, at a quarter of a phone or a tenth of a desktop was a few
-          dozen pixels high. Anything that wide (data-wide, from its own
-          shape) takes two columns instead of one. On a phone the page
-          scrolls, so always; on a desktop only when the project is small
-          enough to have room beside the shirt - DumpStat's nineteen pieces
-          fill that band to the pixel, and widening its six wordmarks put
-          pieces back off the screen.
+          tall, at a quarter of a phone was a few dozen pixels high. Anything
+          that wide (data-wide, from its own shape) takes two columns there
+          instead of one.
         */
-        const roomy = cols <= 4 || rest.length <= 10;
+        /*
+          A PHONE ONLY. On a desktop, two columns made a wordmark the size of
+          the shirt's own photographs - Chris's screenshot of Adelante at
+          1920px, the wordmark 370px wide and the loudest thing in the set.
+          A desktop column is wide enough once the hand-set air is gone.
+        */
+        const roomy = cols <= 4;
         const baseSpan = (el: HTMLElement) => (roomy && el.dataset.wide !== undefined ? 2 : 1);
         if (cols > 4) {
           for (const el of rest) if (baseSpan(el) > 1) el.style.setProperty('--minor-span', '2');
@@ -2905,13 +2907,15 @@ if (emptyFilters.length > 0) {
             cardCol = shirtCol - S;
           } else {
             /*
-              The middle: the shirt one column in from centre, so the block
-              beside it keeps its full four columns. A three-column block
-              wrapped its title onto three lines and grew tall enough to
-              crowd the band - measured: DumpStat's set ran 836px in a 730px
-              window from the middle while left and right both fit.
+              The middle: the shirt in columns 2-5 and the block in 6-9, so
+              the block keeps its full four columns (a three-column block
+              wrapped its title and crowded the band: DumpStat ran 836px in a
+              730px window) and the strip left of the shirt is two columns -
+              room for a shot. With the shirt in 1-4 that strip was ONE
+              column, too narrow for any of its shots, and Chris's Adelante
+              screenshot had one pushed under the shirt and out of view.
             */
-            shirtCol = Math.max(0, Math.floor((cols - 2 * S) / 2));
+            shirtCol = Math.max(0, cols - 2 * S);
             cardCol = shirtCol + S;
           }
         }

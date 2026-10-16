@@ -757,9 +757,9 @@ const press = async (page, filter) => {
       // room, and loses the hand-set air it has in the full grid.
       const colW = g.width / Math.round(g.width / grid.querySelector('.pf-sizer').getBoundingClientRect().width)
       const minors = set.filter((el) => el.classList.contains('is-minor'))
-      const slivers = minors.length <= 10
-        ? minors.filter((el) => el.hasAttribute('data-wide') && el.getBoundingClientRect().width < 2 * colW - 2).length
-        : 0
+      // Desktop: one column, never two - Chris's Adelante screenshot had a
+      // two-column wordmark at 1920px louder than the shirt's own photographs.
+      const slivers = minors.filter((el) => el.hasAttribute('data-wide') && el.getBoundingClientRect().width > 1.5 * colW).length
       const padded = minors.filter((el) => parseFloat(getComputedStyle(el.querySelector('.pf-item__img')).paddingLeft) > 0.5).length
       return {
         slivers,
@@ -779,11 +779,53 @@ const press = async (page, filter) => {
     check(`  and none of its ${r.n} pieces falls out of the window`, r.out === 0, `${r.out} outside`)
     check('  and no two pictures overlap', r.overlaps === 0, r.overlaps ? `${r.overlaps}: ${r.pairs.join(', ')}` : '0')
     check('  and no cut-out is cropped like a photograph', r.croppedCutouts === 0, `${r.croppedCutouts} cropped`)
-    check('  and no wordmark is left a sliver', r.slivers === 0 && r.padded === 0, `${r.wordmarks} wordmark(s), ${r.slivers} at one column, ${r.padded} padded`)
+    check('  and its wordmarks are one column, without the hand-set air', r.slivers === 0 && r.padded === 0, `${r.wordmarks} wordmark(s), ${r.slivers} wider, ${r.padded} padded`)
     const mt = await marksTogether(page)
     check('  and its wordmarks stick together', mt.n < 2 || mt.alone === 0, `${mt.n} wordmark(s), ${mt.alone} on their own`)
     await page.close()
   }
+}
+
+/*
+  ---------------------------------------------------------------- Adelante, by link
+
+  Chris's screenshot: the More Kilos tee opened at 1920px with a shot pushed
+  under the shirt and out of view, and the wordmark at two columns. Opened
+  from a shared link - wherever the tee happens to sit in the deal - at both
+  widths: nothing outside the window, nothing overlapping.
+*/
+for (const [w, h] of [[1440, 900], [1920, 1080]]) {
+  const page = await browser.newPage({viewport: {width: w, height: h}})
+  await page.addInitScript(() => {
+    try {
+      sessionStorage.setItem('pf-demo-shown', '1')
+    } catch {}
+  })
+  await page.goto(`${BASE}/portfolio?view=merch&open=adelante-barbell-club-more-kilos-tee`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.waitForSelector('#pf-grid .pf-item.is-expanded', {timeout: 10_000}).catch(() => {})
+  await page.waitForTimeout(3500)
+  const r = await page.evaluate(() => {
+    const grid = document.querySelector('#pf-grid')
+    const opened = grid.querySelector('.pf-item.is-expanded')
+    if (!opened) return null
+    const set = Array.from(grid.querySelectorAll('.pf-item.is-sibling')).filter((el) => getComputedStyle(el).display !== 'none')
+    const boxes = set.map((el) => el.getBoundingClientRect())
+    const out = boxes.filter((b) => b.bottom > innerHeight + 1 || b.top < -1).length
+    let overlaps = 0
+    for (let a = 0; a < boxes.length; a++)
+      for (let z = a + 1; z < boxes.length; z++) {
+        const ww = Math.min(boxes[a].right, boxes[z].right) - Math.max(boxes[a].left, boxes[z].left)
+        const hh = Math.min(boxes[a].bottom, boxes[z].bottom) - Math.max(boxes[a].top, boxes[z].top)
+        if (ww > 2 && hh > 2) overlaps++
+      }
+    const g = grid.getBoundingClientRect()
+    const o = opened.getBoundingClientRect()
+    return {n: set.length, out, overlaps, at: Math.round((o.left - g.left) / (g.width / 10))}
+  })
+  console.log('')
+  check(`${w}px: the More Kilos tee by link - every piece in the window`, !!r && r.out === 0, r ? `${r.n} pieces, ${r.out} outside, shirt at column ${r.at}` : 'did not open')
+  check(`${w}px: and nothing overlapping`, !!r && r.overlaps === 0, `${r?.overlaps}`)
+  await page.close()
 }
 
 /*

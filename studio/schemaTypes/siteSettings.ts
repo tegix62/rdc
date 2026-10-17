@@ -1,5 +1,6 @@
 import {defineField, defineType} from 'sanity'
 import {imageSpec} from './imageFields'
+import {VideoUpload} from '../components/VideoUpload'
 
 /*
   21 fields in one flat scroll, covering three unrelated jobs: the brand marks,
@@ -261,6 +262,51 @@ export default defineType({
       rows: 3,
       group: 'homepage',
     }),
+    /*
+      The process video beside the bio.
+
+      The homepage shipped with a grey placeholder box here - "Process video
+      coming soon" - and it stayed live for months, because the clip Chris
+      meant for it lives on R2 and the only video field on this document
+      (heroVideo, above) is a Sanity file upload: an R2 link cannot go in it,
+      and a file that size stalls. Same shape as a case study's heroVideoSrc,
+      which is how the Hug a Mug hero already plays this very clip.
+
+      With no video set, the bio runs the full width and no box is drawn.
+    */
+    defineField({
+      name: 'processVideoSrc',
+      title: 'Process video beside the bio (R2)',
+      type: 'url',
+      group: 'homepage',
+      components: {input: VideoUpload},
+      description:
+        'Drop a video or paste its R2 URL - the same link the Hug a Mug hero ' +
+        'uses works here. Left empty, the bio runs the full width and nothing ' +
+        'is drawn beside it.',
+    }),
+    imageSpec({
+      name: 'processVideoPoster',
+      title: 'Process video - poster frame',
+      group: 'homepage',
+      description:
+        'The still shown while the clip loads, and instead of it for visitors ' +
+        'who have turned motion off.',
+    }),
+    defineField({
+      name: 'processVideoPlayback',
+      title: 'Process video - playback',
+      type: 'string',
+      group: 'homepage',
+      options: {
+        list: [
+          {title: 'Autoplay, silent, looping (default)', value: 'autoplay'},
+          {title: 'Click to play, with controls', value: 'click'},
+        ],
+        layout: 'radio',
+      },
+      initialValue: 'autoplay',
+    }),
     defineField({
       name: 'clientLogos',
       title: 'Client logo strip - the navy band',
@@ -344,6 +390,17 @@ export default defineType({
             {name: 'name', title: 'Who said it', type: 'string'},
             {name: 'org', title: 'Their company', type: 'string'},
             {name: 'href', title: 'Link, e.g. /work/hug-a-mug', type: 'string'},
+            /*
+              Five stars with no words read as a review widget. A sentence
+              from the client is the stronger thing, so when there is one it
+              takes the stars' place; the stars stay for cards without one.
+            */
+            {
+              name: 'quote',
+              title: 'One line they said (optional) - shown in place of the stars',
+              type: 'text',
+              rows: 2,
+            },
           ],
           preview: {select: {title: 'stat', subtitle: 'name'}},
         },
@@ -397,6 +454,17 @@ export default defineType({
       type: 'string',
       group: 'homepage',
       description: 'e.g. "DTC Brands and Apparel Companies:"',
+    }),
+    defineField({
+      name: 'finalCtaLine',
+      title: 'Last CTA - the sentence under the heading',
+      type: 'text',
+      rows: 2,
+      group: 'homepage',
+      description:
+        'The heading above reads as half a sentence on its own ("DTC Brands ' +
+        'and Apparel Companies:"). This is the other half. Left empty, a ' +
+        'trailing colon on the heading is dropped so it does not dangle.',
     }),
 
     // --- Footer ------------------------------------------------------------

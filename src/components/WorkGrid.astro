@@ -23,7 +23,7 @@
 */
 import Img from './Img.astro';
 import { treatmentOf, tileHref, heroHeight } from '../lib/tiles';
-import { tileImage } from '../lib/image';
+import { tileImage, imageDimensions } from '../lib/image';
 
 interface Props {
   items: any[];
@@ -86,10 +86,22 @@ const GATHER_LINKS = true;
         const hero = Boolean(item.heroTile);
 
         /*
+          Drawn whole rather than cropped: a mark by treatment, or a picture
+          at least twice as wide as it is tall - a wordmark, whatever its
+          treatment says. Cropping one to the square is what made the
+          Adelante tile read "ELA / ELL". See .peek__item--inset for the look.
+          A hero tile is a spread and keeps its crop.
+        */
+        const dims = imageDimensions(img);
+        const inset = !hero && (treatmentOf(item) === 'mark' || Boolean(dims && dims.width >= dims.height * 2));
+
+        /*
           Both width and height are passed so Img crops rather than keeping the
           source aspect - and the crop follows the hotspot set in Studio, so a
           mark or a face stays in frame. Uniform boxes are what make a grid with
-          no masonry read as deliberate instead of ragged.
+          no masonry read as deliberate instead of ragged. An inset tile is the
+          exception: it gets no height, keeps its own shape, and the stylesheet
+          fits it inside the square.
         */
         const tile = (
           <Img
@@ -99,7 +111,7 @@ const GATHER_LINKS = true;
             archive={item.archiveMark}
             alt={item.title}
             width={hero ? 1200 : 600}
-            height={hero ? heroHeight(1200) : 600}
+            height={hero ? heroHeight(1200) : inset ? undefined : 600}
             sizes={hero ? '(max-width: 40rem) 100vw, 44vw' : '(max-width: 40rem) 50vw, 22vw'}
           />
         );
@@ -111,6 +123,7 @@ const GATHER_LINKS = true;
               'peek__item',
               treatmentOf(item) === 'mark' && 'pf-item--mark',
               hero && 'pf-item--hero',
+              inset && 'peek__item--inset',
             ]}
           >
             <div class="pf-item__frame">

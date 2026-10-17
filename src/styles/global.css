@@ -1701,35 +1701,24 @@ main {
   display: block;
 }
 
+/*
+  The tagline is the one sentence that says what the studio does, and it was
+  the smallest text on the page: 23px under a 200px name on desktop, 12px on
+  a phone. The name is already in the logo; the message is nowhere else.
+  Chris, walking the homepage as a visitor would: make it bigger.
+
+  One clamp in place of four breakpoints. About 30px at 1440, 20px at 768,
+  15px at 390 - the phone size had been 11, 12 and 13px across three
+  competing rules, the last of which existed only to undo the one before.
+  The tracking scales with the size, so the phone line is not letter-spaced
+  into a third row.
+*/
 .statement__sub {
-  margin: 0.9375rem 0 0;
-  font-size: 23px;
-  letter-spacing: 5px;
-  color: rgba(255, 255, 255, 0.85);
-}
-
-@media (max-width: 48rem) {
-  .statement__sub {
-    font-size: 12px;
-    letter-spacing: 4px;
-  }
-}
-
-@media (max-width: 30rem) {
-  .statement__sub {
-    font-size: 11px;
-    letter-spacing: 0;
-  }
-}
-
-/* 11px was carried over from Webflow and measured as the smallest text on
-   the site. At 0 letter-spacing it also loses the tracking that made the
-   tagline read as a tagline rather than a cramped sentence. */
-@media (max-width: 30rem) {
-  .statement__sub {
-    font-size: 13px;
-    letter-spacing: 1px;
-  }
+  margin: 1rem 0 0;
+  font-size: clamp(0.9375rem, 0.6rem + 1.4vw, 2rem);
+  letter-spacing: clamp(1px, 0.3vw, 5px);
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 /* Homepage: top CTA row */
@@ -1760,10 +1749,28 @@ main {
   font-size: 1.75rem;
 }
 
-.video-placeholder {
-  aspect-ratio: 16 / 10;
-  background: linear-gradient(135deg, var(--color-gray-light), var(--color-border));
+/*
+  No process video set: the bio takes the row alone, on a measure, instead
+  of sharing it with the grey placeholder box that stood here for months.
+*/
+.bio-row.is-alone {
+  grid-template-columns: 1fr;
+}
+
+.bio-row.is-alone .bio-row__text {
+  max-width: 40ch;
+}
+
+/*
+  The process clip beside the bio. An autoplaying .video--self clip takes
+  its container's width, so this cell is the frame; navy behind it for the
+  moment before the first picture arrives.
+*/
+.bio-row__video {
+  position: relative;
+  overflow: hidden;
   border-radius: 0.25rem;
+  background: var(--color-navy);
 }
 
 /* Homepage: client logo strip - dark navy band, full-bleed to the
@@ -1860,6 +1867,16 @@ main {
   font-size: 1.1rem;
 }
 
+/* A client's own sentence, in the stars' place - see proofStats[].quote. */
+.proof-card__quote {
+  margin: 0;
+  padding: var(--space-2) 0;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  font-style: italic;
+  color: var(--color-navy);
+}
+
 .proof-card__name {
   margin: 0;
   font-weight: 700;
@@ -1937,6 +1954,15 @@ main {
   color: var(--color-white);
   font-size: 1.5rem;
   margin-bottom: var(--space-2);
+}
+
+/* The second half of the heading's sentence - see finalCtaLine. */
+.final-cta__line {
+  margin: 0 0 var(--space-3);
+  max-width: 40ch;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
 /* Portfolio page: shuffle/resize CMS grid (Isotope), ported from the
@@ -3761,6 +3787,22 @@ main {
 
 .peek__item.pf-item--hero .pf-item__img {
   aspect-ratio: 3 / 2;
+}
+
+/*
+  A mark fits inside its square instead of being cropped to it.
+
+  The square crop is right for a photograph and wrong for a wordmark: the
+  Adelante tile - the first piece of work on the homepage - showed "ELA /
+  ELL", two fragments of a word nobody could read. A tile that is a mark by
+  treatment, or whose picture is at least twice as wide as it is tall, is
+  drawn whole with a little air on white, the way ink mode insets a mark on
+  the Portfolio grid. WorkGrid.astro decides which tiles; this is the look.
+*/
+.peek__item--inset .pf-item__img {
+  object-fit: contain;
+  padding: 8%;
+  background: var(--color-white);
 }
 
 .peek__link {

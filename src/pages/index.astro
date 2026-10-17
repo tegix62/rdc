@@ -4,6 +4,7 @@ import { pageDescription } from '../lib/meta';
 import Img from '../components/Img.astro';
 import Sections from '../components/Sections.astro';
 import WorkGrid from '../components/WorkGrid.astro';
+import Video from '../components/Video.astro';
 import { getPage, getSiteSettings, getFeaturedWork } from '../lib/queries';
 import { backgroundUrl, hotspotPosition, imageUrl, buildSrcSet, originalUrl, isPassThrough, cappedWidth, hasAsset, fileUrl } from '../lib/image';
 import { isAnimatedSource } from '../lib/animated';
@@ -58,7 +59,7 @@ const proofStats =
         },
         {
           stat: '16,000 Weekly Listeners',
-          rest: ' in 6 months, using with RDC.',
+          rest: ' in 6 months with RDC.',
           name: 'Jonathan Bell',
           org: 'DumpStat Podcast',
           href: '/work/dumpstat',
@@ -76,6 +77,21 @@ const closerPrefix = settings?.closerPrefix || 'Hand-drawn brand identity and me
 const closerBold = settings?.closerBold || 'rooted in heritage craft';
 const closerSuffix = settings?.closerSuffix || ' and built to perform on fabric.';
 const finalCtaHeading = settings?.finalCtaHeading || 'DTC Brands and Apparel Companies:';
+/*
+  The heading was written as the first half of a sentence - it ends in a
+  colon - and for months the second half was a button. With a line under it
+  the colon makes sense; without one it is dropped rather than left hanging.
+*/
+const finalCtaLine: string = settings?.finalCtaLine || '';
+const finalCtaHeadingShown = finalCtaLine ? finalCtaHeading : finalCtaHeading.replace(/:\s*$/, '');
+
+/*
+  The process video beside the bio - see processVideoSrc in siteSettings.ts.
+  Without one the bio runs the full width: the grey "coming soon" box that
+  stood here was the most unfinished-looking thing on the site.
+*/
+const processVideo: string | null =
+  typeof settings?.processVideoSrc === 'string' && settings.processVideoSrc ? settings.processVideoSrc : null;
 
 /*
   The hero background: a video when one is uploaded, an image otherwise.
@@ -223,10 +239,21 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
 
   <WorkGrid items={featuredWork} heading={settings?.featuredWorkHeading || 'Selected work'} />
 
-  <section class="bio-row">
+  <section class:list={['bio-row', !processVideo && 'is-alone']}>
     <h2 class="bio-row__text">{bioText}</h2>
-    <!-- Background video pending - drop the source file in and swap this placeholder for a <video>. -->
-    <div class="video-placeholder" role="img" aria-label="Process video coming soon"></div>
+    {processVideo && (
+      <div class="bio-row__video">
+        <Video
+          videoSrc={processVideo}
+          poster={settings?.processVideoPoster}
+          posterField="processVideoPoster (Process video - poster frame)"
+          playback={settings?.processVideoPlayback || 'autoplay'}
+          title="How the work gets made"
+          width={900}
+          sizes="(max-width: 48rem) 100vw, 45vw"
+        />
+      </div>
+    )}
   </section>
 
   {clientLogos.length > 0 && (
@@ -265,11 +292,15 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
         {proofStats.map((p: any) => (
           <a class="proof-card" href={p.href}>
             <h3 class="proof-card__stat"><strong>{p.stat}</strong>{p.rest}</h3>
-            <div class="proof-card__rating" aria-hidden="true">
-              {Array.from({ length: 5 }).map(() => (
-                <span>&#9733;</span>
-              ))}
-            </div>
+            {p.quote ? (
+              <p class="proof-card__quote">&ldquo;{p.quote}&rdquo;</p>
+            ) : (
+              <div class="proof-card__rating" aria-hidden="true">
+                {Array.from({ length: 5 }).map(() => (
+                  <span>&#9733;</span>
+                ))}
+              </div>
+            )}
             <p class="proof-card__name">{p.name}</p>
             <p class="proof-card__org">{p.org}</p>
           </a>
@@ -318,7 +349,8 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
       />
     )}
     <div class="final-cta__card">
-      <h3>{finalCtaHeading}</h3>
+      <h3>{finalCtaHeadingShown}</h3>
+      {finalCtaLine && <p class="final-cta__line">{finalCtaLine}</p>}
       <a class="button button--white" href={CONTACT_URL}>Let's Work</a>
     </div>
   </section>

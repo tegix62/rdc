@@ -1,12 +1,25 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { pageDescription } from '../lib/meta';
-import { getPage } from '../lib/queries';
+import { getPage, getSiteSettings, getFeaturedWork } from '../lib/queries';
 import { renderPortableText } from '../lib/portableText';
 import Img from '../components/Img.astro';
 import Sections from '../components/Sections.astro';
+import WorkGrid from '../components/WorkGrid.astro';
 
 const page = await getPage('about');
+
+/*
+  The page used to end on the last paragraph and go straight into the
+  footer: someone who has just read who Chris is and who he works best
+  with was given nothing to do next. So it closes the way the homepage
+  does - the work, then the ask. Same contact link every button shares
+  (see Layout.astro), and the homepage's own four picks, so there is
+  nothing new to curate.
+*/
+const settings = await getSiteSettings();
+const CONTACT_URL = settings?.contactUrl || '/contact';
+const work = await getFeaturedWork(4);
 ---
 
 <Layout title={page?.title ?? 'About'} description={pageDescription(page, 'Chris Rumeau is a brand identity and merch designer in New Jersey. Extensive sketching, pre-internet reference, and marks drawn by hand.')}>
@@ -37,4 +50,11 @@ const page = await getPage('about');
       <Sections sections={page.sections} where="/about" />
     </div>
   )}
+
+  <WorkGrid items={work} heading="Recent work" />
+
+  <div class="about-cta">
+    <a class="button" href={CONTACT_URL}>Let's Work</a>
+    <a class="button button--outline" href="/portfolio">See Portfolio</a>
+  </div>
 </Layout>

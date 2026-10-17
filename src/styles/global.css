@@ -1487,11 +1487,27 @@ main {
 }
 
 /* About page: portrait alongside the bio copy. */
+/*
+  padding-top because <main> has none (see the long note on `main` above -
+  the site-wide fix is a trap), and the portrait and heading were sitting
+  8px under the nav's rule. Scoped to this page and /contact, which had the
+  same 8px.
+*/
 .about-layout {
   display: grid;
   grid-template-columns: 20rem 1fr;
   gap: var(--space-5);
   align-items: start;
+  padding-top: var(--space-5);
+}
+
+/* The page's last word: the ask, after the work - see about.astro. */
+.about-cta {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-2) 0 var(--space-6);
 }
 
 .about-layout__portrait {
@@ -6789,6 +6805,7 @@ body {
 .contact {
   max-width: 34rem;
   margin: 0 auto;
+  padding-top: var(--space-5);
 }
 
 .contact__heading {

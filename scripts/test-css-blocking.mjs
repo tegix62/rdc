@@ -53,8 +53,17 @@ let criticalInlined = 0;
 // prevention (~200 bytes). Real critical CSS is thousands of bytes.
 const MIN_CRITICAL_CSS_BYTES = 500;
 
+let forwarding = 0;
+
 for (const f of htmlFiles) {
   const html = readFileSync(f, 'utf8');
+
+  // A static Astro.redirect() stub has nothing to style - see the same
+  // exception in inline-critical-css.mjs, which leaves these pages alone.
+  if (/<meta\s+http-equiv=["']?refresh/i.test(html) && !/<link[^>]+rel=["']?stylesheet/i.test(html)) {
+    forwarding++;
+    continue;
+  }
 
   // Strip <noscript> blocks - critters puts a fallback <link> inside one,
   // and that's correct. Only the live, outside-noscript markup matters.
@@ -96,6 +105,7 @@ for (const f of htmlFiles) {
 console.log();
 if (blocking) console.log(`${blocking} page(s) load their stylesheet blocking`);
 if (criticalInlined) console.log(`${criticalInlined} page(s) inline critical CSS and defer the rest`);
+if (forwarding) console.log(`${forwarding} forwarding page(s), nothing to style`);
 console.log(`${htmlFiles.length} page(s) total`);
 console.log(failures ? `${failures} check(s) FAILED` : 'All checks passed.');
 process.exit(failures ? 1 : 0);

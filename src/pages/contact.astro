@@ -1,32 +1,14 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { pageDescription } from '../lib/meta';
-import { getContactForm, getPage, getSiteSettings } from '../lib/queries';
+import { getContactForm, getPage } from '../lib/queries';
 
 /*
-  ONE CONTACT, NOT TWO.
-
-  Every Contact and Let's Work button follows Site Settings → contactUrl,
-  which points at Chris's Tally form ("I think I want the tally form to stay
-  for now"). This page was still built and listed in the sitemap, so a search
-  could land someone on a second, different form - one whose last step needs
-  a spam-check key to accept anything at all.
-
-  So while contactUrl points off the site, /contact forwards there. On a
-  static build Astro writes that as a meta-refresh page with the target as
-  its canonical, so it works without JavaScript and search engines follow it
-  to the real form. Clear contactUrl and this page is the form again, and
-  sitemap.xml.ts lists it again - the same switch drives both.
+  While Site Settings -> contactUrl points off the site (the Tally form),
+  visitors never see this page: scripts/contact-redirect.mjs forwards
+  /contact there at Cloudflare, after the build. It is still built in full,
+  so clearing that field makes it the form again with no code change.
 */
-const settings = await getSiteSettings();
-const contactUrl = typeof settings?.contactUrl === 'string' ? settings.contactUrl.trim() : '';
-// 301 for the delay, not for permanence: Astro's static template waits two
-// seconds on a 302 and none on a 301. It is a meta refresh, not an HTTP 301,
-// so no browser caches it - switching back stays a one-field change.
-if (/^https?:\/\//.test(contactUrl)) {
-  return Astro.redirect(contactUrl, 301);
-}
-
 const page = await getPage('contact');
 
 /*

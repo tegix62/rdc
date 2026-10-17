@@ -20,8 +20,11 @@ import { getContactForm, getPage, getSiteSettings } from '../lib/queries';
 */
 const settings = await getSiteSettings();
 const contactUrl = typeof settings?.contactUrl === 'string' ? settings.contactUrl.trim() : '';
+// 301 for the delay, not for permanence: Astro's static template waits two
+// seconds on a 302 and none on a 301. It is a meta refresh, not an HTTP 301,
+// so no browser caches it - switching back stays a one-field change.
 if (/^https?:\/\//.test(contactUrl)) {
-  return Astro.redirect(contactUrl);
+  return Astro.redirect(contactUrl, 301);
 }
 
 const page = await getPage('contact');

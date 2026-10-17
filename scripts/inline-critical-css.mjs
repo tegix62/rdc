@@ -179,8 +179,21 @@ const critters = new Critters({
 let processed = 0;
 let failed = 0;
 
+let skipped = 0;
+
 for (const file of htmlFiles) {
   let html = readFileSync(file, 'utf8');
+  /*
+    A forwarding page, left alone. Astro writes Astro.redirect() on a static
+    build as a few bytes of meta refresh with no stylesheet and no <head> -
+    nothing to inline and nothing for a visitor to paint before it moves on,
+    and critters throws on it. /contact is one while Contact points at the
+    Tally form (see contact.astro).
+  */
+  if (/<meta\s+http-equiv=["']?refresh/i.test(html) && !/<link[^>]+rel=["']?stylesheet/i.test(html)) {
+    skipped++;
+    continue;
+  }
   try {
     html = await critters.process(html);
     html = injectFontPreloads(html, fontUrls);
@@ -194,6 +207,7 @@ for (const file of htmlFiles) {
 
 console.log(
   `\n[critical-css] ${processed} of ${htmlFiles.length} page(s) processed` +
+    (skipped ? `, ${skipped} forwarding page(s) skipped` : '') +
     (failed ? `, ${failed} failed` : ''),
 );
 if (failed) process.exit(1);

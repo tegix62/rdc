@@ -30,7 +30,11 @@ const browser = await chromium.launch()
 const report = {}
 
 for (const path of PATHS) {
-  const slug = path === '/' ? 'home' : path.replace(/^\/|\/$/g, '').replace(/\//g, '_')
+  // A full URL is shot as given (the Tally form every "Let's Work" button
+  // points at is not on this site) and named after its host.
+  const slug = /^https?:/.test(path)
+    ? new URL(path).hostname.split('.')[0]
+    : path === '/' ? 'home' : path.replace(/^\/|\/$/g, '').replace(/\//g, '_')
   report[path] = {}
   for (const [device, w, h] of DEVICES) {
     const page = await browser.newPage({viewport: {width: w, height: h}})
@@ -39,7 +43,12 @@ for (const path of PATHS) {
         sessionStorage.setItem('pf-demo-shown', '1')
       } catch {}
     })
-    await page.goto(`${BASE}${path}`, {waitUntil: 'networkidle', timeout: 60_000})
+    // Load, then a few seconds of quiet if the page will give it. /contact
+    // never goes network-idle (something on it keeps a connection open), so
+    // waiting for idle outright timed the whole run out.
+    const url = /^https?:/.test(path) ? path : `${BASE}${path}`
+    await page.goto(url, {waitUntil: 'load', timeout: 60_000})
+    await page.waitForLoadState('networkidle', {timeout: 8_000}).catch(() => {})
     await page.waitForTimeout(1500)
     await page.screenshot({path: `${OUT}/${slug}-${device}-fold.png`})
     await page.screenshot({path: `${OUT}/${slug}-${device}-full.png`, fullPage: true})

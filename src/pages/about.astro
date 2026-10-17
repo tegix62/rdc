@@ -53,8 +53,10 @@ const work = await getFeaturedWork(4);
 
   <WorkGrid items={work} heading="Recent work" />
 
-  <div class="about-cta">
-    <a class="button" href={CONTACT_URL}>Let's Work</a>
-    <a class="button button--outline" href="/portfolio">See Portfolio</a>
+  <div class="page-ask">
+    <div class="page-ask__buttons">
+      <a class="button" href={CONTACT_URL}>Let's Work</a>
+      <a class="button button--outline" href="/portfolio">See Portfolio</a>
+    </div>
   </div>
 </Layout>

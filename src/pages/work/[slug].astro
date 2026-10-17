@@ -3,7 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import Img from '../../components/Img.astro';
 import Sections from '../../components/Sections.astro';
 import { sanityClient } from '../../lib/sanity';
-import { getCaseStudy, getGridItems, getOtherCaseStudies } from '../../lib/queries';
+import { getCaseStudy, getGridItems, getOtherCaseStudies, getSiteSettings } from '../../lib/queries';
 import { socialCardUrl, fileUrl, archiveCard, imageDimensions } from '../../lib/image';
 import { embedUrl } from '../../lib/video';
 import { renderPortableText } from '../../lib/portableText';
@@ -28,6 +28,14 @@ if (!caseStudy) {
 }
 const gridItems = await getGridItems(caseStudy._id);
 const otherWork = await getOtherCaseStudies(caseStudy._id);
+
+/*
+  The ask, at the end of the proof. A case study is the most persuasive page
+  on the site and it used to end on its last image, then More Work, then the
+  footer - the reader most likely to get in touch was the one given no
+  button. Same contact link every button shares (see Layout.astro).
+*/
+const CONTACT_URL = (await getSiteSettings())?.contactUrl || '/contact';
 const galleries = ['merchGrid', 'flyerGrid', 'processGrid'] as const;
 
 /*
@@ -386,6 +394,16 @@ const markStyle =
         </div>
       )}
     </article>
+  )}
+
+  {!gated && (
+    <div class="page-ask">
+      <p class="page-ask__line">Have a project like this in mind?</p>
+      <div class="page-ask__buttons">
+        <a class="button" href={CONTACT_URL}>Let's Work</a>
+        <a class="button button--outline" href="/portfolio">See Portfolio</a>
+      </div>
+    </div>
   )}
 
   {otherWork.length > 0 && (

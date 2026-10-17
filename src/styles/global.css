@@ -1501,13 +1501,29 @@ main {
   padding-top: var(--space-5);
 }
 
-/* The page's last word: the ask, after the work - see about.astro. */
-.about-cta {
+/*
+  A page's last word: the ask, after the work. About ends on it, and so does
+  every case study, before More Work - see about.astro and work/[slug].astro.
+*/
+.page-ask {
+  padding: var(--space-5) 0 var(--space-6);
+  text-align: center;
+}
+
+.page-ask__line {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-navy);
+}
+
+.page-ask__buttons {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
   gap: var(--space-2);
-  padding: var(--space-2) 0 var(--space-6);
 }
 
 .about-layout__portrait {

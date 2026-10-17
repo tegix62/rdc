@@ -1,7 +1,28 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { pageDescription } from '../lib/meta';
-import { getContactForm, getPage } from '../lib/queries';
+import { getContactForm, getPage, getSiteSettings } from '../lib/queries';
+
+/*
+  ONE CONTACT, NOT TWO.
+
+  Every Contact and Let's Work button follows Site Settings → contactUrl,
+  which points at Chris's Tally form ("I think I want the tally form to stay
+  for now"). This page was still built and listed in the sitemap, so a search
+  could land someone on a second, different form - one whose last step needs
+  a spam-check key to accept anything at all.
+
+  So while contactUrl points off the site, /contact forwards there. On a
+  static build Astro writes that as a meta-refresh page with the target as
+  its canonical, so it works without JavaScript and search engines follow it
+  to the real form. Clear contactUrl and this page is the form again, and
+  sitemap.xml.ts lists it again - the same switch drives both.
+*/
+const settings = await getSiteSettings();
+const contactUrl = typeof settings?.contactUrl === 'string' ? settings.contactUrl.trim() : '';
+if (/^https?:\/\//.test(contactUrl)) {
+  return Astro.redirect(contactUrl);
+}
 
 const page = await getPage('contact');
 

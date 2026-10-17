@@ -133,7 +133,7 @@ export const GET: APIRoute = async ({ site }) => {
     // the file exists only so its absence isn't mistaken for a broken route.
     entries.push(...STATIC_PATHS.map(([path]) => ({path})));
   } else {
-    const [pages, caseStudies, posts] = await Promise.all([
+    const [pages, caseStudies, posts, contactUrl] = await Promise.all([
       sanityClient.fetch<{slug: string; _updatedAt: string}[]>(
         `*[_type == "page" && defined(slug.current)]{"slug": slug.current, _updatedAt}`,
       ),
@@ -145,11 +145,17 @@ export const GET: APIRoute = async ({ site }) => {
       sanityClient.fetch<{slug: string; _updatedAt: string}[]>(
         `*[_type == "blogPost" && defined(slug.current)]{"slug": slug.current, _updatedAt}`,
       ),
+      sanityClient.fetch<string | null>(`*[_type == "siteSettings"][0].contactUrl`),
     ]);
 
     const pageUpdatedAt = new Map(pages.map((p) => [p.slug, p._updatedAt]));
 
+    // While Contact points off the site, /contact only forwards there (see
+    // contact.astro), and a forwarding page has no business in a sitemap.
+    const contactForwards = typeof contactUrl === 'string' && /^https?:\/\//.test(contactUrl.trim());
+
     for (const [path, pageSlug] of STATIC_PATHS) {
+      if (path === '/contact' && contactForwards) continue;
       entries.push({
         path,
         lastmod: pageSlug ? lastmodOf(pageUpdatedAt.get(pageSlug)) : undefined,

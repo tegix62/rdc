@@ -8,6 +8,7 @@ import Video from '../components/Video.astro';
 import { getPage, getSiteSettings, getFeaturedWork } from '../lib/queries';
 import { backgroundUrl, hotspotPosition, imageUrl, buildSrcSet, originalUrl, isPassThrough, cappedWidth, hasAsset, fileUrl } from '../lib/image';
 import { isAnimatedSource } from '../lib/animated';
+import { stripStega } from '../lib/stega';
 
 const page = await getPage('home');
 const settings = await getSiteSettings();
@@ -83,7 +84,13 @@ const finalCtaHeading = settings?.finalCtaHeading || 'DTC Brands and Apparel Com
   the colon makes sense; without one it is dropped rather than left hanging.
 */
 const finalCtaLine: string = settings?.finalCtaLine || '';
-const finalCtaHeadingShown = finalCtaLine ? finalCtaHeading : finalCtaHeading.replace(/:\s*$/, '');
+// Tested on the stega-stripped string: a value from Sanity carries invisible
+// visual-editing characters AFTER the colon, so `:$` never matched it. The
+// colon is then taken out of the raw string, which keeps the editing link.
+const finalCtaHeadingShown =
+  !finalCtaLine && /:$/.test(stripStega(finalCtaHeading) ?? '')
+    ? finalCtaHeading.replace(/:(?=[^:]*$)/, '')
+    : finalCtaHeading;
 
 /*
   The process video beside the bio - see processVideoSrc in siteSettings.ts.

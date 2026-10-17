@@ -51,6 +51,22 @@ for (const path of PATHS) {
     await page.waitForLoadState('networkidle', {timeout: 8_000}).catch(() => {})
     await page.waitForTimeout(1500)
     await page.screenshot({path: `${OUT}/${slug}-${device}-fold.png`})
+    /*
+      Walk down the page before the full shot. Images below the first screen
+      are loading="lazy" and clips start on entering view, so a full-page
+      shot taken from the top showed case studies as white gaps and black
+      boxes - what the camera never scrolled to, not what a visitor sees.
+    */
+    await page.evaluate(async () => {
+      const step = Math.round(innerHeight * 0.8)
+      for (let y = 0; y < document.documentElement.scrollHeight; y += step) {
+        scrollTo(0, y)
+        await new Promise((r) => setTimeout(r, 350))
+      }
+      scrollTo(0, 0)
+    })
+    await page.waitForLoadState('networkidle', {timeout: 10_000}).catch(() => {})
+    await page.waitForTimeout(1500)
     await page.screenshot({path: `${OUT}/${slug}-${device}-full.png`, fullPage: true})
 
     report[path][device] = await page.evaluate(() => {

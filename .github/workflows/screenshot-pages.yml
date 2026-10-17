@@ -1,0 +1,60 @@
+name: Screenshot pages
+
+# Pictures of live pages at desktop and phone sizes, pushed to the `shots`
+# branch (throwaway, force-pushed each run) so they can be read back from
+# a session that cannot reach the site itself. The facts report goes to
+# the log and the run summary.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to shoot'
+        default: 'https://rumeaudesign.co'
+      paths:
+        description: 'Comma-separated paths'
+        default: '/'
+
+permissions:
+  contents: write
+
+jobs:
+  shoot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          set -o pipefail
+          node scripts/screenshot-pages.mjs "$BASE" /tmp/shots "$PATHS" | tee /tmp/report.txt
+        env:
+          BASE: ${{ inputs.base_url || 'https://rumeaudesign.co' }}
+          PATHS: ${{ inputs.paths || '/' }}
+      - name: Push the pictures to the shots branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git checkout --orphan shots
+          git rm -rfq .
+          cp /tmp/shots/* .
+          git add -- *.png report.json
+          git commit -qm "Screenshots of ${PATHS} on ${BASE}"
+          git push -f origin shots
+        env:
+          BASE: ${{ inputs.base_url || 'https://rumeaudesign.co' }}
+          PATHS: ${{ inputs.paths || '/' }}
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Pages'
+            echo ''
+            echo '```json'
+            cat /tmp/report.txt 2>/dev/null || echo '(the script did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

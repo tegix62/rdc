@@ -73,7 +73,7 @@ const src = `${scan.url}?w=1600&fm=webp&q=82`;
         class="loupe__img"
         src={src}
         srcset={srcset}
-        sizes="(max-width: 48rem) calc(100vw - 2rem), min(calc(100svh - 14rem), 1100px)"
+        sizes="(max-width: 48rem) calc(100vw - 2rem), min(calc(100svh - 15rem), 1100px)"
         width={W}
         height={H}
         alt={`${name}, a square paper collage`}
@@ -127,7 +127,7 @@ const src = `${scan.url}?w=1600&fm=webp&q=82`;
   */
   .loupe {
     position: relative;
-    width: min(100%, calc(100svh - 14rem), 1100px);
+    width: min(100%, calc(100svh - 15rem), 1100px);
     margin: 0 auto;
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 12px 32px -12px rgb(0 0 0 / 0.25);
     /* A long press is ours, not the browser's image menu or text selection. */

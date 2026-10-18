@@ -84,14 +84,21 @@ for (const piece of PIECES) {
       return ms
     }
 
+    // Each patch fades in over 180 ms once it arrives; a picture taken the
+    // moment the last one lands shows them half-transparent, which reads as
+    // patches that do not match. Wait out the fade before the camera.
+    const settle = () => page.waitForTimeout(400)
     await spot(0.5, 0.5, 'centre')
+    await settle()
     await page.screenshot({path: `${OUT}/${piece}-${label}-centre.png`})
     await page.mouse.click(box.x + box.width * 0.5, box.y + box.height * 0.5)
     await page.waitForTimeout(150)
     await spot(0.5, 0.5, 'click: closer')
+    await settle()
     await page.screenshot({path: `${OUT}/${piece}-${label}-closer.png`})
     await page.mouse.click(box.x + box.width * 0.5, box.y + box.height * 0.5)
     await spot(0.22, 0.3, 'moved')
+    await settle()
     await page.screenshot({path: `${OUT}/${piece}-${label}-moved.png`})
     await spot(0.8, 0.78, 'moved again')
 

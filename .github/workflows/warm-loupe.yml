@@ -1,0 +1,21 @@
+name: Warm the collage magnifier
+
+# Requests every magnifier patch of every collage scan once, so a visitor
+# never waits for the image CDN's first cut. Run after a new scan is
+# uploaded, and weekly in case the CDN has let cold patches go.
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '17 6 * * 1'
+
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/warm-loupe.mjs

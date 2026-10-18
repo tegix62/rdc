@@ -1,0 +1,58 @@
+name: Test the collage magnifier
+
+# Hovers each collage under glass in a real browser, times how long the
+# glass takes to go sharp, and pushes screenshots of it open to the
+# throwaway `shots` branch.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to test'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+      pieces:
+        description: 'Comma-separated pieces'
+        default: 'magnesium-mildness'
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          set -o pipefail
+          node scripts/test-loupe.mjs "$BASE" /tmp/loupe "$PIECES" | tee /tmp/loupe.txt
+        env:
+          BASE: ${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}
+          PIECES: ${{ inputs.pieces || 'magnesium-mildness' }}
+      - name: Push the pictures to the shots branch
+        if: always()
+        run: |
+          [ -d /tmp/loupe ] || exit 0
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git checkout --orphan shots
+          git rm -rfq .
+          cp /tmp/loupe/* .
+          git add -- *.png
+          git commit -qm "Magnifier screenshots"
+          git push -f origin shots
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Magnifier'
+            echo ''
+            echo '```'
+            cat /tmp/loupe.txt 2>/dev/null || echo '(the test did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

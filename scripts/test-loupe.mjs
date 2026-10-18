@@ -91,6 +91,28 @@ for (const piece of PIECES) {
     await spot(0.5, 0.5, 'centre')
     await settle()
     await page.screenshot({path: `${OUT}/${piece}-${label}-centre.png`})
+    /*
+      The patches must form a grid: every patch in a row at the same height,
+      every patch in a column at the same left, neighbours touching. This is
+      the check that would have caught the build deleting position:absolute
+      - the patches fell into a diagonal, and every other check still passed.
+    */
+    const geometry = await page.evaluate(() => {
+      const shown = [...document.querySelectorAll('.loupe__tile')].filter((t) => t.style.display !== 'none')
+      const box = (t) => t.getBoundingClientRect()
+      const bad = []
+      for (const a of shown)
+        for (const b of shown) {
+          if (a === b) continue
+          const A = box(a), B = box(b)
+          if (a.dataset.y === b.dataset.y && Math.abs(A.top - B.top) > 1) bad.push(`row ${a.dataset.y}`)
+          if (a.dataset.x === b.dataset.x && Math.abs(A.left - B.left) > 1) bad.push(`column ${a.dataset.x}`)
+          if (a.dataset.y === b.dataset.y && Number(b.dataset.x) - Number(a.dataset.x) === 512 && Math.abs(A.right - B.left) > 1)
+            bad.push(`gap ${a.dataset.x}->${b.dataset.x}`)
+        }
+      return {n: shown.length, bad: [...new Set(bad)]}
+    })
+    check('the patches form a seamless grid', geometry.n > 0 && geometry.bad.length === 0, `${geometry.n} patches${geometry.bad.length ? ', broken: ' + geometry.bad.slice(0, 4).join(', ') : ''}`)
     // Every shown patch, as the browser has it: what it asked for, where it
     // put it, and what came back. Relative to the glass's own box.
     console.log(

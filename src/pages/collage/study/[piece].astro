@@ -173,24 +173,11 @@ const src = `${scan.url}?w=1600&fm=webp&q=82`;
     inset: 0;
   }
 
-  .loupe__tile {
-    position: absolute;
-    top: 0;
-    left: 0;
-    max-width: none;
-    opacity: 0;
-    transition: opacity 180ms ease-out;
-  }
-
-  .loupe__tile.is-in {
-    opacity: 1;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .loupe__tile {
-      transition: none;
-    }
-  }
+  /*
+    No .loupe__tile rules here, on purpose: patches are styled from the
+    script, because the critical-CSS step deletes rules for elements that
+    only exist once JavaScript makes them. See the note where they are made.
+  */
 
   .loupe-page__hint {
     margin: var(--space-3) auto 0;
@@ -232,6 +219,7 @@ const src = `${scan.url}?w=1600&fm=webp&q=82`;
     const cols = Math.ceil(W / TILE);
 
     const touchy = matchMedia('(hover: none)').matches;
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const SIZE = touchy ? 200 : 280;
     glass.style.setProperty('--loupe-size', `${SIZE}px`);
 
@@ -273,13 +261,30 @@ const src = `${scan.url}?w=1600&fm=webp&q=82`;
       const y = Math.floor(i / cols) * TILE;
       t = new Image();
       t.className = 'loupe__tile';
+      /*
+        Styled here, not by .loupe__tile in the stylesheet - and that is the
+        fix for the glass's worst bug, not a preference. The build's
+        critical-CSS step (critters, scripts/inline-critical-css.mjs) prunes
+        rules from a page's inline <style> whose selectors match nothing in
+        the built HTML, and a patch only exists once this script makes it.
+        So position:absolute was deleted at build time, every patch fell into
+        normal flow, and each sat 256px lower than the last: measured in the
+        browser, a diagonal of patches across the glass, two of them
+        happening to land in view and showing the wrong part of the scan.
+      */
+      t.style.cssText =
+        'position:absolute;top:0;left:0;max-width:none;display:block;opacity:0;' +
+        (reduceMotion ? '' : 'transition:opacity 180ms ease-out;');
       t.alt = '';
       t.decoding = 'async';
       t.dataset.x = String(x);
       t.dataset.y = String(y);
       t.dataset.w = String(Math.min(TILE, W - x));
       t.dataset.h = String(Math.min(TILE, H - y));
-      t.onload = () => t!.classList.add('is-in');
+      t.onload = () => {
+        t!.classList.add('is-in');
+        t!.style.opacity = '1';
+      };
       /*
         A patch that fails would leave a permanently soft spot under the
         glass - measured once in testing, a patch that never arrived. Two
@@ -359,11 +364,15 @@ const src = `${scan.url}?w=1600&fm=webp&q=82`;
       computeLevels();
       glass.hidden = false;
       fig.classList.add('is-looking');
+      // Inline for the same reason as the patches: .loupe.is-looking matches
+      // nothing in the built HTML, so the critical-CSS step drops it.
+      fig.style.cursor = 'none';
       showReadout();
     };
     const close = () => {
       glass.hidden = true;
       fig.classList.remove('is-looking');
+      fig.style.cursor = '';
       showReadout();
     };
     const local = (e: {clientX: number; clientY: number}) => {

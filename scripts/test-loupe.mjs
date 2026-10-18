@@ -77,9 +77,20 @@ for (const piece of PIECES) {
         console.log('    patches near the glass:\n      ' + stuck.join('\n      '))
       }
       const g = await page.locator('.loupe__glass').boundingBox()
-      const centred = g && Math.abs(g.x + g.width / 2 - x) < 3 && Math.abs(g.y + g.height / 2 - y) < 3
+      /*
+        Centred on the pointer unless that would put it off the screen, in
+        which case it slides to stay inside the window: so the checks are
+        that the pointer is inside it, and that the glass is wholly on screen.
+      */
+      const vp = page.viewportSize()
+      const holds = g && x > g.x && x < g.x + g.width && y > g.y && y < g.y + g.height
+      const onScreen = g && g.x >= 0 && g.y >= 0 && g.x + g.width <= vp.width && g.y + g.height <= vp.height
       const mag = await page.locator('[data-loupe-mag]').textContent()
-      check(`${name}: glass open, centred on the pointer`, Boolean(centred))
+      check(
+        `${name}: glass open around the pointer, on screen`,
+        Boolean(holds && onScreen),
+        g ? `${Math.round(g.width)}x${Math.round(g.height)} at ${Math.round(g.x)},${Math.round(g.y)}` : 'no glass',
+      )
       check(`${name}: sharp under the glass`, settled > 0, `${settled} patch(es) in ${ms} ms, ${mag}`)
       return ms
     }

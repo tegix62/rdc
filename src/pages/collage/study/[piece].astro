@@ -237,7 +237,13 @@ const src = `${scan.url}?w=1600&fm=webp&q=82`;
         GW = Math.round(Math.min(img.clientWidth * 0.72, 300));
         GH = Math.round(GW * 1.25);
       } else {
-        GH = Math.round(Math.min(img.clientHeight * 0.62, 520));
+        /*
+          About 90% of the piece's height, never taller than the window can
+          hold. Chris, on the 60% version: the zoom is right, "but I'd love
+          to see more out of the viewport the magnifier is creating". Same
+          magnification, roughly twice the area of the scan in view.
+        */
+        GH = Math.round(Math.min(img.clientHeight * 0.9, innerHeight - 120, 860));
         GW = Math.round(GH * 0.8);
       }
       glass.style.width = `${GW}px`;
@@ -392,10 +398,23 @@ const src = `${scan.url}?w=1600&fm=webp&q=82`;
         ax = px - gl;
         ay = GH / 2;
       } else {
-        gl = px - GW / 2;
-        gt = py - GH / 2;
-        ax = GW / 2;
-        ay = GH / 2;
+        /*
+          Centred on the pointer, then slid to stay inside the window - a
+          glass this large would otherwise run off the screen near the
+          piece's edges, or under the nav. The looked-at point is drawn under
+          the pointer wherever the glass ends up, so the detail stays exactly
+          where the cursor is.
+        */
+        const r = img.getBoundingClientRect();
+        const nav = document.querySelector('header')?.getBoundingClientRect().bottom ?? 0;
+        const top = Math.max(8, nav + 8) - r.top;
+        const bottom = innerHeight - 8 - GH - r.top;
+        const left = 8 - r.left;
+        const right = innerWidth - 8 - GW - r.left;
+        gl = Math.min(Math.max(px - GW / 2, left), Math.max(left, right));
+        gt = Math.min(Math.max(py - GH / 2, top), Math.max(top, bottom));
+        ax = px - gl;
+        ay = py - gt;
       }
       schedule();
     };

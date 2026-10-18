@@ -168,6 +168,32 @@ export default defineType({
         'The big image at the top of the project page. Also stands in as the ' +
         'grid tile when Grid Thumbnail is empty.',
     }),
+    /*
+      THE ORIGINAL, FOR THE MAGNIFIER.
+
+      The collages are 9" and 13" squares scanned at 600 DPI - around 7,800px
+      across - and the site only holds 2,000px web copies, at which their
+      text and print texture are unreadable. The loupe on a collage page
+      opens over the web copy and fetches only the patch of THIS image under
+      the glass, via the CDN's rect crop, so the full file is never sent to
+      a visitor.
+
+      Its own field rather than a bigger Main Image: the tiles and the hero
+      would happily downscale a 60-megapixel upload, but every one of those
+      requests would then be resized from it, and a slow first fetch on the
+      grid is the wrong place to find that out. Read by nothing else.
+    */
+    imageSpec({
+      name: 'fullScan',
+      title: 'Full-resolution scan - for the magnifier (optional)',
+      group: 'tile',
+      options: {hotspot: false},
+      description:
+        'The original scan at full size, for collages. Never shown whole: the ' +
+        'magnifier fetches only the patch under the glass. Export as JPEG, ' +
+        'quality about 90, sRGB, at the full pixel size. Leave empty on ' +
+        'everything else.',
+    }),
     defineField({
       name: 'category',
       title: 'Category - drives the Portfolio filters',

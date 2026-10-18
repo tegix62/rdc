@@ -156,9 +156,10 @@ const src = `${scan.url}?w=1600&fm=webp&q=82`;
     position: absolute;
     top: 0;
     left: 0;
-    width: var(--loupe-size, 280px);
-    height: var(--loupe-size, 280px);
-    border-radius: 50%;
+    /* A 4:5 plate, sized by the script to the piece (see sizeGlass). */
+    width: 320px;
+    height: 400px;
+    border-radius: 2px;
     overflow: hidden;
     pointer-events: none;
     background-repeat: no-repeat;
@@ -220,8 +221,28 @@ const src = `${scan.url}?w=1600&fm=webp&q=82`;
 
     const touchy = matchMedia('(hover: none)').matches;
     const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const SIZE = touchy ? 200 : 280;
-    glass.style.setProperty('--loupe-size', `${SIZE}px`);
+
+    /*
+      The glass is a 4:5 plate, not a circle - the site's portrait shape, the
+      one its plates and slots are built around - and large: Chris, on the
+      first version, "change it from a circle to something much larger".
+      On a desktop it is about 60% of the piece's height and follows the
+      pointer; on a phone it is about 70% of the width and sits wholly above
+      the finger, kept on the screen at the edges.
+    */
+    let GW = 0;
+    let GH = 0;
+    const sizeGlass = () => {
+      if (touchy) {
+        GW = Math.round(Math.min(img.clientWidth * 0.72, 300));
+        GH = Math.round(GW * 1.25);
+      } else {
+        GH = Math.round(Math.min(img.clientHeight * 0.62, 520));
+        GW = Math.round(GH * 0.8);
+      }
+      glass.style.width = `${GW}px`;
+      glass.style.height = `${GH}px`;
+    };
 
     /*
       Two magnifications, in CSS pixels per source pixel. The first is half
@@ -311,29 +332,36 @@ const src = `${scan.url}?w=1600&fm=webp&q=82`;
       return t;
     };
 
-    // Where the glass is looking, in source pixels, and where it sits.
+    /*
+      Where the glass is looking, in source pixels (sx, sy); where the glass
+      sits, its top-left relative to the picture (gl, gt); and where inside
+      the glass that looked-at point is drawn (ax, ay). On a desktop the
+      point is the glass's centre. On a phone the glass is pushed sideways to
+      stay on the screen, so the point is drawn under the finger instead.
+    */
     let sx = W / 2;
     let sy = H / 2;
-    let gx = 0;
-    let gy = 0;
+    let gl = 0;
+    let gt = 0;
+    let ax = 0;
+    let ay = 0;
     let frame = 0;
 
     const draw = () => {
       frame = 0;
       const s = z();
-      const offX = SIZE / 2 - sx * s;
-      const offY = SIZE / 2 - sy * s;
-      glass.style.transform = `translate3d(${gx - SIZE / 2}px, ${gy - SIZE / 2}px, 0)`;
+      const offX = ax - sx * s;
+      const offY = ay - sy * s;
+      glass.style.transform = `translate3d(${gl}px, ${gt}px, 0)`;
       glass.style.backgroundImage = `url("${img.currentSrc || img.src}")`;
       glass.style.backgroundSize = `${W * s}px ${H * s}px`;
       glass.style.backgroundPosition = `${offX}px ${offY}px`;
 
       // Patches under the glass, plus a ring around it so a move finds them ready.
-      const half = SIZE / 2 / s;
-      const c0 = Math.max(0, Math.floor((sx - half) / TILE) - 1);
-      const c1 = Math.min(cols - 1, Math.floor((sx + half) / TILE) + 1);
-      const r0 = Math.max(0, Math.floor((sy - half) / TILE) - 1);
-      const r1 = Math.min(Math.ceil(H / TILE) - 1, Math.floor((sy + half) / TILE) + 1);
+      const c0 = Math.max(0, Math.floor(-offX / s / TILE) - 1);
+      const c1 = Math.min(cols - 1, Math.floor((GW - offX) / s / TILE) + 1);
+      const r0 = Math.max(0, Math.floor(-offY / s / TILE) - 1);
+      const r1 = Math.min(Math.ceil(H / TILE) - 1, Math.floor((GH - offY) / s / TILE) + 1);
       const wanted = new Set<number>();
       for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) wanted.add(r * cols + c);
       for (const [i, t] of tiles) if (!wanted.has(i)) t.style.display = 'none';
@@ -350,18 +378,31 @@ const src = `${scan.url}?w=1600&fm=webp&q=82`;
     };
 
     // Point the glass at a spot on the picture (CSS px, relative to it).
-    // `lift` raises the glass above a fingertip so the finger does not hide it.
-    const aim = (px: number, py: number, lift = 0) => {
+    // `finger` puts the glass wholly above a fingertip instead of around it.
+    const GAP = 24;
+    const aim = (px: number, py: number, finger = false) => {
       const k = img.clientWidth / W;
       sx = Math.min(Math.max(px / k, 0), W);
       sy = Math.min(Math.max(py / k, 0), H);
-      gx = px;
-      gy = py - lift;
+      if (finger) {
+        gl = Math.min(Math.max(px - GW / 2, 0), Math.max(0, img.clientWidth - GW));
+        gt = py - GAP - GH;
+        // Too near the top of the screen to fit above: drop below the finger.
+        if (img.getBoundingClientRect().top + gt < 8) gt = py + GAP;
+        ax = px - gl;
+        ay = GH / 2;
+      } else {
+        gl = px - GW / 2;
+        gt = py - GH / 2;
+        ax = GW / 2;
+        ay = GH / 2;
+      }
       schedule();
     };
     const open = () => {
       if (!glass.hidden) return;
       computeLevels();
+      sizeGlass();
       glass.hidden = false;
       fig.classList.add('is-looking');
       // Inline for the same reason as the patches: .loupe.is-looking matches
@@ -403,7 +444,6 @@ const src = `${scan.url}?w=1600&fm=webp&q=82`;
     */
     let hold = 0;
     let start: [number, number] | null = null;
-    const LIFT = SIZE * 0.75;
     fig.addEventListener(
       'touchstart',
       (e) => {
@@ -412,7 +452,7 @@ const src = `${scan.url}?w=1600&fm=webp&q=82`;
         start = [t.clientX, t.clientY];
         hold = window.setTimeout(() => {
           open();
-          aim(...local(t), LIFT);
+          aim(...local(t), true);
         }, 220);
       },
       {passive: true},
@@ -423,7 +463,7 @@ const src = `${scan.url}?w=1600&fm=webp&q=82`;
         const t = e.touches[0];
         if (!glass.hidden) {
           e.preventDefault();
-          aim(...local(t), LIFT);
+          aim(...local(t), true);
         } else if (start && Math.hypot(t.clientX - start[0], t.clientY - start[1]) > 10) {
           clearTimeout(hold);
           start = null;
@@ -475,6 +515,7 @@ const src = `${scan.url}?w=1600&fm=webp&q=82`;
     addEventListener('resize', () => {
       if (!glass.hidden) {
         computeLevels();
+        sizeGlass();
         schedule();
       }
     });

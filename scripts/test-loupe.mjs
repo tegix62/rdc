@@ -62,6 +62,20 @@ for (const piece of PIECES) {
         .then((h) => h.jsonValue())
         .catch(() => 0)
       const ms = Date.now() - t0
+      if (!settled) {
+        // Which patch is holding the glass soft, and in what state.
+        const stuck = await page.evaluate(() => {
+          const gb = document.querySelector('.loupe__glass').getBoundingClientRect()
+          return [...document.querySelectorAll('.loupe__tile')]
+            .filter((t) => t.style.display !== 'none')
+            .map((t) => {
+              const b = t.getBoundingClientRect()
+              const over = b.right > gb.left && b.left < gb.right && b.bottom > gb.top && b.top < gb.bottom
+              return `${t.dataset.x},${t.dataset.y} over=${over} in=${t.classList.contains('is-in')} complete=${t.complete} natural=${t.naturalWidth}`
+            })
+        })
+        console.log('    patches near the glass:\n      ' + stuck.join('\n      '))
+      }
       const g = await page.locator('.loupe__glass').boundingBox()
       const centred = g && Math.abs(g.x + g.width / 2 - x) < 3 && Math.abs(g.y + g.height / 2 - y) < 3
       const mag = await page.locator('[data-loupe-mag]').textContent()

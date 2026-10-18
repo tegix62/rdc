@@ -1,0 +1,19 @@
+name: Diagnose magnifier patches
+
+# Checks that a magnifier patch from the image CDN shows the part of the
+# scan it was asked for, by finding where it really matches.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save sharp@0.34.4
+      - run: node scripts/diagnose-loupe-patches.mjs

@@ -91,6 +91,27 @@ for (const piece of PIECES) {
     await spot(0.5, 0.5, 'centre')
     await settle()
     await page.screenshot({path: `${OUT}/${piece}-${label}-centre.png`})
+    // Every shown patch, as the browser has it: what it asked for, where it
+    // put it, and what came back. Relative to the glass's own box.
+    console.log(
+      '  patches at the centre:\n    ' +
+        (
+          await page.evaluate(() => {
+            const gb = document.querySelector('.loupe__glass').getBoundingClientRect()
+            return [...document.querySelectorAll('.loupe__tile')]
+              .filter((t) => t.style.display !== 'none')
+              .map((t) => {
+                const b = t.getBoundingClientRect()
+                const rect = new URL(t.currentSrc || t.src).searchParams.get('rect')
+                return (
+                  `data ${t.dataset.x},${t.dataset.y} rect=${rect} natural=${t.naturalWidth}x${t.naturalHeight} ` +
+                  `complete=${t.complete} in=${t.classList.contains('is-in')} opacity=${getComputedStyle(t).opacity} ` +
+                  `box=(${Math.round(b.left - gb.left)},${Math.round(b.top - gb.top)} ${Math.round(b.width)}x${Math.round(b.height)})`
+                )
+              })
+          })
+        ).join('\n    '),
+    )
     await page.mouse.click(box.x + box.width * 0.5, box.y + box.height * 0.5)
     await page.waitForTimeout(150)
     await spot(0.5, 0.5, 'click: closer')

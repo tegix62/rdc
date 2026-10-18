@@ -262,9 +262,14 @@ const src = `${scan.url}?w=1600&fm=webp&q=82`;
     */
     let levels: number[] = [];
     let level = 0;
+    /*
+      A phone starts 20% further out - Chris, trying it: "the phone version
+      could actually zoom out more, like 20% more". Its glass is small next
+      to the desktop's, so the same closeness showed too little of the piece.
+    */
     const computeLevels = () => {
       const k = img.clientWidth / W;
-      const first = Math.max(0.5, 2 * k);
+      const first = Math.max(touchy ? 0.4 : 0.5, 2 * k);
       levels = [first, first * 2];
     };
     const z = () => levels[level];

@@ -3095,7 +3095,8 @@ main {
 :is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-expanded,
 :is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item--hero.is-expanded {
   /* --pf-open-span: set by the gather - four of ten here, six of fourteen in
-     the All grid's shared gather, the whole width on a phone. */
+     the All grid's shared gather (eight for a wide piece), the whole width
+     on a phone. */
   width: calc(var(--pf-col-w) * var(--pf-open-span, 4));
 }
 

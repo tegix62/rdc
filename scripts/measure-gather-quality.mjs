@@ -34,7 +34,9 @@ const SIZES = [
 ]
 
 const browser = await chromium.launch()
-const totals = {gathers: 0, orphanRows: 0, gathersWithOrphans: 0, sparseBlocks: 0, outOfView: 0, overlaps: 0}
+const totals = {gathers: 0, orphanRows: 0, gathersWithOrphans: 0, sparseBlocks: 0, lowFill: 0, outOfView: 0, overlaps: 0}
+// The rest reaching under 70% of the way down the opened piece.
+const LOW_REACH = 0.7
 
 async function open(w, h) {
   const page = await browser.newPage({viewport: {width: w, height: h}})
@@ -68,6 +70,16 @@ const pickAll = (page) =>
       const step = Math.max(1, Math.floor(els.length / per))
       for (let i = 0; i < els.length && out.filter((o) => o.h === h).length < per; i += step)
         out.push({h, i: all.indexOf(els[i]), piece: els[i].dataset.piece})
+      // And always its widest piece, if it is wide: Chris's Hug a Mug
+      // screenshot, the mug photograph opened and one thin row beside it.
+      // The deal is shuffled, so a spread alone misses it most runs.
+      const aspect = (el) => {
+        const img = el.querySelector('.pf-item__img')
+        return Number(img?.getAttribute('width')) / Number(img?.getAttribute('height')) || 0
+      }
+      const widest = els.reduce((a, b) => (aspect(b) > aspect(a) ? b : a))
+      if (aspect(widest) >= 1.25 && !out.some((o) => o.piece === widest.dataset.piece))
+        out.push({h, i: all.indexOf(widest), piece: widest.dataset.piece, wide: true})
     }
     return out
   }, PER)
@@ -125,6 +137,13 @@ const measure = (page) =>
       widest: Math.round(widest),
       orphans: orphans.map((r) => `${r.n} piece(s), ${Math.round(r.right - r.left)}px of ${Math.round(widest)}: ${r.names.join(', ')}`),
       blockFill: +blockFill.toFixed(2),
+      // How far down the opened piece's height the rest reaches, from the
+      // top of the set: one thin row over a band of white reads low.
+      reach: (() => {
+        if (!ob || !rest.length) return null
+        const top = Math.min(ob.top, card ? card.getBoundingClientRect().top : ob.top)
+        return +((Math.max(...rest.map((r) => r.b.bottom)) - top) / (ob.bottom - top)).toFixed(2)
+      })(),
       outOfView: set.filter((el) => el.getBoundingClientRect().bottom > innerHeight + 1).length,
       overlaps,
     }
@@ -146,17 +165,19 @@ for (const [w, h] of SIZES) {
     totals.orphanRows += m.orphans.length
     if (m.orphans.length) totals.gathersWithOrphans++
     if (m.blockFill < 0.6) totals.sparseBlocks++
+    const low = m.reach !== null && m.reach < LOW_REACH
+    if (low) totals.lowFill++
     totals.outOfView += m.outOfView ? 1 : 0
     totals.overlaps += m.overlaps ? 1 : 0
-    const bad = m.orphans.length || m.blockFill < 0.6 || m.outOfView || m.overlaps
+    const bad = m.orphans.length || m.blockFill < 0.6 || low || m.outOfView || m.overlaps
     const firstOfProject = picks.findIndex((q) => q.h === p.h) === picks.indexOf(p)
-    if (OUT && (bad || firstOfProject)) {
+    if (OUT && (bad || firstOfProject || p.wide)) {
       const slug = p.h.split('/').filter(Boolean).pop()
-      await page.screenshot({path: `${OUT}/${w}-${slug}-${picks.indexOf(p)}${bad ? '-bad' : ''}.png`})
+      await page.screenshot({path: `${OUT}/${w}-${slug}-${picks.indexOf(p)}${p.wide ? '-wide' : ''}${bad ? '-bad' : ''}.png`})
     }
     console.log(
       `${bad ? 'BAD ' : 'ok  '} ${p.h} :: ${m.opened} (${m.openedSide}) - ${m.setN} in set, ${m.rows.length} rows ` +
-        `[${m.rows.map((r) => `${r.n}@${r.h}`).join(' ')}], block fill ${m.blockFill}` +
+        `[${m.rows.map((r) => `${r.n}@${r.h}`).join(' ')}], block fill ${m.blockFill}, reach ${m.reach ?? '-'}${p.wide ? ' (widest)' : ''}` +
         `${m.outOfView ? `, ${m.outOfView} out of view` : ''}${m.overlaps ? `, ${m.overlaps} overlaps` : ''}`,
     )
     for (const o of m.orphans) console.log(`       orphan row: ${o}`)
@@ -167,5 +188,5 @@ await browser.close()
 
 console.log(
   `\nTOTAL ${totals.gathers} gathers: ${totals.gathersWithOrphans} with orphan rows (${totals.orphanRows} rows), ` +
-    `${totals.sparseBlocks} sparse blocks, ${totals.outOfView} with pieces out of view, ${totals.overlaps} with overlaps`,
+    `${totals.sparseBlocks} sparse blocks, ${totals.lowFill} with the rest under ${LOW_REACH * 100}% of the way down, ${totals.outOfView} with pieces out of view, ${totals.overlaps} with overlaps`,
 )

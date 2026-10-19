@@ -2125,10 +2125,25 @@ if (emptyFilters.length > 0) {
       view's four, three of the All grid's seven (two of seven would be a
       smaller shirt than the merch view's for the same click).
     */
-    const openSpan = () => {
+    /*
+      A WIDE PIECE OPENS WIDER. Chris's screenshot of Hug a Mug with the mug
+      photograph opened: at three tiles of seven it was 800x540, and the
+      project's block took 130px of that height beside it, so its eight
+      other pieces had 450px - too little for two flush rows of four (580)
+      and they sat in one row 145px high over a band of white. At four
+      tiles the photograph is larger and the side narrower, and two rows of
+      four fit beside it. A shirt or poster (taller than wide) is already
+      as tall as the window allows at three, so it keeps three.
+    */
+    const WIDE_OPEN = 1.25;
+    const openSpan = (el?: HTMLElement) => {
       if (window.matchMedia('(max-width: 48rem)').matches) return cols;
       const tiles = Math.round(cols / unit());
-      return (tiles >= 7 ? 3 : 2) * unit();
+      if (tiles < 7) return 2 * unit();
+      const img = el?.querySelector('.pf-item__img');
+      const w = Number(img?.getAttribute('width'));
+      const h = Number(img?.getAttribute('height'));
+      return (w > 0 && h > 0 && w / h >= WIDE_OPEN ? 4 : 3) * unit();
     };
     let filterBeforeCluster: string | null = null;
 
@@ -3177,7 +3192,7 @@ if (emptyFilters.length > 0) {
             the two share the same height.
           */
           // Two units for the shirt and two for the block: eight of ten columns.
-          cardBeside = cols - openSpan() >= 2 * unit();
+          cardBeside = cols - openSpan(item) >= 2 * unit();
           card.classList.toggle('is-card--beside', cardBeside);
           if (cardBeside) {
             grid.style.removeProperty('--pf-card-h');
@@ -3318,7 +3333,7 @@ if (emptyFilters.length > 0) {
           ROLLING IT BACK to always-left is setting SNAP_BY_CLICK to false.
         */
         const SNAP_BY_CLICK = true;
-        const S = openSpan();
+        const S = openSpan(item);
         grid.style.setProperty('--pf-open-span', String(S));
         const clickedF = (item as any).__pfClickF;
         let zone: 'left' | 'middle' | 'right' = 'left';

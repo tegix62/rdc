@@ -946,7 +946,18 @@ if (emptyFilters.length > 0) {
             if (top <= best.top + t) best = {a: prev.a, b: prev.b, top, width: (prev.b - prev.a + 1) * colW};
           }
           const rest = run.items.slice(k);
-          const count = firstRowCount(rest, best.width, t);
+          let count = firstRowCount(rest, best.width, t);
+          /*
+            Only a run's last row may stop short, like the last line of a
+            paragraph. An earlier row that would (more than ROW_GIVE past the
+            cap) takes the next piece instead, which brings it flush at a
+            little less height. Measured, DumpStat opened mid-grid: which of
+            its two wordmark rows came up short moved with the row height
+            the search landed on, so a tolerance alone left one at 85%.
+          */
+          const flushOf = (c: number) =>
+            (best.width - 2 * pad * c) / rest.slice(0, c).reduce((s, it) => s + it.a, 0) + 2 * pad;
+          while (count < rest.length && flushOf(count) > t * ROW_MAX * ROW_GIVE) count++;
           const items = rest.slice(0, count);
           k += count;
           const sumA = items.reduce((s, it) => s + it.a, 0);

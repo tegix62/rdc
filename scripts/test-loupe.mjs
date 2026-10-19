@@ -293,6 +293,51 @@ for (const path of ['/collage', '/about']) {
   await page.close()
 }
 
+/*
+  The picture as the lens (/collage/lens/<piece>, preview only): on hover
+  the glass is the picture's whole box, the view pans with the pointer,
+  and the spot under the pointer stays under the pointer - checked by
+  reading where the scan's pixel under the cursor is drawn.
+*/
+for (const piece of PIECES) {
+  const page = await browser.newPage({viewport: {width: 1440, height: 900}, deviceScaleFactor: 2})
+  const res = await page.goto(`${BASE}/collage/lens/${piece}`, {waitUntil: 'load', timeout: 60_000})
+  console.log(`\n${piece} as the lens, 1440x900`)
+  if (res?.status() !== 200) {
+    check('the lens page exists', false, `HTTP ${res?.status()}`)
+    await page.close()
+    continue
+  }
+  await page.waitForFunction(() => document.querySelector('.loupe__img')?.complete)
+  const b = await page.locator('.loupe__img').boundingBox()
+  for (const [fx, fy, name] of [[0.5, 0.5, 'centre'], [0.1, 0.1, 'top left'], [0.9, 0.9, 'bottom right']]) {
+    const x = b.x + b.width * fx
+    const y = b.y + b.height * fy
+    await page.mouse.move(x, y, {steps: 4})
+    await page.waitForTimeout(700)
+    const r = await page.evaluate(() => {
+      const fig = document.querySelector('[data-loupe]')
+      const img = fig.querySelector('.loupe__img').getBoundingClientRect()
+      const g = fig.querySelector('.loupe__glass')
+      const gb = g.getBoundingClientRect()
+      const W = Number(fig.dataset.w)
+      const s = parseFloat(g.style.backgroundSize) / W
+      const [ox, oy] = g.style.backgroundPosition.split(' ').map(parseFloat)
+      return {hidden: g.hidden, covers: Math.abs(gb.left - img.left) < 2 && Math.abs(gb.top - img.top) < 2 && Math.abs(gb.width - img.width) < 2 && Math.abs(gb.height - img.height) < 2, s, ox, oy, left: img.left, top: img.top, w: img.width}
+    })
+    // The scan pixel under the pointer: (px/k) in source px; drawn at ox + src*s.
+    const k = r.w / (await page.evaluate(() => Number(document.querySelector('[data-loupe]').dataset.w)))
+    const px = x - r.left
+    const py = y - r.top
+    const drawnX = r.ox + (px / k) * r.s
+    const drawnY = r.oy + (py / k) * r.s
+    check(`lens ${name}: the picture is the glass`, !r.hidden && r.covers)
+    check(`lens ${name}: the spot under the pointer stays under the pointer`, Math.abs(drawnX - px) < 2 && Math.abs(drawnY - py) < 2, `drawn at ${Math.round(drawnX)},${Math.round(drawnY)}; pointer at ${Math.round(px)},${Math.round(py)}; ${r.s.toFixed(2)} css px per scan px`)
+    if (name === 'centre') await page.screenshot({path: `${OUT}/${piece}-lens-centre.png`})
+  }
+  await page.close()
+}
+
 await browser.close()
 console.log(failures ? `\n${failures} check(s) failed.` : '\nThe magnifier behaves as asked.')
 process.exit(failures ? 1 : 0)

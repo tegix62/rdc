@@ -1,0 +1,77 @@
+---
+/*
+  THE PICTURE AS THE LENS - a demo, preview only.
+
+  Chris, on the magnifier: it is "an extra feature, a new thing", and to
+  make it "feel more reduced ... use the canvas itself, where the image is
+  sitting, and use that as the zoom lens itself. Whenever you mouse over
+  it, it will just overlay and zoom in to the max res version." If it
+  works, the same gesture could serve an expanded tile on the Portfolio
+  grid. He is not sold, and asked to see it: this is the same component
+  as the series page in its 'canvas' mode, one collage, to compare side
+  by side with /collage/study/<piece> (the window).
+*/
+import Layout from '../../../layouts/Layout.astro';
+import {sanityClient} from '../../../lib/sanity';
+import {collageName, collagePath} from '../../../lib/collage';
+import Loupe from '../../../components/Loupe.astro';
+
+export async function getStaticPaths() {
+  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
+  const docs: any[] = await sanityClient.fetch(
+    `*[_type == "caseStudy" && defined(fullScan.asset) && !(_id in path("drafts.**"))]{
+       title, "slug": slug.current,
+       "scan": fullScan.asset->{url, "w": metadata.dimensions.width, "h": metadata.dimensions.height}
+     }`,
+  );
+  return docs
+    .filter((d) => d.slug && d.scan?.url && d.scan.w && d.scan.h)
+    .map((d) => ({params: {piece: collagePath(d.slug)}, props: d}));
+}
+
+const {title, scan} = Astro.props as any;
+const {name, year} = collageName(title);
+---
+
+<Layout title={`${name} - lens`} description={`${name}, a collage${year ? ` from ${year}` : ''}, magnified in place.`} noindex>
+  <article class="loupe-page">
+    <header class="loupe-page__head">
+      <p class="loupe-page__eyebrow">Collage{year && <> &middot; {year}</>} &middot; the picture as the lens</p>
+      <h1 class="loupe-page__title">{name}</h1>
+    </header>
+    <Loupe name={name} scan={scan} mode="canvas" />
+    <p class="loupe-page__compare">
+      Compare: <a href={`/collage/study/${collagePath(Astro.params.piece as string)}`}>the window</a>
+    </p>
+  </article>
+</Layout>
+
+<style is:global>
+  .loupe-page {
+    padding: var(--space-5) 0 var(--space-6);
+  }
+
+  .loupe-page__head {
+    margin-bottom: var(--space-3);
+    text-align: center;
+  }
+
+  .loupe-page__eyebrow {
+    margin: 0;
+    font-size: 0.8125rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-gray);
+  }
+
+  .loupe-page__title {
+    margin: 0.25rem 0 0;
+  }
+
+  .loupe-page__compare {
+    margin: var(--space-3) 0 0;
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--color-gray);
+  }
+</style>

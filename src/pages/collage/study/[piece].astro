@@ -37,6 +37,9 @@ const {name, year} = collageName(title);
       <h1 class="loupe-page__title">{name}</h1>
     </header>
     <Loupe name={name} scan={scan} />
+    <p class="loupe-page__compare">
+      Compare: <a href={`/collage/lens/${collagePath(Astro.params.piece as string)}`}>the picture as the lens</a>
+    </p>
   </article>
 </Layout>
 
@@ -60,5 +63,12 @@ const {name, year} = collageName(title);
 
   .loupe-page__title {
     margin: 0.25rem 0 0;
+  }
+
+  .loupe-page__compare {
+    margin: var(--space-3) 0 0;
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--color-gray);
   }
 </style>

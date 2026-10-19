@@ -42,9 +42,21 @@ interface Props {
   /** The "move over / press and hold" line under the picture. */
   hint?: boolean;
   loading?: 'eager' | 'lazy';
+  /**
+    'window': a 4:5 glass that follows the pointer over the picture, the
+    whole picture still visible around it. 'canvas': the picture itself is
+    the lens - move over it and it becomes the full-resolution scan,
+    magnified in place, panning with the pointer; the spot under the
+    pointer stays under the pointer. Chris's idea for making the magnifier
+    "feel more reduced ... use the canvas itself, where the image is
+    sitting, as the zoom lens", so the same gesture could later serve an
+    expanded tile on the Portfolio grid. A demo, to compare against the
+    window; see /collage/lens/[piece].
+  */
+  mode?: 'window' | 'canvas';
 }
 
-const {name, scan, image, size = 'page', hint = true, loading = 'eager'} = Astro.props;
+const {name, scan, image, size = 'page', hint = true, loading = 'eager', mode = 'window'} = Astro.props;
 
 const hasScan = Boolean(scan?.url && scan?.w && scan?.h);
 const W = hasScan ? scan!.w! : 0;
@@ -78,6 +90,7 @@ const web = hasScan ? webFrom(scan!.url!) : plainFrom(image);
     <figure
       class:list={['loupe', size === 'fill' && 'loupe--fill']}
       data-loupe={hasScan ? '' : undefined}
+      data-mode={hasScan ? mode : undefined}
       data-scan={hasScan ? scan!.url : undefined}
       data-w={hasScan ? W : undefined}
       data-h={hasScan ? H : undefined}
@@ -106,8 +119,17 @@ const web = hasScan ? webFrom(scan!.url!) : plainFrom(image);
 
     {hasScan && hint && (
       <p class="loupe__hint">
-        <span class="loupe__hint--fine">Move over the collage to look closer. Click to go closer still.</span>
-        <span class="loupe__hint--touch">Press and hold to look closer, then drag.</span>
+        {mode === 'canvas' ? (
+          <>
+            <span class="loupe__hint--fine">Move over the collage and it magnifies in place. Click to go closer still.</span>
+            <span class="loupe__hint--touch">Press and hold, and the collage magnifies in place; drag to move.</span>
+          </>
+        ) : (
+          <>
+            <span class="loupe__hint--fine">Move over the collage to look closer. Click to go closer still.</span>
+            <span class="loupe__hint--touch">Press and hold to look closer, then drag.</span>
+          </>
+        )}
         <span class="loupe__mag" data-loupe-mag></span>
       </p>
     )}
@@ -231,6 +253,10 @@ const web = hasScan ? webFrom(scan!.url!) : plainFrom(image);
 
     const touchy = matchMedia('(hover: none)').matches;
     const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // 'canvas': the picture is the lens - the glass is the picture's whole
+    // box, pinned at its corner, and the pan follows the pointer. See the
+    // `mode` prop.
+    const canvas = fig.dataset.mode === 'canvas';
 
     /*
       The glass is a 4:5 plate, and large: on a desktop about 90% of the
@@ -242,7 +268,10 @@ const web = hasScan ? webFrom(scan!.url!) : plainFrom(image);
     let GW = 0;
     let GH = 0;
     const sizeGlass = () => {
-      if (touchy) {
+      if (canvas) {
+        GW = img.clientWidth;
+        GH = img.clientHeight;
+      } else if (touchy) {
         GW = Math.round(Math.min(img.clientWidth * 0.72, 300));
         GH = Math.round(GW * 1.25);
       } else {
@@ -399,7 +428,18 @@ const web = hasScan ? webFrom(scan!.url!) : plainFrom(image);
       const k = img.clientWidth / W;
       sx = Math.min(Math.max(px / k, 0), W);
       sy = Math.min(Math.max(py / k, 0), H);
-      if (finger) {
+      if (canvas) {
+        /*
+          The lens is the picture. The spot under the pointer is drawn under
+          the pointer, so as the pointer crosses the picture the view crosses
+          the whole scan: pointer at the left edge, scan's left edge; at the
+          right edge, the scan's right edge. Nothing to clamp.
+        */
+        gl = 0;
+        gt = 0;
+        ax = px;
+        ay = py;
+      } else if (finger) {
         gl = px - GW / 2;
         gt = py + THUMB_IN - GH;
         ax = GW / 2;
@@ -427,8 +467,15 @@ const web = hasScan ? webFrom(scan!.url!) : plainFrom(image);
       sizeGlass();
       glass.hidden = false;
       // Inline for the same reason as the patches: a class the HTML never
-      // carries at build time has its rule pruned.
-      fig.style.cursor = 'none';
+      // carries at build time has its rule pruned. The canvas lens keeps a
+      // cursor - nothing else marks the point - and loses the window's frame
+      // and shadow, since it is not an object over the picture but the
+      // picture itself.
+      fig.style.cursor = canvas ? 'crosshair' : 'none';
+      if (canvas) {
+        glass.style.boxShadow = 'none';
+        glass.style.borderRadius = '0';
+      }
       showReadout();
     };
     const close = () => {

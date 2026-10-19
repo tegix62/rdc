@@ -1,0 +1,39 @@
+name: Measure gather quality
+
+# Opens a spread of pieces from every project in the All view at three
+# window sizes and counts orphan rows, sparse project blocks, pieces out of
+# view and overlaps. The report goes to the log and the run summary.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to measure'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          set -o pipefail
+          node scripts/measure-gather-quality.mjs "$BASE" | tee /tmp/quality.txt
+        env:
+          BASE: ${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Gather quality'
+            echo ''
+            echo '```'
+            cat /tmp/quality.txt 2>/dev/null || echo '(the script did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

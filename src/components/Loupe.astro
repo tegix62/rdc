@@ -288,15 +288,16 @@ const web = hasScan ? webFrom(scan!.url!) : plainFrom(image);
       pixel per device pixel, every dot on the glass a real dot - and the
       second doubles it, for the halftone. Expressed in CSS pixels rather
       than device pixels so a standard laptop gets the same closeness as a
-      retina one. A phone starts further out (about 6x): its glass is small,
-      and at the desktop closeness it held one patch of paper. Never less
-      than twice the picture's own scale, or the glass would show nothing.
+      retina one. A phone starts much further out (about 4x): its glass is
+      small, and at 6x Chris, looking on his phone, "can't really see where
+      I am. I'm too up close on a zoom." Never less than twice the
+      picture's own scale, or the glass would show nothing.
     */
     let levels: number[] = [];
     let level = 0;
     const computeLevels = () => {
       const k = img.clientWidth / W;
-      const first = Math.max(touchy ? 0.3 : 0.5, 2 * k);
+      const first = Math.max(touchy ? 0.2 : 0.5, 2 * k);
       levels = [first, first * 2];
     };
     const z = () => levels[level];

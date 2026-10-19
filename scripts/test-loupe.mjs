@@ -196,7 +196,7 @@ for (const piece of PIECES) {
   console.log(`\n${piece} on a phone (390x844 @3x, touch)`)
   const env = await page.evaluate(() => ({
     hoverNone: matchMedia('(hover: none)').matches,
-    script: [...document.scripts].some((s) => /touchy \? 0\.4/.test(s.textContent ?? '')) ? 'inline, new' : 'bundled or old',
+    script: [...document.scripts].some((s) => /touchy \? 0\.3/.test(s.textContent ?? '')) ? 'inline, new' : 'bundled or old',
   }))
   console.log(`  (hover: none) = ${env.hoverNone}; magnifier script ${env.script}`)
   const box = await page.locator('.loupe__img').boundingBox()

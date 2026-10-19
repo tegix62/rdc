@@ -1,28 +1,129 @@
 ---
+/*
+  THE COLLAGES, AS A SERIES.
+
+  Nine squares, one per screen, oldest first, each under the magnifier when
+  it has a full-resolution scan (see components/Loupe.astro) and shown
+  plainly when it does not. The page says "Collage" once; each piece is
+  captioned with its name and year and nothing else. Chris, on explaining
+  them: they would lose something if fully understood - and that holds for
+  a visitor too. Caption the fact, not the feeling.
+
+  The copy at the top and any blocks at the bottom come from the Collage
+  page in Studio, as before. What changed is the middle: it used to show
+  "Content coming soon" when the page had no blocks, and the collages were
+  only ever tiles in the Portfolio grid.
+*/
 import Layout from '../layouts/Layout.astro';
-import { pageDescription } from '../lib/meta';
-import { getPage } from '../lib/queries';
-import { renderPortableText } from '../lib/portableText';
+import {pageDescription} from '../lib/meta';
+import {getPage} from '../lib/queries';
+import {sanityClient} from '../lib/sanity';
+import {renderPortableText} from '../lib/portableText';
+import {tileImage} from '../lib/image';
+import {COLLAGE_FILTER, bySeriesOrder, collageName} from '../lib/collage';
 import Sections from '../components/Sections.astro';
+import Loupe from '../components/Loupe.astro';
 
 const page = await getPage('collage');
 
-// Same shape as /video, deliberately. This page tested `sections` alone, so
-// copy written into `body` with no sections rendered AND was followed by
-// "Content coming soon". See the note in video.astro.
+const pieces: any[] = await sanityClient.fetch(
+  `*[_type == "caseStudy" && ${COLLAGE_FILTER} && !(_id in path("drafts.**"))]{
+     title, "slug": slug.current, thumbnail, mainImage,
+     "scan": fullScan.asset->{url, "w": metadata.dimensions.width, "h": metadata.dimensions.height}
+   }`,
+);
+const series = pieces
+  .filter((p) => tileImage(p))
+  .sort(bySeriesOrder)
+  .map((p) => ({...p, ...collageName(p.title), hasScan: Boolean(p.scan?.url && p.scan?.w && p.scan?.h)}));
+
+const anyScan = series.some((p) => p.hasScan);
 const hasBody = page?.body?.length > 0;
 const hasSections = page?.sections?.length > 0;
 ---
 
 <Layout title={page?.title ?? 'Collage'} description={pageDescription(page, 'Collage and cut-paper work, assembled from vintage packaging, type specimens and flea-market ephemera.')}>
-  <h1>{page?.heading ?? page?.title ?? 'Collage'}</h1>
-  {hasBody && <div class="prose" set:html={renderPortableText(page.body)} />}
+  <header class="series__head">
+    <h1>{page?.heading ?? page?.title ?? 'Collage'}</h1>
+    {hasBody && <div class="prose series__intro" set:html={renderPortableText(page.body)} />}
+    {anyScan && (
+      <p class="series__hint">
+        <span class="series__hint--fine">Move over a collage to look closer. Click to go closer still.</span>
+        <span class="series__hint--touch">Press and hold a collage to look closer, then drag.</span>
+      </p>
+    )}
+  </header>
+
+  {series.map((p, i) => (
+    <section class="series__piece" id={p.slug}>
+      <Loupe name={p.name} scan={p.hasScan ? p.scan : null} image={tileImage(p)} hint={false} loading={i === 0 ? 'eager' : 'lazy'} />
+      <p class="series__caption">
+        <span class="series__name">{p.name}</span>
+        {p.year && <span class="series__year">{p.year}</span>}
+      </p>
+    </section>
+  ))}
+
   {hasSections && (
     <div class="page-sections">
       <Sections sections={page.sections} where="/collage" />
     </div>
   )}
-  {!hasBody && !hasSections && (
-    <p>Content coming soon - add this page's copy and images in Studio.</p>
-  )}
 </Layout>
+
+<style is:global>
+  .series__head {
+    padding: var(--space-5) 0 var(--space-3);
+    text-align: center;
+  }
+
+  .series__intro {
+    max-width: 44ch;
+    margin: var(--space-2) auto 0;
+  }
+
+  .series__hint {
+    margin: var(--space-2) 0 0;
+    font-size: 0.875rem;
+    color: var(--color-gray);
+  }
+
+  .series__hint--touch {
+    display: none;
+  }
+
+  @media (hover: none) {
+    .series__hint--fine {
+      display: none;
+    }
+
+    .series__hint--touch {
+      display: inline;
+    }
+  }
+
+  /* One square per screen, with air between: the series is read one at a time. */
+  .series__piece {
+    padding: var(--space-5) 0;
+    scroll-margin-top: 5rem;
+  }
+
+  .series__caption {
+    display: flex;
+    justify-content: center;
+    gap: 0.75em;
+    margin: var(--space-2) 0 0;
+    font-family: var(--font-heading);
+    font-size: 0.9375rem;
+    line-height: 1.3;
+  }
+
+  .series__name {
+    font-weight: 700;
+    color: var(--color-navy);
+  }
+
+  .series__year {
+    color: var(--color-gray);
+  }
+</style>

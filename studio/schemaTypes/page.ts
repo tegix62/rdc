@@ -52,6 +52,29 @@ export default defineType({
       type: 'array',
       of: [{type: 'block'}, imageSpec()],
     }),
+    /*
+      THE COLLAGE ON ABOUT.
+
+      Chris, on the collages: they are "my truest tone of voice ... as a
+      graphic designer", and About is the one page about how he sees. So
+      one collage sits under the bio there, under the magnifier (see
+      components/Loupe.astro) when it has a Full-resolution scan. Which one
+      is his to choose; nothing shows until he does. Only About reads this,
+      so it hides itself everywhere else.
+    */
+    defineField({
+      name: 'collage',
+      title: 'Collage shown under the bio',
+      type: 'reference',
+      to: [{type: 'caseStudy'}],
+      options: {
+        filter: 'category == "Collage" || slug.current match "collage-*"',
+      },
+      hidden: ({document}: any) => document?.slug?.current !== 'about',
+      description:
+        'One collage, shown whole under the bio - under the magnifier if it ' +
+        'has a Full-resolution scan. Leave empty to show none.',
+    }),
     defineField({
       name: 'sections',
       title: 'Page Sections',

@@ -4,7 +4,7 @@ import Img from '../../components/Img.astro';
 import Sections from '../../components/Sections.astro';
 import { sanityClient } from '../../lib/sanity';
 import { getCaseStudy, getGridItems, getOtherCaseStudies, getSiteSettings } from '../../lib/queries';
-import { socialCardUrl, fileUrl, archiveCard, imageDimensions } from '../../lib/image';
+import { socialCardUrl, fileUrl, imageDimensions, hasAsset } from '../../lib/image';
 import { embedUrl } from '../../lib/video';
 import { renderPortableText } from '../../lib/portableText';
 import { stripStegaKey } from '../../lib/stega';
@@ -36,6 +36,29 @@ const otherWork = await getOtherCaseStudies(caseStudy._id);
   button. Same contact link every button shares (see Layout.astro).
 */
 const CONTACT_URL = (await getSiteSettings())?.contactUrl || '/contact';
+
+/*
+  THE CLOSING PLATE: the strongest single picture, large and whole, as the
+  last thing before the ask. Chris's Closing Image when he has chosen one;
+  otherwise Main Project Image shown whole - which, when the hero cropped
+  it to a band, is the first time the whole picture appears on the page.
+  Nothing when the hero already showed it whole, because the same picture
+  twice is not an ending. --ar is what lets the plate cap its height
+  without squashing: the width is capped at (ceiling x ratio), the same
+  trick as the hero.
+*/
+const heroIsVideo = Boolean(
+  caseStudy.heroVideo || caseStudy.heroVideoSrc || caseStudy.heroVideoFile || caseStudy.heroVideoWebm,
+);
+const heroShowedWhole = stripStegaKey(caseStudy.heroFit) === 'whole' && !heroIsVideo;
+const closing = hasAsset(caseStudy.closingImage)
+  ? {image: caseStudy.closingImage, field: 'closingImage (Closing image)'}
+  : hasAsset(caseStudy.mainImage) && !heroShowedWhole
+    ? {image: caseStudy.mainImage, field: 'mainImage (Main Project Image)'}
+    : null;
+const closingDims = closing ? imageDimensions(closing.image) : null;
+const closingStyle =
+  closingDims && closingDims.height > 0 ? `--ar:${(closingDims.width / closingDims.height).toFixed(4)}` : undefined;
 const galleries = ['merchGrid', 'flyerGrid', 'processGrid'] as const;
 
 /*
@@ -396,6 +419,26 @@ const markStyle =
     </article>
   )}
 
+  {closing && !gated && (
+    <figure class="work-closing" style={closingStyle}>
+      <Img
+        image={closing.image}
+        field={closing.field}
+        alt={caseStudy.title}
+        width={2000}
+        sizes="(max-width: 48rem) 100vw, 90vw"
+        loading="lazy"
+      />
+    </figure>
+  )}
+
+  {/*
+    The ask, as the end. The other projects used to follow it as a row of
+    cards, so every case study ended on four small pictures of other work
+    and the footer. They are still linked - a visitor who wants the next
+    project should find it - but as a line of names under the buttons, so
+    the closing plate and the ask are what the page ends on.
+  */}
   {!gated && (
     <div class="page-ask">
       <p class="page-ask__line">Have a project like this in mind?</p>
@@ -403,42 +446,18 @@ const markStyle =
         <a class="button" href={CONTACT_URL}>Let's Work</a>
         <a class="button button--outline" href="/portfolio">See Portfolio</a>
       </div>
+      {otherWork.length > 0 && (
+        <p class="page-ask__more">
+          More work:{' '}
+          {otherWork.map((item: any, i: number) => (
+            <>
+              {i > 0 && <span aria-hidden="true"> &middot; </span>}
+              <a href={`/work/${item.slug.current}`}>{item.title}</a>
+            </>
+          ))}
+        </p>
+      )}
     </div>
-  )}
-
-  {otherWork.length > 0 && (
-    <section class="work-related">
-      <p class="section-label">More Work</p>
-      <div class="grid">
-        {otherWork.map((item: any) => {
-          /*
-            An archive card, not a thumbnail - the Archive Mark where one is
-            drawn, the tile inked where one is not. See archiveCard().
-
-            No `height`, deliberately: that was a 4:5 crop, and these are now
-            contained whole in a square box, so cropping first would only
-            throw away edges before showing the rest.
-          */
-          const card = archiveCard(item);
-          return (
-            <a class="card" href={`/work/${item.slug.current}`}>
-              {card.image && (
-                <Img
-                  image={card.image}
-                  markMode={card.mode}
-                  alt={item.title}
-                  field={card.mode === 'drawn' ? 'archiveMark (Archive Mark)' : 'thumbnail (Tile Image)'}
-                  width={600}
-                  sizes="(max-width: 40rem) 33vw, 25vw"
-                />
-              )}
-              <p class="card__title">{item.title}</p>
-              {item.client && <p class="card__meta">{item.client}</p>}
-            </a>
-          );
-        })}
-      </div>
-    </section>
   )}
 
   {gated && (

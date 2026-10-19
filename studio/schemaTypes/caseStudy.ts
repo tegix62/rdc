@@ -618,6 +618,26 @@ export default defineType({
         'its edges loses the point. A tall image shown whole still stops at ' +
         '80% of the screen and centres, so it cannot run off the bottom.',
     }),
+    /*
+      THE LAST THING ON THE PAGE, before the ask.
+
+      A case study used to end on whatever its final block happened to be,
+      then a row of other projects' cards, then the footer. It now closes on
+      one image, large and whole, and then "Let's Work": the strongest
+      picture of the project is the last thing a visitor sees. This chooses
+      it. Left empty, the page closes on Main Project Image shown whole -
+      which, when the hero cropped it to a band, is the first time the
+      whole picture appears - unless the hero already showed it whole.
+    */
+    imageSpec({
+      name: 'closingImage',
+      title: 'Closing image - the last picture, before "Let\'s Work"',
+      group: 'page',
+      hidden: onlyOnCaseStudies,
+      description:
+        'The strongest single picture of the project, shown large and whole ' +
+        'at the very end. Leave empty to close on Main Project Image.',
+    }),
     defineField({
       name: 'heroVideoFile',
       title: 'Or upload the hero via Sanity (MP4) - slow for large files',

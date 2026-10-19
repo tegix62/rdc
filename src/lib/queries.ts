@@ -21,8 +21,16 @@ const SECTIONS = `sections[]{
 }`;
 
 export function getPage(slug: string) {
+  // `collage` is About's one collage (see page.ts), followed so the page
+  // has its picture and its scan; every other page leaves it empty.
   return sanityClient.fetch(
-    `*[_type == "page" && slug.current == $slug][0]{ ..., ${SECTIONS} }`,
+    `*[_type == "page" && slug.current == $slug][0]{
+      ..., ${SECTIONS},
+      collage->{
+        title, "slug": slug.current, thumbnail, mainImage,
+        "scan": fullScan.asset->{url, "w": metadata.dimensions.width, "h": metadata.dimensions.height}
+      }
+    }`,
     { slug },
   );
 }

@@ -6,8 +6,35 @@ import { renderPortableText } from '../lib/portableText';
 import Img from '../components/Img.astro';
 import Sections from '../components/Sections.astro';
 import WorkGrid from '../components/WorkGrid.astro';
+import Loupe from '../components/Loupe.astro';
+import {sanityClient} from '../lib/sanity';
+import {tileImage} from '../lib/image';
+import {COLLAGE_FILTER, collageName} from '../lib/collage';
 
 const page = await getPage('about');
+
+/*
+  ONE COLLAGE, UNDER THE BIO.
+
+  Chris, on the collages: they are "my truest tone of voice ... as a
+  graphic designer", and this is the one page about how he sees - so one
+  of them sits here, whole, under the magnifier when it has a scan. Which
+  one is chosen in Studio (the Collage field on the About page). Until he
+  chooses, production shows none; the preview shows the first scanned one
+  so the idea can be judged before a field is touched.
+*/
+const IS_PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+let collage: any = page?.collage ?? null;
+if (!collage && IS_PREVIEW) {
+  collage = await sanityClient.fetch(
+    `*[_type == "caseStudy" && ${COLLAGE_FILTER} && defined(fullScan.asset) && !(_id in path("drafts.**"))][0]{
+       title, "slug": slug.current, thumbnail, mainImage,
+       "scan": fullScan.asset->{url, "w": metadata.dimensions.width, "h": metadata.dimensions.height}
+     }`,
+  );
+}
+if (collage && !tileImage(collage)) collage = null;
+const collageLabel = collage ? collageName(collage.title) : null;
 
 /*
   The page used to end on the last paragraph and go straight into the
@@ -44,6 +71,16 @@ const work = await getFeaturedWork(4);
       )}
     </div>
   </div>
+
+  {collage && collageLabel && (
+    <section class="about-collage" aria-labelledby="about-collage-heading">
+      <p class="about-collage__eyebrow" id="about-collage-heading">
+        {collageLabel.name}{collageLabel.year && <> &middot; Collage, {collageLabel.year}</>}
+      </p>
+      <Loupe name={collageLabel.name} scan={collage.scan} image={tileImage(collage)} />
+      <p class="about-collage__more"><a href="/collage">The collages &rarr;</a></p>
+    </section>
+  )}
 
   {page?.sections?.length > 0 && (
     <div class="page-sections">

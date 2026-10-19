@@ -1526,6 +1526,67 @@ main {
   gap: var(--space-2);
 }
 
+/* The other projects, as a line of names rather than a row of cards. */
+.page-ask__more {
+  margin: var(--space-3) 0 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-gray);
+}
+
+.page-ask__more a {
+  color: var(--color-navy);
+  text-decoration: none;
+}
+
+.page-ask__more a:hover {
+  text-decoration: underline;
+}
+
+/*
+  A case study's closing plate: one picture, whole, as the last thing
+  before the ask. Never taller than --plate-fit, by capping the WIDTH at
+  (ceiling x ratio) so the shape stays intact - see work/[slug].astro.
+*/
+.work-closing {
+  width: min(100%, calc(var(--plate-fit) * var(--ar, 1.5)));
+  margin: var(--space-5) auto 0;
+}
+
+.work-closing img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* About's one collage, under the bio - see about.astro. */
+.about-collage {
+  padding: var(--space-5) 0 0;
+  text-align: center;
+}
+
+.about-collage__eyebrow {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-heading);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.about-collage__more {
+  margin: var(--space-2) 0 0;
+  font-size: 0.875rem;
+}
+
+.about-collage__more a {
+  color: var(--color-navy);
+  text-decoration: none;
+}
+
+.about-collage__more a:hover {
+  text-decoration: underline;
+}
+
 .about-layout__portrait {
   width: 100%;
   border-radius: 0.25rem;

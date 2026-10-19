@@ -1,0 +1,529 @@
+---
+/*
+  A PIECE UNDER GLASS.
+
+  Chris, on presenting the collages: a screen will never give the presence
+  of the paper, so give what the wall cannot - "some kind of magnification
+  effect". The whole square, and a loupe that shows the 600 DPI scan under
+  it: halftone, fibre, the glue line, at a closeness nobody gets standing in
+  front of the real thing.
+
+  How it stays fast. The page ships the web-sized picture and a few KB of
+  script. The glass opens instantly on that same picture, magnified and
+  soft, and asks the image CDN for only the patches of the full scan under
+  it, on the fixed grid in lib/loupeGrid.mjs; each sharp patch fades in over
+  the soft one. scripts/warm-loupe.mjs requests every patch once ahead of
+  time, so a visitor never pays the first-cut cost.
+
+  One component for every place a piece is shown this way - the Collage
+  series page, About, a piece's own page - so the gesture is the same
+  everywhere. Without a scan (fullScan on the caseStudy schema) it renders
+  the picture plainly, with no glass: a collage that has not been scanned
+  yet still takes its place in the series.
+
+  The script and styles are hoisted once per page however many of these
+  the page holds; the script loops over every [data-loupe] it finds.
+*/
+import {imageUrl} from '../lib/image';
+
+interface Props {
+  /** Shown in the alt text and the keyboard label. */
+  name: string;
+  /** The full-resolution scan, as `fullScan.asset->{url, w, h}`. */
+  scan?: {url?: string; w?: number; h?: number} | null;
+  /** The ordinary image, used when there is no scan. */
+  image?: any;
+  /**
+    'page': sized to the window so the whole square is in view at once -
+    the series page and a piece's own page. 'fill': the width of whatever
+    holds it - About's column.
+  */
+  size?: 'page' | 'fill';
+  /** The "move over / press and hold" line under the picture. */
+  hint?: boolean;
+  loading?: 'eager' | 'lazy';
+}
+
+const {name, scan, image, size = 'page', hint = true, loading = 'eager'} = Astro.props;
+
+const hasScan = Boolean(scan?.url && scan?.w && scan?.h);
+const W = hasScan ? scan!.w! : 0;
+const H = hasScan ? scan!.h! : 0;
+
+const sizes =
+  size === 'fill'
+    ? '(max-width: 48rem) calc(100vw - 2rem), 40rem'
+    : '(max-width: 48rem) calc(100vw - 2rem), min(calc(100svh - 15rem), 1100px)';
+
+// The web-sized copy: from the scan itself when there is one, so what the
+// glass magnifies is the same picture it then sharpens.
+const widths = [800, 1200, 1600, 2000, 2600];
+const webFrom = (base: string) => ({
+  src: `${base}?w=1600&fm=webp&q=82`,
+  srcset: widths.map((w) => `${base}?w=${w}&fm=webp&q=82 ${w}w`).join(', '),
+});
+const plainFrom = (img: any) => {
+  const b = imageUrl(img);
+  if (!b) return null;
+  return {
+    src: b.width(1600).auto('format').quality(82).url(),
+    srcset: widths.map((w) => `${b.width(w).auto('format').quality(82).url()} ${w}w`).join(', '),
+  };
+};
+const web = hasScan ? webFrom(scan!.url!) : plainFrom(image);
+---
+
+{web && (
+  <div class:list={['loupe-wrap', size === 'fill' && 'loupe-wrap--fill']}>
+    <figure
+      class:list={['loupe', size === 'fill' && 'loupe--fill']}
+      data-loupe={hasScan ? '' : undefined}
+      data-scan={hasScan ? scan!.url : undefined}
+      data-w={hasScan ? W : undefined}
+      data-h={hasScan ? H : undefined}
+      tabindex={hasScan ? 0 : undefined}
+      aria-label={hasScan ? `${name}. Move over the picture to look closer; click to change the magnification.` : undefined}
+    >
+      <img
+        class="loupe__img"
+        src={web.src}
+        srcset={web.srcset}
+        sizes={sizes}
+        width={hasScan ? W : undefined}
+        height={hasScan ? H : undefined}
+        alt={`${name}, a square paper collage`}
+        draggable="false"
+        loading={loading}
+        fetchpriority={loading === 'eager' ? 'high' : undefined}
+        decoding="async"
+      />
+      {hasScan && (
+        <div class="loupe__glass" aria-hidden="true" hidden>
+          <div class="loupe__tiles"></div>
+        </div>
+      )}
+    </figure>
+
+    {hasScan && hint && (
+      <p class="loupe__hint">
+        <span class="loupe__hint--fine">Move over the collage to look closer. Click to go closer still.</span>
+        <span class="loupe__hint--touch">Press and hold to look closer, then drag.</span>
+        <span class="loupe__mag" data-loupe-mag></span>
+      </p>
+    )}
+    {hasScan && !hint && <span class="loupe__mag loupe__mag--quiet" data-loupe-mag aria-live="polite"></span>}
+  </div>
+)}
+
+<style is:global>
+  /*
+    The piece, as an object on the page: square, the white page around it,
+    and a soft shadow under the paper. 'page' is sized to the window less
+    the nav, the page's top padding and a title - measured, a square at
+    80svh ended 53px below a 900px window, which is exactly the "whole
+    thing in view" this exists for. 'fill' takes its container's width.
+  */
+  .loupe {
+    position: relative;
+    width: min(100%, calc(100svh - 15rem), 1100px);
+    margin: 0 auto;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 12px 32px -12px rgb(0 0 0 / 0.25);
+    /* A long press is ours, not the browser's image menu or text selection. */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: pan-y;
+    outline-offset: 6px;
+  }
+
+  .loupe--fill {
+    width: 100%;
+  }
+
+  .loupe__img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /*
+    The glass. Its own background is the page's picture magnified - there
+    the instant it opens, soft - and the sharp patches sit on top of it. A
+    4:5 plate, the site's portrait shape; the script sizes it to the piece.
+    No .loupe__tile rules here, on purpose: patches are styled from the
+    script, because the critical-CSS step deletes rules for elements that
+    only exist once JavaScript makes them.
+  */
+  .loupe__glass {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 320px;
+    height: 400px;
+    border-radius: 2px;
+    overflow: hidden;
+    pointer-events: none;
+    background-repeat: no-repeat;
+    background-color: #fff;
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.9), 0 0 0 2px rgb(0 0 0 / 0.18), 0 10px 30px rgb(0 0 0 / 0.3);
+    will-change: transform;
+    z-index: 2;
+  }
+
+  .loupe__tiles {
+    position: absolute;
+    inset: 0;
+  }
+
+  .loupe__hint {
+    margin: var(--space-3) auto 0;
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--color-gray);
+  }
+
+  .loupe__hint--touch {
+    display: none;
+  }
+
+  @media (hover: none) {
+    .loupe__hint--fine {
+      display: none;
+    }
+
+    .loupe__hint--touch {
+      display: inline;
+    }
+  }
+
+  .loupe__mag:not(:empty)::before {
+    content: ' \00B7  ';
+  }
+
+  /* The readout alone, when the hint is said once elsewhere on the page. */
+  .loupe__mag--quiet {
+    display: block;
+    min-height: 1.4em;
+    margin-top: var(--space-1);
+    text-align: center;
+    font-size: 0.8125rem;
+    color: var(--color-gray);
+  }
+
+  .loupe__mag--quiet:not(:empty)::before {
+    content: '';
+  }
+</style>
+
+<script>
+  import {TILE, tileUrl} from '../lib/loupeGrid.mjs';
+
+  for (const fig of document.querySelectorAll<HTMLElement>('[data-loupe]')) {
+    const img = fig.querySelector<HTMLImageElement>('.loupe__img')!;
+    const glass = fig.querySelector<HTMLElement>('.loupe__glass')!;
+    const layer = fig.querySelector<HTMLElement>('.loupe__tiles')!;
+    // This piece's own readout, not the page's first: a series page holds many.
+    const readout = fig.parentElement?.querySelector<HTMLElement>('[data-loupe-mag]') ?? null;
+    const base = fig.dataset.scan!;
+    const W = Number(fig.dataset.w);
+    const H = Number(fig.dataset.h);
+    const cols = Math.ceil(W / TILE);
+
+    const touchy = matchMedia('(hover: none)').matches;
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /*
+      The glass is a 4:5 plate, and large: on a desktop about 90% of the
+      piece's height, never taller than the window can hold, following the
+      pointer - Chris, on a smaller one: the zoom is right, "but I'd love to
+      see more out of the viewport the magnifier is creating". On a phone
+      about 70% of the width, wholly above the finger.
+    */
+    let GW = 0;
+    let GH = 0;
+    const sizeGlass = () => {
+      if (touchy) {
+        GW = Math.round(Math.min(img.clientWidth * 0.72, 300));
+        GH = Math.round(GW * 1.25);
+      } else {
+        GH = Math.round(Math.min(img.clientHeight * 0.9, innerHeight - 120, 860));
+        GW = Math.round(GH * 0.8);
+      }
+      glass.style.width = `${GW}px`;
+      glass.style.height = `${GH}px`;
+    };
+
+    /*
+      Two magnifications, in CSS pixels per source pixel. On a desktop the
+      first is half a CSS pixel per scan pixel - on a retina screen one scan
+      pixel per device pixel, every dot on the glass a real dot - and the
+      second doubles it, for the halftone. Expressed in CSS pixels rather
+      than device pixels so a standard laptop gets the same closeness as a
+      retina one. A phone starts further out (about 6x): its glass is small,
+      and at the desktop closeness it held one patch of paper. Never less
+      than twice the picture's own scale, or the glass would show nothing.
+    */
+    let levels: number[] = [];
+    let level = 0;
+    const computeLevels = () => {
+      const k = img.clientWidth / W;
+      const first = Math.max(touchy ? 0.3 : 0.5, 2 * k);
+      levels = [first, first * 2];
+    };
+    const z = () => levels[level];
+    const showReadout = () => {
+      if (!readout) return;
+      const k = img.clientWidth / W;
+      readout.textContent = glass.hidden ? '' : `${(z() / k).toFixed(1)}×`;
+    };
+
+    // Patches: created on first need, kept, oldest dropped past a cap.
+    const tiles = new Map<number, HTMLImageElement>();
+    const CAP = 80;
+    const tile = (i: number) => {
+      let t = tiles.get(i);
+      if (t) {
+        tiles.delete(i);
+        tiles.set(i, t); // most recent last
+        return t;
+      }
+      const x = (i % cols) * TILE;
+      const y = Math.floor(i / cols) * TILE;
+      t = new Image();
+      t.className = 'loupe__tile';
+      /*
+        Styled here, not by a stylesheet rule - and that is the fix for the
+        glass's worst bug, not a preference. The build's critical-CSS step
+        (critters, scripts/inline-critical-css.mjs) prunes rules whose
+        selectors match nothing in the built HTML, and a patch only exists
+        once this script makes it. So position:absolute was deleted at
+        build time and every patch fell into normal flow: measured, a
+        diagonal of patches across the glass, two of them in view showing
+        the wrong part of the scan.
+      */
+      t.style.cssText =
+        'position:absolute;top:0;left:0;max-width:none;display:block;opacity:0;' +
+        (reduceMotion ? '' : 'transition:opacity 180ms ease-out;');
+      t.alt = '';
+      t.decoding = 'async';
+      t.dataset.x = String(x);
+      t.dataset.y = String(y);
+      t.dataset.w = String(Math.min(TILE, W - x));
+      t.dataset.h = String(Math.min(TILE, H - y));
+      t.onload = () => {
+        t!.classList.add('is-in');
+        t!.style.opacity = '1';
+      };
+      // A patch that fails would leave a permanently soft spot: two retries
+      // on the same URL (so a warmed copy is still what is asked for), then
+      // the soft picture beneath stands in.
+      let tries = 0;
+      const url = tileUrl(base, x, y, Number(t.dataset.w), Number(t.dataset.h));
+      t.onerror = () => {
+        if (tries++ >= 2) return;
+        setTimeout(() => {
+          t!.removeAttribute('src');
+          t!.src = url;
+        }, 400 * tries);
+      };
+      t.src = url;
+      layer.appendChild(t);
+      tiles.set(i, t);
+      while (tiles.size > CAP) {
+        const [oldest, el] = tiles.entries().next().value!;
+        el.remove();
+        tiles.delete(oldest);
+      }
+      return t;
+    };
+
+    /*
+      Where the glass is looking, in source pixels (sx, sy); where the glass
+      sits, its top-left relative to the picture (gl, gt); and where inside
+      the glass that looked-at point is drawn (ax, ay).
+    */
+    let sx = W / 2;
+    let sy = H / 2;
+    let gl = 0;
+    let gt = 0;
+    let ax = 0;
+    let ay = 0;
+    let frame = 0;
+
+    const draw = () => {
+      frame = 0;
+      const s = z();
+      const offX = ax - sx * s;
+      const offY = ay - sy * s;
+      glass.style.transform = `translate3d(${gl}px, ${gt}px, 0)`;
+      glass.style.backgroundImage = `url("${img.currentSrc || img.src}")`;
+      glass.style.backgroundSize = `${W * s}px ${H * s}px`;
+      glass.style.backgroundPosition = `${offX}px ${offY}px`;
+
+      // Patches under the glass, plus a ring around it so a move finds them ready.
+      const c0 = Math.max(0, Math.floor(-offX / s / TILE) - 1);
+      const c1 = Math.min(cols - 1, Math.floor((GW - offX) / s / TILE) + 1);
+      const r0 = Math.max(0, Math.floor(-offY / s / TILE) - 1);
+      const r1 = Math.min(Math.ceil(H / TILE) - 1, Math.floor((GH - offY) / s / TILE) + 1);
+      const wanted = new Set<number>();
+      for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) wanted.add(r * cols + c);
+      for (const [i, t] of tiles) if (!wanted.has(i)) t.style.display = 'none';
+      for (const i of wanted) {
+        const t = tile(i);
+        t.style.display = '';
+        t.style.width = `${Number(t.dataset.w) * s}px`;
+        t.style.height = `${Number(t.dataset.h) * s}px`;
+        t.style.transform = `translate3d(${Number(t.dataset.x) * s + offX}px, ${Number(t.dataset.y) * s + offY}px, 0)`;
+      }
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(draw);
+    };
+
+    // Point the glass at a spot on the picture (CSS px, relative to it).
+    // `finger` puts the glass wholly above a fingertip instead of around it.
+    const GAP = 24;
+    const aim = (px: number, py: number, finger = false) => {
+      const k = img.clientWidth / W;
+      sx = Math.min(Math.max(px / k, 0), W);
+      sy = Math.min(Math.max(py / k, 0), H);
+      if (finger) {
+        gl = Math.min(Math.max(px - GW / 2, 0), Math.max(0, img.clientWidth - GW));
+        gt = py - GAP - GH;
+        // Too near the top of the screen to fit above: drop below the finger.
+        if (img.getBoundingClientRect().top + gt < 8) gt = py + GAP;
+        ax = px - gl;
+        ay = GH / 2;
+      } else {
+        // Centred on the pointer, then slid to stay inside the window and
+        // below the nav; the looked-at point is drawn under the pointer
+        // wherever the glass ends up.
+        const r = img.getBoundingClientRect();
+        const nav = document.querySelector('header')?.getBoundingClientRect().bottom ?? 0;
+        const top = Math.max(8, nav + 8) - r.top;
+        const bottom = innerHeight - 8 - GH - r.top;
+        const left = 8 - r.left;
+        const right = innerWidth - 8 - GW - r.left;
+        gl = Math.min(Math.max(px - GW / 2, left), Math.max(left, right));
+        gt = Math.min(Math.max(py - GH / 2, top), Math.max(top, bottom));
+        ax = px - gl;
+        ay = py - gt;
+      }
+      schedule();
+    };
+    const open = () => {
+      if (!glass.hidden) return;
+      computeLevels();
+      sizeGlass();
+      glass.hidden = false;
+      // Inline for the same reason as the patches: a class the HTML never
+      // carries at build time has its rule pruned.
+      fig.style.cursor = 'none';
+      showReadout();
+    };
+    const close = () => {
+      glass.hidden = true;
+      fig.style.cursor = '';
+      showReadout();
+    };
+    const local = (e: {clientX: number; clientY: number}) => {
+      const r = img.getBoundingClientRect();
+      return [e.clientX - r.left, e.clientY - r.top] as const;
+    };
+
+    // Mouse and pen: the glass follows; a click changes the magnification.
+    fig.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'touch') return;
+      open();
+      aim(...local(e));
+    });
+    fig.addEventListener('pointerleave', (e) => {
+      if (e.pointerType !== 'touch') close();
+    });
+    fig.addEventListener('click', (e) => {
+      if ((e as PointerEvent).pointerType === 'touch') return;
+      level = (level + 1) % levels.length;
+      showReadout();
+      aim(...local(e));
+    });
+
+    // Touch: press and hold, then drag. Until the hold completes the page
+    // scrolls as normal - moving the finger first cancels it - and once the
+    // glass is up, the drag is the glass's and the page stays still.
+    let hold = 0;
+    let start: [number, number] | null = null;
+    fig.addEventListener(
+      'touchstart',
+      (e) => {
+        if (e.touches.length !== 1) return;
+        const t = e.touches[0];
+        start = [t.clientX, t.clientY];
+        hold = window.setTimeout(() => {
+          open();
+          aim(...local(t), true);
+        }, 220);
+      },
+      {passive: true},
+    );
+    fig.addEventListener(
+      'touchmove',
+      (e) => {
+        const t = e.touches[0];
+        if (!glass.hidden) {
+          e.preventDefault();
+          aim(...local(t), true);
+        } else if (start && Math.hypot(t.clientX - start[0], t.clientY - start[1]) > 10) {
+          clearTimeout(hold);
+          start = null;
+        }
+      },
+      {passive: false},
+    );
+    const endTouch = () => {
+      clearTimeout(hold);
+      start = null;
+      close();
+    };
+    fig.addEventListener('touchend', endTouch);
+    fig.addEventListener('touchcancel', endTouch);
+    fig.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    // Keyboard: focus opens the glass at the centre; arrows move it.
+    fig.addEventListener('focus', () => {
+      if (!glass.hidden || !fig.matches(':focus-visible')) return;
+      open();
+      aim(img.clientWidth / 2, img.clientHeight / 2);
+    });
+    fig.addEventListener('blur', close);
+    fig.addEventListener('keydown', (e) => {
+      const step = img.clientWidth * (e.shiftKey ? 0.01 : 0.04);
+      const k = img.clientWidth / W;
+      const moves: Record<string, [number, number]> = {
+        ArrowLeft: [-step, 0],
+        ArrowRight: [step, 0],
+        ArrowUp: [0, -step],
+        ArrowDown: [0, step],
+      };
+      if (moves[e.key]) {
+        e.preventDefault();
+        open();
+        aim(sx * k + moves[e.key][0], sy * k + moves[e.key][1]);
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        level = (level + 1) % levels.length;
+        showReadout();
+        schedule();
+      } else if (e.key === 'Escape') {
+        close();
+      }
+    });
+
+    addEventListener('resize', () => {
+      if (!glass.hidden) {
+        computeLevels();
+        sizeGlass();
+        schedule();
+      }
+    });
+  }
+</script>

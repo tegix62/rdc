@@ -844,8 +844,16 @@ if (emptyFilters.length > 0) {
         else runs.push({kind, items: [{el, a}]});
       }
       const refWidth = lowest().width;
+      /*
+        Measured at one column's height, not at this pass's t0. The row
+        height is searched for (see planJustified), and a size test that
+        moved with it flipped mid-search: at a small t0 a run of two shirts
+        counted as too small and joined the rest, so the search landed on
+        one short row - measured, Hug a Mug's eight pieces filling 37-41%
+        of the shirt's height.
+      */
       const natural = (r: Run) => {
-        const t = t0 * KIND_HEIGHT[r.kind];
+        const t = colW * KIND_HEIGHT[r.kind];
         return r.items.reduce((w, it) => w + (t - 2 * pad) * it.a + 2 * pad, 0);
       };
       for (let merged = true; merged && runs.length > 1; ) {
@@ -867,16 +875,20 @@ if (emptyFilters.length > 0) {
         How many of the run's remaining pieces go in this row: the first row
         of the split of all of them, for this width, whose rows come out
         nearest the kind's height - squared distance, summed over the rows,
-        with a row stretched past half again its height (one piece blown up
-        to fill a width) or squeezed under 0.6 of it priced out.
+        with a row stretched past 1.3 of its height or squeezed under 0.75
+        priced out. The band is that narrow so the kinds keep their order:
+        at 0.6-1.5 a wordmark row stretched and a merch row squeezed met in
+        the middle (measured, wordmarks 135px beside merch at 173).
       */
+      const ROW_MIN = 0.75;
+      const ROW_MAX = 1.3;
       const firstRowCount = (items: {a: number}[], width: number, t: number) => {
         const m = items.length;
         const costOf = (sumA: number, count: number) => {
           const r = ((width - 2 * pad * count) / sumA + 2 * pad) / t;
           let c = (r - 1) ** 2;
-          if (r > 1.5) c += 4 * (r - 1.5) + 1;
-          if (r < 0.6) c += 4 * (0.6 - r) + 1;
+          if (r > ROW_MAX) c += 4 * (r - ROW_MAX) + 1;
+          if (r < ROW_MIN) c += 4 * (ROW_MIN - r) + 1;
           return c;
         };
         const best = new Array(m + 1).fill(Infinity);
@@ -921,10 +933,10 @@ if (emptyFilters.length > 0) {
           k += count;
           const sumA = items.reduce((s, it) => s + it.a, 0);
           // Flush: the height at which the row's widths add up to the
-          // stretch - unless that blows a short row up past half again its
+          // stretch - unless that blows a short row up past ROW_MAX of its
           // height, and then it keeps that cap and sits left.
           const flush = (best.width - 2 * pad * items.length) / sumA + 2 * pad;
-          const h = Math.min(flush, t * 1.5);
+          const h = Math.min(flush, t * ROW_MAX);
           rows.push({items, x: best.a * colW, top: best.top, h, cols: [best.a, best.b]});
           lastOf[ri] = {a: best.a, b: best.b};
           for (let c = best.a; c <= best.b; c++) ys[c] = best.top + h;
@@ -944,16 +956,23 @@ if (emptyFilters.length > 0) {
       let plan = simulateRows(els, m.colYs, colW, n, pad, colW);
       if (opened && opened.span < n) {
         const foot = opened.y + opened.h;
-        let chosen = null;
+        /*
+          Of every row height tried, the plan that ends nearest the shirt's
+          foot without passing it - the one that fills the band best - not
+          the first from the top that fits. With rows split evenly, a
+          smaller height can mean one more row and a fuller band, so the
+          bottom is not monotonic in the height and first-fit stopped early.
+          If none fits, the one that overshoots least.
+        */
+        let fits = null;
+        let least = null;
         for (let t = colW * 1.8; t >= colW * 0.6 - 0.5; t -= colW * 0.05) {
           const p = simulateRows(els, m.colYs, colW, n, pad, t);
           if (p.bottom <= foot + 1) {
-            chosen = p;
-            break;
-          }
-          chosen = p; // the smallest, if none fits
+            if (!fits || p.bottom > fits.bottom + 1) fits = p;
+          } else if (!least || p.bottom < least.bottom) least = p;
         }
-        if (chosen) plan = chosen;
+        plan = fits ?? least ?? plan;
       }
       for (const row of plan.rows) {
         let x = row.x;

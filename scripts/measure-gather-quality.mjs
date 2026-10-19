@@ -31,6 +31,8 @@ const SIZES = [
   [1440, 900],
   [1920, 1080],
   [1280, 800],
+  // Chris's own window: his screenshots are 1920 wide and under 900 tall.
+  [1920, 890],
 ]
 
 const browser = await chromium.launch()

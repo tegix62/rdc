@@ -2134,16 +2134,39 @@ if (emptyFilters.length > 0) {
       tiles the photograph is larger and the side narrower, and two rows of
       four fit beside it. A shirt or poster (taller than wide) is already
       as tall as the window allows at three, so it keeps three.
+
+      Only in exactly that case, though - Chris, on the first version that
+      widened every wide piece: "introduced new problems".
+        - A wordmark or mark keeps three. Two Point Oh's star and the
+          Adelante wordmark are the tiles that carry their project's block,
+          so they open with no block beside them, centred - at four tiles
+          they were enormous, with only three columns either side, too
+          narrow for a row, and the rest went under them in one row.
+        - So does a piece with no block beside it, for the same reason.
+        - So does a piece with shots of its own (near): those stack in
+          the strip beside it, and a narrower strip crowded them.
+        - And it has to fit the window at four: the Adelante hoodie
+          photograph, four by three, ran past the foot of an 893px window.
     */
     const WIDE_OPEN = 1.25;
-    const openSpan = (el?: HTMLElement) => {
-      if (window.matchMedia('(max-width: 48rem)').matches) return cols;
+    const opensWide = (el: HTMLElement, hasCard: boolean, hasNear: boolean) => {
+      if (window.matchMedia('(max-width: 48rem)').matches || !hasCard || hasNear) return false;
+      if (el.classList.contains('pf-item--mark') || el.dataset.wide !== undefined) return false;
       const tiles = Math.round(cols / unit());
-      if (tiles < 7) return 2 * unit();
-      const img = el?.querySelector('.pf-item__img');
+      if (tiles < 7) return false;
+      const img = el.querySelector('.pf-item__img');
       const w = Number(img?.getAttribute('width'));
       const h = Number(img?.getAttribute('height'));
-      return (w > 0 && h > 0 && w / h >= WIDE_OPEN ? 4 : 3) * unit();
+      if (!(w > 0 && h > 0) || w / h < WIDE_OPEN) return false;
+      // Its height at four tiles, plus the project bar under it and the nav
+      // above the set, inside the window.
+      return ((grid.clientWidth * 4) / tiles) * (h / w) + 110 <= window.innerHeight;
+    };
+    let openWide = false;
+    const openSpan = () => {
+      if (window.matchMedia('(max-width: 48rem)').matches) return cols;
+      const tiles = Math.round(cols / unit());
+      return (tiles >= 7 ? (openWide ? 4 : 3) : 2) * unit();
     };
     let filterBeforeCluster: string | null = null;
 
@@ -2169,6 +2192,7 @@ if (emptyFilters.length > 0) {
         filterBeforeCluster = null;
       }
       grid.style.removeProperty('--pf-open-span');
+      openWide = false;
       if (endTile?.isConnected) {
         revealed.delete(endTile);
         iso.remove(endTile);
@@ -3129,6 +3153,7 @@ if (emptyFilters.length > 0) {
         */
         card = family.find((el) => el !== item && el.querySelector('.pf-card')) ?? null;
         const rest = family.filter((el) => el !== item && el !== card && !near.includes(el));
+        openWide = opensWide(item, !!card, near.length > 0);
         /*
           THE REST IN ORDER OF KIND. Chris: "For Merch filter, we have any
           related merch follow, then anything that's not merch comes after
@@ -3192,7 +3217,7 @@ if (emptyFilters.length > 0) {
             the two share the same height.
           */
           // Two units for the shirt and two for the block: eight of ten columns.
-          cardBeside = cols - openSpan(item) >= 2 * unit();
+          cardBeside = cols - openSpan() >= 2 * unit();
           card.classList.toggle('is-card--beside', cardBeside);
           if (cardBeside) {
             grid.style.removeProperty('--pf-card-h');
@@ -3333,7 +3358,7 @@ if (emptyFilters.length > 0) {
           ROLLING IT BACK to always-left is setting SNAP_BY_CLICK to false.
         */
         const SNAP_BY_CLICK = true;
-        const S = openSpan(item);
+        const S = openSpan();
         grid.style.setProperty('--pf-open-span', String(S));
         const clickedF = (item as any).__pfClickF;
         let zone: 'left' | 'middle' | 'right' = 'left';

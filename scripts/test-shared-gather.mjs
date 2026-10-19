@@ -81,10 +81,15 @@ const measure = (page) =>
     return {
       cluster: grid.classList.contains('is-cluster'),
       openedShare: o ? o.width / g.width : 0,
-      // A piece at least 1.25 times as wide as tall opens at four tiles.
+      // A photograph at least 1.25 times as wide as tall opens at four
+      // tiles - not a mark, with the block beside it and no shots of its
+      // own, and only if it fits the window at four (see opensWide).
       openedWide: (() => {
-        const img = opened?.querySelector('.pf-item__img')
-        return Number(img?.getAttribute('width')) / Number(img?.getAttribute('height')) >= 1.25
+        if (!opened || opened.classList.contains('pf-item--mark') || opened.dataset.wide !== undefined) return false
+        if (!grid.querySelector('.pf-item.is-card.is-card--beside') || grid.querySelector('.pf-item.is-near')) return false
+        const img = opened.querySelector('.pf-item__img')
+        const a = Number(img?.getAttribute('width')) / Number(img?.getAttribute('height'))
+        return a >= 1.25 && ((grid.clientWidth * 4) / 7) / a + 110 <= innerHeight
       })(),
       beside: !!(o && c) && (Math.abs(c.left - o.right) < 3 || Math.abs(c.right - o.left) < 3) && Math.abs(c.top - o.top) < 3,
       under: !!(o && c) && Math.abs(c.top - o.bottom) < 3 && c.width > g.width - 6,

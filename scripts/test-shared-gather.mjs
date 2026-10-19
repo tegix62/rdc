@@ -81,6 +81,11 @@ const measure = (page) =>
     return {
       cluster: grid.classList.contains('is-cluster'),
       openedShare: o ? o.width / g.width : 0,
+      // A piece at least 1.25 times as wide as tall opens at four tiles.
+      openedWide: (() => {
+        const img = opened?.querySelector('.pf-item__img')
+        return Number(img?.getAttribute('width')) / Number(img?.getAttribute('height')) >= 1.25
+      })(),
       beside: !!(o && c) && (Math.abs(c.left - o.right) < 3 || Math.abs(c.right - o.left) < 3) && Math.abs(c.top - o.top) < 3,
       under: !!(o && c) && Math.abs(c.top - o.bottom) < 3 && c.width > g.width - 6,
       setN: set.length,
@@ -126,7 +131,12 @@ for (const [w, h] of [[1440, 900], [1920, 1080]]) {
   await page.waitForTimeout(3500)
   const r = await measure(page)
   check(`${w}px: the shared gather is on`, r.cluster)
-  check(`${w}px: the opened piece is three tiles of seven`, Math.abs(r.openedShare - 3 / 7) < 0.02, `${(r.openedShare * 7).toFixed(2)} tiles`)
+  const tilesWanted = r.openedWide ? 4 : 3
+  check(
+    `${w}px: the opened piece is ${tilesWanted === 4 ? 'four tiles of seven (it is wide)' : 'three tiles of seven'}`,
+    Math.abs(r.openedShare - tilesWanted / 7) < 0.02,
+    `${(r.openedShare * 7).toFixed(2)} tiles`,
+  )
   check(`${w}px: the project's block beside it, level with its top`, r.beside)
   check(`${w}px: the whole set inside the window`, r.outside === 0, `${r.setN} pieces, ${r.outside} outside`)
   check(`${w}px: nothing overlapping`, r.overlaps === 0, `${r.overlaps}`)

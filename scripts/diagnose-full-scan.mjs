@@ -37,6 +37,39 @@ const docs = await groq(`*[_type == "caseStudy" && defined(fullScan.asset)]{
 
 console.log(`${docs.length} document(s) with a Full-resolution scan\n`)
 
+/*
+  Every collage, scanned or not, in the order the series page would show
+  them - and every case study's heading fields, for the "lead with the
+  result" rewrite. Read once here rather than guessed at from the schema.
+*/
+const collages = await groq(`*[_type == "caseStudy" && (category == "Collage" || slug.current match "collage-*") && !(_id in path("drafts.**"))]
+  | order(coalesce(date, publishedAt, _createdAt) asc) {
+    title, "slug": slug.current, pageType, category, _createdAt, date, publishedAt, parentTitle,
+    "hasThumb": defined(thumbnail.asset), "hasMain": defined(mainImage.asset), "hasScan": defined(fullScan.asset),
+    "parent": parent->title
+  }`)
+console.log(`--- collages: ${collages.length}`)
+for (const c of collages)
+  console.log(
+    `  ${c.title}  [${c.slug}] ${c.pageType}/${c.category ?? '-'} created ${String(c._createdAt).slice(0, 10)}` +
+      `${c.date ? ` date ${c.date}` : ''}${c.parent ? ` parent "${c.parent}"` : ''} thumb=${c.hasThumb} main=${c.hasMain} scan=${c.hasScan}`,
+  )
+
+const studies = await groq(`*[_type == "caseStudy" && pageType == "Case Study" && !(_id in path("drafts.**"))] | order(title asc) {
+  title, "slug": slug.current, headline, subtitle, client, resultStat, "summary": pt::text(summary), seoDescription,
+  "hasClosing": defined(closingImage.asset)
+}`)
+console.log(`\n--- case studies: ${studies.length}`)
+for (const s of studies) {
+  console.log(`\n  ${s.title}  [/work/${s.slug}]`)
+  console.log(`    headline:   ${s.headline ?? '(none)'}`)
+  console.log(`    subtitle:   ${s.subtitle ?? '(none)'}`)
+  console.log(`    resultStat: ${s.resultStat ?? '(none)'}   client: ${s.client ?? '(none)'}`)
+  console.log(`    summary:    ${(s.summary ?? '(none)').slice(0, 300)}`)
+  console.log(`    seo:        ${(s.seoDescription ?? '(none)').slice(0, 200)}`)
+}
+console.log()
+
 for (const d of docs) {
   const s = d.scan ?? {}
   console.log(`${d.title}  (${d._id}${d._id.startsWith('drafts.') ? ', DRAFT' : ''}, slug ${d.slug}, ${d.pageType})`)

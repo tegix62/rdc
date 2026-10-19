@@ -79,9 +79,16 @@ const pickAll = (page) =>
         const img = el.querySelector('.pf-item__img')
         return Number(img?.getAttribute('width')) / Number(img?.getAttribute('height')) || 0
       }
-      const widest = els.reduce((a, b) => (aspect(b) > aspect(a) ? b : a))
-      if (aspect(widest) >= 1.25 && !out.some((o) => o.piece === widest.dataset.piece))
-        out.push({h, i: all.indexOf(widest), piece: widest.dataset.piece, wide: true})
+      // And its widest photograph, apart from marks (his Adelante hoodie
+      // screenshot).
+      const isMark = (el) => el.classList.contains('pf-item--mark') || el.dataset.wide !== undefined
+      const photos = els.filter((el) => !isMark(el))
+      for (const pool of [els, photos]) {
+        if (!pool.length) continue
+        const widest = pool.reduce((a, b) => (aspect(b) > aspect(a) ? b : a))
+        if (aspect(widest) >= 1.25 && !out.some((o) => o.piece === widest.dataset.piece))
+          out.push({h, i: all.indexOf(widest), piece: widest.dataset.piece, wide: true})
+      }
     }
     return out
   }, PER)

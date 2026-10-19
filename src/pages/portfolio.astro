@@ -404,13 +404,23 @@ if (emptyFilters.length > 0) {
             </div>
             {card && (
               <a class="pf-card" href={parentHref}>
-                {card.kicker && <span class="pf-card__kicker">{card.kicker}</span>}
-                <span class="pf-card__title">{card.title}</span>
-                {card.client && <span class="pf-card__client">For {card.client}</span>}
-                {card.line && <span class="pf-card__line">{card.line}</span>}
-                {card.result && <span class="pf-card__result">{card.result}</span>}
-                <span class="pf-card__go">
-                  See the project <span aria-hidden="true">&rarr;</span>
+                {/*
+                  Two groups, so a wide block can set them side by side -
+                  the name on the left, the line and the way in on the right
+                  - instead of one column in the left half of a block the
+                  whole side wide. See .pf-card__head in global.css.
+                */}
+                <span class="pf-card__head">
+                  {card.kicker && <span class="pf-card__kicker">{card.kicker}</span>}
+                  <span class="pf-card__title">{card.title}</span>
+                  {card.client && <span class="pf-card__client">For {card.client}</span>}
+                </span>
+                <span class="pf-card__body">
+                  {card.line && <span class="pf-card__line">{card.line}</span>}
+                  {card.result && <span class="pf-card__result">{card.result}</span>}
+                  <span class="pf-card__go">
+                    See the project <span aria-hidden="true">&rarr;</span>
+                  </span>
                 </span>
               </a>
             )}
@@ -769,81 +779,157 @@ if (emptyFilters.length > 0) {
     const KIND_HEIGHT = [1.4, 0.75, 1];
     const rowKind = (el: HTMLElement) =>
       el.matches(MERCH_FILTER) ? 0 : el.classList.contains('pf-item--mark') || el.dataset.wide !== undefined ? 1 : 2;
+    /*
+      The narrowest stretch a row may go in, in underlying columns - two
+      tiles, set per gather (see gather()). A one-tile strip beside a shirt
+      opened mid-grid used to take the rows first, being the lowest free
+      space, and a row one tile wide holds one piece: measured across 36
+      gathers, most of the 52 orphan rows were a column of singles down that
+      strip. The shirt's own shots still use it - they are not rows.
+    */
+    let rowMinCols = 2;
+    /*
+      EVEN ROWS, NOT GREEDY ONES.
+
+      Chris, with a screenshot of DumpStat gathered in the All view: "we
+      often get strange lockups like this" - nine wordmarks came out as a
+      row of eight and the ninth alone, with the rest of its row empty. The
+      rows were filled greedily: take pieces until the row is full, start
+      the next with what is left, and whatever is left at the end of a kind
+      is a row by itself. Measured across 36 gathers at three window sizes,
+      23 had at least one such orphan row, 52 rows in all.
+
+      So two things change. Each row's pieces are chosen by splitting what
+      is left of its kind EVENLY for the width it is going into - the split
+      whose rows all come out nearest the kind's height, so nine wordmarks
+      are one slightly shorter row or two of four and five, never eight and
+      one. And a kind too small to make a row of its own - one shirt, one
+      wordmark - joins the rows of the kind next to it, at that kind's
+      height, rather than sitting alone at its own.
+    */
     const simulateRows = (els: HTMLElement[], colYs: number[], colW: number, n: number, pad: number, t0: number) => {
       const ys = colYs.slice();
       const rows: {items: {el: HTMLElement; a: number}[]; x: number; top: number; h: number; cols: [number, number]}[] = [];
-      // Where each kind's last row went, so the next row of it stacks under it.
-      const lastOf: {a: number; b: number}[] = [];
-      let k = 0;
-      while (k < els.length) {
-        // The lowest stretch of two or more columns; the widest of equals.
+      const minCols = Math.max(2, Math.min(n, rowMinCols));
+
+      // The lowest free stretch at least minCols wide; the widest of equals.
+      const lowest = () => {
         let best = {a: 0, b: n - 1, top: Infinity, width: 0};
-        for (let a = 0; a < n; a++) {
-          let top = ys[a];
-          for (let b = a + 1; b < n; b++) {
+        for (let a = 0; a + minCols - 1 < n; a++) {
+          let top = 0;
+          for (let b = a; b < n; b++) {
             top = Math.max(top, ys[b]);
+            if (b - a + 1 < minCols) continue;
             const width = (b - a + 1) * colW;
             if (top < best.top - 1 || (Math.abs(top - best.top) <= 1 && width > best.width)) best = {a, b, top, width};
           }
         }
-        const items: {el: HTMLElement; a: number}[] = [];
-        let sumA = 0;
-        let full = false;
-        // This row's kind and height; a row never mixes kinds.
-        const kind = rowKind(els[k]);
-        const t = t0 * KIND_HEIGHT[kind];
-        /*
-          A kind keeps together: its next row goes straight under its last
-          when that is about as high as the lowest free stretch (within a
-          row). With two stretches - either side of a shirt opened mid-grid -
-          a wordmark row otherwise went to the other side, alone.
-        */
-        const prev = lastOf[kind];
-        if (prev) {
+        if (best.top === Infinity) {
           let top = 0;
-          for (let c = prev.a; c <= prev.b; c++) top = Math.max(top, ys[c]);
-          if (top <= best.top + t) best = {a: prev.a, b: prev.b, top, width: (prev.b - prev.a + 1) * colW};
+          for (const y of ys) top = Math.max(top, y);
+          best = {a: 0, b: n - 1, top, width: n * colW};
         }
-        /*
-          As many pieces as bring the row's flush height CLOSEST to this
-          kind's height - not the first count that overshoots, which let a
-          row land anywhere from a little under to well over it, so the
-          kinds' sizes blurred (wordmarks measured nearly as tall as the
-          merch they are meant to sit under).
-        */
-        const flushAt = (sum: number, count: number) => (best.width - 2 * pad * count) / sum + 2 * pad;
-        while (k < els.length && rowKind(els[k]) === kind) {
-          const a = aspectOf(els[k]);
-          if (items.length && flushAt(sumA + a, items.length + 1) < t) {
-            full = true;
-            // Take it only if that lands nearer the kind's height.
-            if (Math.abs(flushAt(sumA + a, items.length + 1) - t) < Math.abs(flushAt(sumA, items.length) - t)) {
-              items.push({el: els[k], a});
-              sumA += a;
-              k++;
-            }
-            break;
-          }
-          items.push({el: els[k], a});
-          sumA += a;
-          k++;
-          if (flushAt(sumA, items.length) <= t) {
-            full = true;
-            break;
-          }
-        }
-        // Flush: the height at which the row's widths add up to the stretch.
-        // A row that runs out of its kind early keeps its height and sits
-        // left unless it is most of the way across, and then grows at most a
-        // quarter to get there.
-        const flush = (best.width - 2 * pad * items.length) / sumA + 2 * pad;
-        const reach = ((t - 2 * pad) * sumA + 2 * pad * items.length) / best.width;
-        // Kinds end mid-row, so a row 60% of the way across is stretched too.
-        const h = full ? flush : reach >= 0.6 ? Math.min(flush, t * 1.25) : t;
-        rows.push({items, x: best.a * colW, top: best.top, h, cols: [best.a, best.b]});
-        lastOf[kind] = {a: best.a, b: best.b};
-        for (let c = best.a; c <= best.b; c++) ys[c] = best.top + h;
+        return best;
+      };
+
+      // Runs of one kind, in order; a run too small for a row of its own
+      // joins its neighbour - the next run, or the one before for the last.
+      type Run = {kind: number; items: {el: HTMLElement; a: number}[]};
+      let runs: Run[] = [];
+      for (const el of els) {
+        const kind = rowKind(el);
+        const a = aspectOf(el);
+        const last = runs[runs.length - 1];
+        if (last && last.kind === kind) last.items.push({el, a});
+        else runs.push({kind, items: [{el, a}]});
       }
+      const refWidth = lowest().width;
+      const natural = (r: Run) => {
+        const t = t0 * KIND_HEIGHT[r.kind];
+        return r.items.reduce((w, it) => w + (t - 2 * pad) * it.a + 2 * pad, 0);
+      };
+      for (let merged = true; merged && runs.length > 1; ) {
+        merged = false;
+        for (let i = 0; i < runs.length; i++) {
+          if (natural(runs[i]) >= 0.6 * refWidth) continue;
+          const into = i < runs.length - 1 ? i + 1 : i - 1;
+          const [first, second] = into > i ? [runs[i], runs[into]] : [runs[into], runs[i]];
+          // The joined run is the bigger kind's, so its height is that kind's.
+          const kind = natural(runs[into]) >= natural(runs[i]) ? runs[into].kind : runs[i].kind;
+          const joined: Run = {kind, items: [...first.items, ...second.items]};
+          runs = [...runs.slice(0, Math.min(i, into)), joined, ...runs.slice(Math.max(i, into) + 1)];
+          merged = true;
+          break;
+        }
+      }
+
+      /*
+        How many of the run's remaining pieces go in this row: the first row
+        of the split of all of them, for this width, whose rows come out
+        nearest the kind's height - squared distance, summed over the rows,
+        with a row stretched past half again its height (one piece blown up
+        to fill a width) or squeezed under 0.6 of it priced out.
+      */
+      const firstRowCount = (items: {a: number}[], width: number, t: number) => {
+        const m = items.length;
+        const costOf = (sumA: number, count: number) => {
+          const r = ((width - 2 * pad * count) / sumA + 2 * pad) / t;
+          let c = (r - 1) ** 2;
+          if (r > 1.5) c += 4 * (r - 1.5) + 1;
+          if (r < 0.6) c += 4 * (0.6 - r) + 1;
+          return c;
+        };
+        const best = new Array(m + 1).fill(Infinity);
+        const take = new Array(m + 1).fill(m);
+        best[m] = 0;
+        for (let i = m - 1; i >= 0; i--) {
+          let sumA = 0;
+          for (let j = i + 1; j <= m; j++) {
+            sumA += items[j - 1].a;
+            const c = costOf(sumA, j - i) + best[j];
+            if (c < best[i] - 1e-9) {
+              best[i] = c;
+              take[i] = j;
+            }
+          }
+        }
+        return Math.max(1, take[0]);
+      };
+
+      // Where each run's last row went, so its next row stacks under it.
+      const lastOf: {a: number; b: number}[] = [];
+      runs.forEach((run, ri) => {
+        let k = 0;
+        while (k < run.items.length) {
+          let best = lowest();
+          const t = t0 * KIND_HEIGHT[run.kind];
+          /*
+            A run keeps together: its next row goes straight under its last
+            when that is about as high as the lowest free stretch (within a
+            row). With two stretches - either side of a shirt opened mid-grid -
+            a wordmark row otherwise went to the other side, alone.
+          */
+          const prev = lastOf[ri];
+          if (prev) {
+            let top = 0;
+            for (let c = prev.a; c <= prev.b; c++) top = Math.max(top, ys[c]);
+            if (top <= best.top + t) best = {a: prev.a, b: prev.b, top, width: (prev.b - prev.a + 1) * colW};
+          }
+          const rest = run.items.slice(k);
+          const count = firstRowCount(rest, best.width, t);
+          const items = rest.slice(0, count);
+          k += count;
+          const sumA = items.reduce((s, it) => s + it.a, 0);
+          // Flush: the height at which the row's widths add up to the
+          // stretch - unless that blows a short row up past half again its
+          // height, and then it keeps that cap and sits left.
+          const flush = (best.width - 2 * pad * items.length) / sumA + 2 * pad;
+          const h = Math.min(flush, t * 1.5);
+          rows.push({items, x: best.a * colW, top: best.top, h, cols: [best.a, best.b]});
+          lastOf[ri] = {a: best.a, b: best.b};
+          for (let c = best.a; c <= best.b; c++) ys[c] = best.top + h;
+        }
+      });
       return {rows, bottom: rows.length ? Math.max(...rows.map((r) => r.top + r.h)) : 0, ys};
     };
 
@@ -3021,6 +3107,8 @@ if (emptyFilters.length > 0) {
         }
         justifyRest = JUSTIFY_REST ? rest.slice() : [];
         for (const el of justifyRest) el.classList.add('is-justified');
+        // Rows never go in a stretch narrower than two tiles - see rowMinCols.
+        rowMinCols = 2 * unit();
         if (card) {
           card.classList.add('is-card');
           /*
@@ -3189,6 +3277,14 @@ if (emptyFilters.length > 0) {
         if (SNAP_BY_CLICK && typeof clickedF === 'number') {
           const f = clickedF;
           zone = f < 1 / 3 ? 'left' : f > 2 / 3 ? 'right' : 'middle';
+          /*
+            Not the middle outside the Merch view. There a shirt opened
+            mid-grid has its own shots to fill the one-tile strip beside it;
+            in the All view a piece mostly has none, so the strip held the
+            rest of the project one piece to a row - measured, a third of
+            all orphan rows. So it opens on whichever side it was nearer.
+          */
+          if (zone === 'middle' && !inMerch()) zone = f < 0.5 ? 'left' : 'right';
         }
         let shirtCol = Math.max(0, Math.floor((cols - S) / 2));
         let cardCol = shirtCol;

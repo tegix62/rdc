@@ -3357,6 +3357,47 @@ main {
   text-decoration: none;
 }
 
+/*
+  The block's two groups - the name, and the line with the way in. Stacked,
+  each is a column of its own with the block's spacing, so the block reads
+  exactly as one column did.
+*/
+.pf-card__head,
+.pf-card__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: inherit;
+  align-self: stretch;
+  min-width: 0;
+}
+
+/*
+  A WIDE BLOCK SETS THEM SIDE BY SIDE. In the All view the block takes the
+  whole side beside the opened piece - 1,090px at 1920 - and its words, one
+  column held to a reading measure, used the left half of it; Chris's
+  DumpStat screenshot. Past about 900px of block the name goes left and the
+  line, the result and the way in go right, so the block uses its width and
+  is shorter, which is height the rows of the project get back.
+*/
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-card {
+  container-type: inline-size;
+}
+
+@container (min-width: 56rem) {
+  .pf-item.is-card .pf-card {
+    flex-direction: row;
+    align-items: flex-start;
+    column-gap: 2.5rem;
+  }
+
+  .pf-item.is-card .pf-card__head,
+  .pf-item.is-card .pf-card__body {
+    flex: 1 1 0;
+    align-self: auto;
+  }
+}
+
 
 /*
   Beside the shirt, the text needs air from the garment rather than a hairline

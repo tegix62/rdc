@@ -206,21 +206,34 @@ for (const piece of PIECES) {
   const x = b.x + b.width * 0.5
   const y = b.y + b.height * 0.6
   const cdp = await ctx.newCDPSession(page)
-  await cdp.send('Input.dispatchTouchEvent', {type: 'touchStart', touchPoints: [{x, y}]})
+  // One finger, with an id, so the moves are the same touch as the start.
+  const finger = (type, fx, fy) =>
+    cdp.send('Input.dispatchTouchEvent', {type, touchPoints: type === 'touchEnd' ? [] : [{x: fx, y: fy, id: 1}]})
+  await finger('touchStart', x, y)
   await page.waitForTimeout(450)
-  await cdp.send('Input.dispatchTouchEvent', {type: 'touchMove', touchPoints: [{x: x + 6, y: y + 4}]})
-  await page.waitForTimeout(900)
-  const g = await page.locator('.loupe__glass').boundingBox().catch(() => null)
+  const g0 = await page.locator('.loupe__glass').boundingBox().catch(() => null)
   const mag = await page.locator('[data-loupe-mag]').textContent()
   const vp = page.viewportSize()
-  check('phone: press and hold opens the glass', Boolean(g), mag || 'no readout')
-  if (g) {
-    // Standing on the thumb: centred on it, bottom edge a little past the tip.
-    const fx = x + 6
-    const fy = y + 4
+  check('phone: press and hold opens the glass', Boolean(g0), mag || 'no readout')
+  // Then a drag of 60px, in steps, as a thumb would: the glass should follow.
+  let fx = x
+  let fy = y
+  for (let i = 1; i <= 6; i++) {
+    fx = x + i * 10
+    fy = y + i * 10
+    await finger('touchMove', fx, fy)
+    await page.waitForTimeout(60)
+  }
+  await page.waitForTimeout(600)
+  const g = await page.locator('.loupe__glass').boundingBox().catch(() => null)
+  if (g0 && g) {
     const bottom = g.y + g.height
     check('phone: the glass stands on the thumb', bottom > fy && bottom < fy + 40, `glass bottom ${Math.round(bottom)}, thumb at ${Math.round(fy)}`)
-    check('phone: the glass is centred on the thumb', Math.abs(g.x + g.width / 2 - fx) < 3, `glass centre ${Math.round(g.x + g.width / 2)}, thumb at ${Math.round(fx)}`)
+    check(
+      'phone: the glass follows a drag, centred on the thumb',
+      Math.abs(g.x + g.width / 2 - fx) < 3,
+      `glass centre ${Math.round(g.x + g.width / 2)}, thumb now at ${Math.round(fx)} (started ${Math.round(x)}; glass started ${Math.round(g0.x + g0.width / 2)})`,
+    )
     console.log(`  opens at ${mag}, ${Math.round(g.width)}x${Math.round(g.height)} at ${Math.round(g.x)},${Math.round(g.y)}`)
   }
   await page.screenshot({path: `${OUT}/${piece}-phone-hold.png`})
@@ -230,15 +243,14 @@ for (const piece of PIECES) {
     did not flip: its bottom edge is still at the thumb.
   */
   if (g) {
-    await cdp.send('Input.dispatchTouchEvent', {type: 'touchEnd', touchPoints: []})
+    await finger('touchEnd')
     await page.waitForTimeout(200)
     const top = b.y + 30
-    await cdp.send('Input.dispatchTouchEvent', {type: 'touchStart', touchPoints: [{x, y: top}]})
+    await finger('touchStart', x, top)
     await page.waitForTimeout(450)
-    await cdp.send('Input.dispatchTouchEvent', {type: 'touchMove', touchPoints: [{x: x + 6, y: top + 4}]})
-    await page.waitForTimeout(500)
+    await page.waitForTimeout(300)
     const g2 = await page.locator('.loupe__glass').boundingBox().catch(() => null)
-    check('phone: near the top the glass stays on the thumb and clips, no flip', Boolean(g2) && g2.y + g2.height > top && g2.y + g2.height < top + 44, g2 ? `bottom ${Math.round(g2.y + g2.height)}, thumb at ${Math.round(top + 4)}, top edge ${Math.round(g2.y)}` : 'no glass')
+    check('phone: near the top the glass stays on the thumb and clips, no flip', Boolean(g2) && g2.y + g2.height > top && g2.y + g2.height < top + 44, g2 ? `bottom ${Math.round(g2.y + g2.height)}, thumb at ${Math.round(top)}, top edge ${Math.round(g2.y)}` : 'no glass')
     await page.screenshot({path: `${OUT}/${piece}-phone-top.png`})
   }
   await cdp.send('Input.dispatchTouchEvent', {type: 'touchEnd', touchPoints: []})

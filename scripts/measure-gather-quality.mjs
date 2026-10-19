@@ -149,9 +149,12 @@ const measure = (page) =>
       // How far down the opened piece's height the rest reaches, from the
       // top of the set: one thin row over a band of white reads low.
       reach: (() => {
-        if (!ob || !rest.length) return null
+        // The rest and the piece's own shots (near) - Adelante's shots
+        // stack beside the photograph and fill the band themselves.
+        const others = set.filter((el) => el !== opened && el !== card).map((el) => el.getBoundingClientRect())
+        if (!ob || !others.length) return null
         const top = Math.min(ob.top, card ? card.getBoundingClientRect().top : ob.top)
-        return +((Math.max(...rest.map((r) => r.b.bottom)) - top) / (ob.bottom - top)).toFixed(2)
+        return +((Math.max(...others.map((b) => b.bottom)) - top) / (ob.bottom - top)).toFixed(2)
       })(),
       outOfView: set.filter((el) => el.getBoundingClientRect().bottom > innerHeight + 1).length,
       overlaps,

@@ -380,19 +380,29 @@ const web = hasScan ? webFrom(scan!.url!) : plainFrom(image);
       if (!frame) frame = requestAnimationFrame(draw);
     };
 
-    // Point the glass at a spot on the picture (CSS px, relative to it).
-    // `finger` puts the glass wholly above a fingertip instead of around it.
-    const GAP = 24;
+    /*
+      Point the glass at a spot on the picture (CSS px, relative to it).
+
+      `finger`: the glass stands on the thumb. Centred on it, with its
+      bottom edge a little past the fingertip - the thumb rests slightly
+      into the glass rather than under a gap - and the spot under the thumb
+      drawn at the glass's centre, so a move of the thumb is the same move
+      of the view. Never clamped and never flipped: the first version kept
+      the glass on the screen by dropping it below the finger near the top,
+      and Chris, using it: it "suddenly snaps below where your thumb is,
+      rather jarringly ... I don't mind the magnifying glass clipping off
+      the screen because it gives more control to the person using it."
+      Clipping at an edge is continuous; a flip is a jump.
+    */
+    const THUMB_IN = 24;
     const aim = (px: number, py: number, finger = false) => {
       const k = img.clientWidth / W;
       sx = Math.min(Math.max(px / k, 0), W);
       sy = Math.min(Math.max(py / k, 0), H);
       if (finger) {
-        gl = Math.min(Math.max(px - GW / 2, 0), Math.max(0, img.clientWidth - GW));
-        gt = py - GAP - GH;
-        // Too near the top of the screen to fit above: drop below the finger.
-        if (img.getBoundingClientRect().top + gt < 8) gt = py + GAP;
-        ax = px - gl;
+        gl = px - GW / 2;
+        gt = py + THUMB_IN - GH;
+        ax = GW / 2;
         ay = GH / 2;
       } else {
         // Centred on the pointer, then slid to stay inside the window and

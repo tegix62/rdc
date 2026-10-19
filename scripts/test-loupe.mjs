@@ -215,11 +215,32 @@ for (const piece of PIECES) {
   const vp = page.viewportSize()
   check('phone: press and hold opens the glass', Boolean(g), mag || 'no readout')
   if (g) {
-    check('phone: the glass sits above the finger', g.y + g.height <= y, `glass bottom ${Math.round(g.y + g.height)}, finger at ${Math.round(y)}`)
-    check('phone: the glass is on the screen', g.x >= 0 && g.x + g.width <= vp.width && g.y >= 0, `${Math.round(g.width)}x${Math.round(g.height)} at ${Math.round(g.x)},${Math.round(g.y)}`)
-    console.log(`  opens at ${mag}`)
+    // Standing on the thumb: centred on it, bottom edge a little past the tip.
+    const fx = x + 6
+    const fy = y + 4
+    const bottom = g.y + g.height
+    check('phone: the glass stands on the thumb', bottom > fy && bottom < fy + 40, `glass bottom ${Math.round(bottom)}, thumb at ${Math.round(fy)}`)
+    check('phone: the glass is centred on the thumb', Math.abs(g.x + g.width / 2 - fx) < 3, `glass centre ${Math.round(g.x + g.width / 2)}, thumb at ${Math.round(fx)}`)
+    console.log(`  opens at ${mag}, ${Math.round(g.width)}x${Math.round(g.height)} at ${Math.round(g.x)},${Math.round(g.y)}`)
   }
   await page.screenshot({path: `${OUT}/${piece}-phone-hold.png`})
+  /*
+    Near the top of the screen the glass used to flip below the finger. Now
+    it stays above and clips. Hold near the top of the piece and check it
+    did not flip: its bottom edge is still at the thumb.
+  */
+  if (g) {
+    await cdp.send('Input.dispatchTouchEvent', {type: 'touchEnd', touchPoints: []})
+    await page.waitForTimeout(200)
+    const top = b.y + 30
+    await cdp.send('Input.dispatchTouchEvent', {type: 'touchStart', touchPoints: [{x, y: top}]})
+    await page.waitForTimeout(450)
+    await cdp.send('Input.dispatchTouchEvent', {type: 'touchMove', touchPoints: [{x: x + 6, y: top + 4}]})
+    await page.waitForTimeout(500)
+    const g2 = await page.locator('.loupe__glass').boundingBox().catch(() => null)
+    check('phone: near the top the glass stays on the thumb and clips, no flip', Boolean(g2) && g2.y + g2.height > top && g2.y + g2.height < top + 44, g2 ? `bottom ${Math.round(g2.y + g2.height)}, thumb at ${Math.round(top + 4)}, top edge ${Math.round(g2.y)}` : 'no glass')
+    await page.screenshot({path: `${OUT}/${piece}-phone-top.png`})
+  }
   await cdp.send('Input.dispatchTouchEvent', {type: 'touchEnd', touchPoints: []})
   await ctx.close()
 }

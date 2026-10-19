@@ -3384,15 +3384,20 @@ main {
   container-type: inline-size;
 }
 
+/*
+  The same :is() prefix as the rule it overrides, or it loses: :is() counts
+  as its most specific argument, so the stacked rule above outranked a
+  plain `.pf-item.is-card .pf-card` and the block stayed one column.
+*/
 @container (min-width: 56rem) {
-  .pf-item.is-card .pf-card {
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-card .pf-card {
     flex-direction: row;
     align-items: flex-start;
     column-gap: 2.5rem;
   }
 
-  .pf-item.is-card .pf-card__head,
-  .pf-item.is-card .pf-card__body {
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-card .pf-card__head,
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-card .pf-card__body {
     flex: 1 1 0;
     align-self: auto;
   }

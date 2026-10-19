@@ -224,6 +224,42 @@ for (const piece of PIECES) {
   await ctx.close()
 }
 
+/*
+  The real pages: the series at /collage and the one collage on About. The
+  piece's own page above is preview-only; these two are what visitors see.
+  A quick pass each: hover the first scanned piece, the glass opens and
+  goes sharp; and on /collage every piece is a square and captioned.
+*/
+for (const path of ['/collage', '/about']) {
+  const page = await browser.newPage({viewport: {width: 1440, height: 900}, deviceScaleFactor: 2})
+  const res = await page.goto(`${BASE}${path}`, {waitUntil: 'load', timeout: 60_000})
+  console.log(`\n${path} at 1440x900`)
+  check(`${path} exists`, res?.status() === 200, `HTTP ${res?.status()}`)
+  const n = await page.locator('[data-loupe]').count()
+  check(`${path} has a piece under glass`, n > 0, `${n} under glass, ${await page.locator('.loupe').count()} pieces`)
+  if (path === '/collage') {
+    const caps = await page.locator('.series__caption .series__name').allTextContents()
+    check('every piece in the series is captioned', caps.length === (await page.locator('.series__piece').count()) && caps.every((c) => c.trim()), caps.join(' / '))
+  }
+  if (n > 0) {
+    const fig = page.locator('[data-loupe]').first()
+    await fig.scrollIntoViewIfNeeded()
+    await page.waitForTimeout(400)
+    const b = await fig.boundingBox()
+    await page.mouse.move(b.x + b.width * 0.5, b.y + b.height * 0.5, {steps: 4})
+    const sharp = await page
+      .waitForFunction(() => {
+        const g = document.querySelector('[data-loupe] .loupe__glass')
+        return g && !g.hidden && [...document.querySelectorAll('.loupe__tile')].some((t) => t.classList.contains('is-in'))
+      }, null, {timeout: 15_000})
+      .then(() => true)
+      .catch(() => false)
+    check(`${path}: the glass opens and goes sharp`, sharp)
+    await page.screenshot({path: `${OUT}/${path.replace(/\//g, '') || 'home'}-glass.png`})
+  }
+  await page.close()
+}
+
 await browser.close()
 console.log(failures ? `\n${failures} check(s) failed.` : '\nThe magnifier behaves as asked.')
 process.exit(failures ? 1 : 0)

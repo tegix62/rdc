@@ -175,6 +175,55 @@ for (const piece of PIECES) {
     await page.close()
   }
 }
+/*
+  A phone, with real touch: press and hold through the DevTools protocol,
+  since Playwright's touchscreen only taps. Reports the magnification the
+  glass opens at and whether it sits above the finger and on the screen -
+  the phone version had only ever been tested by Chris's own hand.
+*/
+for (const piece of PIECES) {
+  const ctx = await browser.newContext({
+    viewport: {width: 390, height: 844},
+    deviceScaleFactor: 3,
+    isMobile: true,
+    hasTouch: true,
+    userAgent:
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
+  })
+  const page = await ctx.newPage()
+  await page.goto(`${BASE}/collage/study/${piece}`, {waitUntil: 'load', timeout: 60_000})
+  await page.waitForFunction(() => document.querySelector('.loupe__img')?.complete)
+  console.log(`\n${piece} on a phone (390x844 @3x, touch)`)
+  const env = await page.evaluate(() => ({
+    hoverNone: matchMedia('(hover: none)').matches,
+    script: [...document.scripts].some((s) => /touchy \? 0\.4/.test(s.textContent ?? '')) ? 'inline, new' : 'bundled or old',
+  }))
+  console.log(`  (hover: none) = ${env.hoverNone}; magnifier script ${env.script}`)
+  const box = await page.locator('.loupe__img').boundingBox()
+  await page.evaluate((y) => scrollTo(0, y), box.y - 200)
+  await page.waitForTimeout(300)
+  const b = await page.locator('.loupe__img').boundingBox()
+  const x = b.x + b.width * 0.5
+  const y = b.y + b.height * 0.6
+  const cdp = await ctx.newCDPSession(page)
+  await cdp.send('Input.dispatchTouchEvent', {type: 'touchStart', touchPoints: [{x, y}]})
+  await page.waitForTimeout(450)
+  await cdp.send('Input.dispatchTouchEvent', {type: 'touchMove', touchPoints: [{x: x + 6, y: y + 4}]})
+  await page.waitForTimeout(900)
+  const g = await page.locator('.loupe__glass').boundingBox().catch(() => null)
+  const mag = await page.locator('[data-loupe-mag]').textContent()
+  const vp = page.viewportSize()
+  check('phone: press and hold opens the glass', Boolean(g), mag || 'no readout')
+  if (g) {
+    check('phone: the glass sits above the finger', g.y + g.height <= y, `glass bottom ${Math.round(g.y + g.height)}, finger at ${Math.round(y)}`)
+    check('phone: the glass is on the screen', g.x >= 0 && g.x + g.width <= vp.width && g.y >= 0, `${Math.round(g.width)}x${Math.round(g.height)} at ${Math.round(g.x)},${Math.round(g.y)}`)
+    console.log(`  opens at ${mag}`)
+  }
+  await page.screenshot({path: `${OUT}/${piece}-phone-hold.png`})
+  await cdp.send('Input.dispatchTouchEvent', {type: 'touchEnd', touchPoints: []})
+  await ctx.close()
+}
+
 await browser.close()
 console.log(failures ? `\n${failures} check(s) failed.` : '\nThe magnifier behaves as asked.')
 process.exit(failures ? 1 : 0)

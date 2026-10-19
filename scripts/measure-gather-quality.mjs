@@ -24,6 +24,9 @@ import {chromium} from 'playwright'
 
 const BASE = (process.argv[2] ?? 'https://preview.rumeau-design-co.pages.dev').replace(/\/$/, '')
 const PER = Number(process.argv[3] ?? 3)
+// Pictures: every flagged gather, and the first of each project per size.
+const OUT = process.argv[4] ?? ''
+if (OUT) (await import('node:fs')).mkdirSync(OUT, {recursive: true})
 const SIZES = [
   [1440, 900],
   [1920, 1080],
@@ -146,6 +149,11 @@ for (const [w, h] of SIZES) {
     totals.outOfView += m.outOfView ? 1 : 0
     totals.overlaps += m.overlaps ? 1 : 0
     const bad = m.orphans.length || m.blockFill < 0.6 || m.outOfView || m.overlaps
+    const firstOfProject = picks.findIndex((q) => q.h === p.h) === picks.indexOf(p)
+    if (OUT && (bad || firstOfProject)) {
+      const slug = p.h.split('/').filter(Boolean).pop()
+      await page.screenshot({path: `${OUT}/${w}-${slug}-${picks.indexOf(p)}${bad ? '-bad' : ''}.png`})
+    }
     console.log(
       `${bad ? 'BAD ' : 'ok  '} ${p.h} :: ${m.opened} (${m.openedSide}) - ${m.setN} in set, ${m.rows.length} rows ` +
         `[${m.rows.map((r) => `${r.n}@${r.h}`).join(' ')}], block fill ${m.blockFill}` +

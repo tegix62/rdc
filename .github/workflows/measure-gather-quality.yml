@@ -2,7 +2,9 @@ name: Measure gather quality
 
 # Opens a spread of pieces from every project in the All view at three
 # window sizes and counts orphan rows, sparse project blocks, pieces out of
-# view and overlaps. The report goes to the log and the run summary.
+# view and overlaps. The report goes to the log and the run summary;
+# pictures of every flagged gather (and one per project) go to the
+# throwaway `shots` branch.
 
 on:
   workflow_dispatch:
@@ -11,10 +13,13 @@ on:
         description: 'Site to measure'
         default: 'https://preview.rumeau-design-co.pages.dev'
 
+permissions:
+  contents: write
+
 jobs:
   measure:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,9 +29,22 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: |
           set -o pipefail
-          node scripts/measure-gather-quality.mjs "$BASE" | tee /tmp/quality.txt
+          node scripts/measure-gather-quality.mjs "$BASE" 3 /tmp/quality-shots | tee /tmp/quality.txt
         env:
           BASE: ${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}
+      - name: Push the pictures to the shots branch
+        if: always()
+        run: |
+          [ -d /tmp/quality-shots ] || exit 0
+          cp /tmp/quality.txt /tmp/quality-shots/report.txt 2>/dev/null || true
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git checkout --orphan shots
+          git rm -rfq .
+          cp /tmp/quality-shots/* .
+          git add -- *.png report.txt
+          git commit -qm "Gather quality pictures"
+          git push -f origin shots
       - name: Publish to the run summary
         if: always()
         run: |

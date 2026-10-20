@@ -16,12 +16,25 @@
   clean.
 */
 import {stripStegaKey} from './stega';
+import {parseCreditLines, type Credit} from './credits';
 
 export interface MuseumLabel {
   title: unknown;
   /** "Screenprint on cotton, 2024", or "Apparel", or "" when there is nothing. */
   detail: string;
+  /** Who was involved: the project's Credits panel, a person per entry. */
+  credits: Credit[];
 }
+
+/*
+  THE NAMES, AS A THIRD LINE OF THE LABEL. Chris: "a big thing agencies
+  would be looking for is like names involved", and the project's Credits
+  panel already says who did what, linked the way he links them - one rich
+  text field, a bold role then a name (see lib/credits.ts, which reads it
+  back into role, name and link). The label shows the project's credits,
+  since that is where they are written; a piece has none of its own.
+*/
+export const CREDITS_SHOWN = 4;
 
 export function museumLabel(item: any, extra: string[] = []): MuseumLabel | null {
   const clean = stripStegaKey(item?.title);
@@ -53,7 +66,8 @@ export function museumLabel(item: any, extra: string[] = []): MuseumLabel | null
     '';
   const year = Number.isInteger(item?.year) ? String(item.year) : '';
   const detail = [medium, ...extra, year].filter(Boolean).join(', ');
-  return {title, detail};
+  const credits = parseCreditLines(item?.projectCredits);
+  return {title, detail, credits};
 }
 
 /*

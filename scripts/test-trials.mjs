@@ -1,12 +1,13 @@
 /*
-  The three preview trials, in a real browser, with pictures.
+  The preview experiments, in a real browser, with pictures.
 
     museum labels  an opened piece in the All view's gather carries a label
-                   under it - its title, and what it is when Studio knows -
-                   and the set still fits the window
-    the wall       the opened piece's frame lifts on a shadow
-    paste-up       the gathered pictures arrive with a turn and a press,
-                   and are all flat again once the set has settled
+                   under it - its title, what it is when Studio knows, and,
+                   where the project has credits, a line of the names
+                   involved, linked as the Credits panel links them - and
+                   the set still fits the window
+    the wall and   ROLLED BACK - checked absent: no lifted shadow, nothing
+    paste-up       pasting down
     actual size    on /collage, "See it at actual size" opens the collage at
                    its real size beside a ruler, the sharp picture arrives,
                    and "Match my screen" shows a bank card at the same scale
@@ -68,18 +69,13 @@ for (const [label, opts] of [
     await tile.scrollIntoViewIfNeeded()
     await tile.locator('.pf-item__img').click()
     await page.waitForTimeout(120)
+    // Rolled back (Chris: "a little cheesy currently"): nothing pastes down.
     const pasting = await page.evaluate(() => ({
       n: document.querySelectorAll('#pf-grid .pf-item__frame.is-pasting').length,
-      turned: Array.from(document.querySelectorAll('#pf-grid .pf-item__frame.is-pasting')).filter(
-        (f) => getComputedStyle(f).transform !== 'none',
-      ).length,
+      grid: !!document.querySelector('#pf-grid.is-paste, #pf-grid.is-wall'),
     }))
+    check(`${label} ${project}: no paste-up or lifted wall any more`, pasting.n === 0 && !pasting.grid, JSON.stringify(pasting))
     await page.waitForTimeout(3400)
-    const flat = await page.evaluate(
-      () => document.querySelectorAll('#pf-grid .pf-item__frame.is-pasting').length,
-    )
-    check(`${label} ${project}: the pieces paste down as they gather`, pasting.n >= 3 && pasting.turned >= 1, `${pasting.n} pasting, ${pasting.turned} mid-turn`)
-    check(`${label} ${project}: and lie flat once settled`, flat === 0, `${flat} still pasting`)
     const r = await page.evaluate(() => {
       const opened = document.querySelector('#pf-grid .pf-item.is-expanded')
       const lab = opened?.querySelector('.pf-item__label')
@@ -94,6 +90,14 @@ for (const [label, opts] of [
         text: lab?.textContent?.replace(/[​-‏⁠-⁯﻿]|[\udb40][\udc00-\udc7f]/g, '').trim() ?? '',
         inside: !!lb && !!ob && lb.top >= ob.top && lb.bottom <= ob.bottom + 1,
         shadow: frame ? getComputedStyle(frame).boxShadow : '',
+        credits: Array.from(lab?.querySelectorAll('.pf-item__credit') ?? []).map((c) =>
+          c.textContent.replace(/[\u200b-\u200f\u2060-\u206f\ufeff]/g, '').trim(),
+        ),
+        creditLinks: lab?.querySelectorAll('a.pf-item__credit-name').length ?? 0,
+        creditsInside: (() => {
+          const c = lab?.querySelector('.pf-item__label-credits')?.getBoundingClientRect()
+          return !c || (c.bottom <= lb.bottom + 1 && c.height > 0)
+        })(),
         // On a phone the rest of the set runs on below the screen by
         // design; there it is the opened piece and its label that must fit.
         outside: (innerWidth < 768 ? [opened] : set).filter((el) => el && el.getBoundingClientRect().bottom > innerHeight + 1).length,
@@ -102,8 +106,10 @@ for (const [label, opts] of [
     check(`${label} ${project}: the opened piece has a label`, r.shown && r.text.length > 0, JSON.stringify(r.text))
     check(`${label} ${project}: naming the piece, not its project again`, !/^(DumpStat|Hug a Mug)\s+[-–—:]/.test(r.text), JSON.stringify(r.text))
     check(`${label} ${project}: inside its frame`, r.inside)
-    // The inset outline plus at least one outer shadow.
-    check(`${label} ${project}: lifted on a shadow`, (r.shadow.match(/rgba?\(/g) ?? []).length >= 3, r.shadow.slice(0, 80))
+    // Just the frame's own navy outline - the wall's shadow is rolled back.
+    check(`${label} ${project}: and its frame no longer lifts on a shadow`, (r.shadow.match(/rgba?\(/g) ?? []).length <= 1, r.shadow.slice(0, 80))
+    console.log(`      names: ${r.credits.length ? r.credits.join(' | ') : '(the project has no credits)'} - ${r.creditLinks} linked`)
+    check(`${label} ${project}: and any names sit whole inside the label`, r.creditsInside)
     check(`${label} ${project}: and the set still fits the window`, r.outside === 0, `${r.outside} outside`)
     await page.screenshot({path: `${OUT}/label-${label}-${project.split('/').pop()}.png`})
     await page.close()

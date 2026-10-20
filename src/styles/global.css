@@ -7654,8 +7654,8 @@ body {
 
 :is(.pf-grid.is-merch-view, .pf-grid.is-cluster).has-labels .pf-item.is-expanded .pf-item__label {
   display: flex;
-  align-items: baseline;
-  gap: 0.625em;
+  flex-direction: column;
+  gap: 0.3rem;
   height: var(--pf-label-h);
   padding: 0.75rem 0.375rem 0;
   box-sizing: border-box;
@@ -7664,6 +7664,57 @@ body {
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
+}
+
+/* With a line of names under it, the label is a line taller - and the
+   picture's window cap gives that room too (--pf-label-h). */
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster).has-labels .pf-item:has(.pf-item__label--credits) {
+  --pf-label-h: 3.5rem;
+}
+
+.pf-item__label-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.625em;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/*
+  The names: each role small and grey, its person in navy, linked where
+  the Credits panel links them; a dot between people. One line, cut with an
+  ellipsis where a long panel runs past the piece's width.
+*/
+.pf-item__label-credits {
+  display: block;
+  text-overflow: ellipsis;
+  font-size: 0.75rem;
+  color: var(--color-gray);
+}
+
+.pf-item__credit + .pf-item__credit::before {
+  content: '\00b7';
+  margin: 0 0.5em;
+  color: var(--color-gray);
+}
+
+.pf-item__credit-role {
+  margin-right: 0.35em;
+}
+
+.pf-item__credit-name {
+  color: var(--color-navy);
+}
+
+a.pf-item__credit-name {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+a.pf-item__credit-name:hover,
+a.pf-item__credit-name:focus-visible {
+  text-decoration-thickness: 2px;
 }
 
 /*

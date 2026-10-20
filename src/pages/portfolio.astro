@@ -12,7 +12,7 @@ import { cleanKey, treatmentOf, explicitTreatment, tileHref, heroHeight, HERO_RA
 import { orderTiles, isCaseStudy } from '../lib/gridOrder';
 import { tileImage } from '../lib/image';
 import { clusterCard } from '../lib/clusterCard';
-import { museumLabel } from '../lib/museumLabel';
+import { museumLabel, CREDITS_SHOWN } from '../lib/museumLabel';
 
 const page = await getPage('portfolio');
 const allItems = await getAllGridItems();
@@ -138,8 +138,15 @@ const emptyFilters = ALL_FILTERS.filter(
 */
 const PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
 const MUSEUM_LABELS = PREVIEW;
-const WALL = PREVIEW;
-const PASTE_UP = PREVIEW;
+/*
+  ROLLED BACK, both. Chris, on seeing them: "the animations are interesting,
+  but they look a little cheesy currently ... roll back the animations for
+  now" - the motion idea wants rethinking (why animate at all, and what
+  would) before another try. The code stays, switched off, so a different
+  take can start from it.
+*/
+const WALL = false;
+const PASTE_UP = false;
 
 if (emptyFilters.length > 0) {
   console.warn(
@@ -380,9 +387,31 @@ if (emptyFilters.length > 0) {
               />
               {/* The museum label - shown only on the opened piece of a gather. */}
               {label && (
-                <span class="pf-item__label">
-                  <span class="pf-item__label-title">{label.title}</span>
-                  {label.detail && <span class="pf-item__label-detail">{label.detail}</span>}
+                <span class:list={['pf-item__label', label.credits.length > 0 && 'pf-item__label--credits']}>
+                  <span class="pf-item__label-line">
+                    <span class="pf-item__label-title">{label.title}</span>
+                    {label.detail && <span class="pf-item__label-detail">{label.detail}</span>}
+                  </span>
+                  {/* Who was involved, from the project's Credits panel. */}
+                  {label.credits.length > 0 && (
+                    <span class="pf-item__label-line pf-item__label-credits">
+                      {label.credits.slice(0, CREDITS_SHOWN).map((c) => (
+                        <span class="pf-item__credit">
+                          {c.role && <span class="pf-item__credit-role">{c.role}</span>}
+                          {c.url ? (
+                            <a class="pf-item__credit-name" href={c.url} target="_blank" rel="noopener">{c.name}</a>
+                          ) : (
+                            <span class="pf-item__credit-name">{c.name}</span>
+                          )}
+                        </span>
+                      ))}
+                      {label.credits.length > CREDITS_SHOWN && (
+                        <span class="pf-item__credit pf-item__credit-more">
+                          and {label.credits.length - CREDITS_SHOWN} more
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </span>
               )}
               {/*

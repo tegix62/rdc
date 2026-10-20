@@ -7912,3 +7912,34 @@ html.realsize-open {
 .realsize__sharp:not([src]) {
   display: none;
 }
+
+/*
+  THE GATHER AS A PASTE-UP (experiment, preview only - .is-paste on the
+  grid, from PASTE_UP in portfolio.astro; see pasteUp() there).
+
+  Each gathered picture arrives with a small turn and a slight press, like
+  a cut piece going down under a hand, and settles flat. --paste-r and
+  --paste-d (the turn and the stagger) are set per piece by the script.
+*/
+@keyframes pf-paste {
+  0% {
+    transform: rotate(var(--paste-r, 1deg)) scale(1.035);
+  }
+  55% {
+    transform: rotate(calc(var(--paste-r, 1deg) * -0.18)) scale(0.992);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.pf-grid.is-paste .pf-item__frame.is-pasting {
+  transform-origin: 50% 40%;
+  animation: pf-paste 0.56s cubic-bezier(0.25, 0.8, 0.3, 1) var(--paste-d, 0ms) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-grid.is-paste .pf-item__frame.is-pasting {
+    animation: none;
+  }
+}

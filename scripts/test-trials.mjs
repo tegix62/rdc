@@ -5,6 +5,8 @@
                    under it - its title, and what it is when Studio knows -
                    and the set still fits the window
     the wall       the opened piece's frame lifts on a shadow
+    paste-up       the gathered pictures arrive with a turn and a press,
+                   and are all flat again once the set has settled
     actual size    on /collage, "See it at actual size" opens the collage at
                    its real size beside a ruler, the sharp picture arrives,
                    and "Match my screen" shows a bank card at the same scale
@@ -65,7 +67,19 @@ for (const [label, opts] of [
     const tile = page.locator('#pf-grid .pf-item').nth(i)
     await tile.scrollIntoViewIfNeeded()
     await tile.locator('.pf-item__img').click()
-    await page.waitForTimeout(3500)
+    await page.waitForTimeout(120)
+    const pasting = await page.evaluate(() => ({
+      n: document.querySelectorAll('#pf-grid .pf-item__frame.is-pasting').length,
+      turned: Array.from(document.querySelectorAll('#pf-grid .pf-item__frame.is-pasting')).filter(
+        (f) => getComputedStyle(f).transform !== 'none',
+      ).length,
+    }))
+    await page.waitForTimeout(3400)
+    const flat = await page.evaluate(
+      () => document.querySelectorAll('#pf-grid .pf-item__frame.is-pasting').length,
+    )
+    check(`${label} ${project}: the pieces paste down as they gather`, pasting.n >= 3 && pasting.turned >= 1, `${pasting.n} pasting, ${pasting.turned} mid-turn`)
+    check(`${label} ${project}: and lie flat once settled`, flat === 0, `${flat} still pasting`)
     const r = await page.evaluate(() => {
       const opened = document.querySelector('#pf-grid .pf-item.is-expanded')
       const lab = opened?.querySelector('.pf-item__label')
@@ -166,9 +180,9 @@ for (const [label, opts] of [
   if (res) {
     const has = await page.evaluate(() => ({
       labels: document.querySelectorAll('.pf-item__label').length,
-      trial: !!document.querySelector('#pf-grid.has-labels, #pf-grid.is-wall'),
+      trial: !!document.querySelector('#pf-grid.has-labels, #pf-grid.is-wall, #pf-grid.is-paste'),
     }))
-    check('production has no labels or wall yet', has.labels === 0 && !has.trial, JSON.stringify(has))
+    check('production has none of the experiments', has.labels === 0 && !has.trial, JSON.stringify(has))
   }
   await page.close()
 }

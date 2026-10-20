@@ -119,16 +119,27 @@ const emptyFilters = ALL_FILTERS.filter(
   (f) => (counts.get(f.value.replace('.', '')) ?? 0) === 0,
 );
 /*
-  TWO TRIALS, PREVIEW ONLY until Chris has seen them (PUBLIC_IS_PREVIEW is
-  set on the preview build alone):
-    museum labels  an opened piece is captioned the way a museum captions a
+  EXPERIMENTS, PREVIEW ONLY, AND EACH ONE CAN BE ROLLED BACK ON ITS OWN.
+
+  Chris: these are "an experiment and are subject to rollback". So each
+  has its own switch here; setting one to false takes it off the page
+  entirely (its markup, and the grid class its styles hang on), and none
+  depends on another. PUBLIC_IS_PREVIEW is set on the preview build alone,
+  so none of them reaches the live site until Chris says.
+
+    MUSEUM_LABELS  an opened piece is captioned the way a museum captions a
                    painting - its title, then what it is and when. See
                    lib/museumLabel.ts.
-    the wall       an opened piece lifts off the grid with a soft shadow, as
-                   if taken down off the studio wall to look at - the
-                   gather pulling a project's pieces together off the wall.
+    WALL           an opened piece lifts off the grid on a soft shadow, as
+                   if taken down off the studio wall to look at.
+    PASTE_UP       the gathered pieces arrive like cut paper being pasted
+                   down - a small turn and a press - and then sit flat in
+                   the same clean grid. See pasteUp() in the script.
 */
-const TRIALS = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+const PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+const MUSEUM_LABELS = PREVIEW;
+const WALL = PREVIEW;
+const PASTE_UP = PREVIEW;
 
 if (emptyFilters.length > 0) {
   console.warn(
@@ -265,7 +276,7 @@ if (emptyFilters.length > 0) {
         - a timeout removes it regardless, so if Isotope fails to load the
           tiles come back in float order instead of staying invisible.
     */}
-    <div class:list={['pf-grid', TRIALS && 'has-labels is-wall']} id="pf-grid">
+    <div class:list={['pf-grid', MUSEUM_LABELS && 'has-labels', WALL && 'is-wall', PASTE_UP && 'is-paste']} id="pf-grid">
       {items.map((item: any, i: number) => {
         // tileImage, not `thumbnail || mainImage`: an empty Grid Thumbnail is
         // truthy and used to swallow the real picture. See lib/image.ts.
@@ -292,7 +303,7 @@ if (emptyFilters.length > 0) {
         // case study's own tile and hidden until a merch gather calls on it -
         // see THE PROJECT'S BLOCK in gather() and lib/clusterCard.ts.
         const card = isCaseStudy(item) && parentHref ? clusterCard(item) : null;
-        const label = TRIALS ? museumLabel(item) : null;
+        const label = MUSEUM_LABELS ? museumLabel(item) : null;
         // The category has to be a real CLASS, not just a data attribute:
         // Isotope filters with CSS selectors (".brand-identity"), so with the
         // value only in data-category every filter matched zero tiles and the
@@ -3569,11 +3580,52 @@ if (emptyFilters.length > 0) {
       };
       requestAnimationFrame(hold);
 
+      pasteUp(item, family);
+
       // arrange(), not layout() - layout() repositions a stale filteredItems
       // array and the reorder never reaches the screen. See the Shuffle
       // handler for the full account.
       reloadItems();
       iso.arrange();
+    };
+
+    /*
+      THE GATHER AS A PASTE-UP (an experiment, preview only - PASTE_UP in
+      the frontmatter, which puts .is-paste on the grid).
+
+      Chris's collages are cut paper pasted down, and a gather is the same
+      act on his own work: pieces pulled off the wall and laid down
+      together. So as the set lands, each picture arrives with a small turn
+      and a slight press, the way a cut piece goes down under a hand, and
+      then sits flat - the end state is the same clean grid. Sober at rest,
+      a little irreverent in motion.
+
+      On the picture's frame, not the tile: the tile's own transform is
+      where the layout puts it, and turning that would move the piece. The
+      block of type is not paper, so it stays still. Alternate directions
+      so no two neighbours turn the same way; staggered in the set's order,
+      capped so a twenty-piece set is not still settling a second later.
+      Nothing at all for anyone who has asked for less motion.
+    */
+    const pasteUp = (item: HTMLElement, family: HTMLElement[]) => {
+      if (!grid.classList.contains('is-paste')) return;
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const pieces = [item, ...family.filter((el) => el !== item)];
+      let k = 0;
+      for (const el of pieces) {
+        if (el.querySelector('.pf-card') && el !== item) continue;
+        const frame = el.querySelector<HTMLElement>('.pf-item__frame');
+        if (!frame) continue;
+        const turn = (k % 2 ? 1 : -1) * (0.8 + Math.random() * 1.4);
+        frame.style.setProperty('--paste-r', `${turn.toFixed(2)}deg`);
+        frame.style.setProperty('--paste-d', `${Math.min(k, 10) * 30}ms`);
+        frame.classList.remove('is-pasting');
+        // Restart the animation if the same piece is gathered twice running.
+        void frame.offsetWidth;
+        frame.classList.add('is-pasting');
+        frame.addEventListener('animationend', () => frame.classList.remove('is-pasting'), {once: true});
+        k++;
+      }
     };
 
     /*

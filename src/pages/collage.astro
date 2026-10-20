@@ -51,7 +51,9 @@ const series = pieces
 const anyScan = series.some((p) => p.hasScan);
 
 /*
-  TRIALS, PREVIEW ONLY until Chris has seen them:
+  EXPERIMENTS, PREVIEW ONLY, EACH ROLLED BACK ON ITS OWN by setting its
+  switch below to false (Chris: "an experiment and ... subject to
+  rollback"):
     museum labels  under the name and year, what the piece is and its size,
                    the way a museum labels a work: "Paper on board,
                    13 × 13 in". The medium only when Chris has written one -
@@ -61,7 +63,9 @@ const anyScan = series.some((p) => p.hasScan);
                    screen, beside a ruler, with a bank card to match the
                    screen's inch to a real one. See the script below.
 */
-const TRIALS = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+const PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+const MUSEUM_LABELS = PREVIEW;
+const ACTUAL_SIZE = PREVIEW;
 const labelOf = (p: any) => {
   const size = p.hasScan ? realSize(p.scan, p.realWidth) : null;
   const detail = [stripStegaKey(p.medium), size ? sizeText(size) : ''].filter(Boolean).join(', ');
@@ -90,8 +94,10 @@ const hasSections = page?.sections?.length > 0;
         <span class="series__name">{p.name}</span>
         {p.year && <span class="series__year">{p.year}</span>}
       </p>
-      {TRIALS && (() => {
-        const {size, detail} = labelOf(p);
+      {(MUSEUM_LABELS || ACTUAL_SIZE) && (() => {
+        const {size: real, detail: full} = labelOf(p);
+        const detail = MUSEUM_LABELS ? full : '';
+        const size = ACTUAL_SIZE ? real : null;
         return (detail || size) && (
           <p class="series__label">
             {detail && <span class="series__detail">{detail}</span>}
@@ -121,7 +127,7 @@ const hasSections = page?.sections?.length > 0;
     </div>
   )}
 
-  {TRIALS && anyScan && (
+  {ACTUAL_SIZE && anyScan && (
     <dialog class="realsize" aria-labelledby="realsize-title">
       <div class="realsize__bar">
         <p class="realsize__title" id="realsize-title"></p>

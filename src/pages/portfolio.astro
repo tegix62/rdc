@@ -12,6 +12,7 @@ import { cleanKey, treatmentOf, explicitTreatment, tileHref, heroHeight, HERO_RA
 import { orderTiles, isCaseStudy } from '../lib/gridOrder';
 import { tileImage } from '../lib/image';
 import { clusterCard } from '../lib/clusterCard';
+import { museumLabel } from '../lib/museumLabel';
 
 const page = await getPage('portfolio');
 const allItems = await getAllGridItems();
@@ -117,6 +118,18 @@ for (const item of items) {
 const emptyFilters = ALL_FILTERS.filter(
   (f) => (counts.get(f.value.replace('.', '')) ?? 0) === 0,
 );
+/*
+  TWO TRIALS, PREVIEW ONLY until Chris has seen them (PUBLIC_IS_PREVIEW is
+  set on the preview build alone):
+    museum labels  an opened piece is captioned the way a museum captions a
+                   painting - its title, then what it is and when. See
+                   lib/museumLabel.ts.
+    the wall       an opened piece lifts off the grid with a soft shadow, as
+                   if taken down off the studio wall to look at - the
+                   gather pulling a project's pieces together off the wall.
+*/
+const TRIALS = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+
 if (emptyFilters.length > 0) {
   console.warn(
     `[portfolio] filter button(s) hidden with no tagged items: ` +
@@ -252,7 +265,7 @@ if (emptyFilters.length > 0) {
         - a timeout removes it regardless, so if Isotope fails to load the
           tiles come back in float order instead of staying invisible.
     */}
-    <div class="pf-grid" id="pf-grid">
+    <div class:list={['pf-grid', TRIALS && 'has-labels is-wall']} id="pf-grid">
       {items.map((item: any, i: number) => {
         // tileImage, not `thumbnail || mainImage`: an empty Grid Thumbnail is
         // truthy and used to swallow the real picture. See lib/image.ts.
@@ -279,6 +292,7 @@ if (emptyFilters.length > 0) {
         // case study's own tile and hidden until a merch gather calls on it -
         // see THE PROJECT'S BLOCK in gather() and lib/clusterCard.ts.
         const card = isCaseStudy(item) && parentHref ? clusterCard(item) : null;
+        const label = TRIALS ? museumLabel(item) : null;
         // The category has to be a real CLASS, not just a data attribute:
         // Isotope filters with CSS selectors (".brand-identity"), so with the
         // value only in data-category every filter matched zero tiles and the
@@ -353,6 +367,13 @@ if (emptyFilters.length > 0) {
                       upgradeSizes: '(max-width: 48rem) 66vw, 34vw',
                     })}
               />
+              {/* The museum label - shown only on the opened piece of a gather. */}
+              {label && (
+                <span class="pf-item__label">
+                  <span class="pf-item__label-title">{label.title}</span>
+                  {label.detail && <span class="pf-item__label-detail">{label.detail}</span>}
+                </span>
+              )}
               {/*
                 The bar carries an explicit accessible name, because its
                 visible text is not always all there. On a phone the

@@ -245,6 +245,47 @@ export default defineType({
       options: {list: ASSET_TYPES},
     }),
     /*
+      THE PIECE'S LABEL, as a museum would write it. Chris's idea of
+      treating irreverent work with reverence: a podcast's skull tee
+      captioned like a painting - title, medium, year. Both optional. Left
+      empty, the label says what the site already knows (the Asset Type or
+      the category) and leaves the year out, rather than guess at either.
+    */
+    defineField({
+      name: 'medium',
+      title: 'Medium - for its label (optional)',
+      type: 'string',
+      group: 'tile',
+      description:
+        'What it is made of, the way a museum label says it: "Screenprint on ' +
+        'cotton", "Ink on bristol", "Paper collage on board". Left empty the ' +
+        'label uses the Asset Type, or the category.',
+    }),
+    defineField({
+      name: 'year',
+      title: 'Year made - for its label (optional)',
+      type: 'number',
+      group: 'tile',
+      validation: (Rule) => Rule.integer().min(1990).max(2100),
+    }),
+    /*
+      A collage's real size, for "See it at actual size". Read from the scan
+      when there is one - 600 DPI, so pixels across / 600 is inches - and
+      this is only for when that would be wrong (a scan at another
+      resolution, or cropped).
+    */
+    defineField({
+      name: 'realWidth',
+      title: 'Real width in inches (optional)',
+      type: 'number',
+      group: 'tile',
+      hidden: ({document}: any) => !document?.fullScan?.asset,
+      description:
+        'Only if the scan above was not made at 600 DPI. Left empty, the real ' +
+        'size is read from the scan: its width in pixels divided by 600.',
+      validation: (Rule) => Rule.positive().max(120),
+    }),
+    /*
       Tile treatment, which is the idea Chris's Adobe Portfolio gallery is built
       on: a logomark strong enough to speak for itself gets room and no caption,
       while a photograph or poster fills its frame. It is a presentation choice,

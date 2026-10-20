@@ -3146,7 +3146,7 @@ main {
 @media (min-width: 48rem) {
   :is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-expanded .pf-item__img {
     /* Less the project's block above it, when the gather has one. */
-    max-height: calc(100svh - 6rem - var(--pf-card-h, 0px));
+    max-height: calc(100svh - 6rem - var(--pf-card-h, 0px) - var(--pf-label-h, 0px));
   }
 
   /*
@@ -7631,4 +7631,284 @@ body {
   pre, blockquote, figure, img {
     break-inside: avoid;
   }
+}
+
+/*
+  TRIALS ON THE PREVIEW: MUSEUM LABELS AND THE WALL.
+
+  The grid carries .has-labels and .is-wall on the preview build only (see
+  TRIALS in portfolio.astro), so none of this applies on the live site.
+
+  The museum label. Under the opened piece of a gather, inside its frame,
+  set the way a museum sets a wall label: the title, then what it is and
+  when, small and quiet - sober type around audacious work. One line of
+  fixed height, so the picture's window cap can give it room exactly.
+*/
+.pf-item__label {
+  display: none;
+}
+
+.pf-grid.has-labels {
+  --pf-label-h: 2.25rem;
+}
+
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster).has-labels .pf-item.is-expanded .pf-item__label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.625em;
+  height: var(--pf-label-h);
+  padding: 0.75rem 0.375rem 0;
+  box-sizing: border-box;
+  font-family: var(--font-heading);
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.pf-item__label-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.pf-item__label-detail {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-gray);
+}
+
+/*
+  The wall. The opened piece lifts off the grid on a soft shadow, as if
+  taken down off the studio wall to look at, the way a collage on its own
+  page already sits on a shadow under the paper. It settles in a beat after
+  the gather moves, so it reads as the piece being picked up rather than
+  as part of the shuffle. The frame's own navy outline is kept.
+*/
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster).is-wall .pf-item .pf-item__frame {
+  transition: box-shadow 0.45s ease 0.2s;
+}
+
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster).is-wall .pf-item.is-expanded .pf-item__frame {
+  /* The paper of print mode when that is on. */
+  background: var(--ink-paper, #fff);
+  box-shadow:
+    inset 0 0 0 1px var(--color-navy),
+    0 1px 2px rgb(0 0 0 / 0.08),
+    0 14px 30px -12px rgb(0 0 0 / 0.28),
+    0 32px 60px -30px rgb(0 0 0 / 0.22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster).is-wall .pf-item .pf-item__frame {
+    transition: none;
+  }
+}
+
+/*
+  THE COLLAGE'S LABEL AND ACTUAL SIZE (preview trial - collage.astro).
+
+  Under the name and year: what the piece is and how big, small and grey,
+  the second line of a museum label; and the button that shows it at its
+  real size.
+*/
+.series__label {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+  margin: 0.25rem 0 0;
+  font-family: var(--font-heading);
+  font-size: 0.8125rem;
+  color: var(--color-gray);
+}
+
+.series__real {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--color-navy);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.realsize {
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--ink-paper, #fff);
+  color: var(--color-navy);
+}
+
+.realsize[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.realsize::backdrop {
+  background: rgb(0 0 0 / 0.4);
+}
+
+html.realsize-open {
+  overflow: hidden;
+}
+
+.realsize__bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-gray-light);
+  font-family: var(--font-heading);
+}
+
+.realsize__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.realsize__btn {
+  flex: 0 0 auto;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--color-navy);
+  background: none;
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--color-navy);
+  cursor: pointer;
+}
+
+.realsize__close {
+  background: var(--color-navy);
+  color: #fff;
+}
+
+.realsize__calibrate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-gray-light);
+  font-family: var(--font-heading);
+}
+
+.realsize__calibrate[hidden] {
+  display: none;
+}
+
+.realsize__note {
+  max-width: 34rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  text-align: center;
+  color: var(--color-gray);
+}
+
+/* A bank card, 3.370 x 2.125 in, with its rounded corners. */
+.realsize__card {
+  border: 1.5px dashed var(--color-navy);
+  border-radius: 0.125in;
+}
+
+.realsize__slider {
+  width: min(24rem, 100%);
+}
+
+.realsize__scroll {
+  flex: 1 1 auto;
+  overflow: auto;
+  overscroll-behavior: contain;
+  cursor: grab;
+}
+
+.realsize__scroll.is-dragging {
+  cursor: grabbing;
+}
+
+/* The piece and its ruler, with a margin of wall around them. */
+.realsize__sheet {
+  position: relative;
+  box-sizing: content-box;
+  padding: 3.5rem 3rem 3rem;
+  margin: 0 auto;
+}
+
+/*
+  The ruler: a tick at every quarter inch, longer at the half, longest at
+  the inch - three repeating stripes sized to the screen's inch (--in).
+*/
+.realsize__ruler {
+  position: absolute;
+  top: 1.25rem;
+  left: 3rem;
+  right: 3rem;
+  height: 1.75rem;
+  border-bottom: 1px solid var(--color-navy);
+  background-image:
+    repeating-linear-gradient(to right, var(--color-navy) 0 1px, transparent 1px var(--in)),
+    repeating-linear-gradient(to right, var(--color-navy) 0 1px, transparent 1px calc(var(--in) / 2)),
+    repeating-linear-gradient(to right, var(--color-navy) 0 1px, transparent 1px calc(var(--in) / 4));
+  background-size:
+    100% 0.75rem,
+    100% 0.45rem,
+    100% 0.25rem;
+  background-position:
+    0 100%,
+    0 100%,
+    0 100%;
+  background-repeat: no-repeat;
+}
+
+.realsize__num {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-family: var(--font-heading);
+  font-size: 0.6875rem;
+  line-height: 1;
+  color: var(--color-navy);
+}
+
+.realsize__paper {
+  position: relative;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 12px 32px -12px rgb(0 0 0 / 0.25);
+}
+
+.realsize__soft,
+.realsize__sharp {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.realsize__soft {
+  filter: blur(0.5px);
+}
+
+.realsize__sharp {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.realsize__sharp:not([src]) {
+  display: none;
 }

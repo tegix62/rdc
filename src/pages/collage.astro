@@ -21,6 +21,8 @@ import {sanityClient} from '../lib/sanity';
 import {renderPortableText} from '../lib/portableText';
 import {tileImage} from '../lib/image';
 import {COLLAGE_FILTER, bySeriesOrder, collageName} from '../lib/collage';
+import {realSize, sizeText} from '../lib/museumLabel';
+import {stripStegaKey} from '../lib/stega';
 import Sections from '../components/Sections.astro';
 import Loupe from '../components/Loupe.astro';
 
@@ -28,16 +30,43 @@ const page = await getPage('collage');
 
 const pieces: any[] = await sanityClient.fetch(
   `*[_type == "caseStudy" && ${COLLAGE_FILTER} && !(_id in path("drafts.**"))]{
-     title, "slug": slug.current, thumbnail, mainImage,
+     title, "slug": slug.current, thumbnail, mainImage, medium, year, realWidth,
      "scan": fullScan.asset->{url, "w": metadata.dimensions.width, "h": metadata.dimensions.height}
    }`,
 );
 const series = pieces
   .filter((p) => tileImage(p))
   .sort(bySeriesOrder)
-  .map((p) => ({...p, ...collageName(p.title), hasScan: Boolean(p.scan?.url && p.scan?.w && p.scan?.h)}));
+  .map((p) => {
+    const named = collageName(p.title);
+    return {
+      ...p,
+      ...named,
+      // The Year field when Chris has set one, else the year in the title.
+      year: Number.isInteger(p.year) ? String(p.year) : named.year,
+      hasScan: Boolean(p.scan?.url && p.scan?.w && p.scan?.h),
+    };
+  });
 
 const anyScan = series.some((p) => p.hasScan);
+
+/*
+  TRIALS, PREVIEW ONLY until Chris has seen them:
+    museum labels  under the name and year, what the piece is and its size,
+                   the way a museum labels a work: "Paper on board,
+                   13 × 13 in". The medium only when Chris has written one -
+                   the page says "Collage" once and the label does not say
+                   it again nine times - and the size read from the scan.
+    actual size    a button that shows the collage at its real size on the
+                   screen, beside a ruler, with a bank card to match the
+                   screen's inch to a real one. See the script below.
+*/
+const TRIALS = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+const labelOf = (p: any) => {
+  const size = p.hasScan ? realSize(p.scan, p.realWidth) : null;
+  const detail = [stripStegaKey(p.medium), size ? sizeText(size) : ''].filter(Boolean).join(', ');
+  return {size, detail};
+};
 const hasBody = page?.body?.length > 0;
 const hasSections = page?.sections?.length > 0;
 ---
@@ -61,6 +90,28 @@ const hasSections = page?.sections?.length > 0;
         <span class="series__name">{p.name}</span>
         {p.year && <span class="series__year">{p.year}</span>}
       </p>
+      {TRIALS && (() => {
+        const {size, detail} = labelOf(p);
+        return (detail || size) && (
+          <p class="series__label">
+            {detail && <span class="series__detail">{detail}</span>}
+            {size && (
+              <button
+                type="button"
+                class="series__real"
+                data-realsize
+                data-name={p.name}
+                data-scan={p.scan.url}
+                data-in-w={size.w}
+                data-in-h={size.h}
+                data-px-w={p.scan.w}
+              >
+                See it at actual size
+              </button>
+            )}
+          </p>
+        );
+      })()}
     </section>
   ))}
 
@@ -69,7 +120,191 @@ const hasSections = page?.sections?.length > 0;
       <Sections sections={page.sections} where="/collage" />
     </div>
   )}
+
+  {TRIALS && anyScan && (
+    <dialog class="realsize" aria-labelledby="realsize-title">
+      <div class="realsize__bar">
+        <p class="realsize__title" id="realsize-title"></p>
+        <button type="button" class="realsize__btn" data-realsize-calibrate>Match my screen</button>
+        <button type="button" class="realsize__btn realsize__close" data-realsize-close aria-label="Close">Close</button>
+      </div>
+      <div class="realsize__calibrate" hidden>
+        <p class="realsize__note">
+          Hold a bank card flat against the screen and slide until the outline matches it. Every screen's inch is
+          different; this one is remembered on this device.
+        </p>
+        <div class="realsize__card" aria-hidden="true"></div>
+        <input class="realsize__slider" type="range" min="0.5" max="2.5" step="0.005" aria-label="Screen size" />
+        <button type="button" class="realsize__btn" data-realsize-done>Done</button>
+      </div>
+      <div class="realsize__scroll">
+        <div class="realsize__sheet">
+          <div class="realsize__ruler" aria-hidden="true"></div>
+          <div class="realsize__paper">
+            <img class="realsize__soft" alt="" draggable="false" />
+            <img class="realsize__sharp" alt="" draggable="false" decoding="async" />
+          </div>
+        </div>
+      </div>
+    </dialog>
+  )}
 </Layout>
+
+{/*
+  SEE IT AT ACTUAL SIZE (preview trial).
+
+  Chris's collages are 9" and 13" squares, and on a screen nobody can tell.
+  This shows one at its real size beside a ruler - and since a screen's
+  "inch" is only a guess (a CSS inch is 96 pixels, which is a laptop's inch
+  only by luck), a bank card outline to match it against: every card is
+  3.370 x 2.125 inches, the one object everyone has to hand. The match is
+  kept per device, in localStorage, as a per-viewer convenience.
+
+  The picture: the web copy already on the page shows at once, soft, and
+  the sharp one from the scan at the size the screen needs fades in over
+  it when it arrives (the CDN resizes the 600 DPI original; see warm-loupe
+  for the sizes kept warm).
+
+  Styled in global.css, not here: the critical-CSS step deletes inline rules
+  for anything JavaScript builds (the ruler's numbers).
+*/}
+<script>
+  const CARD_W = 3.37;
+  const CARD_H = 2.125;
+  const KEY = 'rdc-screen-inch';
+  const dialog = document.querySelector<HTMLDialogElement>('dialog.realsize');
+
+  // A first guess at how many CSS pixels make a real inch here, before
+  // anyone matches the card. Measured classes of screen, not one device:
+  // phones run about 150-165, a high-density laptop about 125-130, an
+  // ordinary monitor about 90-100.
+  const guess = () => {
+    if (matchMedia('(pointer: coarse)').matches) return 1.6;
+    if (devicePixelRatio >= 2) return 1.3;
+    return 1;
+  };
+  const load = (): number => {
+    try {
+      const v = Number(localStorage.getItem(KEY));
+      if (v > 0.4 && v < 3) return v;
+    } catch {}
+    return guess();
+  };
+  const save = (v: number) => {
+    try {
+      localStorage.setItem(KEY, String(v));
+    } catch {}
+  };
+
+  if (dialog) {
+    const title = dialog.querySelector<HTMLElement>('.realsize__title')!;
+    const scroll = dialog.querySelector<HTMLElement>('.realsize__scroll')!;
+    const sheet = dialog.querySelector<HTMLElement>('.realsize__sheet')!;
+    const ruler = dialog.querySelector<HTMLElement>('.realsize__ruler')!;
+    const soft = dialog.querySelector<HTMLImageElement>('.realsize__soft')!;
+    const sharp = dialog.querySelector<HTMLImageElement>('.realsize__sharp')!;
+    const cal = dialog.querySelector<HTMLElement>('.realsize__calibrate')!;
+    const card = dialog.querySelector<HTMLElement>('.realsize__card')!;
+    const slider = dialog.querySelector<HTMLInputElement>('.realsize__slider')!;
+    let scale = load();
+    let piece: {name: string; scan: string; w: number; h: number; px: number} | null = null;
+
+    const inch = () => 96 * scale;
+
+    const layout = () => {
+      if (!piece) return;
+      const W = piece.w * inch();
+      const H = piece.h * inch();
+      sheet.style.setProperty('--in', `${inch()}px`);
+      sheet.style.width = `${W}px`;
+      dialog.querySelector<HTMLElement>('.realsize__paper')!.style.height = `${H}px`;
+      // A number at every inch, under its tick.
+      ruler.replaceChildren(
+        ...Array.from({length: Math.floor(piece.w) + 1}, (_, k) => {
+          const n = document.createElement('span');
+          n.className = 'realsize__num';
+          n.textContent = String(k);
+          n.style.left = `${k * inch()}px`;
+          return n;
+        }),
+      );
+      // Enough pixels for this screen, never more than the scan has.
+      const want = Math.min(piece.px, Math.ceil(W * devicePixelRatio));
+      const steps = [1200, 1800, 2600, 3600, 5200, 7800];
+      const pick = Math.min(piece.px, steps.find((s) => s >= want) ?? piece.px);
+      const next = `${piece.scan}?w=${pick}&fm=webp&q=80`;
+      if (sharp.dataset.src !== next) {
+        sharp.dataset.src = next;
+        sharp.style.opacity = '0';
+        sharp.onload = () => (sharp.style.opacity = '1');
+        sharp.src = next;
+      }
+      card.style.width = `${CARD_W * inch()}px`;
+      card.style.height = `${CARD_H * inch()}px`;
+    };
+
+    const open = (b: HTMLElement) => {
+      piece = {
+        name: b.dataset.name ?? '',
+        scan: b.dataset.scan ?? '',
+        w: Number(b.dataset.inW),
+        h: Number(b.dataset.inH),
+        px: Number(b.dataset.pxW),
+      };
+      const fmt = (x: number) => String(x).replace('.25', '¼').replace('.5', '½').replace('.75', '¾');
+      title.textContent = `${piece.name}, actual size: ${fmt(piece.w)} × ${fmt(piece.h)} in`;
+      // The copy already on the page, at once; the sharp one over it.
+      const onPage = b.closest('.series__piece')?.querySelector<HTMLImageElement>('.loupe__img');
+      soft.src = onPage?.currentSrc || `${piece.scan}?w=1600&fm=webp&q=82`;
+      sharp.removeAttribute('src');
+      delete sharp.dataset.src;
+      cal.hidden = true;
+      layout();
+      document.documentElement.classList.add('realsize-open');
+      dialog.showModal();
+      // Start on the middle of the piece.
+      scroll.scrollLeft = (scroll.scrollWidth - scroll.clientWidth) / 2;
+      scroll.scrollTop = (scroll.scrollHeight - scroll.clientHeight) / 2;
+    };
+
+    document.querySelectorAll<HTMLElement>('[data-realsize]').forEach((b) => b.addEventListener('click', () => open(b)));
+    dialog.querySelector('[data-realsize-close]')!.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('close', () => document.documentElement.classList.remove('realsize-open'));
+
+    dialog.querySelector('[data-realsize-calibrate]')!.addEventListener('click', () => {
+      cal.hidden = !cal.hidden;
+      slider.value = String(scale);
+    });
+    slider.addEventListener('input', () => {
+      scale = Number(slider.value);
+      layout();
+    });
+    dialog.querySelector('[data-realsize-done]')!.addEventListener('click', () => {
+      save(scale);
+      cal.hidden = true;
+    });
+
+    // Drag to move around with a mouse; a finger scrolls natively.
+    let drag: {x: number; y: number; l: number; t: number} | null = null;
+    scroll.addEventListener('pointerdown', (e) => {
+      if (e.pointerType !== 'mouse' || e.button !== 0) return;
+      drag = {x: e.clientX, y: e.clientY, l: scroll.scrollLeft, t: scroll.scrollTop};
+      scroll.setPointerCapture(e.pointerId);
+      scroll.classList.add('is-dragging');
+    });
+    scroll.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      scroll.scrollLeft = drag.l - (e.clientX - drag.x);
+      scroll.scrollTop = drag.t - (e.clientY - drag.y);
+    });
+    const end = () => {
+      drag = null;
+      scroll.classList.remove('is-dragging');
+    };
+    scroll.addEventListener('pointerup', end);
+    scroll.addEventListener('pointercancel', end);
+  }
+</script>
 
 <style is:global>
   .series__head {

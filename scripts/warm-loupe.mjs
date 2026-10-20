@@ -53,6 +53,19 @@ for (const d of docs) {
     `${d.title}: ${grid.length} patches in ${((performance.now() - t0) / 1000).toFixed(0)}s, ` +
       `${slow} were cold (over 800 ms) - the rest were already warm`,
   )
+  // And the whole-picture sizes "See it at actual size" asks for (the steps
+  // in collage.astro's script), each no wider than the scan.
+  for (const step of [1200, 1800, 2600, 3600, 5200, 7800]) {
+    const sw = Math.min(w, step)
+    const s = performance.now()
+    const r = await fetch(`${url}?w=${sw}&fm=webp&q=80`)
+    await r.arrayBuffer()
+    if (r.status !== 200) {
+      failed++
+      console.log(`  FAIL ${r.status} at actual size ${sw}px`)
+    } else console.log(`  actual size ${sw}px: ${Math.round(performance.now() - s)} ms`)
+    if (sw === w) break
+  }
 }
 if (failed) {
   console.log(`\n${failed} patch(es) failed.`)

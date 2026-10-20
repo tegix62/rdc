@@ -239,7 +239,7 @@ const IN_PROJECT = (id: string) => `(parentBrand._ref == ${id} || parentBrand->p
 const TILE = `
   _id,
   title, slug, pageType, thumbnail, mainImage, category, archiveMark, heroTile,
-  tileTreatment, assetType, merchPlacement,
+  tileTreatment, assetType, merchPlacement, medium, year,
   headline, subtitle, client, resultStat, "summaryText": pt::text(summary),
   "tileOpaque": select(
     defined(thumbnail.asset) => thumbnail.asset->metadata.isOpaque,

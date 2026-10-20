@@ -7858,7 +7858,7 @@ html.realsize-open {
 .realsize__sheet {
   position: relative;
   box-sizing: content-box;
-  padding: 3.5rem 3rem 3rem;
+  padding: 0 3rem 3rem;
   margin: 0 auto;
 }
 
@@ -7867,11 +7867,20 @@ html.realsize-open {
   the inch - three repeating stripes sized to the screen's inch (--in).
 */
 .realsize__ruler {
-  position: absolute;
-  top: 1.25rem;
-  left: 3rem;
-  right: 3rem;
-  height: 1.75rem;
+  /*
+    Pinned to the top of the view as it scrolls, so the inches are in
+    sight wherever on the piece you are - it opens on the middle, where a
+    ruler above the picture was already out of view.
+  */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0 0 0.75rem;
+  padding-top: 1rem;
+  background-color: var(--ink-paper, #fff);
+  background-origin: content-box;
+  box-sizing: content-box;
+  height: 1.25rem;
   border-bottom: 1px solid var(--color-navy);
   background-image:
     repeating-linear-gradient(to right, var(--color-navy) 0 1px, transparent 1px var(--in)),
@@ -7890,7 +7899,7 @@ html.realsize-open {
 
 .realsize__num {
   position: absolute;
-  top: 0;
+  top: 0.25rem;
   transform: translateX(-50%);
   font-family: var(--font-heading);
   font-size: 0.6875rem;

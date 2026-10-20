@@ -24,11 +24,36 @@ export interface MuseumLabel {
 }
 
 export function museumLabel(item: any, extra: string[] = []): MuseumLabel | null {
-  if (!stripStegaKey(item?.title)) return null;
-  const medium = stripStegaKey(item?.medium) || stripStegaKey(item?.assetType) || stripStegaKey(item?.category);
+  const clean = stripStegaKey(item?.title);
+  if (!clean) return null;
+  /*
+    The piece's own name, without its project in front. Studio titles a
+    piece "DumpStat - Fantasy Keth Tee", which the grid needs (the tiles
+    are told apart by it), but the label sits beside the project's block,
+    which already names the project. So a leading "Project - " goes when
+    the project's own title starts with it. The prefix is cut from the
+    clean title, so this label loses its click-to-edit marker on the
+    preview; the tile's own title still carries one.
+  */
+  const project = stripStegaKey(item?.parentTitle).toLowerCase();
+  const m = clean.match(/^(.+?)\s+[-–—:]\s+(.+)$/);
+  const own = m && project && project.startsWith(m[1].toLowerCase()) ? m[2] : null;
+  const title = own ?? item.title;
+  const titleText = (own ?? clean).toLowerCase();
+  /*
+    Then what it is. The Medium field as written; the fallbacks only when
+    they add something - "Aries Tarot Illustration" followed by
+    "Illustration" says the word twice.
+  */
+  const medium =
+    stripStegaKey(item?.medium) ||
+    [stripStegaKey(item?.assetType), stripStegaKey(item?.category)].find(
+      (w) => w && !titleText.includes(w.toLowerCase()),
+    ) ||
+    '';
   const year = Number.isInteger(item?.year) ? String(item.year) : '';
   const detail = [medium, ...extra, year].filter(Boolean).join(', ');
-  return {title: item.title, detail};
+  return {title, detail};
 }
 
 /*

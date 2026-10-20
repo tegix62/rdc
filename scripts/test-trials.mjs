@@ -100,6 +100,7 @@ for (const [label, opts] of [
       }
     })
     check(`${label} ${project}: the opened piece has a label`, r.shown && r.text.length > 0, JSON.stringify(r.text))
+    check(`${label} ${project}: naming the piece, not its project again`, !/^(DumpStat|Hug a Mug)\s+[-–—:]/.test(r.text), JSON.stringify(r.text))
     check(`${label} ${project}: inside its frame`, r.inside)
     // The inset outline plus at least one outer shadow.
     check(`${label} ${project}: lifted on a shadow`, (r.shadow.match(/rgba?\(/g) ?? []).length >= 3, r.shadow.slice(0, 80))
@@ -152,6 +153,12 @@ for (const [label, opts] of [
       sharpW: s?.naturalWidth,
       centred: sc ? Math.abs(sc.scrollLeft - (sc.scrollWidth - sc.clientWidth) / 2) < 4 : false,
       title: d?.querySelector('.realsize__title')?.textContent,
+      // The ruler pinned in sight, though the view opens on the middle.
+      rulerInView: (() => {
+        const rb = d?.querySelector('.realsize__ruler')?.getBoundingClientRect()
+        const vb = sc?.getBoundingClientRect()
+        return !!rb && !!vb && rb.top >= vb.top - 1 && rb.bottom <= vb.bottom && rb.height > 0
+      })(),
     }
   })
   check(`${label}: the actual-size view opens`, r.open, r.title)
@@ -159,15 +166,24 @@ for (const [label, opts] of [
   check(`${label}: the paper is as wide as its inches`, r.paperW > 0 && r.paperW / r.inch >= r.nums - 1.1, `${Math.round(r.paperW)}px`)
   check(`${label}: and the sharp picture arrives`, sharp, `${r.sharpW}px across`)
   check(`${label}: starting on the middle of the piece`, r.centred)
+  check(`${label}: with the ruler still in sight`, r.rulerInView)
   await page.screenshot({path: `${OUT}/actual-size-${label}.png`})
   await page.locator('[data-realsize-calibrate]').click()
   await page.waitForTimeout(300)
   const card = await page.evaluate(() => {
     const c = document.querySelector('.realsize__card')?.getBoundingClientRect()
     const inch = parseFloat(getComputedStyle(document.querySelector('.realsize__sheet')).getPropertyValue('--in'))
-    return {w: c?.width, h: c?.height, inch}
+    return {w: c?.width, h: c?.height, inch, vw: innerWidth}
   })
-  check(`${label}: "Match my screen" shows a bank card at the same inch`, Math.abs(card.w - 3.37 * card.inch) < 2, `${Math.round(card.w)}x${Math.round(card.h)}px`)
+  // Lying flat, or upright where flat would be wider than the screen.
+  const long = Math.max(card.w, card.h)
+  const short = Math.min(card.w, card.h)
+  check(
+    `${label}: "Match my screen" shows a bank card at the same inch`,
+    Math.abs(long - 3.37 * card.inch) < 2 && Math.abs(short - 2.125 * card.inch) < 2,
+    `${Math.round(card.w)}x${Math.round(card.h)}px`,
+  )
+  check(`${label}: and the whole card fits across the screen`, card.w <= card.vw, `${Math.round(card.w)} of ${card.vw}px`)
   await page.screenshot({path: `${OUT}/actual-size-calibrate-${label}.png`})
   await page.locator('[data-realsize-close]').click()
   await page.waitForTimeout(300)

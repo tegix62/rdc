@@ -248,8 +248,12 @@ const hasSections = page?.sections?.length > 0;
         sharp.onload = () => (sharp.style.opacity = '1');
         sharp.src = next;
       }
-      card.style.width = `${CARD_W * inch()}px`;
-      card.style.height = `${CARD_H * inch()}px`;
+      // Upright where a card lying flat is wider than the screen - a phone
+      // is narrower than a bank card is long (measured, 518px on a 390px
+      // screen) - so it can be held against the glass and matched.
+      const upright = CARD_W * inch() > innerWidth - 32;
+      card.style.width = `${(upright ? CARD_H : CARD_W) * inch()}px`;
+      card.style.height = `${(upright ? CARD_W : CARD_H) * inch()}px`;
     };
 
     const open = (b: HTMLElement) => {

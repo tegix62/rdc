@@ -234,10 +234,13 @@ const hasSections = page?.sections?.length > 0;
           return n;
         }),
       );
-      // Enough pixels for this screen, never more than the scan has.
-      const want = Math.min(piece.px, Math.ceil(W * devicePixelRatio));
-      const steps = [1200, 1800, 2600, 3600, 5200, 7800];
-      const pick = Math.min(piece.px, steps.find((s) => s >= want) ?? piece.px);
+      // Enough pixels for this screen, never more than the scan has - and
+      // no more than 3600 across: a phone at three device pixels asked for
+      // the whole 7,186px scan, which never arrived (the test waited 20s).
+      // Twice the CSS size is as sharp as an eye at arm's length can use.
+      const want = Math.min(piece.px, Math.ceil(W * Math.min(devicePixelRatio, 2)));
+      const steps = [1200, 1800, 2600, 3600];
+      const pick = Math.min(piece.px, steps.find((s) => s >= want) ?? 3600);
       const next = `${piece.scan}?w=${pick}&fm=webp&q=80`;
       if (sharp.dataset.src !== next) {
         sharp.dataset.src = next;

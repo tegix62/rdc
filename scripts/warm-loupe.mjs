@@ -55,7 +55,7 @@ for (const d of docs) {
   )
   // And the whole-picture sizes "See it at actual size" asks for (the steps
   // in collage.astro's script), each no wider than the scan.
-  for (const step of [1200, 1800, 2600, 3600, 5200, 7800]) {
+  for (const step of [1200, 1800, 2600, 3600]) {
     const sw = Math.min(w, step)
     const s = performance.now()
     const r = await fetch(`${url}?w=${sw}&fm=webp&q=80`)

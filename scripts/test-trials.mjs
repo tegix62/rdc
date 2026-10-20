@@ -94,7 +94,9 @@ for (const [label, opts] of [
         text: lab?.textContent?.replace(/[​-‏⁠-⁯﻿]|[\udb40][\udc00-\udc7f]/g, '').trim() ?? '',
         inside: !!lb && !!ob && lb.top >= ob.top && lb.bottom <= ob.bottom + 1,
         shadow: frame ? getComputedStyle(frame).boxShadow : '',
-        outside: set.filter((el) => el.getBoundingClientRect().bottom > innerHeight + 1).length,
+        // On a phone the rest of the set runs on below the screen by
+        // design; there it is the opened piece and its label that must fit.
+        outside: (innerWidth < 768 ? [opened] : set).filter((el) => el && el.getBoundingClientRect().bottom > innerHeight + 1).length,
       }
     })
     check(`${label} ${project}: the opened piece has a label`, r.shown && r.text.length > 0, JSON.stringify(r.text))

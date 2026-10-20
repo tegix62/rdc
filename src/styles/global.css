@@ -7666,6 +7666,19 @@ body {
   overflow: hidden;
 }
 
+/*
+  In the bar's place, where the project's block is beside the piece. The
+  block already names the project and carries "See the project", so the
+  navy bar under the piece said it twice (Chris, on an earlier version:
+  "it is repetitive to have the name of the parent project twice") - and
+  the label under it as well made the piece taller than the rows beside it
+  could follow (measured, the Merch test's rows reached 74% of the way
+  down a 1920 shirt instead of 78%). The label is what is left.
+*/
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster).has-labels:has(.pf-item.is-card--beside) .pf-item.is-expanded:has(.pf-item__label) .pf-item__jump {
+  display: none;
+}
+
 .pf-item__label-title {
   flex: 0 1 auto;
   min-width: 0;

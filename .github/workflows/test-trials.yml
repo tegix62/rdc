@@ -40,7 +40,7 @@ jobs:
           git checkout --orphan shots
           git rm -rfq .
           cp /tmp/trial-shots/*.* .
-          git add -A
+          git add -- report.txt $(ls *.png *.webm 2>/dev/null)
           git commit -qm "Trial pictures"
           git push -f origin shots
       - name: Publish to the run summary

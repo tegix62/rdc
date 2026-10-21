@@ -6,6 +6,8 @@
                    where the project has credits, a line of the names
                    involved, linked as the Credits panel links them - and
                    the set still fits the window
+    the glide      the gathered pieces travel from where they were to where
+                   they land, and stop
     the wall and   ROLLED BACK - checked absent: no lifted shadow, nothing
     paste-up       pasting down
     actual size    on /collage, "See it at actual size" opens the collage at
@@ -75,7 +77,16 @@ for (const [label, opts] of [
       grid: !!document.querySelector('#pf-grid.is-paste, #pf-grid.is-wall'),
     }))
     check(`${label} ${project}: no paste-up or lifted wall any more`, pasting.n === 0 && !pasting.grid, JSON.stringify(pasting))
+    // The calm gather: the project's pieces mid-way through their move.
+    const moving = await page.evaluate(() =>
+      document.getAnimations().filter((a) => a.playState === 'running' && a.effect?.target?.closest?.('#pf-grid .pf-item')).length,
+    )
+    check(`${label} ${project}: the pieces glide into place`, moving >= 3, `${moving} moving`)
     await page.waitForTimeout(3400)
+    const stillMoving = await page.evaluate(() =>
+      document.getAnimations().filter((a) => a.playState === 'running' && a.effect?.target?.closest?.('#pf-grid .pf-item')).length,
+    )
+    check(`${label} ${project}: and stop`, stillMoving === 0, `${stillMoving} still moving`)
     const r = await page.evaluate(() => {
       const opened = document.querySelector('#pf-grid .pf-item.is-expanded')
       const lab = opened?.querySelector('.pf-item__label')
@@ -113,6 +124,49 @@ for (const [label, opts] of [
     check(`${label} ${project}: and the set still fits the window`, r.outside === 0, `${r.outside} outside`)
     await page.screenshot({path: `${OUT}/label-${label}-${project.split('/').pop()}.png`})
     await page.close()
+  }
+}
+
+// ------------------------------------------------------------ glide, on video
+// Motion has to be seen moving: a short recording of a gather per size.
+for (const [label, opts, size] of [
+  ['1440', {viewport: {width: 1440, height: 900}}, {width: 1440, height: 900}],
+  ['phone', {...devices['iPhone 13']}, {width: 390, height: 664}],
+]) {
+  const ctx = await browser.newContext({...opts, recordVideo: {dir: `${OUT}/video-tmp`, size}})
+  await ctx.addInitScript(() => {
+    try {
+      sessionStorage.setItem('pf-demo-shown', '1')
+    } catch {}
+  })
+  const page = await ctx.newPage()
+  await page.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.waitForSelector('#pf-grid .pf-item', {state: 'visible', timeout: 30_000})
+  await page.waitForTimeout(2500)
+  // A DumpStat piece part-way down the first screen, so the gather has
+  // somewhere to come from.
+  const i = await page.evaluate(() => {
+    const all = Array.from(document.querySelectorAll('#pf-grid .pf-item'))
+    const ok = (el) => {
+      const b = el.getBoundingClientRect()
+      return (
+        el.querySelector('.pf-item__jump')?.getAttribute('href') === '/work/dumpstat' &&
+        !el.querySelector('.pf-card') &&
+        b.top > innerHeight * 0.3 &&
+        b.bottom < innerHeight
+      )
+    }
+    const k = all.findIndex(ok)
+    return k >= 0 ? k : all.findIndex((el) => el.querySelector('.pf-item__jump')?.getAttribute('href') === '/work/dumpstat')
+  })
+  await page.locator('#pf-grid .pf-item').nth(i).locator('.pf-item__img').click()
+  await page.waitForTimeout(2500)
+  const video = page.video()
+  await ctx.close()
+  if (video) {
+    const {renameSync} = await import('node:fs')
+    renameSync(await video.path(), `${OUT}/glide-${label}.webm`)
+    console.log(`      recorded glide-${label}.webm`)
   }
 }
 

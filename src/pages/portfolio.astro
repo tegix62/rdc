@@ -147,6 +147,14 @@ const MUSEUM_LABELS = PREVIEW;
 */
 const WALL = false;
 const PASTE_UP = false;
+/*
+  GLIDE - the calm, explanatory gather (Chris: "try 1"). No wobble, no
+  flourish: the project's pieces travel from where they were scattered to
+  where they gather, so the move says why it happened - these were all over
+  the grid, and they belong together. Motion that explains a change, which
+  is the one reason the paste-up never had. See glide() in the script.
+*/
+const GLIDE = PREVIEW;
 
 if (emptyFilters.length > 0) {
   console.warn(
@@ -283,7 +291,7 @@ if (emptyFilters.length > 0) {
         - a timeout removes it regardless, so if Isotope fails to load the
           tiles come back in float order instead of staying invisible.
     */}
-    <div class:list={['pf-grid', MUSEUM_LABELS && 'has-labels', WALL && 'is-wall', PASTE_UP && 'is-paste']} id="pf-grid">
+    <div class:list={['pf-grid', MUSEUM_LABELS && 'has-labels', WALL && 'is-wall', PASTE_UP && 'is-paste', GLIDE && 'is-glide']} id="pf-grid">
       {items.map((item: any, i: number) => {
         // tileImage, not `thumbnail || mainImage`: an empty Grid Thumbnail is
         // truthy and used to swallow the real picture. See lib/image.ts.
@@ -2947,6 +2955,16 @@ if (emptyFilters.length > 0) {
       iso.arrange();
     };
 
+    // Where every tile was on the screen when a gather began - see glide().
+    let glideStart: Map<HTMLElement, DOMRect> | null = null;
+    const snapshotTiles = () => {
+      const m = new Map<HTMLElement, DOMRect>();
+      for (const el of grid.querySelectorAll<HTMLElement>('.pf-item')) {
+        if (el.style.display !== 'none') m.set(el, el.getBoundingClientRect());
+      }
+      return m;
+    };
+
     const gather = (item: HTMLElement, family: HTMLElement[], anchorAt?: number) => {
       /*
         Moving from one gathered project straight to another puts the deal
@@ -3616,6 +3634,77 @@ if (emptyFilters.length > 0) {
       // handler for the full account.
       reloadItems();
       iso.arrange();
+
+      /*
+        The glide starts from the screen the visitor last saw. The set is
+        about to be scrolled into place, so that first correction is made
+        here, before anything paints, and the pieces then travel from where
+        they were on the screen to where they land on it. Without it they
+        would jump by the scroll on the first frame and glide from there.
+      */
+      if (glideStart) {
+        const first = driftNow();
+        if (own && Math.abs(first) > 1) window.scrollBy({top: first, behavior: 'instant' as ScrollBehavior});
+        glide([item, ...family], glideStart);
+        glideStart = null;
+      }
+    };
+
+    /*
+      THE CALM GATHER (an experiment, preview only - GLIDE in the
+      frontmatter, which puts .is-glide on the grid).
+
+      The gather used to be a cut: Isotope moves nothing over time here, so
+      the pieces were simply somewhere else on the next frame and the
+      reason they had come together had to be inferred afterwards. This
+      plays the move. Each piece of the project travels from where it sat
+      to where it lands, all together, unhurried, and stops - no turn, no
+      bounce, no stagger. Motion that explains a change.
+
+      FLIP: the boxes are measured before the click changes anything
+      (glideStart, from the click handler) and again after the layout, and
+      each piece's CONTENTS are offset back to where they were and released.
+      The contents, not the tile: the tile's box is what the layout and the
+      scroll correction measure, and it must be where it really is from the
+      first frame.
+
+      A piece that was off screen, or hidden by a filter, does not fly in
+      across the page - it rises a short way from the side it was on and
+      fades in. Nothing moves for anyone who has asked for less motion.
+    */
+    const glide = (els: HTMLElement[], start: Map<HTMLElement, DOMRect>) => {
+      if (!grid.classList.contains('is-glide')) return;
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const vh = window.innerHeight;
+      for (const el of new Set(els)) {
+        if (!el.isConnected || el.style.display === 'none') continue;
+        const b = el.getBoundingClientRect();
+        if (!b.width) continue;
+        const a = start.get(el);
+        const seen = !!a && a.width > 0 && a.bottom > 0 && a.top < vh;
+        let dx = 0;
+        let dy = 0;
+        if (seen) {
+          dx = a!.left + a!.width / 2 - (b.left + b.width / 2);
+          dy = a!.top + a!.height / 2 - (b.top + b.height / 2);
+        } else {
+          const side = a && a.width > 0 ? Math.sign(a.top - b.top) || 1 : 1;
+          dy = side * Math.min(vh * 0.2, 140);
+        }
+        const dist = Math.hypot(dx, dy);
+        if (seen && dist < 2) continue;
+        // Longer moves take a little longer, so nothing races.
+        const duration = Math.round(Math.min(640, 400 + dist * 0.2));
+        const from: Keyframe = {transform: `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`};
+        const to: Keyframe = {transform: 'translate(0, 0)'};
+        if (!seen) {
+          from.opacity = 0;
+          to.opacity = 1;
+        }
+        for (const c of Array.from(el.children) as HTMLElement[]) {
+          c.animate([from, to], {duration, easing: 'cubic-bezier(0.3, 0, 0.15, 1)'});
+        }
+      }
     };
 
     /*
@@ -4419,6 +4508,8 @@ if (emptyFilters.length > 0) {
       const anchorTop = item.getBoundingClientRect().top;
       dropPreview(explained);
       const wasExpanded = item.classList.contains('is-expanded');
+      // The screen as the visitor sees it, before anything opens or moves.
+      glideStart = grid.classList.contains('is-glide') && !wasExpanded ? snapshotTiles() : null;
       grid.querySelectorAll<HTMLElement>('.pf-item.is-expanded').forEach((el) => {
         el.classList.remove('is-expanded');
         // Clear the hint with the state it belongs to, or the tile keeps
@@ -4534,7 +4625,12 @@ if (emptyFilters.length > 0) {
               } else {
                 drawLinks(focusItem, focusFamily, 'preview');
                 nameSet(focusItem, focusFamily);
-                window.setTimeout(go, EXPLAIN_HOLD);
+                window.setTimeout(() => {
+                  // The thread held the opened layout on screen for a beat,
+                  // so that is what the glide starts from.
+                  if (glideStart) glideStart = snapshotTiles();
+                  go();
+                }, EXPLAIN_HOLD);
               }
             } else if (wasExpanded) restoreOrder();
             else if (clustered()) showWhole(item);

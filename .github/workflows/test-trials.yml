@@ -39,8 +39,8 @@ jobs:
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git checkout --orphan shots
           git rm -rfq .
-          cp /tmp/trial-shots/* .
-          git add -- *.png report.txt
+          cp /tmp/trial-shots/*.* .
+          git add -A
           git commit -qm "Trial pictures"
           git push -f origin shots
       - name: Publish to the run summary

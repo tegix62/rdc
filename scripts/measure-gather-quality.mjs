@@ -67,6 +67,13 @@ const pickAll = (page) =>
       by.get(h).push(el)
     }
     const out = []
+    // And each project's own tile - the one carrying its words. Skipped until
+    // Chris's DumpStat screenshot showed it gathering without a block.
+    const studies = new Map()
+    for (const el of all) {
+      const h = href(el)
+      if (h && el.classList.contains('pf-item--study') && getComputedStyle(el).display !== 'none') studies.set(h, el)
+    }
     for (const [h, els] of by) {
       if (els.length < 3) continue
       const step = Math.max(1, Math.floor(els.length / per))
@@ -83,6 +90,8 @@ const pickAll = (page) =>
       // screenshot).
       const isMark = (el) => el.classList.contains('pf-item--mark') || el.dataset.wide !== undefined
       const photos = els.filter((el) => !isMark(el))
+      const own = studies.get(h)
+      if (own) out.push({h, i: all.indexOf(own), piece: own.dataset.piece, study: true})
       for (const pool of [els, photos]) {
         if (!pool.length) continue
         const widest = pool.reduce((a, b) => (aspect(b) > aspect(a) ? b : a))
@@ -139,6 +148,7 @@ const measure = (page) =>
     const ob = opened?.getBoundingClientRect()
     return {
       cluster: grid.classList.contains('is-cluster'),
+      blockBeside: !!grid.querySelector('.pf-item.is-card.is-card--beside'),
       opened: opened?.dataset.piece,
       openedSide: ob ? (ob.left < 40 ? 'left' : ob.right > grid.getBoundingClientRect().right - 40 ? 'right' : 'middle') : '-',
       setN: set.length,
@@ -178,18 +188,21 @@ for (const [w, h] of SIZES) {
     if (m.orphans.length) totals.gathersWithOrphans++
     if (m.blockFill < 0.6) totals.sparseBlocks++
     const low = m.reach !== null && m.reach < LOW_REACH
+    // A desktop gather always has its project's block beside the piece.
+    const noBlock = !m.blockBeside
+    if (noBlock) totals.noBlock = (totals.noBlock ?? 0) + 1
     if (low) totals.lowFill++
     totals.outOfView += m.outOfView ? 1 : 0
     totals.overlaps += m.overlaps ? 1 : 0
-    const bad = m.orphans.length || m.blockFill < 0.6 || low || m.outOfView || m.overlaps
+    const bad = m.orphans.length || m.blockFill < 0.6 || low || noBlock || m.outOfView || m.overlaps
     const firstOfProject = picks.findIndex((q) => q.h === p.h) === picks.indexOf(p)
-    if (OUT && (bad || firstOfProject || p.wide)) {
+    if (OUT && (bad || firstOfProject || p.wide || p.study)) {
       const slug = p.h.split('/').filter(Boolean).pop()
-      await page.screenshot({path: `${OUT}/${w}-${slug}-${picks.indexOf(p)}${p.wide ? '-wide' : ''}${bad ? '-bad' : ''}.png`})
+      await page.screenshot({path: `${OUT}/${w}-${slug}-${picks.indexOf(p)}${p.wide ? '-wide' : ''}${p.study ? '-own' : ''}${bad ? '-bad' : ''}.png`})
     }
     console.log(
       `${bad ? 'BAD ' : 'ok  '} ${p.h} :: ${m.opened} (${m.openedSide}) - ${m.setN} in set, ${m.rows.length} rows ` +
-        `[${m.rows.map((r) => `${r.n}@${r.h}`).join(' ')}], block fill ${m.blockFill}, reach ${m.reach ?? '-'}${p.wide ? ' (widest)' : ''}` +
+        `[${m.rows.map((r) => `${r.n}@${r.h}`).join(' ')}], block fill ${m.blockFill}, reach ${m.reach ?? '-'}${p.wide ? ' (widest)' : ''}${p.study ? ' (its own tile)' : ''}${noBlock ? ', NO BLOCK' : ''}` +
         `${m.outOfView ? `, ${m.outOfView} out of view` : ''}${m.overlaps ? `, ${m.overlaps} overlaps` : ''}`,
     )
     for (const o of m.orphans) console.log(`       orphan row: ${o}`)
@@ -200,5 +213,5 @@ await browser.close()
 
 console.log(
   `\nTOTAL ${totals.gathers} gathers: ${totals.gathersWithOrphans} with orphan rows (${totals.orphanRows} rows), ` +
-    `${totals.sparseBlocks} sparse blocks, ${totals.lowFill} with the rest under ${LOW_REACH * 100}% of the way down, ${totals.outOfView} with pieces out of view, ${totals.overlaps} with overlaps`,
+    `${totals.noBlock ?? 0} without a block, ${totals.sparseBlocks} sparse blocks, ${totals.lowFill} with the rest under ${LOW_REACH * 100}% of the way down, ${totals.outOfView} with pieces out of view, ${totals.overlaps} with overlaps`,
 )

@@ -7666,6 +7666,28 @@ body {
   overflow: hidden;
 }
 
+/*
+  The project's own tile, opened with its block beside it (a copy - see
+  OPENING THE PROJECT'S OWN TILE in portfolio.astro): the block already
+  names the project, so the label keeps only its line of names, and goes
+  altogether when there are none.
+*/
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster).has-labels:has(.pf-item.is-card--beside) .pf-item--study.is-expanded .pf-item__label > .pf-item__label-line:first-child {
+  display: none;
+}
+
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster).has-labels:has(.pf-item.is-card--beside) .pf-item--study.is-expanded .pf-item__label:not(.pf-item__label--credits) {
+  display: none;
+}
+
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster).has-labels:has(.pf-item.is-card--beside) .pf-item--study.is-expanded {
+  --pf-label-h: 2.25rem;
+}
+
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster).has-labels:has(.pf-item.is-card--beside) .pf-item--study.is-expanded:not(:has(.pf-item__label--credits)) {
+  --pf-label-h: 0px;
+}
+
 /* With a line of names under it, the label is a line taller - and the
    picture's window cap gives that room too (--pf-label-h). */
 :is(.pf-grid.is-merch-view, .pf-grid.is-cluster).has-labels .pf-item:has(.pf-item__label--credits) {

@@ -2267,6 +2267,9 @@ if (emptyFilters.length > 0) {
 
     // The phone gather's closing button - see THE SET ENDS ON A BUTTON.
     let endTile: HTMLElement | null = null;
+    // The block made for a gather opened on the project's own tile - see
+    // OPENING THE PROJECT'S OWN TILE in gather().
+    let blockCopy: HTMLElement | null = null;
     const makeEndTile = () => {
       const el = document.createElement('div');
       el.className = 'pf-item pf-end';
@@ -2292,6 +2295,14 @@ if (emptyFilters.length > 0) {
         revealed.delete(endTile);
         iso.remove(endTile);
         endTile.remove();
+      }
+      if (blockCopy) {
+        revealed.delete(blockCopy);
+        if (blockCopy.isConnected) {
+          iso.remove(blockCopy);
+          blockCopy.remove();
+        }
+        blockCopy = null;
       }
       grid.querySelectorAll<HTMLElement>('.pf-item').forEach((el) => {
         el.style.removeProperty('--minor-span');
@@ -3262,6 +3273,38 @@ if (emptyFilters.length > 0) {
           the block its room: the set still has to fit the window.
         */
         card = family.find((el) => el !== item && el.querySelector('.pf-card')) ?? null;
+        /*
+          OPENING THE PROJECT'S OWN TILE STILL GIVES IT A BLOCK.
+
+          Chris, with a screenshot of DumpStat gathered from its own tile:
+          "the gather on desktop's still clunky". That tile IS the block -
+          it carries the project's words - so opening it left the set with
+          none: the picture centred, nothing beside it, the rest split into
+          two narrow strips either side with white under one, and the
+          project's name said twice under the picture.
+
+          So the block is a copy of the tile, made for this gather only and
+          removed with it (see clearFamily), and the opened tile is simply
+          the piece. Everything after this sees an ordinary gather: the
+          piece to one side, its block beside it, the rows under the block.
+          The copy carries no project bar, label or piece id, so nothing
+          that counts a project's pieces counts it.
+        */
+        if (!card && item.querySelector('.pf-card')) {
+          const copy = item.cloneNode(true) as HTMLElement;
+          copy.removeAttribute('style');
+          // Lit with the set (is-sibling stays), but not opened.
+          copy.classList.remove('is-expanded', 'is-minor', 'is-near', 'is-justified', 'is-preview-sibling');
+          copy.classList.add('is-sibling');
+          for (const a of ['data-piece', 'data-piece-parent', 'data-slug']) copy.removeAttribute(a);
+          copy.querySelectorAll('.pf-item__jump, .pf-item__label, .pf-tag').forEach((el) => el.remove());
+          copy.dataset.blockCopy = '';
+          // In the document at once, so the phone's stacked block can be measured below.
+          item.after(copy);
+          revealed.add(copy);
+          blockCopy = copy;
+          card = copy;
+        }
         const rest = family.filter((el) => el !== item && el !== card && !near.includes(el));
         openWide = opensWide(item, !!card, near.length > 0);
         /*

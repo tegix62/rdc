@@ -22,6 +22,8 @@ const SIZES = [
   [1440, 760],
   [1536, 730],
   [1920, 950],
+  // Wide and short: the Merch test's 2560x1000 case.
+  [2560, 1000],
 ]
 
 const browser = await chromium.launch()
@@ -78,7 +80,11 @@ for (const [w, h] of SIZES) {
       const o = opened.getBoundingClientRect()
       const members = set.map((el) => {
         const b = el.getBoundingClientRect()
-        return `${el === opened ? 'OPENED' : el.classList.contains('is-minor') ? 'minor' : 'near'} ${Math.round(b.left)},${Math.round(b.top)} ${Math.round(b.width)}x${Math.round(b.height)} ${(el.querySelector('.pf-item__img')?.getAttribute('alt') ?? '').replace(/[\u200b-\u200f\u2060-\u2064\ufeff]/g, '').slice(0, 40)}`
+        // The opened piece's museum label (preview), which adds height under it.
+        const lab = el === opened ? el.querySelector('.pf-item__label') : null
+        const lh = lab && getComputedStyle(lab).display !== 'none' ? ` label ${Math.round(lab.getBoundingClientRect().height)}px` : ''
+        const role = el === opened ? 'OPENED' : el.classList.contains('is-card') ? 'BLOCK' : el.classList.contains('is-minor') ? 'minor' : 'near'
+        return `${role} ${Math.round(b.left)},${Math.round(b.top)} ${Math.round(b.width)}x${Math.round(b.height)}${lh} ${(el.querySelector('.pf-item__img')?.getAttribute('alt') ?? '').replace(/[\u200b-\u200f\u2060-\u2064\ufeff]/g, '').slice(0, 40)}`
       })
       return {
         members,

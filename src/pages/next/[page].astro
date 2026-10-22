@@ -1,0 +1,621 @@
+---
+/*
+  THE NEW HOMEPAGE - preview only, at /next/home, beside the live one.
+
+  Chris: "It does do a lot in terms of ... listing accomplishments ... but
+  I feel like it is outdated in comparison to the rest of the website ...
+  what is a better way it can be of service?"
+
+  The live homepage is built like a sales page - wordmark over video,
+  stats, star ratings, a checklist, a closing pitch - which says "I hope
+  you'll hire me". An art director in demand shows the work, says who it
+  was made with, and makes it easy to get in touch. The portfolio already
+  speaks that way; this page is its front door, in the same voice:
+
+    1  your name and one line of what you do, small; under it ONE piece,
+       large - the page's one loud moment (homeLead, else the scanned
+       collage)
+    2  the projects, big, each with a museum label - title, what, when, who
+       for, and who was involved - each opening its project already
+       gathered on the Portfolio
+    3  a "Now" line (nowLine): what you are working on, when you are free
+    4  names as text, like film credits - the clients, and the people in
+       the Credits panels - instead of a strip of logos
+    5  one proof: the strongest client quote, with a name. No stars, stat
+       cards or checklist
+    6  one way to reach you
+
+  Nothing here exists only here: the labels, the block type and the
+  credits are the portfolio's. Where a Studio field it relies on is
+  empty, the preview says which one, in place - this page is never built
+  for production (see getStaticPaths), so the hints never reach a visitor.
+*/
+import Layout from '../../layouts/Layout.astro';
+import Img from '../../components/Img.astro';
+import {getSiteSettings} from '../../lib/queries';
+import {sanityClient} from '../../lib/sanity';
+import {tileImage, hasAsset} from '../../lib/image';
+import {treatmentOf} from '../../lib/tiles';
+import {stripStegaKey} from '../../lib/stega';
+import {parseCreditLines} from '../../lib/credits';
+import {collageName, COLLAGE_FILTER} from '../../lib/collage';
+import {museumLabel} from '../../lib/museumLabel';
+
+export async function getStaticPaths() {
+  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
+  return [{params: {page: 'home'}}];
+}
+
+const settings = await getSiteSettings();
+const CONTACT_URL = settings?.contactUrl || '/contact';
+const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
+
+const name = clean(settings?.founderName) || 'Chris Rumeau';
+const line =
+  clean(settings?.tagline) || 'Brand identity, lettering and merch design for heritage apparel brands and musicians.';
+const nowLine = settings?.nowLine;
+const email = clean(settings?.email);
+
+// ------------------------------------------------------------ the projects
+/*
+  Case studies, not tiles: the projects are the work, a tile is a detail
+  from one. In the order of the homepage picker where it names them (or
+  one of their pieces), then by title. A password-protected (NDA) project
+  is left out.
+*/
+const PROJECT = `
+  _id, title, "slug": slug.current, pageType, thumbnail, mainImage, headline, client,
+  category, medium, year, assetType, tileTreatment, creditsText, "parentTitle": null
+`;
+const projects: any[] = await sanityClient.fetch(
+  `*[_type == "caseStudy" && pageType == "Case Study" && !defined(accessPassword)
+     && !(_id in path("drafts.**")) && (defined(thumbnail) || defined(mainImage))]{${PROJECT}}`,
+);
+const picked: string[] = (
+  ((await sanityClient.fetch(
+    `*[_type == "siteSettings"][0].featuredWork[]->{
+       "p": select(parentBrand->pageType == "Grid Item" => parentBrand->parentBrand._ref,
+                   defined(parentBrand._ref) => parentBrand._ref, _id)
+     }`,
+  )) ?? []) as {p?: string}[]
+)
+  .map((x) => x?.p ?? '')
+  .filter(Boolean);
+const rank = (id: string) => {
+  const k = (picked ?? []).indexOf(id.replace(/^drafts\./, ''));
+  return k < 0 ? Infinity : k;
+};
+const work = projects
+  .filter((p) => tileImage(p))
+  .sort((a, b) => rank(a._id) - rank(b._id) || clean(a.title).localeCompare(clean(b.title)));
+
+/* The picture a project leads with: its page's hero when it has one. */
+const pictureOf = (p: any) => (hasAsset(p.mainImage) ? p.mainImage : tileImage(p));
+
+/* The museum label, for a project: what, when, who for, who with. */
+const labelOf = (p: any) => {
+  const base = museumLabel(p);
+  const people = parseCreditLines(p.creditsText);
+  return {
+    title: p.title,
+    headline: clean(p.headline) && clean(p.headline) !== clean(p.title) ? p.headline : null,
+    detail: base?.detail ?? '',
+    client: clean(p.client) ? p.client : null,
+    people,
+  };
+};
+
+// ------------------------------------------------------------ the lead
+const lead: any =
+  (await sanityClient.fetch(
+    `*[_type == "siteSettings"][0].homeLead->{
+       title, "slug": slug.current, pageType, thumbnail, mainImage, medium, year, assetType, category,
+       "parentSlug": select(defined(parentBrand) => coalesce(parentBrand->parentBrand->slug.current, parentBrand->slug.current)),
+       "parentTitle": coalesce(parentBrand->parentBrand->title, parentBrand->title),
+       "collage": ${COLLAGE_FILTER}
+     }`,
+  )) ??
+  (await sanityClient.fetch(
+    `*[_type == "caseStudy" && ${COLLAGE_FILTER} && defined(fullScan.asset) && !(_id in path("drafts.**"))][0]{
+       title, "slug": slug.current, thumbnail, mainImage, "collage": true
+     }`,
+  ));
+const leadPicture = lead ? (hasAsset(lead.mainImage) ? lead.mainImage : tileImage(lead)) : null;
+const leadIsCollage = !!lead?.collage;
+const leadName = lead ? (leadIsCollage ? collageName(lead.title) : null) : null;
+const leadLabel = lead && !leadIsCollage ? museumLabel(lead) : null;
+const leadHref = !lead
+  ? null
+  : leadIsCollage
+    ? `/collage#${lead.slug}`
+    : clean(lead.pageType) === 'Case Study'
+      ? `/portfolio?project=${lead.slug}`
+      : lead.parentSlug
+        ? `/portfolio?project=${lead.parentSlug}`
+        : '/portfolio';
+
+// ------------------------------------------------------------ the names
+/*
+  Clients: the projects' own names, and the names on the logo strip.
+  Collaborators: the people in the Credits panels - typefaces are credited
+  there too (Principal Type, Font), and a typeface is not a collaborator.
+*/
+const seen = new Set<string>();
+const clients: {name: string; href?: string}[] = [];
+for (const p of work) {
+  const n = clean(p.title);
+  if (n && !seen.has(n.toLowerCase())) {
+    seen.add(n.toLowerCase());
+    clients.push({name: n, href: `/work/${clean(p.slug)}`});
+  }
+}
+for (const l of settings?.clientLogos ?? []) {
+  const n = clean(l?.alt).replace(/\s+logo$/i, '');
+  if (n && !seen.has(n.toLowerCase())) {
+    seen.add(n.toLowerCase());
+    clients.push({name: n, href: clean(l?.href) || undefined});
+  }
+}
+const TYPE_ROLE = /principal\s+type|^font|typeface|type\s*design/i;
+const people: {name: string; role?: string; url?: string}[] = [];
+const seenPeople = new Set<string>();
+for (const p of work) {
+  for (const c of parseCreditLines(p.creditsText)) {
+    if (TYPE_ROLE.test(c.role ?? '')) continue;
+    const k = c.name.toLowerCase();
+    if (seenPeople.has(k)) continue;
+    seenPeople.add(k);
+    people.push(c);
+  }
+}
+
+// ------------------------------------------------------------ the proof
+const proof = (settings?.proofStats ?? []).find((p: any) => clean(p?.quote));
+---
+
+<Layout
+  title={`${name} - Rumeau Design Co`}
+  description="Hand-drawn brand identity, lettering and merch design. The studio of Chris Rumeau, New Jersey."
+  noindex
+>
+  <div class="hn">
+    <header class="hn-head">
+      <h1 class="hn-name">{name}</h1>
+      <p class="hn-line">{line}</p>
+      {nowLine ? (
+        <p class="hn-now"><span class="hn-kicker">Now</span>{nowLine}</p>
+      ) : (
+        <p class="hn-hint">Add a "Now" line in Studio: Site Settings, Homepage, "New homepage - Now line".</p>
+      )}
+    </header>
+
+    {leadPicture && (
+      <figure class="hn-lead">
+        <a href={leadHref} class="hn-lead__link">
+          <Img
+            class="hn-lead__img"
+            image={leadPicture}
+            alt={leadIsCollage ? `${leadName?.name}, a collage` : clean(lead.title)}
+            field="New homepage - the one large piece at the top"
+            width={2000}
+            sizes="(max-width: 48rem) 100vw, 80vw"
+          />
+        </a>
+        <figcaption class="hn-label">
+          {leadIsCollage ? (
+            <span class="hn-label__line">
+              <span class="hn-label__title">{leadName?.name}</span>
+              <span class="hn-label__detail">{['Collage', leadName?.year].filter(Boolean).join(', ')}</span>
+            </span>
+          ) : (
+            <span class="hn-label__line">
+              <span class="hn-label__title">{leadLabel?.title}</span>
+              {leadLabel?.detail && <span class="hn-label__detail">{leadLabel.detail}</span>}
+            </span>
+          )}
+        </figcaption>
+        {!settings?.homeLead && (
+          <p class="hn-hint">
+            Your scanned collage stands in here. Choose the piece in Studio: Site Settings, Homepage, "New homepage - the
+            one large piece at the top".
+          </p>
+        )}
+      </figure>
+    )}
+
+    <section class="hn-work" aria-labelledby="hn-work-h">
+      <h2 class="hn-section" id="hn-work-h">Work</h2>
+      <div class="hn-grid">
+        {work.map((p) => {
+          const l = labelOf(p);
+          const mark = treatmentOf(p) === 'mark';
+          return (
+            <figure class:list={['hn-piece', mark && 'hn-piece--mark']}>
+              <a class="hn-piece__link" href={`/portfolio?project=${clean(p.slug)}`}>
+                <Img
+                  class="hn-piece__img"
+                  image={pictureOf(p)}
+                  alt={clean(p.title)}
+                  field="mainImage (Main Project Image)"
+                  width={1200}
+                  height={mark ? undefined : 1500}
+                  sizes="(max-width: 48rem) 100vw, 45vw"
+                />
+              </a>
+              <figcaption class="hn-label">
+                <span class="hn-label__line">
+                  <a class="hn-label__title" href={`/work/${clean(p.slug)}`}>{l.title}</a>
+                  {l.detail && <span class="hn-label__detail">{l.detail}</span>}
+                </span>
+                {l.headline && <span class="hn-label__headline">{l.headline}</span>}
+                {l.client && <span class="hn-label__for">For {l.client}</span>}
+                {l.people.length > 0 && (
+                  <span class="hn-label__people">
+                    {l.people.map((c) => (
+                      <span class="hn-credit">
+                        {c.role && <span class="hn-credit__role">{c.role}</span>}
+                        {c.url ? (
+                          <a href={c.url} target="_blank" rel="noopener">{c.name}</a>
+                        ) : (
+                          <span class="hn-credit__name">{c.name}</span>
+                        )}
+                      </span>
+                    ))}
+                  </span>
+                )}
+              </figcaption>
+            </figure>
+          );
+        })}
+      </div>
+      <p class="hn-more"><a href="/portfolio">Everything, on the Portfolio &rarr;</a></p>
+    </section>
+
+    <section class="hn-names" aria-labelledby="hn-names-h">
+      <h2 class="hn-section" id="hn-names-h">Made with</h2>
+      <div class="hn-names__cols">
+        <div>
+          <h3 class="hn-names__h">Clients</h3>
+          <p class="hn-names__list">
+            {clients.map((c) => (
+              <span class="hn-names__item">{c.href ? <a href={c.href}>{c.name}</a> : c.name}</span>
+            ))}
+          </p>
+        </div>
+        <div>
+          <h3 class="hn-names__h">Collaborators</h3>
+          {people.length > 0 ? (
+            <p class="hn-names__list">
+              {people.map((c) => (
+                <span class="hn-names__item">
+                  {c.url ? <a href={c.url} target="_blank" rel="noopener">{c.name}</a> : c.name}
+                  {c.role && <span class="hn-names__role"> {c.role}</span>}
+                </span>
+              ))}
+            </p>
+          ) : (
+            <p class="hn-hint">
+              No people in the Credits panels yet - they list typefaces so far. Add a line like "Photography - Jane Doe"
+              (role in bold, name linked) to a project's Credits and it appears here and on its labels.
+            </p>
+          )}
+        </div>
+      </div>
+    </section>
+
+    {proof ? (
+      <section class="hn-proof">
+        <blockquote class="hn-quote">
+          <p>&ldquo;{proof.quote}&rdquo;</p>
+          <footer class="hn-quote__by">
+            {proof.name}{proof.org && <>, {proof.org}</>}
+          </footer>
+        </blockquote>
+      </section>
+    ) : (
+      <p class="hn-hint">
+        No client quote yet. Add one to a testimonial in Studio: Site Settings, Homepage, the proof cards' "quote".
+      </p>
+    )}
+
+    <section class="hn-contact">
+      <h2 class="hn-contact__h">Have a project in mind?</h2>
+      <p class="hn-contact__ways">
+        <a class="button" href={CONTACT_URL}>Start a project</a>
+        {email && <a class="hn-contact__email" href={`mailto:${email}`}>{email}</a>}
+      </p>
+    </section>
+  </div>
+</Layout>
+
+<style>
+  .hn {
+    max-width: 76rem;
+    margin: 0 auto;
+    padding: var(--space-5, 3rem) 0 var(--space-5, 3rem);
+  }
+
+  /* 1 - the name, the line, now: small and calm, left. */
+  .hn-head {
+    max-width: 44rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .hn-name {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: clamp(1.75rem, 1.2rem + 1.6vw, 2.5rem);
+    line-height: 1.05;
+    color: var(--color-navy);
+  }
+
+  .hn-line {
+    margin: 0.5rem 0 0;
+    font-size: clamp(1rem, 0.9rem + 0.4vw, 1.25rem);
+    line-height: 1.4;
+    color: var(--color-gray);
+  }
+
+  .hn-now {
+    margin: 1.25rem 0 0;
+    font-family: var(--font-heading);
+    font-size: 0.9375rem;
+    color: var(--color-navy);
+  }
+
+  .hn-kicker {
+    margin-right: 0.75em;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-gray);
+  }
+
+  /* Preview-only notes saying which Studio field to fill. */
+  .hn-hint {
+    margin: 0.75rem 0;
+    padding: 0.5rem 0.75rem;
+    border: 1px dashed var(--color-gray);
+    font-size: 0.8125rem;
+    color: var(--color-gray);
+  }
+
+  /* 2 - the one large piece. */
+  .hn-lead {
+    margin: 0 0 5rem;
+  }
+
+  .hn-lead__link {
+    display: block;
+  }
+
+  .hn-lead :global(.hn-lead__img) {
+    display: block;
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: calc(100svh - 12rem);
+    margin: 0 auto;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 12px 32px -12px rgb(0 0 0 / 0.25);
+  }
+
+  /* The museum label - the portfolio's, at page size. */
+  .hn-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-top: 0.75rem;
+    font-family: var(--font-heading);
+    font-size: 0.875rem;
+    line-height: 1.35;
+  }
+
+  .hn-lead .hn-label {
+    align-items: center;
+  }
+
+  .hn-label__line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 0.625em;
+  }
+
+  .hn-label__title {
+    font-weight: 700;
+    color: var(--color-navy);
+    text-decoration: none;
+  }
+
+  a.hn-label__title:hover,
+  a.hn-label__title:focus-visible {
+    text-decoration: underline;
+  }
+
+  .hn-label__detail,
+  .hn-label__for {
+    color: var(--color-gray);
+  }
+
+  .hn-label__headline {
+    color: var(--color-navy);
+  }
+
+  .hn-label__people {
+    font-size: 0.8125rem;
+    color: var(--color-gray);
+  }
+
+  .hn-credit + .hn-credit::before {
+    content: '\00b7';
+    margin: 0 0.5em;
+  }
+
+  .hn-credit__role {
+    margin-right: 0.35em;
+  }
+
+  .hn-label__people a,
+  .hn-credit__name {
+    color: var(--color-navy);
+  }
+
+  /* 3 - the projects, big: two across, one on a phone. */
+  .hn-section {
+    margin: 0 0 1.25rem;
+    font-family: var(--font-heading);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-gray);
+  }
+
+  .hn-work {
+    margin-bottom: 5rem;
+  }
+
+  .hn-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 3.5rem 2rem;
+  }
+
+  @media (max-width: 48rem) {
+    .hn-grid {
+      grid-template-columns: 1fr;
+      gap: 2.5rem;
+    }
+  }
+
+  .hn-piece {
+    margin: 0;
+  }
+
+  .hn-piece__link {
+    display: block;
+  }
+
+  .hn-piece :global(.hn-piece__img) {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+  }
+
+  /* A logomark is not cropped: it sits whole in the same 4:5, with air. */
+  .hn-piece--mark :global(.hn-piece__img) {
+    object-fit: contain;
+    padding: 12%;
+    box-sizing: border-box;
+    background: var(--color-gray-light);
+  }
+
+  .hn-more {
+    margin: 2.5rem 0 0;
+    font-family: var(--font-heading);
+  }
+
+  .hn-more a {
+    color: var(--color-navy);
+  }
+
+  /* 4 - names, like credits. */
+  .hn-names {
+    margin-bottom: 5rem;
+  }
+
+  .hn-names__cols {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2rem;
+  }
+
+  @media (max-width: 48rem) {
+    .hn-names__cols {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .hn-names__h {
+    margin: 0 0 0.5rem;
+    font-family: var(--font-heading);
+    font-size: 0.875rem;
+    color: var(--color-gray);
+  }
+
+  .hn-names__list {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: clamp(1.125rem, 1rem + 0.5vw, 1.5rem);
+    line-height: 1.45;
+    color: var(--color-navy);
+  }
+
+  .hn-names__item + .hn-names__item::before {
+    content: '\00b7';
+    margin: 0 0.45em;
+    color: var(--color-gray);
+  }
+
+  .hn-names__list a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .hn-names__list a:hover,
+  .hn-names__list a:focus-visible {
+    text-decoration: underline;
+  }
+
+  .hn-names__role {
+    font-size: 0.6em;
+    color: var(--color-gray);
+  }
+
+  /* 5 - one proof. */
+  .hn-proof {
+    margin-bottom: 5rem;
+  }
+
+  .hn-quote {
+    max-width: 44rem;
+    margin: 0;
+  }
+
+  .hn-quote p {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: clamp(1.25rem, 1rem + 1vw, 1.875rem);
+    line-height: 1.3;
+    color: var(--color-navy);
+  }
+
+  .hn-quote__by {
+    margin-top: 0.75rem;
+    font-size: 0.9375rem;
+    color: var(--color-gray);
+  }
+
+  /* 6 - one way to reach you. */
+  .hn-contact__h {
+    margin: 0 0 1rem;
+    font-family: var(--font-heading);
+    font-size: clamp(1.5rem, 1.2rem + 1vw, 2.25rem);
+    color: var(--color-navy);
+  }
+
+  .hn-contact__ways {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.5rem;
+    margin: 0;
+  }
+
+  .hn-contact__email {
+    font-family: var(--font-heading);
+    color: var(--color-navy);
+  }
+</style>

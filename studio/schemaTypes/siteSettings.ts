@@ -248,6 +248,34 @@ export default defineType({
             'The Portfolio page is one click away.',
         ),
     }),
+    /*
+      THE NEW HOMEPAGE (preview only, at /next/home until Chris says).
+      Chris: the homepage "is outdated in comparison to the rest of the
+      website ... what is a better way it can be of service?" - the answer
+      being the front door to the work rather than a sales page. These two
+      are the only things on it that do not already exist elsewhere.
+    */
+    defineField({
+      name: 'nowLine',
+      title: 'New homepage - "Now" line',
+      type: 'string',
+      group: 'homepage',
+      description:
+        'One sentence on what you are working on and when you are next free, ' +
+        'e.g. "Lettering a run of tour posters. Booking from January." Shown ' +
+        'near the top of the new homepage; left empty, the line is left out.',
+      validation: (Rule) => Rule.max(140),
+    }),
+    defineField({
+      name: 'homeLead',
+      title: 'New homepage - the one large piece at the top',
+      type: 'reference',
+      to: [{type: 'caseStudy'}],
+      group: 'homepage',
+      description:
+        'The single piece shown large under your name - the page\'s one loud ' +
+        'moment. Any tile or project. Left empty, it is your scanned collage.',
+    }),
     defineField({
       name: 'featuredWorkHeading',
       title: 'Work grid - small label above it',

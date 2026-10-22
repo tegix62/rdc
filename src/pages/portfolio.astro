@@ -1066,15 +1066,42 @@ if (emptyFilters.length > 0) {
           bottom is not monotonic in the height and first-fit stopped early.
           If none fits, the one that overshoots least.
         */
+        /*
+          BUT NOT AT THUMBNAIL SIZE. Chris, opening the Adelante wordmark
+          (wide and short): "if you hit a tile that's pretty narrow it can
+          look clunky still". The band beside a short piece is shallow, and
+          the plan that fit it was all eight pieces in one row 118px high -
+          thumbnails beside a banner. Fitting had no floor on size.
+
+          So in the All view a fitting plan counts only if every row is at
+          least ROW_MIN of its kind's height. Failing that, the rows may run
+          on past the piece's foot - under it, where the grid is free again -
+          as long as the whole set still fits the window. The Merch view
+          keeps its rule (rows beside the shirt; its tests hold it to that).
+        */
+        const shared = !inMerch();
+        const scaleOf = (p: {rows: {h: number; items: {el: HTMLElement}[]}[]}) =>
+          Math.min(
+            ...p.rows.map((r) => r.h / (colW * Math.max(...r.items.map((it) => KIND_HEIGHT[rowKind(it.el)])))),
+          );
+        // The set starts level with the piece; it may run to the window's foot.
+        const windowFoot = opened.y + window.innerHeight - 120;
         let fits = null;
         let least = null;
+        let fitsSized = null;
+        let overSized = null;
         for (let t = colW * 1.8; t >= colW * 0.6 - 0.5; t -= colW * 0.05) {
           const p = simulateRows(els, m.colYs, colW, n, pad, t);
+          const sized = shared && p.rows.length > 0 && scaleOf(p) >= 0.75;
           if (p.bottom <= foot + 1) {
             if (!fits || p.bottom > fits.bottom + 1) fits = p;
-          } else if (!least || p.bottom < least.bottom) least = p;
+            if (sized && (!fitsSized || p.bottom > fitsSized.bottom + 1)) fitsSized = p;
+          } else {
+            if (!least || p.bottom < least.bottom) least = p;
+            if (sized && p.bottom <= windowFoot && (!overSized || p.bottom < overSized.bottom)) overSized = p;
+          }
         }
-        plan = fits ?? least ?? plan;
+        plan = shared ? (fitsSized ?? overSized ?? fits ?? least ?? plan) : (fits ?? least ?? plan);
       }
       for (const row of plan.rows) {
         let x = row.x;

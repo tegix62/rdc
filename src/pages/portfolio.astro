@@ -893,9 +893,9 @@ if (emptyFilters.length > 0) {
         runs across under the piece too, instead of staying in the strip
         beside it and leaving a white L under the piece (the Adelante
         wordmark, its second row 11px lower than the free space under it).
-        The Merch view keeps the strict rule its tests hold it to.
+        The Merch and Type views keep the strict rule their tests hold them to.
       */
-      const LEVEL = inMerch() ? 1 : 16;
+      const LEVEL = view ? 1 : 16;
       const lowest = () => {
         let best = {a: 0, b: n - 1, top: Infinity, width: 0};
         for (let a = 0; a + minCols - 1 < n; a++) {
@@ -1092,13 +1092,15 @@ if (emptyFilters.length > 0) {
           as long as the whole set still fits the window. The Merch view
           keeps its rule (rows beside the shirt; its tests hold it to that).
         */
-        const shared = !inMerch();
+        // The All view only (no view chosen): the Type view's columns are
+        // narrower and overshooting there put five pieces under the window.
+        const shared = !view;
         const scaleOf = (p: {rows: {h: number; items: {el: HTMLElement}[]}[]}) =>
           Math.min(
             ...p.rows.map((r) => r.h / (colW * Math.max(...r.items.map((it) => KIND_HEIGHT[rowKind(it.el)])))),
           );
         // The set starts level with the piece; it may run to the window's foot.
-        const windowFoot = opened.y + window.innerHeight - 120;
+        const windowFoot = opened.y + window.innerHeight - 160;
         let fits = null;
         let least = null;
         let fitsSized = null;

@@ -887,7 +887,7 @@ if (emptyFilters.length > 0) {
 
       // The lowest free stretch at least minCols wide; the widest of equals.
       /*
-        Level, give or take a few pixels. In the All view a stretch whose
+        Level, give or take a little. In the All view a stretch whose
         top is within LEVEL of the lowest counts as level with it, and the
         widest such stretch wins - so the row after a short piece's band
         runs across under the piece too, instead of staying in the strip
@@ -895,7 +895,10 @@ if (emptyFilters.length > 0) {
         wordmark, its second row 11px lower than the free space under it).
         The Merch and Type views keep the strict rule their tests hold them to.
       */
-      const LEVEL = view ? 1 : 16;
+      // 40: the Adelante wordmark opened on the right left its second row
+      // short of a band under the banner 28px higher; at 16 that band did
+      // not count as level, and the white under the banner stayed.
+      const LEVEL = view ? 1 : 40;
       const lowest = () => {
         let best = {a: 0, b: n - 1, top: Infinity, width: 0};
         for (let a = 0; a + minCols - 1 < n; a++) {

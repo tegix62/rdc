@@ -1087,7 +1087,7 @@ if (emptyFilters.length > 0) {
           thumbnails beside a banner. Fitting had no floor on size.
 
           So in the All view a fitting plan counts only if every row is at
-          least 65% of its kind's height. Failing that, the rows may run
+          least 70% of its kind's height. Failing that, the rows may run
           on past the piece's foot - under it, where the grid is free again -
           as long as the whole set still fits the window. The Merch view
           keeps its rule (rows beside the shirt; its tests hold it to that).
@@ -1105,9 +1105,11 @@ if (emptyFilters.length > 0) {
         let overSized = null;
         for (let t = colW * 1.8; t >= colW * 0.6 - 0.5; t -= colW * 0.05) {
           const p = simulateRows(els, m.colYs, colW, n, pad, t);
-          // 0.65, not ROW_MIN: at 0.75 a DumpStat wordmark row at 72% was
-          // turned down for a plan that left two shirts alone in a row.
-          const sized = shared && p.rows.length > 0 && scaleOf(p) >= 0.65;
+          // 0.7, measured from both sides: at 0.75 a DumpStat wordmark row
+          // at 72% was turned down for a plan that left two shirts alone in
+          // a row; at 0.65 the Adelante wordmark's row of eight at 66% - the
+          // thumbnails Chris pointed at - was let through again.
+          const sized = shared && p.rows.length > 0 && scaleOf(p) >= 0.7;
           if (p.bottom <= foot + 1) {
             if (!fits || p.bottom > fits.bottom + 1) fits = p;
             if (sized && (!fitsSized || p.bottom > fitsSized.bottom + 1)) fitsSized = p;

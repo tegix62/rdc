@@ -346,10 +346,18 @@ if (!IS_PREVIEW) {
   check('indexable pages opt in to large image previews', smallPreview.length === 0, report(smallPreview))
 }
 
-// Every image on the site comes from this host, and the largest element on most
-// pages is one of them.
-const noPreconnect = docs.filter((d) => !/rel=["']preconnect["'][^>]*cdn\.sanity\.io/.test(d.html))
-check('every page preconnects to the image CDN', noPreconnect.length === 0, report(noPreconnect))
+/*
+  Pictures load through /img/ on the site's own address - Cloudflare keeps
+  each one, so Sanity serves it once (functions/img/[[path]].ts and
+  scripts/proxy-images.mjs). This used to check every page preconnected to
+  cdn.sanity.io; loading straight from there is what spent the Sanity
+  plan's bandwidth, so now a page that does it fails. <meta> tags and
+  JSON-LD keep absolute Sanity addresses for other sites' crawlers.
+*/
+const direct = docs.filter((d) =>
+  /<(img|source|video)\b[^>]*\s(src|srcset|poster)=["'][^"']*https:\/\/cdn\.sanity\.io/.test(d.html),
+)
+check('no page loads a picture straight from Sanity', direct.length === 0, report(direct))
 
 // --- structured data ---------------------------------------------------------
 /*

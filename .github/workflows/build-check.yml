@@ -208,6 +208,12 @@ jobs:
       # not, silently.
       - run: node scripts/test-pixel-geofence.mjs
 
+      # Pictures through Cloudflare (functions/img/[[path]].ts): the route
+      # passes only this project's assets, asks Sanity once per picture and
+      # never keeps a failure; the build's rewrite moves every picture the
+      # pages load to /img/. No network - it must not spend what it saves.
+      - run: node scripts/test-image-proxy.mjs
+
       - run: npm run build
 
       # Every page must either load its stylesheet blocking OR inline

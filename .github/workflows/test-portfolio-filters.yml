@@ -33,3 +33,9 @@ jobs:
       # The column count is JavaScript, so it appears in no stylesheet and no
       # CSS diff shows it changing. Four widths, four branches.
       - run: node scripts/test-portfolio-columns.mjs
+
+# Test browsers never download the site's pictures: each is answered with a
+# blank of the same shape (scripts/lib/test-images-off.mjs). Loaded before
+# every node process in this workflow; harmless where Playwright is absent.
+env:
+  NODE_OPTIONS: --import=${{ github.workspace }}/scripts/lib/test-images-off.mjs

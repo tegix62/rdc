@@ -255,18 +255,11 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     {/*
-      Every image on the site is served from cdn.sanity.io, and the largest
-      element on most pages is one of them. Without this the browser cannot
-      start the DNS lookup and TLS handshake for that host until it has parsed
-      the markup and found the first <img> - so the connection setup lands
-      directly in front of the LCP image instead of overlapping the HTML parse.
-
-      crossorigin is required and easy to get wrong: images are fetched
-      anonymously, and a preconnect without it opens a connection on different
-      terms that the image request then cannot reuse - which silently buys
-      nothing while looking correct.
+      No preconnect to cdn.sanity.io any more: the pictures load through
+      /img/ on the site's own address (functions/img/[[path]].ts, and
+      scripts/proxy-images.mjs at the end of the build), so the connection
+      they use is the one the page itself arrived on.
     */}
-    <link rel="preconnect" href="https://cdn.sanity.io" crossorigin />
     {/*
       Served from Sanity so it can be changed without a code edit. Falls back
       to /favicon.svg, which has never existed - so until one is uploaded every

@@ -1,4 +1,4 @@
-const CACHE = 'rdc-v1';
+const CACHE = 'rdc-v2';
 
 const PRECACHE = [
   '/',
@@ -28,7 +28,10 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
 
-  if (url.origin === 'https://cdn.sanity.io') {
+  // Pictures: cache-first. They load through /img/ on the site's own address
+  // now (functions/img/[[path]].ts), and a picture's address never changes
+  // what it shows, so a kept copy is always right.
+  if (url.origin === 'https://cdn.sanity.io' || (url.origin === self.location.origin && url.pathname.startsWith('/img/'))) {
     event.respondWith(
       caches.open(CACHE).then((cache) =>
         cache.match(request).then((cached) =>

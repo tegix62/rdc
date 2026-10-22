@@ -26,6 +26,9 @@ jobs:
           node-version: 22
       - run: npm install --no-save playwright@1.56.0
       - run: npx playwright install --with-deps chromium
+      # First: the test browser answers picture requests itself (no Sanity
+      # bandwidth). If that ever breaks, stop before touching the site.
+      - run: node scripts/test-test-images-off.mjs
       # A push to src/ starts a preview deploy at the same moment, so without
       # this the test measures the PREVIOUS build.
       - run: sleep 150
@@ -42,3 +45,9 @@ jobs:
             cat /tmp/gather.txt 2>/dev/null || echo '(the test did not run)'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+# Test browsers never download the site's pictures: each is answered with a
+# blank of the same shape (scripts/lib/test-images-off.mjs). Loaded before
+# every node process in this workflow; harmless where Playwright is absent.
+env:
+  NODE_OPTIONS: --import=${{ github.workspace }}/scripts/lib/test-images-off.mjs

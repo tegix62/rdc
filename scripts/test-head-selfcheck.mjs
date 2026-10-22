@@ -68,14 +68,14 @@ const page = ({
   twitterImageAlt = 'About',
   // The production default. Pages that must NOT be indexed override it.
   robots = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1',
-  preconnect = '<link rel="preconnect" href="https://cdn.sanity.io" crossorigin />',
+  // A picture as the built pages carry it: through /img/ (see proxy-images).
+  picture = '<img src="/img/images/x/production/a-10x10.jpg?w=400" alt="" />',
   jsonLd = null,
   h1 = '<h1>Hello</h1>',
   skip = '<a class="skip-link" href="#main-content">Skip to content</a>',
   main = '<main id="main-content" tabindex="-1">',
 } = {}) =>
   `<!doctype html><html lang="en"><head>
-${preconnect}
 <meta name="description" content="${description}" />
 <title>${title}</title>
 ${canonical ? `<link rel="canonical" href="${canonical}" />` : ''}
@@ -90,7 +90,7 @@ ${twitterImageAlt ? `<meta name="twitter:image:alt" content="${twitterImageAlt}"
 ${robots ? `<meta name="robots" content="${robots}" />` : ''}
 <script type="application/ld+json">${jsonLd ?? graphFor(canonical || 'https://rumeaudesign.co/about')}</script>
 </head><body>${skip}
-${main}${h1}</main></body></html>`
+${main}${h1}${picture}</main></body></html>`
 
 const run = (dir, env = {}) =>
   new Promise((resolve) => {
@@ -235,13 +235,17 @@ await expectCaught('an og:image with no stated size', await build('fx-nosize', {
 await expectCaught('stated dimensions that disagree with the URL', await build('fx-badsize', {'about/index.html': {ogImageHeight: '1200'}}), 'match the image URL')
 await expectCaught('an image page asking for the small card', await build('fx-smallcard', {'about/index.html': {twitterCard: 'summary'}}), 'large card')
 
-console.log('\n--- crawl directives and preconnect ---')
+console.log('\n--- crawl directives and pictures ---')
 await expectCaught(
   'an indexable page not opting in to large image previews',
   await build('fx-smallpreview', {'about/index.html': {robots: 'index, follow'}}),
   'large image previews',
 )
-await expectCaught('a page not preconnecting to the image CDN', await build('fx-nopreconnect', {'about/index.html': {preconnect: ''}}), 'preconnects')
+await expectCaught(
+  'a page loading a picture straight from Sanity',
+  await build('fx-direct', {'about/index.html': {picture: '<img src="https://cdn.sanity.io/images/x/production/a-10x10.jpg?w=400" alt="" />'}}),
+  'straight from Sanity',
+)
 
 console.log('\n--- structured data ---')
 await expectCaught('a page with no JSON-LD at all', await build('fx-nold', {'about/index.html': {jsonLd: ' '}}), 'emits a JSON-LD block')

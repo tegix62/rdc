@@ -760,10 +760,16 @@ const press = async (page, filter) => {
       overlap Chris saw - a picture growing into its neighbours as it lands.
       Only after the grid is up, so the page itself loads as normal.
     */
-    await page.route('https://cdn.sanity.io/images/**', async (route) => {
-      await new Promise((r) => setTimeout(r, 1200))
-      await route.continue()
-    })
+    // Through /img/ now (pictures via Cloudflare), and handed on rather than
+    // fetched: fallback() lets the tests' placeholder answer it (see
+    // scripts/lib/test-images-off.mjs), so the delay costs no download.
+    await page.route(
+      (url) => url.hostname === 'cdn.sanity.io' || url.pathname.startsWith('/img/images/'),
+      async (route) => {
+        await new Promise((r) => setTimeout(r, 1200))
+        await route.fallback()
+      },
+    )
     await press(page, MERCH)
     const i = await page.evaluate((pick) => {
       const grid = document.querySelector('#pf-grid')

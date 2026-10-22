@@ -14,6 +14,10 @@ on:
       paths:
         description: 'Comma-separated paths'
         default: '/'
+      real_images:
+        description: 'Load the real pictures (through /img/ and Cloudflare). Off, they are blanks of the right shape.'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -35,6 +39,7 @@ jobs:
         env:
           BASE: ${{ inputs.base_url || 'https://rumeaudesign.co' }}
           PATHS: ${{ inputs.paths || '/' }}
+          REAL_IMAGES: ${{ inputs.real_images && '1' || '' }}
       - name: Push the pictures to the shots branch
         run: |
           git config user.name 'github-actions[bot]'
@@ -58,3 +63,9 @@ jobs:
             cat /tmp/report.txt 2>/dev/null || echo '(the script did not run)'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+# Test browsers never download the site's pictures: each is answered with a
+# blank of the same shape (scripts/lib/test-images-off.mjs). Loaded before
+# every node process in this workflow; harmless where Playwright is absent.
+env:
+  NODE_OPTIONS: --import=${{ github.workspace }}/scripts/lib/test-images-off.mjs

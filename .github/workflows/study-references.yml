@@ -34,3 +34,9 @@ jobs:
             cat /tmp/refs.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+# Test browsers never download the site's pictures: each is answered with a
+# blank of the same shape (scripts/lib/test-images-off.mjs). Loaded before
+# every node process in this workflow; harmless where Playwright is absent.
+env:
+  NODE_OPTIONS: --import=${{ github.workspace }}/scripts/lib/test-images-off.mjs

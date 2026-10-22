@@ -6,10 +6,9 @@
                    where the project has credits, a line of the names
                    involved, linked as the Credits panel links them - and
                    the set still fits the window
-    the glide      the gathered pieces travel from where they were to where
-                   they land, and stop
-    the wall and   ROLLED BACK - checked absent: no lifted shadow, nothing
-    paste-up       pasting down
+    quiet          the portfolio without its own motion: no glide, fade,
+                   thread or floating name (the glide, wall and paste-up are
+                   rolled back and checked absent)
     actual size    on /collage, "See it at actual size" opens the collage at
                    its real size beside a ruler, the sharp picture arrives,
                    and "Match my screen" shows a bank card at the same scale
@@ -81,7 +80,12 @@ for (const [label, opts] of [
     const moving = await page.evaluate(() =>
       document.getAnimations().filter((a) => a.playState === 'running' && a.effect?.target?.closest?.('#pf-grid .pf-item')).length,
     )
-    check(`${label} ${project}: the pieces glide into place`, moving >= 3, `${moving} moving`)
+    // Rolled back: the gather is a cut again, and the grid is quiet.
+    check(`${label} ${project}: nothing glides or fades`, moving === 0, `${moving} moving`)
+    check(
+      `${label} ${project}: no thread and no floating name`,
+      await page.evaluate(() => !document.querySelector('#pf-grid .pf-links, #pf-grid .pf-tag') && !!document.querySelector('#pf-grid.is-quiet')),
+    )
     await page.waitForTimeout(3400)
     const stillMoving = await page.evaluate(() =>
       document.getAnimations().filter((a) => a.playState === 'running' && a.effect?.target?.closest?.('#pf-grid .pf-item')).length,

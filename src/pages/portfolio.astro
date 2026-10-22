@@ -886,6 +886,16 @@ if (emptyFilters.length > 0) {
       const minCols = Math.max(2, Math.min(n, rowMinCols));
 
       // The lowest free stretch at least minCols wide; the widest of equals.
+      /*
+        Level, give or take a few pixels. In the All view a stretch whose
+        top is within LEVEL of the lowest counts as level with it, and the
+        widest such stretch wins - so the row after a short piece's band
+        runs across under the piece too, instead of staying in the strip
+        beside it and leaving a white L under the piece (the Adelante
+        wordmark, its second row 11px lower than the free space under it).
+        The Merch view keeps the strict rule its tests hold it to.
+      */
+      const LEVEL = inMerch() ? 1 : 16;
       const lowest = () => {
         let best = {a: 0, b: n - 1, top: Infinity, width: 0};
         for (let a = 0; a + minCols - 1 < n; a++) {
@@ -894,7 +904,7 @@ if (emptyFilters.length > 0) {
             top = Math.max(top, ys[b]);
             if (b - a + 1 < minCols) continue;
             const width = (b - a + 1) * colW;
-            if (top < best.top - 1 || (Math.abs(top - best.top) <= 1 && width > best.width)) best = {a, b, top, width};
+            if (top < best.top - LEVEL || (Math.abs(top - best.top) <= LEVEL && width > best.width)) best = {a, b, top, width};
           }
         }
         if (best.top === Infinity) {
@@ -1016,7 +1026,10 @@ if (emptyFilters.length > 0) {
           if (prev) {
             let top = 0;
             for (let c = prev.a; c <= prev.b; c++) top = Math.max(top, ys[c]);
-            if (top <= best.top + t) best = {a: prev.a, b: prev.b, top, width: (prev.b - prev.a + 1) * colW};
+            // Unless the lowest level stretch takes in the last row's columns
+            // and more: the run still keeps together, across the wider band.
+            const widens = best.a <= prev.a && best.b >= prev.b && best.b - best.a > prev.b - prev.a;
+            if (top <= best.top + t && !(LEVEL > 1 && widens)) best = {a: prev.a, b: prev.b, top, width: (prev.b - prev.a + 1) * colW};
           }
           const rest = run.items.slice(k);
           let count = firstRowCount(rest, best.width, t);
@@ -1074,7 +1087,7 @@ if (emptyFilters.length > 0) {
           thumbnails beside a banner. Fitting had no floor on size.
 
           So in the All view a fitting plan counts only if every row is at
-          least ROW_MIN of its kind's height. Failing that, the rows may run
+          least 65% of its kind's height. Failing that, the rows may run
           on past the piece's foot - under it, where the grid is free again -
           as long as the whole set still fits the window. The Merch view
           keeps its rule (rows beside the shirt; its tests hold it to that).
@@ -1092,7 +1105,9 @@ if (emptyFilters.length > 0) {
         let overSized = null;
         for (let t = colW * 1.8; t >= colW * 0.6 - 0.5; t -= colW * 0.05) {
           const p = simulateRows(els, m.colYs, colW, n, pad, t);
-          const sized = shared && p.rows.length > 0 && scaleOf(p) >= 0.75;
+          // 0.65, not ROW_MIN: at 0.75 a DumpStat wordmark row at 72% was
+          // turned down for a plan that left two shirts alone in a row.
+          const sized = shared && p.rows.length > 0 && scaleOf(p) >= 0.65;
           if (p.bottom <= foot + 1) {
             if (!fits || p.bottom > fits.bottom + 1) fits = p;
             if (sized && (!fitsSized || p.bottom > fitsSized.bottom + 1)) fitsSized = p;

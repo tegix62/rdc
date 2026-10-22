@@ -149,12 +149,17 @@ for (const p of work) {
     clients.push({name: n, href: `/work/${clean(p.slug)}`});
   }
 }
+/*
+  The logo strip's names only where they add a client. Its alt texts are
+  descriptions ("Hug a Mug Coffeehouse logowo", "Adelante Barbell Club
+  shield"), so one whose first word already starts a client's name is that
+  client again - measured on the preview, five of them were.
+*/
+const firstWord = (n: string) => n.toLowerCase().split(/[\s,]+/)[0];
 for (const l of settings?.clientLogos ?? []) {
-  const n = clean(l?.alt).replace(/\s+logo$/i, '');
-  if (n && !seen.has(n.toLowerCase())) {
-    seen.add(n.toLowerCase());
-    clients.push({name: n, href: clean(l?.href) || undefined});
-  }
+  const n = clean(l?.alt).replace(/\s+(logo\w*|shield|mark|wordmark|tee design)$/i, '');
+  if (!n || clients.some((c) => firstWord(c.name) === firstWord(n))) continue;
+  clients.push({name: n, href: clean(l?.href) || undefined});
 }
 const TYPE_ROLE = /principal\s+type|^font|typeface|type\s*design/i;
 const people: {name: string; role?: string; url?: string}[] = [];
@@ -226,20 +231,24 @@ const proof = (settings?.proofStats ?? []).find((p: any) => clean(p?.quote));
     <section class="hn-work" aria-labelledby="hn-work-h">
       <h2 class="hn-section" id="hn-work-h">Work</h2>
       <div class="hn-grid">
-        {work.map((p) => {
+        {work.map((p, k) => {
           const l = labelOf(p);
-          const mark = treatmentOf(p) === 'mark';
+          // The page's hero is a photograph and fills its frame; only a
+          // project falling back to its tile picture keeps a logomark whole.
+          const mark = !hasAsset(p.mainImage) && treatmentOf(p) === 'mark';
+          // An odd number: the first runs the full width, so no row ends alone.
+          const wide = k === 0 && work.length % 2 === 1;
           return (
-            <figure class:list={['hn-piece', mark && 'hn-piece--mark']}>
+            <figure class:list={['hn-piece', mark && 'hn-piece--mark', wide && 'hn-piece--wide']}>
               <a class="hn-piece__link" href={`/portfolio?project=${clean(p.slug)}`}>
                 <Img
                   class="hn-piece__img"
                   image={pictureOf(p)}
                   alt={clean(p.title)}
                   field="mainImage (Main Project Image)"
-                  width={1200}
-                  height={mark ? undefined : 1500}
-                  sizes="(max-width: 48rem) 100vw, 45vw"
+                  width={wide ? 2000 : 1200}
+                  height={mark ? undefined : wide ? 1000 : 1500}
+                  sizes={wide ? '(max-width: 48rem) 100vw, 90vw' : '(max-width: 48rem) 100vw, 45vw'}
                 />
               </a>
               <figcaption class="hn-label">
@@ -502,6 +511,21 @@ const proof = (settings?.proofStats ?? []).find((p: any) => clean(p?.quote));
     height: auto;
     aspect-ratio: 4 / 5;
     object-fit: cover;
+  }
+
+  /* The first of an odd number: across both columns, at 2:1. */
+  .hn-piece--wide {
+    grid-column: 1 / -1;
+  }
+
+  .hn-piece--wide :global(.hn-piece__img) {
+    aspect-ratio: 2 / 1;
+  }
+
+  @media (max-width: 48rem) {
+    .hn-piece--wide :global(.hn-piece__img) {
+      aspect-ratio: 4 / 5;
+    }
   }
 
   /* A logomark is not cropped: it sits whole in the same 4:5, with air. */

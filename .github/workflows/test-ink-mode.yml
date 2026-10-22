@@ -30,6 +30,10 @@ jobs:
           # The wait below asks whether the live commit is an ancestor of this
           # one and what changed between them. A depth-1 clone knows neither.
           fetch-depth: 0
+      # From here on, test browsers never download the site's pictures:
+      # each is answered with a blank of the same shape (scripts/lib/
+      # test-images-off.mjs). Set after checkout, which runs before the file exists.
+      - run: echo "NODE_OPTIONS=--import=$GITHUB_WORKSPACE/scripts/lib/test-images-off.mjs" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -102,9 +106,3 @@ jobs:
             ink-mode.txt
             ink-mode.png
           if-no-files-found: ignore
-
-# Test browsers never download the site's pictures: each is answered with a
-# blank of the same shape (scripts/lib/test-images-off.mjs). Loaded before
-# every node process in this workflow; harmless where Playwright is absent.
-env:
-  NODE_OPTIONS: --import=${{ github.workspace }}/scripts/lib/test-images-off.mjs

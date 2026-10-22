@@ -21,6 +21,10 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      # From here on, test browsers never download the site's pictures:
+      # each is answered with a blank of the same shape (scripts/lib/
+      # test-images-off.mjs). Set after checkout, which runs before the file exists.
+      - run: echo "NODE_OPTIONS=--import=$GITHUB_WORKSPACE/scripts/lib/test-images-off.mjs" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -33,9 +37,3 @@ jobs:
       # The column count is JavaScript, so it appears in no stylesheet and no
       # CSS diff shows it changing. Four widths, four branches.
       - run: node scripts/test-portfolio-columns.mjs
-
-# Test browsers never download the site's pictures: each is answered with a
-# blank of the same shape (scripts/lib/test-images-off.mjs). Loaded before
-# every node process in this workflow; harmless where Playwright is absent.
-env:
-  NODE_OPTIONS: --import=${{ github.workspace }}/scripts/lib/test-images-off.mjs

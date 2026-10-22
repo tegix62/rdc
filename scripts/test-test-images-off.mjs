@@ -10,6 +10,11 @@
   before) and through /img/ (now) - including a crop and a srcset. Checks:
   each arrives as a stand-in of the real picture's shape, nothing reaches
   the network, and a video is refused. Then the shape arithmetic on its own.
+
+  The page first tries to install a service worker that fetches pictures
+  itself, as the site's does. That is how the first version of the guard
+  leaked: a worker's requests get past a route, so tests on the real site
+  kept downloading pictures. The worker must not install.
 */
 import {chromium} from 'playwright'
 import http from 'node:http'
@@ -38,7 +43,25 @@ const server = http.createServer((req, res) => {
     res.writeHead(500)
     return res.end('should never be asked')
   }
+  // A service worker that fetches pictures itself, as public/sw.js does. Its
+  // requests are not the page's, so a page or context route never sees them.
+  if (req.url === '/sw.js') {
+    res.writeHead(200, {'content-type': 'text/javascript'})
+    return res.end(`
+      self.addEventListener('install', () => self.skipWaiting())
+      self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()))
+      self.addEventListener('fetch', (e) => {
+        if (e.request.destination === 'image') e.respondWith(fetch(e.request.url, {mode: 'cors'}))
+      })`)
+  }
   res.writeHead(200, {'content-type': 'text/html'})
+  if (req.url === '/worker') {
+    return res.end(`<!doctype html><body><script>
+      window.sw = navigator.serviceWorker
+        ? navigator.serviceWorker.register('/sw.js').then(() => navigator.serviceWorker.ready).then(() => 'registered', () => 'refused')
+        : Promise.resolve('none')
+    </script></body>`)
+  }
   res.end(`<!doctype html><body>
     <img id="a" src="https://cdn.sanity.io/images/8337vjtf/production/abc-1000x800.jpg?w=400">
     <img id="b" src="/img/images/8337vjtf/production/abc-1000x800.jpg?w=300&h=600&fit=crop">
@@ -64,6 +87,11 @@ for (const open of ['newPage', 'newContext']) {
       if (addr) outside.push(`REAL ${r.url()}`)
     }
   })
+  // Install the worker first, as a returning visitor would have it, then load
+  // the pictures under it.
+  await page.goto(`${base}/worker`, {waitUntil: 'load'})
+  const sw = await page.evaluate(() => Promise.race([window.sw, new Promise((r) => setTimeout(() => r('timed out'), 3000))]))
+  check(`${open}: the site's service worker does not run, so it cannot fetch around the guard`, sw !== 'registered', sw)
   await page.goto(base, {waitUntil: 'load'})
   await page.waitForTimeout(500)
   const r = await page.evaluate(() => {

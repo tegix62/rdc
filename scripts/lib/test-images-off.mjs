@@ -72,6 +72,14 @@ const guard = async (ctx) => {
   return ctx
 }
 
+/*
+  The site's service worker (public/sw.js) fetches pictures itself, and a
+  worker's requests get past a route - in October 2026 they did, and every
+  test that let the worker install went on downloading real pictures. So no
+  test browser runs a service worker. No test depends on one.
+*/
+const noWorkers = (options) => ({...options, serviceWorkers: 'block'})
+
 function patch(browserType) {
   if (!browserType || browserType.__picturesOff) return
   browserType.__picturesOff = true
@@ -80,16 +88,16 @@ function patch(browserType) {
     const browser = await launch(...args)
     const newContext = browser.newContext.bind(browser)
     const newPage = browser.newPage.bind(browser)
-    browser.newContext = async (...a) => guard(await newContext(...a))
-    browser.newPage = async (...a) => {
-      const page = await newPage(...a)
+    browser.newContext = async (options) => guard(await newContext(noWorkers(options)))
+    browser.newPage = async (options) => {
+      const page = await newPage(noWorkers(options))
       await guard(page.context())
       return page
     }
     return browser
   }
   const persistent = browserType.launchPersistentContext?.bind(browserType)
-  if (persistent) browserType.launchPersistentContext = async (...a) => guard(await persistent(...a))
+  if (persistent) browserType.launchPersistentContext = async (dir, options) => guard(await persistent(dir, noWorkers(options)))
 }
 
 if (process.env.REAL_IMAGES !== '1') {

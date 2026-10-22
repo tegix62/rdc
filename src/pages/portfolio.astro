@@ -154,7 +154,11 @@ const PASTE_UP = false;
   the grid, and they belong together. Motion that explains a change, which
   is the one reason the paste-up never had. See glide() in the script.
 */
-const GLIDE = PREVIEW;
+/*
+  ROLLED BACK too. Chris, after the recording: "let's ditch the animations
+  for this. I don't think it's working out." Off, code kept.
+*/
+const GLIDE = false;
 
 if (emptyFilters.length > 0) {
   console.warn(
@@ -1528,6 +1532,28 @@ if (emptyFilters.length > 0) {
     */
     const LINES = true;
     /*
+      QUIET - THE PORTFOLIO WITHOUT ITS OWN MOTION LANGUAGE (preview only).
+
+      Chris: "for the desktop too, it might be excessive even to have the
+      animation opacity fading in and fading out, even though it's kind of
+      nice. And the lines too ... the philosophy of adding those animations
+      where they aren't anywhere else ... it just sits on the portfolio,
+      which I feel like doesn't make the rest of the website cohesive."
+
+      So, on the preview, the portfolio stops speaking a language the rest
+      of the site does not: no thread (on hover, before a gather, or in the
+      phone's one-time demo), no hover preview lighting the grid up as a
+      pointer crosses it, no floating name over the set (the project's
+      block already names it), and no fades or transitions inside the grid.
+      What it still does is the work: a click opens the piece and gathers
+      its project, as a cut, with the rest dimmed.
+
+      LINES stays true, because it gates the gather itself. Production is
+      unchanged until Chris says; rolling back is setting this to false.
+    */
+    const QUIET = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+    if (QUIET) grid.classList.add('is-quiet');
+    /*
       ARRIVING FROM THE HOMEPAGE, WITH A PROJECT ALREADY IN MIND.
 
       A featured tile on the homepage links to /portfolio?project=<slug>
@@ -2334,6 +2360,11 @@ if (emptyFilters.length > 0) {
       */
       mode: 'commit' | 'preview' | 'flash' = 'commit',
     ) {
+      // No thread at all on the quiet portfolio - see QUIET.
+      if (QUIET) {
+        grid.querySelector('.pf-links')?.remove();
+        return;
+      }
       /*
         Parameterised so the same drawing can serve two jobs.
 
@@ -3837,6 +3868,8 @@ if (emptyFilters.length > 0) {
     const dropTag = () => grid.querySelector('.pf-tag')?.remove();
 
     const nameSet = (tile: HTMLElement, family: HTMLElement[]) => {
+      // The project's block names the set; no floating name - see QUIET.
+      if (QUIET) return;
       /*
         STRIPPED, because the DOM string is not the visible string.
 
@@ -3956,6 +3989,8 @@ if (emptyFilters.length > 0) {
       mode: 'preview' | 'flash' = 'preview',
       withLabel = true,
     ) => {
+      // Nothing lights up under a passing pointer - see QUIET.
+      if (QUIET) return;
       window.clearTimeout(offTimer);
       const t0 = performance.now();
 
@@ -4023,7 +4058,7 @@ if (emptyFilters.length > 0) {
       that block runs later.
     */
     const LINKED = /[?&](view|open)=/.test(window.location.search);
-    if (LINES && !FINE_POINTER && !reducedMotion.matches && !PROJECT && !LINKED) {
+    if (LINES && !QUIET && !FINE_POINTER && !reducedMotion.matches && !PROJECT && !LINKED) {
       let seen = false;
       try {
         seen = sessionStorage.getItem(DEMO_KEY) === '1';
@@ -4619,7 +4654,8 @@ if (emptyFilters.length > 0) {
                 runs, because a desktop relayout is fast enough to afford
                 it.
               */
-              if (explained || !FINE_POINTER) {
+              // Quiet: no thread to hold for, so the gather follows at once.
+              if (explained || !FINE_POINTER || QUIET) {
                 nameSet(focusItem, focusFamily);
                 go();
               } else {

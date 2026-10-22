@@ -8016,3 +8016,19 @@ html.realsize-open {
     animation: none;
   }
 }
+
+/*
+  THE QUIET PORTFOLIO (preview only - .is-quiet on the grid, from QUIET in
+  portfolio.astro). Chris: fading in and out "might be excessive even ...
+  even though it's kind of nice", and the rest of the site has no motion
+  language for it to belong to. So inside the grid nothing eases: the
+  dimming, the bars, the pictures sharpening - each state simply is, the
+  way a printed page is.
+*/
+.pf-grid.is-quiet,
+.pf-grid.is-quiet *,
+.pf-grid.is-quiet *::before,
+.pf-grid.is-quiet *::after {
+  transition: none !important;
+  animation: none !important;
+}

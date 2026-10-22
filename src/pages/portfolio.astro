@@ -2274,6 +2274,15 @@ if (emptyFilters.length > 0) {
     const opensWide = (el: HTMLElement, hasCard: boolean, hasNear: boolean) => {
       if (window.matchMedia('(max-width: 48rem)').matches || !hasCard || hasNear) return false;
       if (el.classList.contains('pf-item--mark') || el.dataset.wide !== undefined) return false;
+      /*
+        Nor a project's own tile. It is the project's identity picture -
+        Two Point Oh's is a star drawn on a wide white ground - and at four
+        tiles it was a frame of mostly white, with the rest in one shallow
+        row beside it (Chris: "this image it looks clunky in this
+        application"). It only became eligible once opening it gave the set
+        a block (see OPENING THE PROJECT'S OWN TILE in gather()).
+      */
+      if (el.classList.contains('pf-item--study')) return false;
       const tiles = Math.round(cols / unit());
       if (tiles < 7) return false;
       const img = el.querySelector('.pf-item__img');

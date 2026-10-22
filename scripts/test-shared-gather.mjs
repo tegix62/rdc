@@ -86,6 +86,8 @@ const measure = (page) =>
       // own, and only if it fits the window at four (see opensWide).
       openedWide: (() => {
         if (!opened || opened.classList.contains('pf-item--mark') || opened.dataset.wide !== undefined) return false
+        // A project's own tile keeps three, whatever its shape.
+        if (opened.classList.contains('pf-item--study')) return false
         if (!grid.querySelector('.pf-item.is-card.is-card--beside') || grid.querySelector('.pf-item.is-near')) return false
         const img = opened.querySelector('.pf-item__img')
         const a = Number(img?.getAttribute('width')) / Number(img?.getAttribute('height'))

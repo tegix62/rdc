@@ -90,6 +90,12 @@ const pickAll = (page) =>
       // screenshot).
       const isMark = (el) => el.classList.contains('pf-item--mark') || el.dataset.wide !== undefined
       const photos = els.filter((el) => !isMark(el))
+      // And the piece with the most shots of its own hanging off it (the
+      // More Kilos tee: Chris's "still clunky" screenshot).
+      const kids = (el) => els.filter((x) => x.dataset.pieceParent && x.dataset.pieceParent === el.dataset.piece).length
+      const parent = els.reduce((a, b) => (kids(b) > kids(a) ? b : a))
+      if (kids(parent) >= 2 && !out.some((o) => o.piece === parent.dataset.piece))
+        out.push({h, i: all.indexOf(parent), piece: parent.dataset.piece, shots: kids(parent)})
       const own = studies.get(h)
       if (own) out.push({h, i: all.indexOf(own), piece: own.dataset.piece, study: true})
       for (const pool of [els, photos]) {
@@ -196,13 +202,13 @@ for (const [w, h] of SIZES) {
     totals.overlaps += m.overlaps ? 1 : 0
     const bad = m.orphans.length || m.blockFill < 0.6 || low || noBlock || m.outOfView || m.overlaps
     const firstOfProject = picks.findIndex((q) => q.h === p.h) === picks.indexOf(p)
-    if (OUT && (bad || firstOfProject || p.wide || p.study)) {
+    if (OUT && (bad || firstOfProject || p.wide || p.study || p.shots)) {
       const slug = p.h.split('/').filter(Boolean).pop()
-      await page.screenshot({path: `${OUT}/${w}-${slug}-${picks.indexOf(p)}${p.wide ? '-wide' : ''}${p.study ? '-own' : ''}${bad ? '-bad' : ''}.png`})
+      await page.screenshot({path: `${OUT}/${w}-${slug}-${picks.indexOf(p)}${p.wide ? '-wide' : ''}${p.study ? '-own' : ''}${p.shots ? '-shots' : ''}${bad ? '-bad' : ''}.png`})
     }
     console.log(
       `${bad ? 'BAD ' : 'ok  '} ${p.h} :: ${m.opened} (${m.openedSide}) - ${m.setN} in set, ${m.rows.length} rows ` +
-        `[${m.rows.map((r) => `${r.n}@${r.h}`).join(' ')}], block fill ${m.blockFill}, reach ${m.reach ?? '-'}${p.wide ? ' (widest)' : ''}${p.study ? ' (its own tile)' : ''}${noBlock ? ', NO BLOCK' : ''}` +
+        `[${m.rows.map((r) => `${r.n}@${r.h}`).join(' ')}], block fill ${m.blockFill}, reach ${m.reach ?? '-'}${p.wide ? ' (widest)' : ''}${p.study ? ' (its own tile)' : ''}${p.shots ? ` (has ${p.shots} shots)` : ''}${noBlock ? ', NO BLOCK' : ''}` +
         `${m.outOfView ? `, ${m.outOfView} out of view` : ''}${m.overlaps ? `, ${m.overlaps} overlaps` : ''}`,
     )
     for (const o of m.orphans) console.log(`       orphan row: ${o}`)

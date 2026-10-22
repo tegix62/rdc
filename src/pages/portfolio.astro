@@ -3303,12 +3303,26 @@ if (emptyFilters.length > 0) {
         }
         const own = item.dataset.piece;
         const up = item.dataset.pieceParent;
-        const near = family.filter(
+        const nearAll = family.filter(
           (el) =>
             el !== item &&
             ((own && el.dataset.pieceParent === own) ||
               (up && (el.dataset.piece === up || el.dataset.pieceParent === up))),
         );
+        /*
+          IN THE ALL VIEW, A SHIRT'S OWN SHOTS JOIN THE ROWS.
+
+          Chris, on the More Kilos tee opened in the All view: "still
+          clunky". Its four shots hugged it as a column beside the shirt -
+          the Merch view's arrangement, built for that view's grid - and
+          the rest of the project, three pieces, sat in one short row
+          beside them over a band of white. In the All view everything else
+          in the set is flush rows, so the shots go into the rows too, first
+          among their kind so they sit nearest the shirt. The Merch view
+          and phones keep the hug.
+        */
+        const foldNear = !view && JUSTIFY_REST && !window.matchMedia('(max-width: 48rem)').matches;
+        const near = foldNear ? [] : nearAll;
         /*
           THE PROJECT'S BLOCK, ABOVE THE SHIRT.
 
@@ -3361,6 +3375,8 @@ if (emptyFilters.length > 0) {
           card = copy;
         }
         const rest = family.filter((el) => el !== item && el !== card && !near.includes(el));
+        // The shirt's own shots first; the sort by kind below keeps that order within a kind.
+        if (foldNear && nearAll.length) rest.sort((a, b) => Number(nearAll.includes(b)) - Number(nearAll.includes(a)));
         openWide = opensWide(item, !!card, near.length > 0);
         /*
           THE REST IN ORDER OF KIND. Chris: "For Merch filter, we have any

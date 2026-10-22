@@ -1,0 +1,11 @@
+checking https://chrisrumeau.myportfolio.com
+  root HTTP 403
+
+loading https://chrisrumeau.myportfolio.com/copy-of-gallery
+  page HTTP 403
+
+  VERDICT: both refused. Adobe Portfolio is blocking this IP range,
+  which is what a CI runner looks like. Crawling cannot get past it.
+
+  Nothing to measure. Stopping here rather than publishing a
+  report full of zeroes that looks like a finding.

@@ -130,6 +130,27 @@ await tryView('Merch view, desktop', 1440, 900, '.merch-apparel')
   check('a project still gathers its whole set', lit === pick.n, `${lit} of ${pick.n}`)
 }
 
+// A small project - three tiles, the least that gathers (FAMILY_MIN) - gathers too.
+{
+  const {page} = await open(1440, 900)
+  const pick = await page.evaluate(() => {
+    const all = Array.from(document.querySelectorAll('#pf-grid .pf-item'))
+    const href = (el) => el.querySelector('.pf-item__jump')?.getAttribute('href')
+    const size = (h) => all.filter((x) => href(x) === h).length
+    const t = all.find((el) => href(el) && size(href(el)) === 3 && !el.classList.contains('pf-item--study'))
+    return t ? {i: all.indexOf(t), href: href(t)} : null
+  })
+  if (!pick) console.log('      (no three-tile project on the page)')
+  else {
+    const tile = page.locator('#pf-grid .pf-item').nth(pick.i)
+    await tile.scrollIntoViewIfNeeded()
+    await tile.locator('.pf-item__img').click()
+    await page.waitForTimeout(1800)
+    const lit = await page.evaluate(() => document.querySelectorAll('#pf-grid .pf-item.is-sibling').length)
+    check(`a three-tile project (${pick.href}) gathers`, lit === 3, `${lit} of 3`)
+  }
+}
+
 await browser.close()
 console.log(failures ? `\n${failures} check(s) failed.` : '\nall checks passed')
 process.exit(failures ? 1 : 0)

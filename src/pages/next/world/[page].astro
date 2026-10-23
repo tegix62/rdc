@@ -151,7 +151,7 @@ const data = {pieces, names};
   const seedOut = document.querySelector<HTMLElement>('[data-seed]')!;
   const ABOUT: Record<WorldMode, string> = {
     heights: 'A noise field is the terrain: pieces on high ground are large, pieces in the valleys small.',
-    caves: 'Where two noise fields both pass near zero, the ground is carved out - winding tunnels through the work, as in Minecraft. The larger caves carry a project’s name.',
+    caves: 'Where two noise fields both pass near zero, the ground is carved out - winding tunnels through the work, as in Minecraft. The longer tunnels carry a project’s name.',
     biomes: 'One region per project, borders pushed about by noise; each project settles on its own land.',
   };
 
@@ -193,6 +193,22 @@ const data = {pieces, names};
           const k = out.biome[r * cols + c];
           const hue = (k * 137.5 + (seed % 360)) % 360;
           ctx.fillStyle = `hsl(${hue} 55% 93%)`;
+          ctx.fillRect(c, r, 1, 1);
+        }
+      world.prepend(canvas);
+      extras.push(canvas);
+    }
+    // The caves' ground: every solid cell coloured, the tunnels left white,
+    // so they read as paths cut through it - not as more gaps between pieces.
+    if (out.cave) {
+      const canvas = document.createElement('canvas');
+      canvas.width = cols;
+      canvas.height = out.rows;
+      Object.assign(canvas.style, {position: 'absolute', left: '0', top: '0', width: `${width}px`, height: `${out.rows * cell}px`, imageRendering: 'pixelated', zIndex: '0', pointerEvents: 'none'});
+      const ctx = canvas.getContext('2d')!;
+      for (let r = 0; r < out.rows; r++)
+        for (let c = 0; c < cols; c++) {
+          ctx.fillStyle = out.cave[r * cols + c] ? '#ffffff' : '#e4e8f2';
           ctx.fillRect(c, r, 1, 1);
         }
       world.prepend(canvas);

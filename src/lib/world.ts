@@ -11,10 +11,10 @@
              high: mountains of big pieces, plains and valleys of small.
     CAVES    Two noise fields; where BOTH are near zero the cell is carved
              out and left white - Minecraft's "spaghetti" caves, because
-             two thin sheets of near-zero cross along a winding line. A
-             third, coarser field opens a few larger "cheese" caverns.
-             Pieces fill everything else, and the larger caves carry the
-             names of the projects beside them.
+             two thin sheets of near-zero cross along a winding line.
+             Pieces fill everything else; the page colours the ground, so
+             the tunnels read as white paths cut through it, and the
+             longer tunnels carry the names of the projects beside them.
     BIOMES   One region per project. Every cell belongs to the project
              whose centre is nearest - nearest after the cell's position
              has been pushed about by noise, so the borders wander instead
@@ -158,12 +158,17 @@ export function generateWorld(pieces: WorldPiece[], o: WorldOptions): WorldResul
       for (let c = 0; c < o.cols; c++) {
         const x = c * freq * 1.6;
         const y = r * freq * 1.6;
-        // Spaghetti: both of two fields near zero, so the tunnels wind.
-        const spaghetti = Math.abs(noise2(o.seed + 11, x, y)) < 0.16 && Math.abs(noise2(o.seed + 23, x, y)) < 0.32;
-        // Cheese: one coarse field over a threshold opens a cavern.
-        const cheese = noise2(o.seed + 37, x * 0.45, y * 0.45) > 0.62;
+        /*
+          Spaghetti only: both of two fields near zero, so the tunnels
+          wind. The first version also opened "cheese" caverns (one coarse
+          field over a threshold), and Chris: "the caves don't really make
+          sense to me" - big random holes read as gaps, not caves. Thin
+          winding tunnels, read against coloured ground (the page draws
+          the ground), are the effect.
+        */
+        const tunnel = Math.abs(noise2(o.seed + 11, x * 0.7, y * 0.7)) < 0.11 && Math.abs(noise2(o.seed + 23, x * 0.7, y * 0.7)) < 0.42;
         // Never the top row, so the page starts on solid ground.
-        if (r > 1 && (spaghetti || cheese)) cave[r * o.cols + c] = 1;
+        if (r > 1 && tunnel) cave[r * o.cols + c] = 1;
       }
   }
   const solid = cave ? (c: number, r: number) => !cave![r * o.cols + c] : undefined;

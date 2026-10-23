@@ -237,7 +237,10 @@ export function startTypeCluster(grid: HTMLElement) {
         height: Math.max(260, innerHeight * 0.62) * zoom,
         gap: gap(),
         seed: seedOf(`${lead === null ? 'type' : pieces[lead].project ?? lead}:${deal}`),
-        squash: phone() ? 1.2 : 0.62,
+        // Taller as it grows: a cluster as wide as the screen can only get
+        // bigger by getting taller, or + is undone by the fit to the width
+        // (measured on the live site, a phone: + 88%, - 104%).
+        squash: (phone() ? 1.2 : 0.62) * Math.max(phone() ? zoom : 1, zoom),
         fill: 0.5,
       },
     );

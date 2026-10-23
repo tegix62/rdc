@@ -1,0 +1,28 @@
+# Why is one piece not on the site? See scripts/diagnose-piece.mjs.
+# By hand only; reads documents, downloads no pictures.
+name: Diagnose one piece
+
+on:
+  workflow_dispatch:
+    inputs:
+      title:
+        description: 'Part of the title'
+        required: true
+
+jobs:
+  look:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Look
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          TERM_IN: ${{ inputs.title }}
+        run: |
+          set -o pipefail
+          node scripts/diagnose-piece.mjs "$TERM_IN" 2>&1 | tee piece.txt
+          { echo '## One piece'; echo '```'; cat piece.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,54 @@
+/*
+  Why is one piece not on the site? Looks a piece up by title in the
+  published dataset and says, field by field, whether it meets what the
+  Portfolio needs (getAllGridItems and tileImage): a page type of Case Study
+  or Grid Item, a Grid Thumbnail or Main Image with a FILE in it (an image
+  field can be saved with no file), a category for the filters, a parent
+  project for the gather. Then whether a draft is waiting unpublished.
+
+  Usage: node scripts/diagnose-piece.mjs "BalloonShop"
+*/
+const PROJECT_ID = '8337vjtf'
+const DATASET = 'production'
+const TERM = process.argv[2] ?? ''
+if (!TERM) {
+  console.log('Give part of the title to look for.')
+  process.exit(1)
+}
+
+const query = `*[_type == "caseStudy" && title match $term]{
+  _id, _updatedAt, title, pageType, category, merchPlacement,
+  "thumbFile": thumbnail.asset->{_id, url, "w": metadata.dimensions.width, "h": metadata.dimensions.height, size, "opaque": metadata.isOpaque},
+  "mainFile": mainImage.asset->{_id, url, "w": metadata.dimensions.width, "h": metadata.dimensions.height, size},
+  "thumbSet": defined(thumbnail), "mainSet": defined(mainImage),
+  "parent": parentBrand->{title, pageType, "parent": parentBrand->title}
+}`
+const ask = async (q, token) => {
+  const url = `https://${PROJECT_ID}.${token ? 'api' : 'apicdn'}.sanity.io/v2024-01-01/data/query/${DATASET}?query=${encodeURIComponent(q)}&$term=${encodeURIComponent(JSON.stringify(`*${TERM}*`))}${token ? '&perspective=raw' : ''}`
+  const res = await fetch(url, token ? {headers: {authorization: `Bearer ${token}`}} : {})
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`)
+  return (await res.json()).result ?? []
+}
+
+const docs = await ask(query)
+const token = process.env.SANITY_API_TOKEN
+const all = token ? await ask(query, token) : []
+const drafts = all.filter((d) => d._id.startsWith('drafts.'))
+
+console.log(`Published pieces matching "${TERM}": ${docs.filter((d) => !d._id.startsWith('drafts.')).length}`)
+for (const d of docs.filter((d) => !d._id.startsWith('drafts.'))) {
+  const file = d.thumbFile ?? d.mainFile
+  const ok = (good, text, fix) => console.log(`  ${good ? 'ok  ' : 'NO  '} ${text}${good || !fix ? '' : ` - ${fix}`}`)
+  console.log(`\n${d.title}  (last changed ${d._updatedAt})`)
+  ok(['Case Study', 'Grid Item'].includes(d.pageType), `Page Type: ${d.pageType ?? '(empty)'}`, 'set it to Grid Item')
+  ok(!!file, `picture: ${d.thumbFile ? 'Grid Thumbnail' : d.mainFile ? 'Main Image' : 'none'}${file ? `, ${file.w}x${file.h}, ${(file.size / 1048576).toFixed(1)} MB` : ''}`,
+    d.thumbSet || d.mainSet ? 'the image field is saved but holds no file - upload the picture into it' : 'add a Grid Thumbnail')
+  ok(!!d.category, `Category: ${d.category ?? '(empty)'}`, 'set Merch & Apparel to show under that filter')
+  ok(!!d.parent, `Parent Brand: ${d.parent ? `${d.parent.title}${d.parent.parent ? ` (in ${d.parent.parent})` : ''}` : '(none)'}`, 'set the project, so it gathers with it')
+  if (d.category === 'Merch & Apparel') console.log(`       merch view: ${d.merchPlacement ?? (d.thumbFile?.opaque === false ? 'front (see-through background)' : 'back (has a background)')}`)
+}
+if (token) {
+  for (const d of drafts) console.log(`\nDRAFT waiting, not published: ${d.title} (changed ${d._updatedAt}) - press Publish in Studio`)
+} else {
+  console.log('\n(no token here, so unpublished drafts cannot be seen)')
+}

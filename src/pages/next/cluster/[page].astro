@@ -70,14 +70,29 @@ const pieces = all.map((it) => {
   };
 });
 
-/* The homepage picks, in their order; the projects themselves if none are picked. */
-const featured: any[] = await getFeaturedWork(14);
+/*
+  The opening cluster: the homepage picks first, in their order, then
+  topped up to OPENING so it is a cluster and not a row - the projects not
+  yet in it, then one more piece from each project in turn. The picker
+  holds four today.
+*/
+const OPENING = 13;
+const featured: any[] = await getFeaturedWork(OPENING);
 const byId = new Map(pieces.map((p, i) => [p.id, i]));
-let opening = featured
+const opening = featured
   .map((f) => byId.get(String(f._id).replace(/^drafts\./, '')))
   .filter((i): i is number => i !== undefined)
-  .slice(0, 14);
-if (opening.length < 3) opening = pieces.map((p, i) => (p.own ? i : -1)).filter((i) => i >= 0).slice(0, 14);
+  .slice(0, OPENING);
+const add = (i: number) => opening.length < OPENING && !opening.includes(i) && opening.push(i);
+pieces.forEach((p, i) => p.own && add(i));
+const byProject = new Map<string, number[]>();
+pieces.forEach((p, i) => p.project && !p.own && byProject.set(p.project, [...(byProject.get(p.project) ?? []), i]));
+for (let round = 0; opening.length < OPENING && round < 6; round++) {
+  for (const list of byProject.values()) {
+    const next = list.find((i) => !opening.includes(i));
+    if (next !== undefined) add(next);
+  }
+}
 
 // ------------------------------------------------------------ the projects
 /* One label per project, from its own tile: what, when, who for, who with. */
@@ -229,15 +244,6 @@ const data = {pieces: pieces.map(({w, h, project, own}) => ({w, h, project, own}
     outline-offset: 3px;
   }
 
-  .cl-stage.is-placed {
-    display: block;
-    position: relative;
-  }
-  .cl-stage.is-placed .cl-piece {
-    position: absolute;
-    height: auto;
-  }
-
   .cl-under {
     margin-top: 1.25rem;
   }
@@ -331,11 +337,19 @@ const data = {pieces: pieces.map(({w, h, project, own}) => ({w, h, project, own}
         ? {width, maxHeight, gap: 6, minRow: 56, maxRow: 180, lead: lead === null ? 1 : 1.3}
         : {width, maxHeight, gap: 12, minRow: 90, maxRow: 300, lead: lead === null ? 1 : 1.35},
     );
-    stage.classList.add('is-placed');
+    /*
+      Set here, not by a class in the stylesheet: the build's critical-CSS
+      step drops rules for classes no element has when the page is built,
+      and the first version's .is-placed rules were dropped - the pieces
+      fell back to wrapped rows and ran over the label on a phone.
+    */
+    stage.style.display = 'block';
+    stage.style.position = 'relative';
     stage.style.width = `${out.width}px`;
     stage.style.height = `${Math.ceil(out.height)}px`;
     for (const p of out.placed) {
       const t = tiles[shown[p.i]];
+      t.style.position = 'absolute';
       t.style.left = `${p.x}px`;
       t.style.top = `${p.y}px`;
       t.style.width = `${p.w}px`;

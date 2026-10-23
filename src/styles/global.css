@@ -8054,3 +8054,70 @@ html.realsize-open {
   transition: none !important;
   animation: none !important;
 }
+
+/*
+  TYPE CLUSTER (preview) - the Type/Lettering tab as one noise cluster. Built
+  by src/lib/typeCluster.ts after the page loads, so its rules live here
+  rather than scoped in portfolio.astro, where the critical-CSS step would
+  drop them. Hairline gaps, no frames: the lettering on the page's white.
+*/
+.tc {
+  padding: 0.5rem 0 3rem;
+}
+.tc[hidden] {
+  display: none;
+}
+.tc-field {
+  position: relative;
+  margin: 0 auto;
+}
+.tc-piece {
+  position: absolute;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.tc-piece img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.tc-piece.is-mark img {
+  object-fit: contain;
+}
+.tc-piece:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+.tc-under {
+  margin-top: 1.25rem;
+  text-align: center;
+}
+.tc-hint {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  margin: 0;
+}
+.tc-name {
+  font-weight: 700;
+  margin: 0;
+}
+.tc-links {
+  margin: 0.6rem 0 0;
+  display: flex;
+  justify-content: center;
+  gap: 1.25rem;
+  font-size: 0.85rem;
+}
+.tc-back {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}

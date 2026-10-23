@@ -181,6 +181,11 @@ const PASTE_UP = false;
   for this. I don't think it's working out." Off, code kept.
 */
 const GLIDE = false;
+/*
+  THE TYPE TAB AS A NOISE CLUSTER (preview). Chris: "Let's try Typography
+  as the noise cluster." See src/lib/typeCluster.ts.
+*/
+const TYPE_CLUSTER = PREVIEW;
 
 if (emptyFilters.length > 0) {
   console.warn(
@@ -317,7 +322,7 @@ if (emptyFilters.length > 0) {
         - a timeout removes it regardless, so if Isotope fails to load the
           tiles come back in float order instead of staying invisible.
     */}
-    <div class:list={['pf-grid', MUSEUM_LABELS && 'has-labels', WALL && 'is-wall', PASTE_UP && 'is-paste', GLIDE && 'is-glide']} id="pf-grid">
+    <div class:list={['pf-grid', MUSEUM_LABELS && 'has-labels', WALL && 'is-wall', PASTE_UP && 'is-paste', GLIDE && 'is-glide']} id="pf-grid" data-type-cluster={TYPE_CLUSTER ? '' : undefined}>
       {items.map((item: any, i: number) => {
         // tileImage, not `thumbnail || mainImage`: an empty Grid Thumbnail is
         // truthy and used to swallow the real picture. See lib/image.ts.
@@ -576,6 +581,11 @@ if (emptyFilters.length > 0) {
 <script src="/vendor/isotope-3.0.6.min.js" is:inline></script>
 <script src="/vendor/imagesloaded-5.0.0.min.js" is:inline></script>
 <script>
+  import {startTypeCluster} from '../lib/typeCluster';
+  {
+    const g = document.getElementById('pf-grid');
+    if (g?.hasAttribute('data-type-cluster')) startTypeCluster(g);
+  }
   declare const Isotope: any;
   declare const imagesLoaded: any;
 

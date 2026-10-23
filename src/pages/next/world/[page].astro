@@ -166,7 +166,7 @@ const data = {pieces, names};
     as a contour map - bands of height, darker blue the higher, with a line
     at each band's edge - and the pieces fade back so it shows through.
   */
-  let terrainShown = false;
+  let terrainShown = q.get('terrain') === '1';
   const terrainBtn = document.querySelector<HTMLButtonElement>('[data-terrain]')!;
 
   const draw = () => {
@@ -286,7 +286,7 @@ const data = {pieces, names};
     document.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
     about.textContent = ABOUT[mode];
     seedOut.textContent = `seed ${seed}`;
-    history.replaceState(null, '', `?mode=${mode}&seed=${seed}`);
+    history.replaceState(null, '', `?mode=${mode}&seed=${seed}${mode === 'heights' && terrainShown ? '&terrain=1' : ''}`);
   };
 
   document.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) =>

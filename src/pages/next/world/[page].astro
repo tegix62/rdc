@@ -2,17 +2,24 @@
 /*
   A WORLD OF WORK - preview only, at /next/world/home.
 
-  Chris: "I'd love to see your Biomes, Caves, or Height map ideas played
-  out." The whole portfolio laid out three ways, each the way Minecraft
-  generates its world, switchable on the page - see src/lib/world.ts for
-  the rules. The seed is in the address (?mode=caves&seed=4187), so a world
-  can be linked and returned to; Shuffle rolls a new one.
+  Chris, of the first round: "original Height Map and Biome were the
+  exceptional ones. Let's shelve Height Map v2 and Caves", "if this could
+  operate like the main grid now, with full functionality of expansion",
+  "on Biome ... stuff that's parented to a grid item to hug it, even though
+  they don't have a case study", "only leave small noticeable gaps between
+  Biomes". See src/lib/world.ts for the rules.
 
-  A piece links to its project's page. Pictures are lazy and their tiles
-  hidden until placed, so nothing off the page is downloaded. Labels and
-  the biomes' tint are drawn by the script, styled inline - the critical-CSS
-  step drops scoped rules for elements that only exist once the script
-  runs.
+  Two modes: the height map (the original), and biomes (each project, or
+  each piece with the pieces parented to it, a tight block; the blocks a
+  cell apart). In both, a piece opens as on the main grid: large, its set
+  gathered round it, the rest dimmed; a bar above names it, links its
+  project and has the way back - as do Escape and the browser's back. The
+  opened piece, picked again, goes to its project.
+
+  Pictures are lazy and their tiles hidden until placed. Labels, the
+  biomes' tint and the bar's contents are drawn by the script and styled
+  inline - the critical-CSS step drops scoped rules for elements that only
+  exist once the script runs.
 
   Never built for production (getStaticPaths), and noindex.
 */
@@ -39,7 +46,15 @@ for (const it of all) {
 }
 const pieces = all.map((it) => {
   const d = imageDimensions(tileImage(it))!;
-  return {w: d.width, h: d.height, project: tileHref(it), own: isProject(it)};
+  return {
+    w: d.width,
+    h: d.height,
+    project: tileHref(it),
+    own: isProject(it),
+    id: cleanKey(it._id).replace(/^drafts\./, ''),
+    parent: it.pieceParent ? cleanKey(it.pieceParent) : null,
+    title: clean(it.title),
+  };
 });
 const data = {pieces, names};
 ---
@@ -48,24 +63,22 @@ const data = {pieces, names};
   <div class="wd">
     <div class="wd-bar">
       <button type="button" class="wd-btn" data-mode="heights">Height map</button>
-      <button type="button" class="wd-btn" data-mode="caves">Caves</button>
       <button type="button" class="wd-btn" data-mode="biomes">Biomes</button>
       <button type="button" class="wd-btn wd-btn--roll" data-roll>New world</button>
-      <button type="button" class="wd-btn" data-terrain aria-pressed="false">Show the terrain</button>
-      <span class="wd-seed" data-seed></span>
     </div>
     <p class="wd-about" data-about></p>
+    <div class="wd-open" data-open hidden></div>
     <div class="wd-world">
       {all.map((it, i) => (
-        <a
+        <button
+          type="button"
           class:list={['wd-piece', treatmentOf(it) === 'mark' && 'wd-piece--mark']}
-          href={tileHref(it) ?? undefined}
           data-i={i}
           hidden
           aria-label={clean(it.title)}
         >
           <Img image={tileImage(it)} alt="" width={1400} sizes="25vw" loading="lazy" field="Grid Thumbnail (world)" />
-        </a>
+        </button>
       ))}
     </div>
   </div>
@@ -97,16 +110,9 @@ const data = {pieces, names};
     cursor: pointer;
   }
   .wd-btn[aria-pressed='true'] {
-    background: currentColor;
-  }
-  .wd-btn[aria-pressed='true'] {
     color: #fff;
     background: #0a2a8a;
     border-color: #0a2a8a;
-  }
-  .wd-seed {
-    font-size: 0.7rem;
-    opacity: 0.55;
   }
   .wd-about {
     text-align: center;
@@ -115,6 +121,24 @@ const data = {pieces, names};
     margin: 0 auto 1rem;
     max-width: 40rem;
   }
+  /* The opened piece's bar: the way back, always in view. */
+  .wd-open {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.35rem 1.25rem;
+    padding: 0.6rem 0;
+    margin-bottom: 0.5rem;
+    background: #fff;
+    font-size: 0.85rem;
+  }
+  .wd-open[hidden] {
+    display: none;
+  }
   .wd-world {
     position: relative;
     margin: 0 auto;
@@ -122,15 +146,22 @@ const data = {pieces, names};
   .wd-piece {
     display: block;
     position: absolute;
+    z-index: 1;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
   }
   .wd-piece[hidden] {
     display: none;
   }
+  .wd-piece:focus-visible {
+    outline: 2px solid #0a2a8a;
+    outline-offset: 2px;
+  }
   /*
-    Whole, never cropped. A piece's box is rounded to whole cells, so it is
-    rarely the picture's own shape; filling it cut lettering off ("ERATE"
-    for Desperate Foes, "IM" for RIME, on Chris's phone). The picture sits
-    inside its box at its own shape instead, the box's spare edge left white.
+    Whole, never cropped: a box is rounded to whole cells, so it is rarely
+    the picture's own shape. The picture sits inside it at its own shape.
   */
   .wd-piece :global(img) {
     display: block;
@@ -141,42 +172,51 @@ const data = {pieces, names};
 </style>
 
 <script>
-  import {generateWorld, heightAt, type WorldMode} from '../../../lib/world';
+  import {generateWorld, type WorldMode, type WorldResult} from '../../../lib/world';
   import {seedOf} from '../../../lib/cluster';
 
-  const data: {pieces: {w: number; h: number; project: string | null; own: boolean}[]; names: Record<string, string>} =
-    JSON.parse(document.getElementById('wd-data')!.textContent!);
+  type P = {w: number; h: number; project: string | null; own: boolean; id: string; parent: string | null; title: string};
+  const data: {pieces: P[]; names: Record<string, string>} = JSON.parse(document.getElementById('wd-data')!.textContent!);
   const world = document.querySelector<HTMLElement>('.wd-world')!;
-  const tiles = Array.from(world.querySelectorAll<HTMLElement>('.wd-piece'));
+  const tiles = Array.from(world.querySelectorAll<HTMLButtonElement>('.wd-piece'));
   const about = document.querySelector<HTMLElement>('[data-about]')!;
-  const seedOut = document.querySelector<HTMLElement>('[data-seed]')!;
-  const ABOUT: Record<WorldMode, string> = {
-    heights: 'Under the page is an invisible landscape of hills and plains. Each piece is drawn as big as the ground is high where it lands - "Show the terrain" draws the map.',
-    caves: 'Where two noise fields both pass near zero, the ground is carved out - winding tunnels through the work, as in Minecraft. The longer tunnels carry a project’s name.',
-    biomes: 'One region per project, borders pushed about by noise; each project settles on its own land.',
+  const openBar = document.querySelector<HTMLElement>('[data-open]')!;
+  const ABOUT: Record<string, string> = {
+    heights: 'Under the page is an invisible landscape of hills and valleys; each piece is drawn as big as the ground is high where it lands.',
+    biomes: 'Each project - or a piece with the pieces parented to it - is its own patch of land, a small gap between them.',
   };
+  const byId = new Map(data.pieces.map((p, i) => [p.id, i]));
 
   const q = new URLSearchParams(location.search);
-  let mode = (['heights', 'caves', 'biomes'].includes(q.get('mode') ?? '') ? q.get('mode') : 'heights') as WorldMode;
+  let mode = (q.get('mode') === 'biomes' ? 'biomes' : 'heights') as WorldMode;
   let seed = Number(q.get('seed')) || 4187;
+  let focus: number | null = null;
+  let focusRow = 0;
+  let pushed = false;
+  let last: WorldResult | null = null;
   const extras: HTMLElement[] = [];
-  /*
-    SHOW THE TERRAIN. Chris: "How does the height map actually work? I don't
-    see the logic working." The ground the pieces read is drawn under them
-    as a contour map - bands of height, darker blue the higher, with a line
-    at each band's edge - and the pieces fade back so it shows through.
-  */
-  let terrainShown = q.get('terrain') === '1';
-  const terrainBtn = document.querySelector<HTMLButtonElement>('[data-terrain]')!;
+
+  // A set's name: its project's, or the title of the piece the others hang off.
+  const setName = (key: string) => {
+    if (data.names[key]) return data.names[key];
+    if (key.startsWith('#set-')) {
+      const i = byId.get(key.slice(5));
+      return i === undefined ? '' : data.pieces[i].title;
+    }
+    return '';
+  };
 
   const draw = () => {
     for (const e of extras.splice(0)) e.remove();
     const phone = innerWidth < 768;
     const width = Math.min(world.parentElement!.clientWidth - 32, 1400);
-    const cols = phone ? 6 : 20;
+    // Biomes on a finer grid, so the gap between them is a thin line.
+    const [cols, maxSpan] = mode === 'biomes' ? (phone ? [15, 6] : [40, 12]) : phone ? [6, 3] : [20, 6];
     const cell = width / cols;
     const gap = phone ? 2 : 3;
-    const out = generateWorld(data.pieces, {cols, mode, seed, maxSpan: phone ? 3 : 6});
+    const out = generateWorld(data.pieces, {cols, mode, seed, maxSpan, focus, focusRow});
+    last = out;
+    const fam = new Set(out.family);
     world.style.width = `${width}px`;
     world.style.height = `${Math.ceil(out.rows * cell)}px`;
     tiles.forEach((t) => (t.hidden = true));
@@ -187,118 +227,111 @@ const data = {pieces, names};
       t.style.top = `${p.r * cell + gap / 2}px`;
       t.style.width = `${p.cw * cell - gap}px`;
       t.style.height = `${p.ch * cell - gap}px`;
+      t.style.opacity = focus !== null && !fam.has(p.i) ? '0.3' : '';
       const img = t.querySelector('img');
       if (img) img.sizes = `${Math.ceil(p.cw * cell)}px`;
     }
-    // The biomes' land: a faint tint per region, drawn a cell at a time.
+    // The biomes' land: a faint tint per biome, a cell at a time.
     if (out.biome && out.regions) {
       const canvas = document.createElement('canvas');
       canvas.width = cols;
       canvas.height = out.rows;
-      Object.assign(canvas.style, {position: 'absolute', left: '0', top: '0', width: `${width}px`, height: `${out.rows * cell}px`, imageRendering: 'auto', zIndex: '0', pointerEvents: 'none'});
+      Object.assign(canvas.style, {position: 'absolute', left: '0', top: '0', width: `${width}px`, height: `${out.rows * cell}px`, imageRendering: 'pixelated', zIndex: '0', pointerEvents: 'none', opacity: focus !== null ? '0.5' : '1'});
       const ctx = canvas.getContext('2d')!;
       for (let r = 0; r < out.rows; r++)
         for (let c = 0; c < cols; c++) {
           const k = out.biome[r * cols + c];
-          const hue = (k * 137.5 + (seed % 360)) % 360;
-          ctx.fillStyle = `hsl(${hue} 55% 93%)`;
+          if (k < 0) continue;
+          ctx.fillStyle = `hsl(${(k * 137.5 + (seed % 360)) % 360} 45% 94%)`;
           ctx.fillRect(c, r, 1, 1);
         }
       world.prepend(canvas);
       extras.push(canvas);
     }
-    // The caves' ground: every solid cell coloured, the tunnels left white,
-    // so they read as paths cut through it - not as more gaps between pieces.
-    if (out.cave) {
-      const canvas = document.createElement('canvas');
-      canvas.width = cols;
-      canvas.height = out.rows;
-      Object.assign(canvas.style, {position: 'absolute', left: '0', top: '0', width: `${width}px`, height: `${out.rows * cell}px`, imageRendering: 'pixelated', zIndex: '0', pointerEvents: 'none'});
-      const ctx = canvas.getContext('2d')!;
-      for (let r = 0; r < out.rows; r++)
-        for (let c = 0; c < cols; c++) {
-          ctx.fillStyle = out.cave[r * cols + c] ? '#ffffff' : '#e4e8f2';
-          ctx.fillRect(c, r, 1, 1);
-        }
-      world.prepend(canvas);
-      extras.push(canvas);
-    }
-    terrainBtn.hidden = mode !== 'heights';
-    terrainBtn.setAttribute('aria-pressed', String(terrainShown));
-    if (mode === 'heights' && terrainShown) {
-      const k = 6; // samples per cell, for smooth contours
-      const W = cols * k;
-      const H = out.rows * k;
-      const canvas = document.createElement('canvas');
-      canvas.width = W;
-      canvas.height = H;
-      Object.assign(canvas.style, {position: 'absolute', left: '0', top: '0', width: `${width}px`, height: `${out.rows * cell}px`, zIndex: '0', pointerEvents: 'none'});
-      const ctx = canvas.getContext('2d')!;
-      const img = ctx.createImageData(W, H);
-      const BANDS = 6;
-      const band = (x: number, y: number) => Math.min(BANDS - 1, Math.floor(heightAt(seed, cols, x / k, y / k) * BANDS));
-      for (let y = 0; y < H; y++)
-        for (let x = 0; x < W; x++) {
-          const b = band(x, y);
-          // A contour where the band changes to the right or below.
-          const edge = (x + 1 < W && band(x + 1, y) !== b) || (y + 1 < H && band(x, y + 1) !== b);
-          const t = b / (BANDS - 1);
-          const i = (y * W + x) * 4;
-          img.data[i] = edge ? 40 : Math.round(255 - t * 120);
-          img.data[i + 1] = edge ? 70 : Math.round(255 - t * 95);
-          img.data[i + 2] = edge ? 160 : Math.round(255 - t * 35);
-          img.data[i + 3] = 255;
-        }
-      ctx.putImageData(img, 0, 0);
-      world.prepend(canvas);
-      extras.push(canvas);
-    }
-    for (const t of tiles) t.style.opacity = mode === 'heights' && terrainShown ? '0.35' : '';
+    const focusSet = focus === null ? null : (data.pieces[focus].project ?? null);
     for (const l of out.labels) {
-      const name = data.names[l.text] ?? l.text.replace(/^\/work\//, '').replace(/-/g, ' ');
+      const name = setName(l.set);
       if (!name) continue;
-      const el = document.createElement('a');
+      const el = document.createElement(l.set.startsWith('/') ? 'a' : 'span');
       el.textContent = name;
-      if (l.text.startsWith('/')) el.href = l.text;
+      if (el instanceof HTMLAnchorElement) el.href = l.set;
       Object.assign(el.style, {
-        position: 'absolute',
-        left: `${l.c * cell}px`,
-        top: `${l.r * cell}px`,
-        width: `${l.cw * cell}px`,
-        height: `${cell}px`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        textAlign: 'center',
-        fontSize: phone ? '0.65rem' : '0.75rem',
-        fontWeight: '700',
-        letterSpacing: '0.06em',
-        textTransform: 'uppercase',
-        lineHeight: '1.15',
-        color: '#0a2a8a',
-        textDecoration: 'none',
-        zIndex: '1',
-        padding: '0 0.25rem',
+        position: 'absolute', left: `${l.c * cell}px`, top: `${l.r * cell}px`, width: `${l.cw * cell}px`, height: `${cell}px`,
+        display: 'flex', alignItems: 'center', padding: '0 0.35rem', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+        fontSize: phone ? '0.6rem' : '0.7rem', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase',
+        color: '#0a2a8a', textDecoration: 'none', zIndex: '1',
+        opacity: focus !== null && l.set !== focusSet && !out.family.some((i) => `#set-${data.pieces[i].id}` === l.set || (data.pieces[i].parent && `#set-${data.pieces[i].parent}` === l.set)) ? '0.4' : '',
       });
       world.append(el);
       extras.push(el);
     }
+    // The bar for the opened piece.
+    openBar.replaceChildren();
+    openBar.hidden = focus === null;
+    if (focus !== null) {
+      const p = data.pieces[focus];
+      const back = document.createElement('button');
+      back.type = 'button';
+      back.textContent = '← All work';
+      Object.assign(back.style, {border: '0', background: 'none', padding: '0', font: 'inherit', color: 'inherit', textDecoration: 'underline', cursor: 'pointer'});
+      back.addEventListener('click', close);
+      const name = document.createElement('span');
+      name.textContent = p.title;
+      name.style.fontWeight = '700';
+      openBar.append(back, name);
+      if (p.project?.startsWith('/')) {
+        const go = document.createElement('a');
+        go.href = p.project;
+        go.textContent = `${data.names[p.project] ?? 'The project'} →`;
+        openBar.append(go);
+      }
+    }
     document.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
     about.textContent = ABOUT[mode];
-    seedOut.textContent = `seed ${seed}`;
-    history.replaceState(null, '', `?mode=${mode}&seed=${seed}${mode === 'heights' && terrainShown ? '&terrain=1' : ''}`);
+    history.replaceState(history.state, '', `?mode=${mode}&seed=${seed}`);
   };
 
+  const open = (i: number, push = true) => {
+    const p = data.pieces[i];
+    if (i === focus) {
+      if (p.project?.startsWith('/')) location.href = p.project;
+      else close();
+      return;
+    }
+    focusRow = last?.placed.find((x) => x.i === i)?.r ?? 0;
+    focus = i;
+    if (push) {
+      history.pushState({wd: i}, '');
+      pushed = true;
+    }
+    draw();
+    tiles[i].scrollIntoView({block: 'center'});
+  };
+  function close() {
+    if (pushed) {
+      history.back();
+      return;
+    }
+    focus = null;
+    draw();
+  }
+
+  tiles.forEach((t, i) => t.addEventListener('click', () => open(i)));
+  addEventListener('popstate', (e) => {
+    const i = (e.state as {wd?: number} | null)?.wd;
+    pushed = typeof i === 'number';
+    focus = typeof i === 'number' ? i : null;
+    draw();
+  });
+  addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && focus !== null) close();
+  });
   document.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) =>
     b.addEventListener('click', () => {
       mode = b.dataset.mode as WorldMode;
       draw();
     }),
   );
-  terrainBtn.addEventListener('click', () => {
-    terrainShown = !terrainShown;
-    draw();
-  });
   document.querySelector('[data-roll]')!.addEventListener('click', () => {
     seed = (seedOf(`${seed}:${Date.now()}`) % 9000) + 1000;
     draw();

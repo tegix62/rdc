@@ -3352,7 +3352,10 @@ if (emptyFilters.length > 0) {
           among their kind so they sit nearest the shirt. The Merch view
           and phones keep the hug.
         */
-        const foldNear = !view && JUSTIFY_REST && !window.matchMedia('(max-width: 48rem)').matches;
+        // Not for a shirt's own set (no project): there are no rows to join,
+        // and the shot belongs right beside its shirt - tested 143-228px away.
+        const foldNear =
+          !view && JUSTIFY_REST && !window.matchMedia('(max-width: 48rem)').matches && !isShirtSet(projectOf(item));
         const near = foldNear ? [] : nearAll;
         /*
           THE PROJECT'S BLOCK, ABOVE THE SHIRT.

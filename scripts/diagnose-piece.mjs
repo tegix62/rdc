@@ -47,6 +47,15 @@ for (const d of docs.filter((d) => !d._id.startsWith('drafts.'))) {
   ok(!!d.parent, `Parent Brand: ${d.parent ? `${d.parent.title}${d.parent.parent ? ` (in ${d.parent.parent})` : ''}` : '(none)'}`, 'set the project, so it gathers with it')
   if (d.category === 'Merch & Apparel') console.log(`       merch view: ${d.merchPlacement ?? (d.thumbFile?.opaque === false ? 'front (see-through background)' : 'back (has a background)')}`)
 }
+// Every piece under each matching project, whatever it is called - and
+// whether the All view would gather it (four pieces or more, the project's
+// own tile included; FAMILY_MIN in portfolio.astro).
+for (const d of docs.filter((d) => d.pageType === 'Case Study')) {
+  const kids = await ask(`*[_type == "caseStudy" && !(_id in path("drafts.**")) && (parentBrand._ref == "${d._id}" || parentBrand->parentBrand._ref == "${d._id}")]{title, pageType, "pic": defined(coalesce(thumbnail.asset, mainImage.asset)), category}`)
+  const shown = kids.filter((k) => k.pic && ['Case Study', 'Grid Item'].includes(k.pageType))
+  console.log(`\n${d.title}: ${shown.length} piece(s) under it on the grid, ${shown.length + 1} with its own tile - ${shown.length + 1 >= 4 ? 'gathers in the All view' : 'too few to gather in the All view (needs 4)'}`)
+  for (const k of kids) console.log(`  ${k.pic ? '   ' : 'NO '} ${k.title} (${k.pageType ?? 'no page type'}, ${k.category ?? 'no category'})`)
+}
 if (token) {
   for (const d of drafts) console.log(`\nDRAFT waiting, not published: ${d.title} (changed ${d._updatedAt}) - press Publish in Studio`)
 } else {

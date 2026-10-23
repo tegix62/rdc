@@ -1,0 +1,18 @@
+# How does Sanity cope with the biggest picture in the dataset? See
+# scripts/check-big-asset.mjs. By hand; downloads only small transformed
+# copies, never the original.
+name: Check the biggest picture
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/check-big-asset.mjs | tee big.txt

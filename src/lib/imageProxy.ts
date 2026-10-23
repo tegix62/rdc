@@ -100,15 +100,20 @@ export async function proxyImage(
   }
 
   // One stored copy per format: the key is any URL, so the format goes in
-  // it. v4: entries before it may hold the wrong format (see upstreamFor), and
+  // it. v5: entries before it may hold the wrong format (see below), and
   // v2's were asked with fm=avif, which Sanity answers 400 (not kept, but to be sure).
-  const key = new Request(`${url.origin}/img/${path}${url.search}${url.search ? '&' : '?'}_as=${format}&_v=4`);
+  const key = new Request(`${url.origin}/img/${path}${url.search}${url.search ? '&' : '?'}_as=${format}&_v=5`);
   const hit = await deps.cache.match(key);
   if (hit) return hit;
 
-  // The upstream address names its format (upstreamFor), so caching it by
-  // address is safe again.
-  const r = await deps.fetch(upstream, {headers: {accept}, cf} as RequestInit);
+  /*
+    No `cf` cache options for a picture. Measured on preview (October 2026):
+    with cacheEverything on, Sanity sent WebP to 18 of 24 requests that
+    asked for AVIF, at addresses never fetched before - the cached fetch
+    does not pass the browser's Accept on as given. Without it, AVIF came
+    back. The Cache API entry above, keyed by format, is the copy kept.
+  */
+  const r = await deps.fetch(upstream, {headers: {accept}});
   if (!r.ok) {
     // Not kept: a failure (Sanity over quota, say) must not be cached for a year.
     return new Response(r.body, {status: r.status, headers: passHeaders(r.headers, {'cache-control': 'no-store'})});

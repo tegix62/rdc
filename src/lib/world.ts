@@ -108,6 +108,23 @@ function terrain(seed: number, x: number, y: number) {
   return Math.min(1, Math.max(0, 0.5 + 0.5 * (sum / norm) * 1.6));
 }
 
+/*
+  THE HEIGHT MAP'S GROUND, in [0, 1], at a cell - exported so the page can
+  draw the map it is reading. Chris: "I don't see the logic working" - the
+  first terrain had hills about a third of the page apart, too small and
+  too many to tell apart, and it was invisible. Now the hills are broad
+  (one or two across the page), and the height is pushed towards its ends
+  - wide flat plains, a few distinct peaks - so a mountain of big pieces
+  and a plain of small ones read without explanation.
+*/
+export function heightAt(seed: number, cols: number, c: number, r: number) {
+  const f = 1 / Math.max(6, cols * 0.6);
+  const h = terrain(seed, c * f, r * f);
+  // A smooth step: below 0.35 is plain, above 0.75 is peak.
+  const t = Math.min(1, Math.max(0, (h - 0.35) / 0.4));
+  return t * t * (3 - 2 * t);
+}
+
 // ---------------------------------------------------------------- the grid
 class Grid {
   cols: number;
@@ -182,13 +199,18 @@ export function generateWorld(pieces: WorldPiece[], o: WorldOptions): WorldResul
       if (grid.used[at] || (cave && cave[at])) continue;
       // How big: the terrain under this spot (heights), or a steady size
       // with a little give (caves).
-      const h = terrain(o.seed, c * freq, r * freq);
+      const h = o.mode === 'heights' ? heightAt(o.seed, o.cols, c, r) : terrain(o.seed, c * freq, r * freq);
       const want =
-        o.mode === 'heights'
-          ? 1 + Math.round(h ** 1.6 * (maxSpan - 1))
-          : Math.max(1, Math.round(2 + (h - 0.5) * 2));
+        o.mode === 'heights' ? 1 + Math.round(h * (maxSpan - 1)) : Math.max(1, Math.round(2 + (h - 0.5) * 2));
+      /*
+        A piece shrinks by at most one step to fit here; if it still does
+        not, it waits for the next free cell instead. Shrinking all the way
+        to one cell - as the first version did - put small pieces on the
+        peaks and hid the terrain.
+      */
+      const least = o.mode === 'heights' ? Math.max(1, want - 1) : 1;
       let done = false;
-      for (let cw = Math.min(want, o.cols - c); cw >= 1 && !done; cw--) {
+      for (let cw = Math.min(want, o.cols - c); cw >= least && !done; cw--) {
         const {ch} = boxAt(p, cw);
         if (grid.fits(c, r, cw, ch, solid)) {
           grid.take(c, r, cw, ch);

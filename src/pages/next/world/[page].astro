@@ -51,6 +51,7 @@ const data = {pieces, names};
       <button type="button" class="wd-btn" data-mode="caves">Caves</button>
       <button type="button" class="wd-btn" data-mode="biomes">Biomes</button>
       <button type="button" class="wd-btn wd-btn--roll" data-roll>New world</button>
+      <button type="button" class="wd-btn" data-terrain aria-pressed="false">Show the terrain</button>
       <span class="wd-seed" data-seed></span>
     </div>
     <p class="wd-about" data-about></p>
@@ -140,7 +141,7 @@ const data = {pieces, names};
 </style>
 
 <script>
-  import {generateWorld, type WorldMode} from '../../../lib/world';
+  import {generateWorld, heightAt, type WorldMode} from '../../../lib/world';
   import {seedOf} from '../../../lib/cluster';
 
   const data: {pieces: {w: number; h: number; project: string | null; own: boolean}[]; names: Record<string, string>} =
@@ -150,7 +151,7 @@ const data = {pieces, names};
   const about = document.querySelector<HTMLElement>('[data-about]')!;
   const seedOut = document.querySelector<HTMLElement>('[data-seed]')!;
   const ABOUT: Record<WorldMode, string> = {
-    heights: 'A noise field is the terrain: pieces on high ground are large, pieces in the valleys small.',
+    heights: 'Under the page is an invisible landscape of hills and plains. Each piece is drawn as big as the ground is high where it lands - "Show the terrain" draws the map.',
     caves: 'Where two noise fields both pass near zero, the ground is carved out - winding tunnels through the work, as in Minecraft. The longer tunnels carry a project’s name.',
     biomes: 'One region per project, borders pushed about by noise; each project settles on its own land.',
   };
@@ -159,6 +160,14 @@ const data = {pieces, names};
   let mode = (['heights', 'caves', 'biomes'].includes(q.get('mode') ?? '') ? q.get('mode') : 'heights') as WorldMode;
   let seed = Number(q.get('seed')) || 4187;
   const extras: HTMLElement[] = [];
+  /*
+    SHOW THE TERRAIN. Chris: "How does the height map actually work? I don't
+    see the logic working." The ground the pieces read is drawn under them
+    as a contour map - bands of height, darker blue the higher, with a line
+    at each band's edge - and the pieces fade back so it shows through.
+  */
+  let terrainShown = false;
+  const terrainBtn = document.querySelector<HTMLButtonElement>('[data-terrain]')!;
 
   const draw = () => {
     for (const e of extras.splice(0)) e.remove();
@@ -214,6 +223,37 @@ const data = {pieces, names};
       world.prepend(canvas);
       extras.push(canvas);
     }
+    terrainBtn.hidden = mode !== 'heights';
+    terrainBtn.setAttribute('aria-pressed', String(terrainShown));
+    if (mode === 'heights' && terrainShown) {
+      const k = 6; // samples per cell, for smooth contours
+      const W = cols * k;
+      const H = out.rows * k;
+      const canvas = document.createElement('canvas');
+      canvas.width = W;
+      canvas.height = H;
+      Object.assign(canvas.style, {position: 'absolute', left: '0', top: '0', width: `${width}px`, height: `${out.rows * cell}px`, zIndex: '0', pointerEvents: 'none'});
+      const ctx = canvas.getContext('2d')!;
+      const img = ctx.createImageData(W, H);
+      const BANDS = 6;
+      const band = (x: number, y: number) => Math.min(BANDS - 1, Math.floor(heightAt(seed, cols, x / k, y / k) * BANDS));
+      for (let y = 0; y < H; y++)
+        for (let x = 0; x < W; x++) {
+          const b = band(x, y);
+          // A contour where the band changes to the right or below.
+          const edge = (x + 1 < W && band(x + 1, y) !== b) || (y + 1 < H && band(x, y + 1) !== b);
+          const t = b / (BANDS - 1);
+          const i = (y * W + x) * 4;
+          img.data[i] = edge ? 40 : Math.round(255 - t * 120);
+          img.data[i + 1] = edge ? 70 : Math.round(255 - t * 95);
+          img.data[i + 2] = edge ? 160 : Math.round(255 - t * 35);
+          img.data[i + 3] = 255;
+        }
+      ctx.putImageData(img, 0, 0);
+      world.prepend(canvas);
+      extras.push(canvas);
+    }
+    for (const t of tiles) t.style.opacity = mode === 'heights' && terrainShown ? '0.35' : '';
     for (const l of out.labels) {
       const name = data.names[l.text] ?? l.text.replace(/^\/work\//, '').replace(/-/g, ' ');
       if (!name) continue;
@@ -255,6 +295,10 @@ const data = {pieces, names};
       draw();
     }),
   );
+  terrainBtn.addEventListener('click', () => {
+    terrainShown = !terrainShown;
+    draw();
+  });
   document.querySelector('[data-roll]')!.addEventListener('click', () => {
     seed = (seedOf(`${seed}:${Date.now()}`) % 9000) + 1000;
     draw();

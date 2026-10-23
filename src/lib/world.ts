@@ -24,6 +24,22 @@
              the pieces parented to it, so they land beside it - and the
              blocks are packed against each other, largest first, one cell
              apart: a small, noticeable gap and no empty land.
+    LANDS    The two together (Chris: "the height map and the biome idea
+             should just be combined ... projects are really grouped
+             together very closely, and then things that aren't a case
+             study are still in their own territories, but everything's
+             still touching. And it has that radical size difference",
+             "more complex imagery takes up the larger spots"). Each set is
+             a tight block as in the biomes, but the blocks pack against
+             each other with no gap, and the land between them is shared
+             out to the nearest territory, so the territories touch. Within
+             a block a piece is as large as it is detailed (`detail`, from
+             the page), lifted or lowered a little by the ground where the
+             height map would put it: a few huge, most small.
+
+  COLOUR (heights and lands): `sort: 'colour'` lays pieces - in lands, whole
+  territories - by `tone` instead: black and white first, then round the
+  colour wheel.
 
   OPENING (both modes), as on the main grid: `focus` names a piece. It is
   drawn large, its set packed tight around it, at about where it was; the
@@ -38,7 +54,7 @@
   no DOM - checked by scripts/test-world.mjs.
 */
 
-export type WorldMode = 'heights' | 'biomes' | 'heights2' | 'caves';
+export type WorldMode = 'heights' | 'biomes' | 'lands' | 'heights2' | 'caves';
 
 export interface WorldPiece {
   w: number;
@@ -49,6 +65,10 @@ export interface WorldPiece {
   /** This piece's id, and the piece it is parented to (a grid item), if any. */
   id?: string;
   parent?: string | null;
+  /** How detailed the picture is, 0 (plainest) to 1 (busiest) - for lands. */
+  detail?: number;
+  /** Its colour as a sort key: below 1 black and white (by lightness), 1-2 round the hue wheel. */
+  tone?: number;
 }
 
 export interface WorldOptions {
@@ -61,6 +81,8 @@ export interface WorldOptions {
   focus?: number | null;
   /** The row it was on when opened, so its set opens about there. */
   focusRow?: number;
+  /** Lay pieces by colour (`tone`) rather than the seed's order. */
+  sort?: 'seed' | 'colour';
 }
 
 export interface WorldPlaced {
@@ -298,6 +320,7 @@ export function generateWorld(pieces: WorldPiece[], o: WorldOptions): WorldResul
   const focus = o.focus ?? null;
   const family = focus === null ? [] : pieces.map((_, i) => i).filter((i) => sets[i] === sets[focus]);
   if (o.mode === 'biomes') return biomes(pieces, o, maxSpan, sets, focus, family);
+  if (o.mode === 'lands') return lands(pieces, o, maxSpan, sets, focus, family);
   return flow(pieces, o, maxSpan, sets, focus, family);
 }
 
@@ -342,7 +365,9 @@ function flow(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: stri
 
   const inFamily = new Set(family);
   let cursor = 0;
-  for (const i of order(pieces.length, o.seed)) {
+  const laid = order(pieces.length, o.seed);
+  if (o.sort === 'colour') laid.sort((a, b) => (pieces[a].tone ?? 1.5) - (pieces[b].tone ?? 1.5));
+  for (const i of laid) {
     if (inFamily.has(i)) continue;
     const p = pieces[i];
     for (let at = cursor; at < grid.used.length; at++) {
@@ -478,6 +503,119 @@ function biomes(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: st
     for (const q of shape.b.placed) placed.push({...q, c: c + q.c, r: r + shape.top + q.r});
     if (s.named) labels.push({text: s.key, set: s.key, c, r, cw: shape.used});
     while (from < grid.maxRows && [...grid.used.subarray(from * o.cols, (from + 1) * o.cols)].every((v) => v !== -1)) from++;
+  }
+  return {placed, cols: o.cols, rows: grid.rows, biome, regions, labels, family};
+}
+
+/*
+  Lands: each set a tight block, sized by detail and the ground; the blocks
+  packed with no gap; the land left between them given to the nearest
+  territory, so every territory touches its neighbours.
+*/
+function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: string[], focus: number | null, family: number[]): WorldResult {
+  const groups = new Map<string, number[]>();
+  sets.forEach((k, i) => groups.set(k, [...(groups.get(k) ?? []), i]));
+  const regions = [...groups.keys()];
+  const opened = Math.min(o.cols, maxSpan + Math.ceil(maxSpan / 2));
+  const big = Math.max(2, Math.round(maxSpan * 0.5));
+
+  // A piece's size: its detail, nudged by the ground (heights' own field,
+  // sampled at a spot of its own), raised to a power so most are small and
+  // a few are huge. A project's own tile is never among the smallest.
+  const spanFor = (i: number) => {
+    const ground = groundAt(o.seed, o.cols, (i * 7.3) % o.cols, i * 1.9);
+    const d = pieces[i].detail;
+    const s = d === undefined ? ground : 0.72 * d + 0.28 * ground;
+    const span = 1 + Math.round(Math.min(1, s) ** 1.7 * (maxSpan - 1));
+    return pieces[i].own ? Math.max(span, big) : span;
+  };
+
+  const blocks = regions.map((key, region) => {
+    const members = groups.get(key)!;
+    const isFocus = focus !== null && sets[focus] === key;
+    const list = laidOrder(pieces, members, isFocus ? focus : null);
+    // Opened: the piece large, the rest of its set below it in size.
+    const spanOf = (i: number) => (isFocus ? (i === focus ? opened : Math.min(opened - 1, Math.max(2, spanFor(i)))) : spanFor(i));
+    const base = blockWidth(pieces, list, spanOf, o.cols);
+    const widest = Math.max(...list.map((i) => Math.min(o.cols, spanOf(i))));
+    const widths = [...new Set([base, base - 2, base + 2, base + 5].map((w) => Math.min(o.cols, Math.max(widest, w))))];
+    const shapes = widths.map((w) => {
+      const b = block(pieces, list, spanOf, w);
+      const used = Math.max(...b.placed.map((q) => q.c + q.cw));
+      const cells: [number, number][] = b.placed.flatMap((q) => {
+        const out: [number, number][] = [];
+        for (let y = q.r; y < q.r + q.ch; y++) for (let x = q.c; x < q.c + q.cw; x++) out.push([x, y]);
+        return out;
+      });
+      return {b, cells, used, height: b.rows};
+    });
+    const cells = shapes[0].cells.length;
+    // A territory's colour: its middle piece's, so one stray does not move it.
+    const tones = members.map((i) => pieces[i].tone ?? 1.5).sort((a, z) => a - z);
+    return {key, region, members, named: members.length > 1, shapes, cells, tone: tones[Math.floor(tones.length / 2)]};
+  });
+
+  const shuffle = order(blocks.length, o.seed);
+  const rank = new Map(shuffle.map((k, n) => [k, n]));
+  const sorted = [...blocks].sort((a, z) =>
+    o.sort === 'colour'
+      ? a.tone - z.tone || rank.get(a.region)! - rank.get(z.region)!
+      : Math.round(Math.log2(z.cells + 1)) - Math.round(Math.log2(a.cells + 1)) || rank.get(a.region)! - rank.get(z.region)!,
+  );
+  if (focus !== null) sorted.sort((a, z) => Number(z.key === sets[focus]) - Number(a.key === sets[focus]));
+
+  const total = blocks.reduce((n, b) => n + b.cells, 0);
+  const grid = new Grid(o.cols, Math.max(60, Math.ceil((total * 4) / o.cols) + 60));
+  const placed: WorldPlaced[] = [];
+  const labels: WorldLabel[] = [];
+  let from = 0;
+
+  for (const s of sorted) {
+    const free = (cells: [number, number][], c: number, r: number) =>
+      cells.every(([x, y]) => c + x < o.cols && r + y < grid.maxRows && grid.used[(r + y) * o.cols + c + x] === -1);
+    // Each width's first spot; keep the one whose bottom is highest, then
+    // the one that leaves the fewest empty cells above it.
+    let best: {shape: (typeof s.shapes)[number]; c: number; r: number; score: number} | null = null;
+    for (const shape of s.shapes) {
+      for (let at = from * o.cols; at < grid.used.length; at++) {
+        const c = at % o.cols;
+        const r = Math.floor(at / o.cols);
+        if (best && r + shape.height > best.r + best.shape.height + 2) break;
+        if (c + shape.used > o.cols || grid.used[at] !== -1) continue;
+        if (!free(shape.cells, c, r)) continue;
+        let holes = 0;
+        for (const [x, y] of shape.cells) if (r + y > 0 && grid.used[(r + y - 1) * o.cols + c + x] === -1 && !shape.cells.some(([a, b]) => a === x && b === y - 1)) holes++;
+        const score = (r + shape.height) * 4 + holes;
+        if (!best || score < best.score) best = {shape, c, r, score};
+        break;
+      }
+    }
+    if (!best) continue;
+    const {shape, c, r} = best;
+    for (const [x, y] of shape.cells) grid.used[(r + y) * o.cols + c + x] = s.region;
+    grid.rows = Math.max(grid.rows, r + shape.height);
+    for (const q of shape.b.placed) placed.push({...q, c: c + q.c, r: r + q.r});
+    if (s.named) labels.push({text: s.key, set: s.key, c, r, cw: shape.used});
+    while (from < grid.maxRows && [...grid.used.subarray(from * o.cols, (from + 1) * o.cols)].every((v) => v !== -1)) from++;
+  }
+
+  // The land between: every empty cell goes to the territory nearest it,
+  // grown out a ring at a time, so the territories meet.
+  const n = o.cols * grid.rows;
+  const biome = new Int16Array(grid.used.length).fill(-1);
+  biome.set(grid.used.subarray(0, n));
+  for (let changed = true; changed; ) {
+    changed = false;
+    const prev = biome.slice(0, n);
+    for (let k = 0; k < n; k++) {
+      if (prev[k] !== -1) continue;
+      const c = k % o.cols;
+      const near = [c > 0 ? prev[k - 1] : -1, c < o.cols - 1 ? prev[k + 1] : -1, k >= o.cols ? prev[k - o.cols] : -1, k + o.cols < n ? prev[k + o.cols] : -1].filter((v) => v !== -1);
+      if (near.length) {
+        biome[k] = near[Math.floor(((hash2(o.seed, k, 3) + 1) / 2) * near.length) % near.length];
+        changed = true;
+      }
+    }
   }
   return {placed, cols: o.cols, rows: grid.rows, biome, regions, labels, family};
 }

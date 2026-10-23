@@ -9,7 +9,16 @@
   they don't have a case study", "only leave small noticeable gaps between
   Biomes". See src/lib/world.ts for the rules.
 
-  Two modes: the height map (the original), and biomes (each project, or
+  Then: "the height map and the biome idea should just be combined", so
+  LANDS - the biomes' tight sets, packed with no gap between territories,
+  each piece as large as its picture is detailed. And a COLOUR switch
+  (heights and lands): "black and white things might appear first".
+
+  Detail and colour come from each picture's tiny preview (Sanity's LQIP,
+  a ~20px blurred copy in the asset's metadata, sent inline), measured on a
+  canvas - so nothing is downloaded to measure them.
+
+  The first two modes: the height map (the original), and biomes (each project, or
   each piece with the pieces parented to it, a tight block; the blocks a
   cell apart). In both, a piece opens as on the main grid: large, its set
   gathered round it, the rest dimmed; a bar above names it, links its
@@ -29,6 +38,7 @@ import {getAllGridItems} from '../../../lib/queries';
 import {tileImage, imageDimensions} from '../../../lib/image';
 import {treatmentOf, tileHref, cleanKey} from '../../../lib/tiles';
 import {stripStegaKey} from '../../../lib/stega';
+import {sanityClient} from '../../../lib/sanity';
 
 export async function getStaticPaths() {
   if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
@@ -44,6 +54,17 @@ for (const it of all) {
   const href = tileHref(it);
   if (href && isProject(it)) names[href] = clean(it.title);
 }
+// Each picture's tiny preview, for its detail and colour.
+const refOf = (it: any) => tileImage(it)?.asset?._ref ?? tileImage(it)?.asset?._id ?? null;
+const previews: Record<string, string> = Object.fromEntries(
+  (
+    (await sanityClient.fetch(`*[_type == "sanity.imageAsset" && _id in $ids]{_id, "lqip": metadata.lqip}`, {
+      ids: [...new Set(all.map(refOf).filter(Boolean))],
+    })) as {_id: string; lqip?: string}[]
+  )
+    .filter((a) => a.lqip)
+    .map((a) => [a._id, a.lqip!]),
+);
 const pieces = all.map((it) => {
   const d = imageDimensions(tileImage(it))!;
   return {
@@ -54,6 +75,7 @@ const pieces = all.map((it) => {
     id: cleanKey(it._id).replace(/^drafts\./, ''),
     parent: it.pieceParent ? cleanKey(it.pieceParent) : null,
     title: clean(it.title),
+    lqip: previews[refOf(it)] ?? null,
   };
 });
 const data = {pieces, names};
@@ -64,6 +86,8 @@ const data = {pieces, names};
     <div class="wd-bar">
       <button type="button" class="wd-btn" data-mode="heights">Height map</button>
       <button type="button" class="wd-btn" data-mode="biomes">Biomes</button>
+      <button type="button" class="wd-btn" data-mode="lands">Lands</button>
+      <button type="button" class="wd-btn" data-colour aria-pressed="false">By colour</button>
       <button type="button" class="wd-btn wd-btn--roll" data-roll>New world</button>
     </div>
     <p class="wd-about" data-about></p>
@@ -175,7 +199,7 @@ const data = {pieces, names};
   import {generateWorld, type WorldMode, type WorldResult} from '../../../lib/world';
   import {seedOf} from '../../../lib/cluster';
 
-  type P = {w: number; h: number; project: string | null; own: boolean; id: string; parent: string | null; title: string};
+  type P = {w: number; h: number; project: string | null; own: boolean; id: string; parent: string | null; title: string; lqip: string | null; detail?: number; tone?: number};
   const data: {pieces: P[]; names: Record<string, string>} = JSON.parse(document.getElementById('wd-data')!.textContent!);
   const world = document.querySelector<HTMLElement>('.wd-world')!;
   const tiles = Array.from(world.querySelectorAll<HTMLButtonElement>('.wd-piece'));
@@ -184,11 +208,72 @@ const data = {pieces, names};
   const ABOUT: Record<string, string> = {
     heights: 'Under the page is an invisible landscape of hills and valleys; each piece is drawn as big as the ground is high where it lands.',
     biomes: 'Each project - or a piece with the pieces parented to it - is its own patch of land, a small gap between them.',
+    lands: 'Each project is its own territory, packed tight against its neighbours; the more detailed a picture, the more land it takes.',
   };
   const byId = new Map(data.pieces.map((p, i) => [p.id, i]));
 
   const q = new URLSearchParams(location.search);
-  let mode = (q.get('mode') === 'biomes' ? 'biomes' : 'heights') as WorldMode;
+  let mode = (['biomes', 'lands'].includes(q.get('mode') ?? '') ? q.get('mode') : 'heights') as WorldMode;
+  let colour = q.get('sort') === 'colour';
+  const colourBtn = document.querySelector<HTMLButtonElement>('[data-colour]')!;
+
+  /*
+    Each picture's detail and colour, from its tiny preview: detail the mean
+    tone change between neighbouring pixels (ranked, 0 plainest to 1
+    busiest); colour a sort key - black and white (little colour in it)
+    below 1, by lightness, dark first; else 1 + its hue round the wheel.
+  */
+  const measure = (src: string) =>
+    new Promise<{detail: number; tone: number} | null>((done) => {
+      const img = new Image();
+      img.onerror = () => done(null);
+      img.onload = () => {
+        try {
+          const w = img.naturalWidth;
+          const h = img.naturalHeight;
+          const c = document.createElement('canvas');
+          c.width = w;
+          c.height = h;
+          const ctx = c.getContext('2d', {willReadFrequently: true})!;
+          ctx.drawImage(img, 0, 0);
+          const d = ctx.getImageData(0, 0, w, h).data;
+          const lum = (k: number) => 0.299 * d[k] + 0.587 * d[k + 1] + 0.114 * d[k + 2];
+          let grad = 0;
+          let light = 0;
+          let chroma = 0;
+          let hx = 0;
+          let hy = 0;
+          for (let y = 0; y < h; y++)
+            for (let x = 0; x < w; x++) {
+              const k = (y * w + x) * 4;
+              if (x < w - 1) grad += Math.abs(lum(k + 4) - lum(k));
+              if (y < h - 1) grad += Math.abs(lum(k + w * 4) - lum(k));
+              light += lum(k) / 255;
+              const r = d[k] / 255, g = d[k + 1] / 255, b = d[k + 2] / 255;
+              const mx = Math.max(r, g, b), mn = Math.min(r, g, b), ch = mx - mn;
+              chroma += ch;
+              if (ch > 0.04) {
+                const hue = mx === r ? ((g - b) / ch + 6) % 6 : mx === g ? (b - r) / ch + 2 : (r - g) / ch + 4;
+                hx += ch * Math.cos((hue / 6) * 2 * Math.PI);
+                hy += ch * Math.sin((hue / 6) * 2 * Math.PI);
+              }
+            }
+          const n = w * h;
+          const hue = ((Math.atan2(hy, hx) / (2 * Math.PI)) + 1) % 1;
+          done({detail: grad / (n * 2), tone: chroma / n < 0.08 ? (light / n) * 0.99 : 1 + hue});
+        } catch {
+          done(null);
+        }
+      };
+      img.src = src;
+    });
+  const measured = Promise.all(data.pieces.map((p) => (p.lqip ? measure(p.lqip) : Promise.resolve(null)))).then((m) => {
+    const ranked = data.pieces.map((_, i) => i).filter((i) => m[i]).sort((a, z) => m[a]!.detail - m[z]!.detail);
+    ranked.forEach((i, r) => {
+      data.pieces[i].detail = ranked.length > 1 ? r / (ranked.length - 1) : 0.5;
+      data.pieces[i].tone = m[i]!.tone;
+    });
+  });
   let seed = Number(q.get('seed')) || 4187;
   let focus: number | null = null;
   let focusRow = 0;
@@ -211,10 +296,12 @@ const data = {pieces, names};
     const phone = innerWidth < 768;
     const width = Math.min(world.parentElement!.clientWidth - 32, 1400);
     // Biomes on a finer grid, so the gap between them is a thin line.
-    const [cols, maxSpan] = mode === 'biomes' ? (phone ? [15, 6] : [40, 12]) : phone ? [6, 3] : [20, 6];
+    const [cols, maxSpan] =
+      mode === 'lands' ? (phone ? [12, 6] : [40, 14]) : mode === 'biomes' ? (phone ? [15, 6] : [40, 12]) : phone ? [6, 3] : [20, 6];
     const cell = width / cols;
     const gap = phone ? 2 : 3;
-    const out = generateWorld(data.pieces, {cols, mode, seed, maxSpan, focus, focusRow});
+    const sort = colour && mode !== 'biomes' ? 'colour' : 'seed';
+    const out = generateWorld(data.pieces, {cols, mode, seed, maxSpan, focus, focusRow, sort});
     last = out;
     const fam = new Set(out.family);
     world.style.width = `${width}px`;
@@ -242,7 +329,7 @@ const data = {pieces, names};
         for (let c = 0; c < cols; c++) {
           const k = out.biome[r * cols + c];
           if (k < 0) continue;
-          ctx.fillStyle = `hsl(${(k * 137.5 + (seed % 360)) % 360} 45% 94%)`;
+          ctx.fillStyle = `hsl(${(k * 137.5 + (seed % 360)) % 360} ${mode === 'lands' ? '40% 91%' : '45% 94%'})`;
           ctx.fillRect(c, r, 1, 1);
         }
       world.prepend(canvas);
@@ -255,11 +342,15 @@ const data = {pieces, names};
       const el = document.createElement(l.set.startsWith('/') ? 'a' : 'span');
       el.textContent = name;
       if (el instanceof HTMLAnchorElement) el.href = l.set;
+      // In the lands a name sits over its territory's corner, as a tag, since
+      // there is no row to spare for it.
+      const tag = mode === 'lands';
       Object.assign(el.style, {
-        position: 'absolute', left: `${l.c * cell}px`, top: `${l.r * cell}px`, width: `${l.cw * cell}px`, height: `${cell}px`,
-        display: 'flex', alignItems: 'center', padding: '0 0.35rem', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
-        fontSize: phone ? '0.6rem' : '0.7rem', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase',
-        color: '#0a2a8a', textDecoration: 'none', zIndex: '1',
+        position: 'absolute', left: `${l.c * cell}px`, top: `${l.r * cell}px`, maxWidth: `${Math.max(l.cw, 4) * cell}px`, height: tag ? 'auto' : `${cell}px`,
+        ...(tag ? {background: 'rgba(255,255,255,0.88)', padding: '0.15rem 0.35rem', fontSize: phone ? '0.55rem' : '0.62rem', zIndex: '2'} : {width: `${l.cw * cell}px`, padding: '0 0.35rem'}),
+        display: 'flex', alignItems: 'center', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+        ...(tag ? {} : {fontSize: phone ? '0.6rem' : '0.7rem'}), fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase',
+        color: '#0a2a8a', textDecoration: 'none', ...(tag ? {} : {zIndex: '1'}),
         opacity: focus !== null && l.set !== focusSet && !out.family.some((i) => `#set-${data.pieces[i].id}` === l.set || (data.pieces[i].parent && `#set-${data.pieces[i].parent}` === l.set)) ? '0.4' : '',
       });
       world.append(el);
@@ -287,8 +378,10 @@ const data = {pieces, names};
       }
     }
     document.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
-    about.textContent = ABOUT[mode];
-    history.replaceState(history.state, '', `?mode=${mode}&seed=${seed}`);
+    colourBtn.setAttribute('aria-pressed', String(colour));
+    colourBtn.hidden = mode === 'biomes';
+    about.textContent = ABOUT[mode] + (sort === 'colour' ? ' Sorted by colour: black and white first, then round the colour wheel.' : '');
+    history.replaceState(history.state, '', `?mode=${mode}&seed=${seed}${colour ? '&sort=colour' : ''}`);
   };
 
   const open = (i: number, push = true) => {
@@ -332,6 +425,12 @@ const data = {pieces, names};
       draw();
     }),
   );
+  colourBtn.addEventListener('click', () => {
+    colour = !colour;
+    draw();
+  });
+  // Once the previews are measured, the sizes and colours they decide.
+  measured.then(() => requestAnimationFrame(draw));
   document.querySelector('[data-roll]')!.addEventListener('click', () => {
     seed = (seedOf(`${seed}:${Date.now()}`) % 9000) + 1000;
     draw();

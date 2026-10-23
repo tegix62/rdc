@@ -1,6 +1,7 @@
 /*
   The world page (/next/world/home, preview) in a browser, with blank
-  pictures. For the height map and the biomes, at a desktop and a phone:
+  pictures. For the height map, the biomes and the lands (also sorted by
+  colour), at a desktop and a phone:
   every piece shown, none overlapping; a piece opened is larger than it
   was, its set lit round it and the rest dimmed, with the bar and the way
   back; "All work", Escape and the browser's back each close it, staying
@@ -43,14 +44,18 @@ for (const [name, w, h] of [
   ['desktop', 1440, 900],
   ['phone', 390, 844],
 ]) {
-  for (const mode of ['heights', 'biomes']) {
+  for (const mode of ['heights', 'biomes', 'lands', 'lands&sort=colour']) {
     const page = await browser.newPage({viewport: {width: w, height: h}})
     const errors = []
     page.on('pageerror', (e) => errors.push(e.message))
     await page.goto(`${BASE}/next/world/home?mode=${mode}&seed=4187`, {waitUntil: 'domcontentloaded', timeout: 60_000})
     await page.waitForTimeout(1500)
-    const tag = `${name}, ${mode}`
+    const tag = `${name}, ${mode.replace('&sort=', ' by ')}`
     const rest = await state(page)
+    if (mode.startsWith('lands')) {
+      const land = await page.evaluate(() => ({sized: Array.from(new Set(Array.from(document.querySelectorAll('.wd-piece:not([hidden])')).map((t) => Math.round(t.getBoundingClientRect().width)))).length, canvas: !!document.querySelector('.wd-world canvas')}))
+      check(`${tag}: the land drawn, pieces of many sizes`, land.canvas && land.sized >= 4, `${land.sized} sizes`)
+    }
     check(`${tag}: every piece shown, none overlapping`, rest.shown === rest.total && rest.overlaps === 0, `${rest.shown}/${rest.total}, ${rest.overlaps} overlap(s)`)
     const k = Math.floor(rest.shown / 3)
     const before = rest.sizes[k]

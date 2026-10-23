@@ -81,7 +81,11 @@ for (const path of urls) {
   const direct = await time(`https://cdn.sanity.io/${path.replace(/^\/img\//, '')}`)
   // A browser that does not take AVIF (older Safari): the WebP route.
   const webp = await time(`${SITE}${path}`, 'image/webp,image/*,*/*;q=0.8')
-  rows.push({path, first, again, direct, webp})
+  // The exact address the route asks Sanity for an AVIF browser (dpr=1 added
+  // to auto=format), asked straight from here: does Sanity itself give AVIF?
+  const raw = `https://cdn.sanity.io/${path.replace(/^\/img\//, '')}`
+  const dpr = /auto=format/.test(raw) && !/dpr=/.test(raw) ? await time(`${raw}&dpr=1`) : null
+  rows.push({path, first, again, direct, webp, dpr})
   console.log(
     `${path.split('/').pop().slice(0, 46).padEnd(46)} ` +
       `first ${ms(first.ttfb)} ${first.status}  again ${ms(again.ttfb)}  sanity ${ms(direct.ttfb)}  ` +
@@ -106,4 +110,6 @@ const webpWrong = rows.filter((r) => r.webp.status === 200 && /avif/.test(r.webp
 console.log(`${webpFailed.length} did not come back 200 for a browser without AVIF; ${webpWrong.length} were sent AVIF it cannot show`)
 const lost = rows.filter((r) => /avif/.test(r.direct.type ?? '') && !/avif/.test(r.first.type ?? ''))
 console.log(`${lost.length} sent WebP through Cloudflare where Sanity would have sent the smaller AVIF`)
+const dprRows = rows.filter((r) => r.dpr)
+console.log(`Straight from Sanity with dpr=1 added: ${dprRows.filter((r) => /avif/.test(r.dpr.type ?? '')).length} of ${dprRows.length} AVIF; without it: ${dprRows.filter((r) => /avif/.test(r.direct.type ?? '')).length} of ${dprRows.length}`)
 console.log(`Cloudflare location: ${rows[0]?.again.colo || 'unknown'}`)

@@ -1,0 +1,22 @@
+# Grid pictures shrunk or squeezed too far to open well - see
+# scripts/audit-tile-quality.mjs. By hand; reads Sanity's records of the
+# files, downloads no pictures.
+name: Audit tile picture quality
+
+on:
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Audit
+        run: |
+          set -o pipefail
+          node scripts/audit-tile-quality.mjs 2>&1 | tee quality.txt
+          { echo '## Tile picture quality'; echo '```'; cat quality.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

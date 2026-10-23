@@ -1,0 +1,249 @@
+---
+/*
+  A WORLD OF WORK - preview only, at /next/world/home.
+
+  Chris: "I'd love to see your Biomes, Caves, or Height map ideas played
+  out." The whole portfolio laid out three ways, each the way Minecraft
+  generates its world, switchable on the page - see src/lib/world.ts for
+  the rules. The seed is in the address (?mode=caves&seed=4187), so a world
+  can be linked and returned to; Shuffle rolls a new one.
+
+  A piece links to its project's page. Pictures are lazy and their tiles
+  hidden until placed, so nothing off the page is downloaded. Labels and
+  the biomes' tint are drawn by the script, styled inline - the critical-CSS
+  step drops scoped rules for elements that only exist once the script
+  runs.
+
+  Never built for production (getStaticPaths), and noindex.
+*/
+import Layout from '../../../layouts/Layout.astro';
+import Img from '../../../components/Img.astro';
+import {getAllGridItems} from '../../../lib/queries';
+import {tileImage, imageDimensions} from '../../../lib/image';
+import {treatmentOf, tileHref, cleanKey} from '../../../lib/tiles';
+import {stripStegaKey} from '../../../lib/stega';
+
+export async function getStaticPaths() {
+  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
+  return [{params: {page: 'home'}}];
+}
+
+const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
+const all: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)));
+const isProject = (it: any) => cleanKey(it.pageType) === 'Case Study';
+
+const names: Record<string, string> = {};
+for (const it of all) {
+  const href = tileHref(it);
+  if (href && isProject(it)) names[href] = clean(it.title);
+}
+const pieces = all.map((it) => {
+  const d = imageDimensions(tileImage(it))!;
+  return {w: d.width, h: d.height, project: tileHref(it), own: isProject(it)};
+});
+const data = {pieces, names};
+---
+
+<Layout title="World - Rumeau Design Co" description="The portfolio as a generated world." noindex>
+  <div class="wd">
+    <div class="wd-bar">
+      <button type="button" class="wd-btn" data-mode="heights">Height map</button>
+      <button type="button" class="wd-btn" data-mode="caves">Caves</button>
+      <button type="button" class="wd-btn" data-mode="biomes">Biomes</button>
+      <button type="button" class="wd-btn wd-btn--roll" data-roll>New world</button>
+      <span class="wd-seed" data-seed></span>
+    </div>
+    <p class="wd-about" data-about></p>
+    <div class="wd-world">
+      {all.map((it, i) => (
+        <a
+          class:list={['wd-piece', treatmentOf(it) === 'mark' && 'wd-piece--mark']}
+          href={tileHref(it) ?? undefined}
+          data-i={i}
+          hidden
+          aria-label={clean(it.title)}
+        >
+          <Img image={tileImage(it)} alt="" width={1400} sizes="25vw" loading="lazy" field="Grid Thumbnail (world)" />
+        </a>
+      ))}
+    </div>
+  </div>
+  <script type="application/json" id="wd-data" set:html={JSON.stringify(data)} />
+</Layout>
+
+<style>
+  .wd {
+    padding: 1rem 1rem 3rem;
+  }
+  .wd-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+  }
+  .wd-btn {
+    border: 1px solid currentColor;
+    background: none;
+    color: inherit;
+    padding: 0.35rem 0.7rem;
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .wd-btn[aria-pressed='true'] {
+    background: currentColor;
+  }
+  .wd-btn[aria-pressed='true'] {
+    color: #fff;
+    background: #0a2a8a;
+    border-color: #0a2a8a;
+  }
+  .wd-seed {
+    font-size: 0.7rem;
+    opacity: 0.55;
+  }
+  .wd-about {
+    text-align: center;
+    font-size: 0.8rem;
+    opacity: 0.7;
+    margin: 0 auto 1rem;
+    max-width: 40rem;
+  }
+  .wd-world {
+    position: relative;
+    margin: 0 auto;
+  }
+  .wd-piece {
+    display: block;
+    position: absolute;
+  }
+  .wd-piece[hidden] {
+    display: none;
+  }
+  .wd-piece :global(img) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .wd-piece--mark :global(img) {
+    object-fit: contain;
+  }
+</style>
+
+<script>
+  import {generateWorld, type WorldMode} from '../../../lib/world';
+  import {seedOf} from '../../../lib/cluster';
+
+  const data: {pieces: {w: number; h: number; project: string | null; own: boolean}[]; names: Record<string, string>} =
+    JSON.parse(document.getElementById('wd-data')!.textContent!);
+  const world = document.querySelector<HTMLElement>('.wd-world')!;
+  const tiles = Array.from(world.querySelectorAll<HTMLElement>('.wd-piece'));
+  const about = document.querySelector<HTMLElement>('[data-about]')!;
+  const seedOut = document.querySelector<HTMLElement>('[data-seed]')!;
+  const ABOUT: Record<WorldMode, string> = {
+    heights: 'A noise field is the terrain: pieces on high ground are large, pieces in the valleys small.',
+    caves: 'Where two noise fields both pass near zero, the ground is carved out - winding tunnels through the work, as in Minecraft. The larger caves carry a project’s name.',
+    biomes: 'One region per project, borders pushed about by noise; each project settles on its own land.',
+  };
+
+  const q = new URLSearchParams(location.search);
+  let mode = (['heights', 'caves', 'biomes'].includes(q.get('mode') ?? '') ? q.get('mode') : 'heights') as WorldMode;
+  let seed = Number(q.get('seed')) || 4187;
+  const extras: HTMLElement[] = [];
+
+  const draw = () => {
+    for (const e of extras.splice(0)) e.remove();
+    const phone = innerWidth < 768;
+    const width = Math.min(world.parentElement!.clientWidth - 32, 1400);
+    const cols = phone ? 6 : 20;
+    const cell = width / cols;
+    const gap = phone ? 2 : 3;
+    const out = generateWorld(data.pieces, {cols, mode, seed, maxSpan: phone ? 3 : 6});
+    world.style.width = `${width}px`;
+    world.style.height = `${Math.ceil(out.rows * cell)}px`;
+    tiles.forEach((t) => (t.hidden = true));
+    for (const p of out.placed) {
+      const t = tiles[p.i];
+      t.hidden = false;
+      t.style.left = `${p.c * cell + gap / 2}px`;
+      t.style.top = `${p.r * cell + gap / 2}px`;
+      t.style.width = `${p.cw * cell - gap}px`;
+      t.style.height = `${p.ch * cell - gap}px`;
+      const img = t.querySelector('img');
+      if (img) img.sizes = `${Math.ceil(p.cw * cell)}px`;
+    }
+    // The biomes' land: a faint tint per region, drawn a cell at a time.
+    if (out.biome && out.regions) {
+      const canvas = document.createElement('canvas');
+      canvas.width = cols;
+      canvas.height = out.rows;
+      Object.assign(canvas.style, {position: 'absolute', left: '0', top: '0', width: `${width}px`, height: `${out.rows * cell}px`, imageRendering: 'auto', zIndex: '0', pointerEvents: 'none'});
+      const ctx = canvas.getContext('2d')!;
+      for (let r = 0; r < out.rows; r++)
+        for (let c = 0; c < cols; c++) {
+          const k = out.biome[r * cols + c];
+          const hue = (k * 137.5 + (seed % 360)) % 360;
+          ctx.fillStyle = `hsl(${hue} 55% 93%)`;
+          ctx.fillRect(c, r, 1, 1);
+        }
+      world.prepend(canvas);
+      extras.push(canvas);
+    }
+    for (const l of out.labels) {
+      const name = data.names[l.text] ?? l.text.replace(/^\/work\//, '').replace(/-/g, ' ');
+      if (!name) continue;
+      const el = document.createElement('a');
+      el.textContent = name;
+      if (l.text.startsWith('/')) el.href = l.text;
+      Object.assign(el.style, {
+        position: 'absolute',
+        left: `${l.c * cell}px`,
+        top: `${l.r * cell}px`,
+        width: `${l.cw * cell}px`,
+        height: `${cell}px`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textAlign: 'center',
+        fontSize: phone ? '0.65rem' : '0.75rem',
+        fontWeight: '700',
+        letterSpacing: '0.06em',
+        textTransform: 'uppercase',
+        lineHeight: '1.15',
+        color: '#0a2a8a',
+        textDecoration: 'none',
+        zIndex: '1',
+        padding: '0 0.25rem',
+      });
+      world.append(el);
+      extras.push(el);
+    }
+    document.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+    about.textContent = ABOUT[mode];
+    seedOut.textContent = `seed ${seed}`;
+    history.replaceState(null, '', `?mode=${mode}&seed=${seed}`);
+  };
+
+  document.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) =>
+    b.addEventListener('click', () => {
+      mode = b.dataset.mode as WorldMode;
+      draw();
+    }),
+  );
+  document.querySelector('[data-roll]')!.addEventListener('click', () => {
+    seed = (seedOf(`${seed}:${Date.now()}`) % 9000) + 1000;
+    draw();
+  });
+  let lastWidth = 0;
+  new ResizeObserver(([e]) => {
+    if (Math.abs(e.contentRect.width - lastWidth) < 1) return;
+    lastWidth = e.contentRect.width;
+    requestAnimationFrame(draw);
+  }).observe(world.parentElement!);
+</script>

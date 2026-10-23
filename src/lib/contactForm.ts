@@ -155,7 +155,10 @@ export function initContactForm(doc: Document = document): void {
         ask why the form will not work.
       */
       const body = await res.json().catch(() => null);
-      showError(errorBox, body?.message ?? "Something went wrong sending this - please try again, or email chris@rumeaudesign.co directly.");
+      // The address put together here, not written out, so the script file
+      // sent to every visitor does not carry it (see scripts/lib/hide-emails.mjs).
+      const address = ['chris', 'rumeaudesign.co'].join(String.fromCharCode(64));
+      showError(errorBox, body?.message ?? `Something went wrong sending this - please try again, or email ${address} directly.`);
     } catch {
       showError(errorBox, "Could not reach the server - check your connection and try again.");
     } finally {

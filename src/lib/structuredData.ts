@@ -164,7 +164,10 @@ export function buildGraph(ctx: SiteContext, extra: Record<string, unknown>[] = 
     legalName: clean(settings?.legalName),
     url: `${origin}/`,
     description: clean(settings?.tagline),
-    email: clean(settings?.email),
+    // No email: this block is in the <head> of every page, in plain text,
+    // and Chris's address was being harvested (October 2026). Optional for
+    // search engines; the contact page is the way in. See
+    // scripts/lib/hide-emails.mjs.
     // Resolved by the caller, which is where the image URL builder lives.
     // Plain ImageObject, not licensable - see licensableImage.
     logo: ctx.logoUrl ? {'@type': 'ImageObject', url: ctx.logoUrl} : undefined,

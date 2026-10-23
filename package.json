@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "node scripts/build-overlay.mjs && astro dev",
-    "build": "node scripts/build-overlay.mjs && astro build && node scripts/inline-critical-css.mjs && node scripts/contact-redirect.mjs && node scripts/proxy-images.mjs",
+    "build": "node scripts/build-overlay.mjs && astro build && node scripts/inline-critical-css.mjs && node scripts/contact-redirect.mjs && node scripts/proxy-images.mjs && node scripts/hide-emails.mjs",
     "preview": "astro preview",
     "test:images": "node scripts/test-images.mjs",
     "audit:cms": "node scripts/audit-cms.mjs",

@@ -38,7 +38,18 @@ async function pictureUrls() {
   return all.filter((_, k) => k % step === 0).slice(0, COUNT)
 }
 
-async function time(url, accept = 'image/avif,image/webp,image/*,*/*;q=0.8') {
+// A dropped connection is retried once, then reported as status 0 rather
+// than ending the run - one did, partway through, the second time it ran.
+async function time(url, accept, tries = 2) {
+  try {
+    return await timeOnce(url, accept)
+  } catch (e) {
+    if (tries > 1) return time(url, accept, tries - 1)
+    return {status: 0, ttfb: NaN, total: NaN, kb: 0, type: `failed: ${e.cause?.code ?? e.message}`, cache: '', colo: ''}
+  }
+}
+
+async function timeOnce(url, accept = 'image/avif,image/webp,image/*,*/*;q=0.8') {
   const t0 = performance.now()
   const res = await fetch(url, {headers: {accept}})
   const ttfb = performance.now() - t0
@@ -56,7 +67,7 @@ async function time(url, accept = 'image/avif,image/webp,image/*,*/*;q=0.8') {
 }
 
 const median = (xs) => {
-  const s = [...xs].sort((a, b) => a - b)
+  const s = xs.filter(Number.isFinite).sort((a, b) => a - b)
   return s.length ? s[Math.floor(s.length / 2)] : NaN
 }
 const ms = (n) => `${Math.round(n)}ms`.padStart(7)
@@ -82,7 +93,7 @@ const line = (name, pick) => {
   const t = rows.map((r) => pick(r).ttfb)
   const d = rows.map((r) => pick(r).total)
   const kb = rows.map((r) => pick(r).kb)
-  return `${name.padEnd(28)} first byte median ${ms(median(t))}, slowest ${ms(Math.max(...t))} | whole file median ${ms(median(d))} | ${kb.reduce((a, b) => a + b, 0).toFixed(0)}KB in all`
+  return `${name.padEnd(28)} first byte median ${ms(median(t))}, slowest ${ms(Math.max(...t.filter(Number.isFinite)))} | whole file median ${ms(median(d))} | ${kb.reduce((a, b) => a + b, 0).toFixed(0)}KB in all`
 }
 console.log('\nSUMMARY')
 console.log(line('through Cloudflare, first', (r) => r.first))

@@ -1,0 +1,402 @@
+---
+/*
+  THE HOMEPAGE AS A CLUSTER - preview only, at /next/cluster/home, an
+  experiment beside /next/home.
+
+  Chris: the grid idea "present throughout the whole site" - and "I do even
+  kind of like the idea of using clusters ... some kind of central cluster
+  ... just to experiment with and see if we want it."
+
+  The page is the portfolio's gesture with nothing else around it: his name
+  and one line, small, over a central cluster of the pieces picked for the
+  homepage (Site Settings -> Homepage Work Grid). Pick one and its project
+  gathers around it, in the same place, with the project's museum label
+  under it - what it is, who for, who was involved. Pick another piece of
+  the project and the cluster re-forms around that one. Pick the piece in
+  the middle and it opens the project's page. Back (or Escape, or the
+  browser's back) returns to the picks.
+
+  The shape is lib/cluster.ts: centred rows in a lens, widest through the
+  middle, ragged on both sides, the chosen piece in the centre and larger.
+  No animation - pieces re-form in place, in keeping with the quiet
+  portfolio.
+
+  Pictures are drawn by the page, so a piece that is not showing has not
+  been downloaded: every image is lazy and its tile is display:none until
+  it is part of the cluster.
+
+  Never built for production (getStaticPaths), and noindex.
+*/
+import Layout from '../../../layouts/Layout.astro';
+import Img from '../../../components/Img.astro';
+import {getSiteSettings, getAllGridItems, getFeaturedWork} from '../../../lib/queries';
+import {tileImage, imageDimensions} from '../../../lib/image';
+import {treatmentOf, tileHref, cleanKey} from '../../../lib/tiles';
+import {stripStegaKey} from '../../../lib/stega';
+import {parseCreditLines} from '../../../lib/credits';
+import {museumLabel, CREDITS_SHOWN} from '../../../lib/museumLabel';
+
+export async function getStaticPaths() {
+  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
+  return [{params: {page: 'home'}}];
+}
+
+const settings = await getSiteSettings();
+const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
+const name = clean(settings?.founderName) || 'Chris Rumeau';
+const line =
+  clean(settings?.tagline) || 'Brand identity, lettering and merch design for heritage apparel brands and musicians.';
+const CONTACT_URL = settings?.contactUrl || '/contact';
+
+// ------------------------------------------------------------ the pieces
+/*
+  Every tile the portfolio has, each with the picture's shape and the
+  project it belongs to (the project's page, which is also how the
+  portfolio groups them). A project's own tile first within its project,
+  so it is the first piece beside whichever one was picked.
+*/
+const all: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)));
+const isProject = (it: any) => cleanKey(it.pageType) === 'Case Study';
+all.sort((a, b) => Number(isProject(b)) - Number(isProject(a)));
+
+const pieces = all.map((it) => {
+  const dims = imageDimensions(tileImage(it))!;
+  return {
+    id: String(it._id).replace(/^drafts\./, ''),
+    w: dims.width,
+    h: dims.height,
+    project: tileHref(it),
+    own: isProject(it),
+  };
+});
+
+/* The homepage picks, in their order; the projects themselves if none are picked. */
+const featured: any[] = await getFeaturedWork(14);
+const byId = new Map(pieces.map((p, i) => [p.id, i]));
+let opening = featured
+  .map((f) => byId.get(String(f._id).replace(/^drafts\./, '')))
+  .filter((i): i is number => i !== undefined)
+  .slice(0, 14);
+if (opening.length < 3) opening = pieces.map((p, i) => (p.own ? i : -1)).filter((i) => i >= 0).slice(0, 14);
+
+// ------------------------------------------------------------ the projects
+/* One label per project, from its own tile: what, when, who for, who with. */
+const projects = new Map<string, {title: string; detail: string; client: string | null; credits: any[]; href: string}>();
+for (const it of all) {
+  const href = tileHref(it);
+  if (!href || !isProject(it) || projects.has(href)) continue;
+  const label = museumLabel(it);
+  projects.set(href, {
+    title: clean(it.title),
+    detail: label?.detail ?? '',
+    client: clean(it.client) && clean(it.client) !== clean(it.title) ? clean(it.client) : null,
+    credits: parseCreditLines(it.projectCredits).slice(0, CREDITS_SHOWN),
+    href,
+  });
+}
+
+const data = {pieces: pieces.map(({w, h, project, own}) => ({w, h, project, own})), opening};
+---
+
+<Layout
+  title={`${name} - Rumeau Design Co`}
+  description="Hand-drawn brand identity, lettering and merch design. The studio of Chris Rumeau, New Jersey."
+  noindex
+>
+  <div class="cl">
+    <header class="cl-head">
+      <h1 class="cl-name">{name}</h1>
+      <p class="cl-line">{line}</p>
+    </header>
+
+    <div class="cl-stage" aria-label="Selected work">
+      {all.map((it, i) => (
+        <button
+          type="button"
+          class:list={['cl-piece', treatmentOf(it) === 'mark' && 'cl-piece--mark']}
+          data-i={i}
+          hidden={!opening.includes(i)}
+          aria-label={clean(it.title)}
+          style={`aspect-ratio: ${pieces[i].w} / ${pieces[i].h}`}
+        >
+          <Img
+            image={tileImage(it)}
+            alt=""
+            width={1400}
+            sizes="(max-width: 48rem) 90vw, 50vw"
+            loading={opening.includes(i) ? 'eager' : 'lazy'}
+            field="Grid Thumbnail (cluster homepage)"
+          />
+        </button>
+      ))}
+    </div>
+
+    <div class="cl-under">
+      <p class="cl-hint" data-hint>Pick anything to see the project it belongs to.</p>
+      {[...projects.values()].map((p) => (
+        <div class="cl-label" data-project={p.href} hidden>
+          <p class="cl-label__title">{p.title}</p>
+          {(p.detail || p.client) && (
+            <p class="cl-label__detail">{[p.detail, p.client && `for ${p.client}`].filter(Boolean).join(' · ')}</p>
+          )}
+          {p.credits.length > 0 && (
+            <p class="cl-label__credits">
+              {p.credits.map((c) => (
+                <span class="cl-credit">
+                  {c.role && <span class="cl-credit__role">{c.role}</span>}
+                  {c.url ? <a href={c.url} target="_blank" rel="noopener">{c.name}</a> : <span>{c.name}</span>}
+                </span>
+              ))}
+            </p>
+          )}
+          <p class="cl-label__links">
+            <a href={p.href}>See the project →</a>
+            <button type="button" class="cl-back" data-back>Back to all</button>
+          </p>
+        </div>
+      ))}
+      <nav class="cl-links" aria-label="More">
+        <a href="/portfolio">All work</a>
+        <a href="/about">About</a>
+        <a href={CONTACT_URL}>Get in touch</a>
+      </nav>
+    </div>
+  </div>
+
+  <script type="application/json" id="cl-data" set:html={JSON.stringify(data)} />
+</Layout>
+
+<style>
+  .cl {
+    padding: 1.5rem 1rem 3rem;
+    max-width: 90rem;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .cl-head {
+    margin-bottom: 1.25rem;
+  }
+  .cl-name {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: 0.01em;
+  }
+  .cl-line {
+    margin: 0.25rem auto 0;
+    max-width: 36rem;
+    font-size: 0.9rem;
+    opacity: 0.75;
+  }
+
+  /*
+    Without the script: centred, wrapped rows of one height - the cluster's
+    rough shape. The script replaces this with the lens (is-placed).
+  */
+  .cl-stage {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0 auto;
+  }
+  .cl-piece {
+    display: block;
+    height: 10rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+  .cl-piece[hidden] {
+    display: none;
+  }
+  .cl-piece :global(img) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .cl-piece--mark {
+    background: #fff;
+  }
+  .cl-piece--mark :global(img) {
+    object-fit: contain;
+  }
+  .cl-piece:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+  }
+
+  .cl-stage.is-placed {
+    display: block;
+    position: relative;
+  }
+  .cl-stage.is-placed .cl-piece {
+    position: absolute;
+    height: auto;
+  }
+
+  .cl-under {
+    margin-top: 1.25rem;
+  }
+  .cl-hint {
+    font-size: 0.8rem;
+    opacity: 0.6;
+    margin: 0 0 1.5rem;
+  }
+  .cl-label {
+    margin: 0 auto 1.5rem;
+    max-width: 40rem;
+  }
+  .cl-label__title {
+    font-weight: 700;
+    margin: 0;
+  }
+  .cl-label__detail {
+    margin: 0.2rem 0 0;
+    font-size: 0.85rem;
+    opacity: 0.75;
+  }
+  .cl-label__credits {
+    margin: 0.4rem 0 0;
+    font-size: 0.8rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25rem 1rem;
+  }
+  .cl-credit__role {
+    opacity: 0.6;
+    margin-right: 0.35em;
+  }
+  .cl-label__links {
+    margin: 0.75rem 0 0;
+    display: flex;
+    justify-content: center;
+    gap: 1.25rem;
+    font-size: 0.85rem;
+  }
+  .cl-back {
+    border: 0;
+    background: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .cl-links {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    font-size: 0.85rem;
+  }
+</style>
+
+<script>
+  import {layoutCluster} from '../../../lib/cluster';
+
+  type Piece = {w: number; h: number; project: string | null; own: boolean};
+  const data: {pieces: Piece[]; opening: number[]} = JSON.parse(document.getElementById('cl-data')!.textContent!);
+  const stage = document.querySelector<HTMLElement>('.cl-stage')!;
+  const tiles = Array.from(stage.querySelectorAll<HTMLButtonElement>('.cl-piece'));
+  const labels = Array.from(document.querySelectorAll<HTMLElement>('.cl-label'));
+  const hint = document.querySelector<HTMLElement>('[data-hint]');
+
+  // What is showing: the picks, or one project gathered round one piece.
+  let shown: number[] = data.opening;
+  let lead: number | null = null;
+  let project: string | null = null;
+
+  const phone = () => innerWidth < 768;
+
+  function draw() {
+    const set = new Set(shown);
+    tiles.forEach((t, i) => (t.hidden = !set.has(i)));
+    labels.forEach((l) => (l.hidden = l.dataset.project !== project));
+    if (hint) hint.hidden = !!project;
+
+    const box = getComputedStyle(stage.parentElement!);
+    const inner = stage.parentElement!.clientWidth - parseFloat(box.paddingLeft) - parseFloat(box.paddingRight);
+    const width = Math.min(inner, 1200);
+    const top = stage.getBoundingClientRect().top + scrollY;
+    // Room for the label (or the hint) and the links under the cluster.
+    const under = project ? 150 : 90;
+    const maxHeight = Math.max(260, innerHeight - Math.min(top, 200) - under);
+    const out = layoutCluster(
+      shown.map((i) => data.pieces[i]),
+      phone()
+        ? {width, maxHeight, gap: 6, minRow: 56, maxRow: 180, lead: lead === null ? 1 : 1.3}
+        : {width, maxHeight, gap: 12, minRow: 90, maxRow: 300, lead: lead === null ? 1 : 1.35},
+    );
+    stage.classList.add('is-placed');
+    stage.style.width = `${out.width}px`;
+    stage.style.height = `${Math.ceil(out.height)}px`;
+    for (const p of out.placed) {
+      const t = tiles[shown[p.i]];
+      t.style.left = `${p.x}px`;
+      t.style.top = `${p.y}px`;
+      t.style.width = `${p.w}px`;
+      t.style.height = `${p.h}px`;
+    }
+  }
+
+  /* One project, gathered round the piece that was picked. */
+  function gather(i: number, push = true) {
+    const href = data.pieces[i].project;
+    const family = href ? data.pieces.map((p, k) => (p.project === href ? k : -1)).filter((k) => k >= 0) : [i];
+    shown = [i, ...family.filter((k) => k !== i)];
+    lead = i;
+    project = href;
+    draw();
+    if (push) history.pushState({i}, '', `?piece=${i}`);
+    stage.scrollIntoView({block: 'nearest'});
+  }
+
+  function reset(push = true) {
+    shown = data.opening;
+    lead = null;
+    project = null;
+    draw();
+    if (push) history.pushState({}, '', location.pathname);
+  }
+
+  stage.addEventListener('click', (e) => {
+    const t = (e.target as HTMLElement).closest<HTMLButtonElement>('.cl-piece');
+    if (!t) return;
+    const i = Number(t.dataset.i);
+    // The piece in the middle opens its project.
+    if (i === lead && project) {
+      location.href = project;
+      return;
+    }
+    gather(i);
+  });
+  document.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('[data-back]')) reset();
+  });
+  addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && lead !== null) reset();
+  });
+  addEventListener('popstate', () => {
+    const i = Number(new URLSearchParams(location.search).get('piece'));
+    if (Number.isInteger(i) && data.pieces[i] && new URLSearchParams(location.search).has('piece')) gather(i, false);
+    else reset(false);
+  });
+
+  // Redrawn when the width changes - not the height, which drawing changes.
+  let frame = 0;
+  let lastWidth = 0;
+  new ResizeObserver(([entry]) => {
+    if (Math.abs(entry.contentRect.width - lastWidth) < 1) return;
+    lastWidth = entry.contentRect.width;
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(draw);
+  }).observe(stage.parentElement!);
+
+  const start = new URLSearchParams(location.search).get('piece');
+  if (start !== null && data.pieces[Number(start)]) gather(Number(start), false);
+  else draw();
+</script>

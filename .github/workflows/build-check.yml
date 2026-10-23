@@ -217,6 +217,7 @@ jobs:
       # never keeps a failure; the build's rewrite moves every picture the
       # pages load to /img/. No network - it must not spend what it saves.
       - run: node scripts/test-image-proxy.mjs
+      - run: node scripts/test-cluster-layout.mjs
       - run: node scripts/test-workflows-no-pictures.mjs
 
       - run: npm run build

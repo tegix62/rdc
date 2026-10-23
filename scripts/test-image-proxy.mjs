@@ -15,7 +15,7 @@
 
   Usage: node scripts/test-image-proxy.mjs
 */
-import {proxyImage, ALLOWED, YEAR} from '../src/lib/imageProxy.ts'
+import {proxyImage, upstreamFor, ALLOWED, YEAR} from '../src/lib/imageProxy.ts'
 import {rewriteHtml} from './lib/proxy-images.mjs'
 
 let failures = 0
@@ -66,9 +66,11 @@ check('nor another host', !ALLOWED.test('https://evil.example/x.jpg'))
   const params = {path: ASSET.split('/')}
   const first = await proxyImage(req(`${ASSET}?w=800&auto=format`), params, r.deps)
   await r.settle()
-  check('the first request goes to Sanity, with the same path and query', r.calls[0]?.url === `https://cdn.sanity.io/${ASSET}?w=800&auto=format`, r.calls[0]?.url)
+  check('the first request goes to Sanity, same path, the format named in place of auto', r.calls[0]?.url === `https://cdn.sanity.io/${ASSET}?w=800&fm=webp`, r.calls[0]?.url)
   check('a browser that does not say AVIF is sent WebP', /^image\/webp/.test(r.calls[0]?.init?.headers?.accept ?? ''))
-  check('and the picture is not put in the fetch cache, which cannot tell formats apart', !r.calls[0]?.init?.cf)
+  check('so the two formats are two addresses, which any cache can keep apart', upstreamFor(ASSET, '?w=800&auto=format', 'avif') !== upstreamFor(ASSET, '?w=800&auto=format', 'webp'))
+  check('a fixed format, or none asked, is passed on as it is', upstreamFor(ASSET, '?w=800&fm=jpg', 'avif') === `https://cdn.sanity.io/${ASSET}?w=800&fm=jpg` && upstreamFor(ASSET, '', 'avif') === `https://cdn.sanity.io/${ASSET}`)
+  check('an animated GIF is not converted', upstreamFor('images/8337vjtf/production/a-800x800.gif', '?auto=format', 'avif').endsWith('?auto=format'))
   check('served with a year-long cache', first.status === 200 && first.headers.get('cache-control') === `public, max-age=${YEAR}, immutable`, first.headers.get('cache-control'))
   check('without passing on Sanity\'s cookies', !first.headers.get('set-cookie'))
   check('and kept', r.store.size === 1)

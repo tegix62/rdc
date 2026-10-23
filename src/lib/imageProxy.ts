@@ -45,6 +45,26 @@ export const ACCEPT_AVIF = 'image/avif,image/webp;q=0.9,image/*;q=0.8,*/*;q=0.7'
 export const formatFor = (request: Request): 'avif' | 'webp' =>
   /image\/avif/i.test(request.headers.get('accept') ?? '') ? 'avif' : 'webp';
 
+/*
+  The address asked of Sanity, with the format written into it. Where the
+  page asks for auto=format, that is swapped for fm=avif or fm=webp - so
+  the two formats are two different addresses, and no cache keyed on the
+  address alone can hand one browser the other's. Cloudflare's own fetch
+  cache is one such: it keeps .jpg and .png answers by URL even when not
+  asked to, and on the first version two pictures came back WebP to a
+  browser that asked for AVIF. An animated GIF is left as asked: converting
+  it is not this route's decision.
+*/
+export function upstreamFor(path: string, search: string, format: 'avif' | 'webp') {
+  const q = new URLSearchParams(search);
+  if (q.get('auto') === 'format' && !/\.gif$/i.test(path)) {
+    q.delete('auto');
+    q.set('fm', format);
+  }
+  const query = q.toString();
+  return `https://cdn.sanity.io/${path}${query ? `?${query}` : ''}`;
+}
+
 export interface ProxyDeps {
   fetch: (url: string, init: RequestInit) => Promise<Response>;
   cache: {match(r: Request): Promise<Response | undefined>; put(r: Request, res: Response): Promise<void>};
@@ -59,13 +79,13 @@ export async function proxyImage(
   const path = pathOf(params);
   if (!ALLOWED.test(path)) return new Response('Not found', {status: 404});
   const url = new URL(request.url);
-  const upstream = `https://cdn.sanity.io/${path}${url.search}`;
+  const format = formatFor(request);
+  const accept = format === 'avif' ? ACCEPT_AVIF : ACCEPT;
+  const upstream = upstreamFor(path, url.search, format);
   const cf = {cacheEverything: true, cacheTtl: YEAR};
 
   // A video asks for byte ranges; those go to Cloudflare's own cache, which
   // serves ranges from a cached file.
-  const format = formatFor(request);
-  const accept = format === 'avif' ? ACCEPT_AVIF : ACCEPT;
   const range = request.headers.get('range');
   if (range) {
     const r = await deps.fetch(upstream, {headers: {range, accept}, cf} as RequestInit);
@@ -75,19 +95,15 @@ export async function proxyImage(
     });
   }
 
-  // One stored copy per format: the key is any URL, so the format goes in it.
-  const key = new Request(`${url.origin}/img/${path}${url.search}${url.search ? '&' : '?'}_as=${format}`);
+  // One stored copy per format: the key is any URL, so the format goes in
+  // it. v2: entries from before upstreamFor may hold the wrong format.
+  const key = new Request(`${url.origin}/img/${path}${url.search}${url.search ? '&' : '?'}_as=${format}&_v=2`);
   const hit = await deps.cache.match(key);
   if (hit) return hit;
 
-  /*
-    No `cf` cache options here. Cloudflare's fetch cache keys on the URL
-    alone, so with them an AVIF and a WebP of the same picture would share
-    one entry and a browser could be handed the other's format (a key of
-    our own, cf.cacheKey, is an Enterprise feature). The Cache API entry
-    above is keyed by format and is the only copy kept.
-  */
-  const r = await deps.fetch(upstream, {headers: {accept}});
+  // The upstream address names its format (upstreamFor), so caching it by
+  // address is safe again.
+  const r = await deps.fetch(upstream, {headers: {accept}, cf} as RequestInit);
   if (!r.ok) {
     // Not kept: a failure (Sanity over quota, say) must not be cached for a year.
     return new Response(r.body, {status: r.status, headers: passHeaders(r.headers, {'cache-control': 'no-store'})});

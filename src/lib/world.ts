@@ -1,40 +1,54 @@
 /*
-  A WORLD OF WORK - three ways of laying the portfolio out the way
-  Minecraft generates its world. Preview only (see /next/world/home).
+  A WORLD OF WORK - the portfolio laid out the way Minecraft generates its
+  world. Preview only (see /next/world/home).
 
   Chris: "I'd love to see your Biomes, Caves, or Height map ideas played
-  out." Each is the same thing Minecraft does - noise fields over a grid,
-  and rules that read them - on a grid of square cells across the page:
+  out." Then, having seen them: "original Height Map and Biome were the
+  exceptional ones. Let's shelve Height Map v2 and Caves", and "if this
+  could operate like the main grid now, with full functionality of
+  expansion", "on Biome ... stuff that's parented to a grid item to hug
+  it, even though they don't have a case study ... the collages and their
+  corresponding closeup pieces", "get rid of all that massive distance and
+  only leave small noticeable gaps between Biomes".
 
-    HEIGHTS  A smooth noise field over the page is the terrain. A piece is
-             drawn as large as the ground under the spot it lands on is
-             high: mountains of big pieces, plains and valleys of small.
-    CAVES    Two noise fields; where BOTH are near zero the cell is carved
-             out and left white - Minecraft's "spaghetti" caves, because
-             two thin sheets of near-zero cross along a winding line.
-             Pieces fill everything else; the page colours the ground, so
-             the tunnels read as white paths cut through it, and the
-             longer tunnels carry the names of the projects beside them.
-    BIOMES   One region per project. Every cell belongs to the project
-             whose centre is nearest - nearest after the cell's position
-             has been pushed about by noise, so the borders wander instead
-             of running straight - and projects with more pieces reach
-             further. Each project's pieces settle in its own region,
-             nearest its centre first; its name sits on its land.
+  On a grid of square cells across the page:
 
-  The seed decides everything: the same seed is the same world, so a
-  layout can be linked and returned to. Plain code, no DOM - checked by
-  scripts/test-world.mjs.
+    HEIGHTS  A smooth noise field over the page is the terrain; a piece is
+             drawn as large as the ground is high where it lands (the
+             original version - small, frequent hills, a piece shrinking
+             as far as it must to fit).
+    BIOMES   One biome per set: a project with its pieces, or, with no
+             project, a piece with the pieces parented to it (a collage and
+             its close-ups). Each biome is laid out as its own compact
+             block - its lead first, every piece followed straight away by
+             the pieces parented to it, so they land beside it - and the
+             blocks are packed against each other, largest first, one cell
+             apart: a small, noticeable gap and no empty land.
+
+  OPENING (both modes), as on the main grid: `focus` names a piece. It is
+  drawn large, its set packed tight around it, at about where it was; the
+  rest of the world flows on as before.
+
+  Shelved, kept for reference and not offered on the page: 'heights2'
+  (broad mountains, wide plains - "makes more sense", but the first was
+  "more visually pleasing") and 'caves' (spaghetti tunnels - "isn't making
+  sense yet").
+
+  The seed decides everything: the same seed is the same world. Plain code,
+  no DOM - checked by scripts/test-world.mjs.
 */
 
-export type WorldMode = 'heights' | 'caves' | 'biomes';
+export type WorldMode = 'heights' | 'biomes' | 'heights2' | 'caves';
 
 export interface WorldPiece {
   w: number;
   h: number;
   project: string | null;
-  /** The project's own tile, which leads its region in the biomes. */
+  /** The project's own tile, which leads its set. */
   own?: boolean;
+  /** This piece's id, and the piece it is parented to (a grid item), if any. */
+  id?: string;
+  parent?: string | null;
 }
 
 export interface WorldOptions {
@@ -43,6 +57,10 @@ export interface WorldOptions {
   seed: number;
   /** Widest a piece may be, in cells. */
   maxSpan?: number;
+  /** The opened piece. */
+  focus?: number | null;
+  /** The row it was on when opened, so its set opens about there. */
+  focusRow?: number;
 }
 
 export interface WorldPlaced {
@@ -55,6 +73,8 @@ export interface WorldPlaced {
 
 export interface WorldLabel {
   text: string;
+  /** The set's key: a project's address, or "#set-<id>" for a piece and its children. */
+  set: string;
   c: number;
   r: number;
   cw: number;
@@ -64,12 +84,14 @@ export interface WorldResult {
   placed: WorldPlaced[];
   cols: number;
   rows: number;
-  /** Caves: 1 where a cell is carved out, row by row. */
+  /** Caves (shelved): 1 where a cell is carved out, row by row. */
   cave?: Uint8Array;
-  /** Biomes: the region of every cell (an index into `regions`), row by row. */
+  /** Biomes: each cell's biome, an index into `regions`, or -1; row by row. */
   biome?: Int16Array;
   regions?: string[];
   labels: WorldLabel[];
+  /** The opened piece's set, as piece indexes. */
+  family: number[];
 }
 
 // ---------------------------------------------------------------- noise
@@ -108,20 +130,16 @@ function terrain(seed: number, x: number, y: number) {
   return Math.min(1, Math.max(0, 0.5 + 0.5 * (sum / norm) * 1.6));
 }
 
-/*
-  THE HEIGHT MAP'S GROUND, in [0, 1], at a cell - exported so the page can
-  draw the map it is reading. Chris: "I don't see the logic working" - the
-  first terrain had hills about a third of the page apart, too small and
-  too many to tell apart, and it was invisible. Now the hills are broad
-  (one or two across the page), and the height is pushed towards its ends
-  - wide flat plains, a few distinct peaks - so a mountain of big pieces
-  and a plain of small ones read without explanation.
-*/
+/* The original height map's ground, in [0, 1]. */
+export function groundAt(seed: number, cols: number, c: number, r: number) {
+  const f = 1 / Math.max(5, cols / 3);
+  return terrain(seed, c * f, r * f);
+}
+
+/* Shelved v2's ground: broad mountains, wide plains (a smooth step). */
 export function heightAt(seed: number, cols: number, c: number, r: number) {
   const f = 1 / Math.max(6, cols * 0.6);
-  const h = terrain(seed, c * f, r * f);
-  // A smooth step: below 0.35 is plain, above 0.75 is peak.
-  const t = Math.min(1, Math.max(0, (h - 0.35) / 0.4));
+  const t = Math.min(1, Math.max(0, (terrain(seed, c * f, r * f) - 0.35) / 0.4));
   return t * t * (3 - 2 * t);
 }
 
@@ -129,10 +147,10 @@ export function heightAt(seed: number, cols: number, c: number, r: number) {
 class Grid {
   cols: number;
   rows = 0;
-  used: Uint8Array;
+  used: Int16Array;
   constructor(cols: number, maxRows: number) {
     this.cols = cols;
-    this.used = new Uint8Array(cols * maxRows);
+    this.used = new Int16Array(cols * maxRows).fill(-1);
   }
   get maxRows() {
     return this.used.length / this.cols;
@@ -141,74 +159,206 @@ class Grid {
     if (c < 0 || c + cw > this.cols || r < 0 || r + ch > this.maxRows) return false;
     for (let y = r; y < r + ch; y++)
       for (let x = c; x < c + cw; x++) {
-        if (this.used[y * this.cols + x]) return false;
+        if (this.used[y * this.cols + x] !== -1) return false;
         if (ok && !ok(x, y)) return false;
       }
     return true;
   }
-  take(c: number, r: number, cw: number, ch: number) {
-    for (let y = r; y < r + ch; y++) for (let x = c; x < c + cw; x++) this.used[y * this.cols + x] = 1;
+  take(c: number, r: number, cw: number, ch: number, owner = 0) {
+    for (let y = r; y < r + ch; y++) for (let x = c; x < c + cw; x++) this.used[y * this.cols + x] = owner;
     this.rows = Math.max(this.rows, r + ch);
   }
 }
 
 /* A piece's box at a width in cells: its own shape, at least one cell tall. */
-const boxAt = (p: WorldPiece, cw: number) => ({cw, ch: Math.max(1, Math.min(6, Math.round(cw / (p.w / p.h || 1))))});
+const boxAt = (p: WorldPiece, cw: number) => ({cw, ch: Math.max(1, Math.min(8, Math.round(cw / (p.w / p.h || 1))))});
 
 const order = (n: number, seed: number) =>
   Array.from({length: n}, (_, i) => i).sort((a, b) => hash2(seed, a, 7) - hash2(seed, b, 7));
 
+// ---------------------------------------------------------------- sets
+/*
+  Which set each piece belongs to: its project; else, with no project, the
+  piece it is parented to (or itself, if pieces are parented to it) - so a
+  collage and its close-ups are one set; else a set of its own.
+*/
+export function setsOf(pieces: WorldPiece[]) {
+  const byId = new Map(pieces.map((p, i) => [p.id ?? `#${i}`, i]));
+  const root = (i: number) => {
+    let k = i;
+    for (let n = 0; n < 6; n++) {
+      const up = pieces[k].parent;
+      const j = up ? byId.get(up) : undefined;
+      if (j === undefined) break;
+      k = j;
+    }
+    return k;
+  };
+  const roots = pieces.map((_, i) => root(i));
+  const count = new Map<number, number>();
+  for (const r of roots) count.set(r, (count.get(r) ?? 0) + 1);
+  return pieces.map((p, i) =>
+    p.project ? p.project : (count.get(roots[i]) ?? 0) > 1 ? `#set-${pieces[roots[i]].id ?? roots[i]}` : `#solo-${i}`,
+  );
+}
+
+/*
+  A set's pieces in the order they are laid: the lead (the opened piece,
+  else the project's own tile, else the root), then every piece followed
+  straight away by the pieces parented to it, so they land beside it.
+*/
+function laidOrder(pieces: WorldPiece[], members: number[], lead: number | null) {
+  const inSet = new Set(members);
+  const kids = new Map<string, number[]>();
+  for (const i of members) {
+    const up = pieces[i].parent;
+    if (up) kids.set(up, [...(kids.get(up) ?? []), i]);
+  }
+  const first =
+    lead !== null && inSet.has(lead)
+      ? lead
+      : (members.find((i) => pieces[i].own) ??
+        members.find((i) => !pieces[i].parent || !members.some((j) => pieces[j].id === pieces[i].parent)) ??
+        members[0]);
+  const out: number[] = [];
+  const seen = new Set<number>();
+  const visit = (i: number) => {
+    if (seen.has(i)) return;
+    seen.add(i);
+    out.push(i);
+    for (const k of kids.get(pieces[i].id ?? '') ?? []) visit(k);
+  };
+  visit(first);
+  // Then each top-level piece of the set (its parent is not in the set),
+  // with its children after it; then anything left.
+  const ids = new Set(members.map((i) => pieces[i].id));
+  for (const i of members) if (!pieces[i].parent || !ids.has(pieces[i].parent)) visit(i);
+  for (const i of members) visit(i);
+  return out;
+}
+
+/*
+  One set as a compact block, in a grid as wide as makes it about square
+  (wider for the opened piece). The lead takes the top left; every other
+  piece takes the free spot nearest the piece it is parented to - the lead,
+  when it has no parent in the set - so a close-up lands against its
+  collage rather than wherever reading order next has room. Ties go to the
+  higher, then the further-left spot, which keeps the block compact.
+*/
+function block(pieces: WorldPiece[], list: number[], spanOf: (i: number) => number, width: number) {
+  const g = new Grid(width, Math.max(8, list.length * 10));
+  const placed: WorldPlaced[] = [];
+  const where = new Map<string, WorldPlaced>();
+  for (const i of list) {
+    const want = Math.min(width, spanOf(i));
+    const anchor = (pieces[i].parent && where.get(pieces[i].parent!)) || placed[0] || null;
+    let best: WorldPlaced | null = null;
+    let bestScore = Infinity;
+    const limit = Math.min(g.maxRows, (g.rows || 0) + 12);
+    for (let cw = want; cw >= 1 && !best; cw--) {
+      const {ch} = boxAt(pieces[i], cw);
+      for (let r = 0; r < limit; r++)
+        for (let c = 0; c + cw <= width; c++) {
+          if (!g.fits(c, r, cw, ch)) continue;
+          const gapTo = anchor
+            ? Math.max(0, Math.max(c - (anchor.c + anchor.cw), anchor.c - (c + cw))) +
+              Math.max(0, Math.max(r - (anchor.r + anchor.ch), anchor.r - (r + ch)))
+            : 0;
+          const score = gapTo * 1000 + Math.max(0, r + ch - g.rows) * 40 + r * 2 + c * 0.1;
+          if (score < bestScore) {
+            bestScore = score;
+            best = {i, c, r, cw, ch};
+          }
+        }
+      // Settle for a smaller size only when the full one has no spot touching.
+      if (best && bestScore >= 1000 && cw > 1) best = null;
+    }
+    if (!best) {
+      // Never expected: the first free spot, at the smallest size.
+      const {ch} = boxAt(pieces[i], 1);
+      for (let r = 0; r < g.maxRows && !best; r++) for (let c = 0; c < width && !best; c++) if (g.fits(c, r, 1, ch)) best = {i, c, r, cw: 1, ch};
+    }
+    g.take(best!.c, best!.r, best!.cw, best!.ch);
+    placed.push(best!);
+    if (pieces[i].id) where.set(pieces[i].id!, best!);
+  }
+  return {placed, rows: g.rows, width};
+}
+
+const blockWidth = (pieces: WorldPiece[], list: number[], spanOf: (i: number) => number, cols: number) => {
+  const cells = list.reduce((n, i) => n + boxAt(pieces[i], spanOf(i)).cw * boxAt(pieces[i], spanOf(i)).ch, 0);
+  const widest = Math.max(...list.map(spanOf));
+  return Math.min(cols, Math.max(widest, Math.ceil(Math.sqrt(cells * 1.25))));
+};
+
 // ---------------------------------------------------------------- the modes
 export function generateWorld(pieces: WorldPiece[], o: WorldOptions): WorldResult {
   const maxSpan = o.maxSpan ?? Math.max(2, Math.round(o.cols / 4));
-  const area = pieces.reduce((n, p) => n + boxAt(p, 2).cw * boxAt(p, 2).ch, 0);
-  const grid = new Grid(o.cols, Math.max(40, Math.ceil((area * 6) / o.cols) + 40));
-  if (o.mode === 'biomes') return biomes(pieces, o, grid, maxSpan);
+  const sets = setsOf(pieces);
+  const focus = o.focus ?? null;
+  const family = focus === null ? [] : pieces.map((_, i) => i).filter((i) => sets[i] === sets[focus]);
+  if (o.mode === 'biomes') return biomes(pieces, o, maxSpan, sets, focus, family);
+  return flow(pieces, o, maxSpan, sets, focus, family);
+}
 
+/* Heights (and the shelved heights2 and caves): pieces flow in reading order. */
+function flow(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: string[], focus: number | null, family: number[]): WorldResult {
+  const area = pieces.reduce((n, p) => n + boxAt(p, 2).cw * boxAt(p, 2).ch, 0);
+  const grid = new Grid(o.cols, Math.max(60, Math.ceil((area * 8) / o.cols) + 60));
   const placed: WorldPlaced[] = [];
   const labels: WorldLabel[] = [];
   const freq = 1 / Math.max(5, o.cols / 3);
+
   let cave: Uint8Array | undefined;
   if (o.mode === 'caves') {
     cave = new Uint8Array(grid.used.length);
     for (let r = 0; r < grid.maxRows; r++)
       for (let c = 0; c < o.cols; c++) {
-        const x = c * freq * 1.6;
-        const y = r * freq * 1.6;
-        /*
-          Spaghetti only: both of two fields near zero, so the tunnels
-          wind. The first version also opened "cheese" caverns (one coarse
-          field over a threshold), and Chris: "the caves don't really make
-          sense to me" - big random holes read as gaps, not caves. Thin
-          winding tunnels, read against coloured ground (the page draws
-          the ground), are the effect.
-        */
-        const tunnel = Math.abs(noise2(o.seed + 11, x * 0.7, y * 0.7)) < 0.11 && Math.abs(noise2(o.seed + 23, x * 0.7, y * 0.7)) < 0.42;
-        // Never the top row, so the page starts on solid ground.
+        const x = c * freq * 1.6 * 0.7;
+        const y = r * freq * 1.6 * 0.7;
+        const tunnel = Math.abs(noise2(o.seed + 11, x, y)) < 0.11 && Math.abs(noise2(o.seed + 23, x, y)) < 0.42;
         if (r > 1 && tunnel) cave[r * o.cols + c] = 1;
       }
   }
   const solid = cave ? (c: number, r: number) => !cave![r * o.cols + c] : undefined;
 
+  // The opened piece's set first, as a block, at about the row it was on.
+  if (focus !== null) {
+    const list = laidOrder(pieces, family, focus);
+    const spanOf = (i: number) => (i === focus ? Math.min(o.cols, maxSpan + Math.ceil(maxSpan / 2)) : Math.max(2, Math.round(maxSpan / 2)));
+    const b = block(pieces, list, spanOf, blockWidth(pieces, list, spanOf, o.cols));
+    const at = Math.max(0, o.focusRow ?? 0);
+    const left = Math.max(0, Math.floor((o.cols - b.width) / 2));
+    for (let r = at; r < grid.maxRows; r++) {
+      if (b.placed.every((q) => grid.fits(left + q.c, r + q.r, q.cw, q.ch, solid))) {
+        for (const q of b.placed) {
+          grid.take(left + q.c, r + q.r, q.cw, q.ch);
+          placed.push({...q, c: left + q.c, r: r + q.r});
+        }
+        break;
+      }
+    }
+  }
+
+  const inFamily = new Set(family);
   let cursor = 0;
   for (const i of order(pieces.length, o.seed)) {
+    if (inFamily.has(i)) continue;
     const p = pieces[i];
     for (let at = cursor; at < grid.used.length; at++) {
       const c = at % o.cols;
       const r = Math.floor(at / o.cols);
-      if (grid.used[at] || (cave && cave[at])) continue;
-      // How big: the terrain under this spot (heights), or a steady size
-      // with a little give (caves).
-      const h = o.mode === 'heights' ? heightAt(o.seed, o.cols, c, r) : terrain(o.seed, c * freq, r * freq);
-      const want =
-        o.mode === 'heights' ? 1 + Math.round(h * (maxSpan - 1)) : Math.max(1, Math.round(2 + (h - 0.5) * 2));
-      /*
-        A piece shrinks by at most one step to fit here; if it still does
-        not, it waits for the next free cell instead. Shrinking all the way
-        to one cell - as the first version did - put small pieces on the
-        peaks and hid the terrain.
-      */
-      const least = o.mode === 'heights' ? Math.max(1, want - 1) : 1;
+      if (grid.used[at] !== -1 || (cave && cave[at])) continue;
+      let want: number;
+      let least = 1;
+      if (o.mode === 'heights2') {
+        want = 1 + Math.round(heightAt(o.seed, o.cols, c, r) * (maxSpan - 1));
+        least = Math.max(1, want - 1);
+      } else if (o.mode === 'heights') {
+        want = 1 + Math.round(groundAt(o.seed, o.cols, c, r) ** 1.6 * (maxSpan - 1));
+      } else {
+        want = Math.max(1, Math.round(2 + (terrain(o.seed, c * freq, r * freq) - 0.5) * 2));
+      }
       let done = false;
       for (let cw = Math.min(want, o.cols - c); cw >= least && !done; cw--) {
         const {ch} = boxAt(p, cw);
@@ -220,167 +370,114 @@ export function generateWorld(pieces: WorldPiece[], o: WorldOptions): WorldResul
       }
       if (done) break;
     }
-    while (cursor < grid.used.length && (grid.used[cursor] || (cave && cave[cursor]))) cursor++;
+    while (cursor < grid.used.length && (grid.used[cursor] !== -1 || (cave && cave[cursor]))) cursor++;
   }
-
-  // Caves: the larger ones inside the world carry a project's name - the
-  // project of the piece nearest them.
-  if (cave) {
-    const seen = new Uint8Array(cave.length);
-    const blobs: {cells: number[]; minC: number; maxC: number; minR: number; maxR: number}[] = [];
-    for (let at = 0; at < o.cols * grid.rows; at++) {
-      if (!cave[at] || seen[at]) continue;
-      const cells: number[] = [];
-      const stack = [at];
-      seen[at] = 1;
-      while (stack.length) {
-        const k = stack.pop()!;
-        cells.push(k);
-        const c = k % o.cols;
-        const r = Math.floor(k / o.cols);
-        for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-          const nc = c + dc;
-          const nr = r + dr;
-          if (nc < 0 || nc >= o.cols || nr < 0 || nr >= grid.rows) continue;
-          const n = nr * o.cols + nc;
-          if (cave[n] && !seen[n]) {
-            seen[n] = 1;
-            stack.push(n);
-          }
-        }
-      }
-      const cs = cells.map((k) => k % o.cols);
-      const rs = cells.map((k) => Math.floor(k / o.cols));
-      blobs.push({cells, minC: Math.min(...cs), maxC: Math.max(...cs), minR: Math.min(...rs), maxR: Math.max(...rs)});
-    }
-    const named = new Set<string>();
-    for (const b of blobs.sort((a, z) => z.cells.length - a.cells.length).slice(0, 8)) {
-      // The widest run of carved cells in one row of the cave.
-      let best = {r: 0, c: 0, cw: 0};
-      for (let r = b.minR; r <= b.maxR; r++) {
-        let run = 0;
-        for (let c = b.minC; c <= b.maxC + 1; c++) {
-          const inCave = c <= b.maxC && cave[r * o.cols + c] === 1 && !grid.used[r * o.cols + c];
-          if (inCave) run++;
-          else {
-            if (run > best.cw) best = {r, c: c - run, cw: run};
-            run = 0;
-          }
-        }
-      }
-      if (best.cw < 3) continue;
-      const near = placed
-        .filter((q) => pieces[q.i].project)
-        .sort((a, z) => Math.hypot(a.c - best.c, a.r - best.r) - Math.hypot(z.c - best.c, z.r - best.r))[0];
-      const text = near ? pieces[near.i].project! : '';
-      if (!text || named.has(text)) continue;
-      named.add(text);
-      labels.push({text, ...best});
-    }
-  }
-  return {placed, cols: o.cols, rows: grid.rows, cave, labels};
+  return {placed, cols: o.cols, rows: grid.rows, cave, labels, family};
 }
 
-function biomes(pieces: WorldPiece[], o: WorldOptions, grid: Grid, maxSpan: number): WorldResult {
+/* Biomes: each set a compact block, the blocks packed one cell apart. */
+function biomes(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: string[], focus: number | null, family: number[]): WorldResult {
   const groups = new Map<string, number[]>();
-  pieces.forEach((p, i) => {
-    const k = p.project ?? `#solo-${i}`;
-    groups.set(k, [...(groups.get(k) ?? []), i]);
-  });
-  // Pieces with no project share one region, at the edge of things.
-  const solo = [...groups.keys()].filter((k) => k.startsWith('#solo-'));
-  const regions = [...groups.keys()].filter((k) => !k.startsWith('#solo-'));
-  if (solo.length) {
-    groups.set('', solo.flatMap((k) => groups.get(k)!));
-    regions.push('');
-  }
-  for (const k of solo) groups.delete(k);
+  sets.forEach((k, i) => groups.set(k, [...(groups.get(k) ?? []), i]));
+  const regions = [...groups.keys()];
+  const own = Math.min(maxSpan, Math.max(2, Math.round(maxSpan * 0.6)));
+  const rest = Math.max(2, Math.round(maxSpan * 0.4));
+  const opened = Math.min(o.cols, maxSpan + Math.ceil(maxSpan / 2));
 
-  const span = Math.max(2, Math.min(3, maxSpan));
-  const need = pieces.reduce((n, p) => n + boxAt(p, span).cw * boxAt(p, span).ch, 0);
-  const rowsEst = Math.max(8, Math.ceil(need / o.cols / 0.55));
-  // Region centres on a jittered lattice over the expected world.
-  const across = Math.max(1, Math.round(Math.sqrt((regions.length * o.cols) / rowsEst)));
-  const down = Math.ceil(regions.length / across);
-  const centres = order(regions.length, o.seed).map((k, n) => {
-    const gx = n % across;
-    const gy = Math.floor(n / across);
-    return {
-      k,
-      c: ((gx + 0.5 + 0.3 * hash2(o.seed, n, 1)) / across) * o.cols,
-      r: ((gy + 0.5 + 0.3 * hash2(o.seed, n, 2)) / down) * rowsEst,
-      weight: Math.sqrt(groups.get(regions[k])!.length),
-    };
+  /*
+    Each set laid out as a block - at a few widths, since which fits the
+    room left beside the blocks already placed is only known when placing -
+    with a row on top for its name, as wide as its pieces, when it has more
+    than one.
+  */
+  const blocks = regions.map((key, region) => {
+    const members = groups.get(key)!;
+    const isFocus = focus !== null && sets[focus] === key;
+    const list = laidOrder(pieces, members, isFocus ? focus : null);
+    const spanOf = (i: number) =>
+      isFocus ? (i === focus ? opened : rest) : i === list[0] && members.length > 1 ? own : rest;
+    const base = blockWidth(pieces, list, spanOf, o.cols);
+    const widest = Math.max(...list.map((i) => Math.min(o.cols, spanOf(i))));
+    const widths = [...new Set([base, base - 2, base + 2, base + 5, o.cols].map((w) => Math.min(o.cols, Math.max(widest, w))))];
+    const named = members.length > 1;
+    const shapes = widths.map((w) => {
+      const b = block(pieces, list, spanOf, w);
+      const used = Math.max(...b.placed.map((q) => q.c + q.cw));
+      const top = named ? 1 : 0;
+      const cells: [number, number][] = b.placed.flatMap((q) => {
+        const out: [number, number][] = [];
+        for (let y = q.r; y < q.r + q.ch; y++) for (let x = q.c; x < q.c + q.cw; x++) out.push([x, y + top]);
+        return out;
+      });
+      if (named) for (let x = 0; x < used; x++) cells.push([x, 0]);
+      return {b, cells, used, top, height: b.rows + top};
+    });
+    const cellCount = shapes[0].b.placed.reduce((n, q) => n + q.cw * q.ch, 0);
+    return {key, region, members, named, shapes, cells: cellCount};
   });
-  const warp = 3.5;
-  const f = 1 / Math.max(4, o.cols / 5);
+
+  // Largest first, so the small ones fill in round them; the seed shuffles
+  // sets of about the same size.
+  const shuffle = order(blocks.length, o.seed);
+  const rank = new Map(shuffle.map((k, n) => [k, n]));
+  const sized = [...blocks].sort((a, z) => {
+    const ba = Math.round(Math.log2(a.cells + 1));
+    const bz = Math.round(Math.log2(z.cells + 1));
+    return bz - ba || rank.get(a.region)! - rank.get(z.region)!;
+  });
+  // The opened set first of all, so it opens at the top.
+  if (focus !== null) sized.sort((a, z) => Number(z.key === sets[focus]) - Number(a.key === sets[focus]));
+
+  const total = blocks.reduce((n, b) => n + b.cells, 0);
+  const grid = new Grid(o.cols, Math.max(60, Math.ceil((total * 4) / o.cols) + 60));
   const biome = new Int16Array(grid.used.length).fill(-1);
-  for (let r = 0; r < grid.maxRows; r++)
-    for (let c = 0; c < o.cols; c++) {
-      const x = c + warp * noise2(o.seed + 51, c * f, r * f);
-      const y = r + warp * noise2(o.seed + 67, c * f, r * f);
-      let best = -1;
-      let bestD = Infinity;
-      for (const s of centres) {
-        const d = Math.hypot(x - s.c, y - s.r) / s.weight;
-        if (d < bestD) {
-          bestD = d;
-          best = s.k;
-        }
-      }
-      biome[r * o.cols + c] = best;
-    }
-
   const placed: WorldPlaced[] = [];
   const labels: WorldLabel[] = [];
-  for (const s of centres) {
-    const name = regions[s.k];
-    const members = groups.get(name)!;
-    // Its own tile first and largest, then the rest.
-    const list = [...members].sort((a, b) => Number(!!pieces[b].own) - Number(!!pieces[a].own));
-    const cells: number[] = [];
-    for (let at = 0; at < biome.length; at++) if (biome[at] === s.k) cells.push(at);
-    const dist = (at: number) => Math.hypot((at % o.cols) - s.c, Math.floor(at / o.cols) - s.r);
-    cells.sort((a, b) => dist(a) - dist(b));
-    const mine = (c: number, r: number) => biome[r * o.cols + c] === s.k;
-    let first: WorldPlaced | null = null;
-    for (const i of list) {
-      const want = pieces[i].own ? Math.min(maxSpan, span + 1) : span;
-      let done = false;
-      // In its own region, nearest the centre first; if the region is full,
-      // anywhere free, nearest the centre.
-      for (const strict of [true, false]) {
-        const pool = strict ? cells : [...Array(biome.length).keys()].sort((a, b) => dist(a) - dist(b));
-        for (const at of pool) {
-          const c = at % o.cols;
-          const r = Math.floor(at / o.cols);
-          for (let cw = want; cw >= 1 && !done; cw--) {
-            const {ch} = boxAt(pieces[i], cw);
-            if (grid.fits(c, r, cw, ch, strict ? mine : undefined)) {
-              grid.take(c, r, cw, ch);
-              const q = {i, c, r, cw, ch};
-              placed.push(q);
-              first ??= q;
-              done = true;
-            }
+  // The first row with room, so each search starts there, not at the top.
+  let from = 0;
+
+  for (const s of sized) {
+    // A cell of this block, and every cell round it, may not belong to
+    // another set - that is the one-cell gap between biomes.
+    const clear = (cells: [number, number][], c: number, r: number) =>
+      cells.every(([x, y]) => {
+        const cx = c + x;
+        const cy = r + y;
+        if (cx < 0 || cx >= o.cols || cy >= grid.maxRows) return false;
+        if (grid.used[cy * o.cols + cx] !== -1) return false;
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = cx + dx;
+            const ny = cy + dy;
+            if (nx < 0 || nx >= o.cols || ny < 0 || ny >= grid.maxRows) continue;
+            const owner = grid.used[ny * o.cols + nx];
+            if (owner !== -1 && owner !== s.region) return false;
           }
-          if (done) break;
-        }
-        if (done) break;
-      }
-    }
-    // The name on its land: the nearest free run of three cells to its centre.
-    if (name && first) {
-      for (const at of cells) {
+        return true;
+      });
+    // Each width's first spot; keep the one whose bottom is highest.
+    let best: {shape: (typeof s.shapes)[number]; c: number; r: number} | null = null;
+    for (const shape of s.shapes) {
+      for (let at = from * o.cols; at < grid.used.length; at++) {
         const c = at % o.cols;
         const r = Math.floor(at / o.cols);
-        if (grid.fits(c, r, 3, 1, mine)) {
-          grid.take(c, r, 3, 1);
-          labels.push({text: name, c, r, cw: 3});
-          break;
-        }
+        if (best && r + shape.height >= best.r + best.shape.height) break;
+        if (c + shape.used > o.cols || grid.used[at] !== -1) continue;
+        if (!clear(shape.cells, c, r)) continue;
+        best = {shape, c, r};
+        break;
       }
     }
+    if (!best) continue;
+    const {shape, c, r} = best;
+    for (const [x, y] of shape.cells) {
+      grid.used[(r + y) * o.cols + c + x] = s.region;
+      biome[(r + y) * o.cols + c + x] = s.region;
+    }
+    grid.rows = Math.max(grid.rows, r + shape.height);
+    for (const q of shape.b.placed) placed.push({...q, c: c + q.c, r: r + shape.top + q.r});
+    if (s.named) labels.push({text: s.key, set: s.key, c, r, cw: shape.used});
+    while (from < grid.maxRows && [...grid.used.subarray(from * o.cols, (from + 1) * o.cols)].every((v) => v !== -1)) from++;
   }
-  return {placed, cols: o.cols, rows: grid.rows, biome, regions, labels};
+  return {placed, cols: o.cols, rows: grid.rows, biome, regions, labels, family};
 }

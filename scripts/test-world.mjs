@@ -1,18 +1,23 @@
 /*
   The world generator (src/lib/world.ts), in plain Node with made-up
-  pieces. For each mode at desktop and phone widths: every piece placed,
-  inside the columns, no two sharing a cell; and then what each mode
-  promises -
-    heights  sizes really vary (largest at least three times the smallest)
-    caves    some cells are carved, no piece sits on one, some caves named
-    biomes   every project's pieces mostly inside its own region, and a
-             name for each project
-  - the same seed giving the same world and another seed another, fast
-  enough to run on every draw.
+  pieces: projects of several sizes, a collage parented set with no
+  project (a collage and its close-ups), and loose pieces.
+
+  For the height map and the biomes, at desktop and phone widths: every
+  piece placed, inside the columns, no two sharing a cell; the same seed
+  giving the same world and another seed another; fast enough to draw.
+  Then, for the biomes - Chris: "stuff that's parented to a grid item to
+  hug it, even though they don't have a case study", "only leave small
+  noticeable gaps between Biomes":
+    - each set is one block, and two sets never touch (a cell between)
+    - little empty land: the pieces cover most of the cells their world uses
+    - a close-up sits right beside the piece it is parented to
+  And opening (both modes): the opened piece is the largest of its set, and
+  its whole set sits together round it.
 
   Usage: node scripts/test-world.mjs
 */
-import {generateWorld, heightAt} from '../src/lib/world.ts'
+import {generateWorld, setsOf} from '../src/lib/world.ts'
 
 let failures = 0
 const check = (name, ok, detail = '') => {
@@ -26,71 +31,87 @@ const shapes = [
   {w: 800, h: 1200},
   {w: 2000, h: 1400},
 ]
-const projects = ['/work/a', '/work/b', '/work/c', '/work/d', '/work/e', null]
-const counts = [22, 10, 7, 5, 3, 6]
 const pieces = []
-projects.forEach((project, n) => {
-  for (let k = 0; k < counts[n]; k++) pieces.push({...shapes[(n + k) % 4], project, own: !!project && k === 0})
+const counts = [22, 10, 7, 5, 3]
+counts.forEach((n, p) => {
+  for (let k = 0; k < n; k++) pieces.push({...shapes[(p + k) % 4], project: `/work/p${p}`, own: k === 0, id: `p${p}-${k}`, parent: k === 0 ? null : `p${p}-0`})
 })
+// Two collages with close-ups parented to them, no project.
+for (const c of ['red-kettle', 'newform']) {
+  pieces.push({w: 1000, h: 984, project: null, id: c, parent: null})
+  for (let k = 0; k < 3; k++) pieces.push({...shapes[k % 4], project: null, id: `${c}-close-${k}`, parent: c})
+}
+// Loose pieces.
+for (let k = 0; k < 6; k++) pieces.push({...shapes[k % 4], project: null, id: `loose-${k}`, parent: null})
 
-for (const [name, cols] of [
-  ['desktop', 20],
-  ['phone', 6],
+const sets = setsOf(pieces)
+check('a collage and its close-ups are one set, with no project', sets[pieces.findIndex((p) => p.id === 'red-kettle-close-2')] === sets[pieces.findIndex((p) => p.id === 'red-kettle')])
+check('loose pieces are each their own', new Set(pieces.map((p, i) => (p.id.startsWith('loose') ? sets[i] : null)).filter(Boolean)).size === 6)
+
+const boxOf = (out, i) => out.placed.find((q) => q.i === i)
+const apart = (a, b) => Math.max(0, Math.max(a.c - (b.c + b.cw), b.c - (a.c + a.cw)), Math.max(a.r - (b.r + b.ch), b.r - (a.r + a.ch)))
+
+// The page's grids: the biomes on a finer one, so the gap between them is a thin line.
+for (const [name, grids] of [
+  ['desktop', {heights: [20, 6], biomes: [40, 12]}],
+  ['phone', {heights: [6, 3], biomes: [15, 6]}],
 ]) {
-  for (const mode of ['heights', 'caves', 'biomes']) {
-    const tag = `${name}, ${mode}`
-    const t0 = performance.now()
-    const out = generateWorld(pieces, {cols, mode, seed: 42, maxSpan: cols >= 12 ? 6 : 3})
-    const ms = performance.now() - t0
-    const p = out.placed
-    check(`${tag}: every piece placed`, p.length === pieces.length, `${p.length}/${pieces.length}`)
-    const cell = new Map()
-    let shared = 0
-    let outside = 0
-    for (const q of p) {
-      if (q.c < 0 || q.c + q.cw > cols) outside++
-      for (let r = q.r; r < q.r + q.ch; r++)
-        for (let c = q.c; c < q.c + q.cw; c++) {
-          const k = `${c},${r}`
-          if (cell.has(k)) shared++
-          cell.set(k, q.i)
-        }
-    }
-    check(`${tag}: inside the columns, no cell shared`, shared === 0 && outside === 0, `${shared} shared, ${outside} outside`)
-    check(`${tag}: quick enough to draw`, ms < 250, `${ms.toFixed(0)}ms`)
-
-    if (mode === 'heights') {
-      const areas = p.map((q) => q.cw * q.ch)
-      check(`${tag}: the sizes really vary`, Math.max(...areas) >= 3 * Math.min(...areas), `${Math.min(...areas)} to ${Math.max(...areas)} cells`)
-      // The point of it: the big pieces stand on high ground, the small in the valleys.
-      const ground = (q) => heightAt(42, cols, q.c, q.r)
-      const big = p.filter((q) => q.cw >= (cols >= 12 ? 4 : 3)).map(ground)
-      const small = p.filter((q) => q.cw <= 1).map(ground)
-      const mean = (xs) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length)
-      if (big.length && small.length) check(`${tag}: big pieces stand on high ground, small ones low`, mean(big) > mean(small) + 0.3, `ground under big ${mean(big).toFixed(2)}, under small ${mean(small).toFixed(2)}`)
-    }
-    if (mode === 'caves') {
-      const carved = [...out.cave.slice(0, cols * out.rows)].filter(Boolean).length
-      const onCave = p.filter((q) => {
-        for (let r = q.r; r < q.r + q.ch; r++) for (let c = q.c; c < q.c + q.cw; c++) if (out.cave[r * cols + c]) return true
-        return false
-      }).length
-      check(`${tag}: caves are carved through the world`, carved > cols * out.rows * 0.04, `${carved} of ${cols * out.rows} cells`)
-      check(`${tag}: no piece sits in a cave`, onCave === 0, `${onCave}`)
-      if (cols >= 12) check(`${tag}: and some caves carry a name`, out.labels.length > 0, `${out.labels.length}`)
-    }
-    if (mode === 'biomes') {
-      let home = 0
+  for (const mode of ['heights', 'biomes']) {
+    const [cols, maxSpan] = grids[mode]
+    for (const focus of [null, pieces.findIndex((p) => p.id === 'p1-3'), pieces.findIndex((p) => p.id === 'newform-close-1')]) {
+      const tag = `${name}, ${mode}${focus === null ? '' : `, ${pieces[focus].id} opened`}`
+      const t0 = performance.now()
+      const out = generateWorld(pieces, {cols, mode, seed: 42, maxSpan, focus, focusRow: 3})
+      const ms = performance.now() - t0
+      const p = out.placed
+      check(`${tag}: every piece placed`, p.length === pieces.length, `${p.length}/${pieces.length}`)
+      const owner = new Map()
+      let shared = 0
+      let outside = 0
       for (const q of p) {
-        const region = out.regions.indexOf(pieces[q.i].project ?? '')
-        if (out.biome[q.r * cols + q.c] === region) home++
+        if (q.c < 0 || q.c + q.cw > cols) outside++
+        for (let r = q.r; r < q.r + q.ch; r++)
+          for (let c = q.c; c < q.c + q.cw; c++) {
+            const k = `${c},${r}`
+            if (owner.has(k)) shared++
+            owner.set(k, q.i)
+          }
       }
-      check(`${tag}: projects settle in their own regions`, home >= p.length * 0.8, `${home} of ${p.length} at home`)
-      check(`${tag}: every project is named on its land`, out.labels.length >= projects.filter(Boolean).length - 1, `${out.labels.length} named`)
+      check(`${tag}: inside the columns, no cell shared`, shared === 0 && outside === 0, `${shared} shared, ${outside} outside`)
+      check(`${tag}: quick enough to draw`, ms < 250, `${ms.toFixed(0)}ms`)
+
+      if (mode === 'biomes') {
+        let touching = 0
+        for (const [k, i] of owner) {
+          const [c, r] = k.split(',').map(Number)
+          for (let dy = -1; dy <= 1; dy++)
+            for (let dx = -1; dx <= 1; dx++) {
+              const j = owner.get(`${c + dx},${r + dy}`)
+              if (j !== undefined && sets[j] !== sets[i]) touching++
+            }
+        }
+        check(`${tag}: two biomes never touch - a cell between`, touching === 0, `${touching} touching`)
+        const covered = owner.size
+        // A phone's one-cell gap is a bigger share of a narrow screen, so it packs looser.
+        check(`${tag}: little empty land`, covered >= cols * out.rows * (cols >= 30 ? 0.55 : 0.45), `${Math.round((covered / (cols * out.rows)) * 100)}% of the cells covered`)
+        const close = pieces.map((x, i) => (x.id.includes('-close-') ? i : -1)).filter((i) => i >= 0)
+        // Not in the opened set, which gathers round the opened piece instead (checked below).
+        const far = close.filter((i) => !out.family.includes(i) && apart(boxOf(out, i), boxOf(out, pieces.findIndex((x) => x.id === pieces[i].parent))) > 1)
+        check(`${tag}: close-ups sit right beside their collage`, far.length === 0, far.map((i) => pieces[i].id).join(', '))
+      }
+      if (focus !== null) {
+        const fam = out.family
+        const f = boxOf(out, focus)
+        check(`${tag}: the opened piece is the largest of its set`, fam.every((i) => i === focus || boxOf(out, i).cw <= f.cw), `${f.cw} cells wide`)
+        const far = fam.filter((i) => apart(boxOf(out, i), f) > Math.max(6, maxSpan * 2))
+        check(`${tag}: and its set sits together round it`, far.length === 0, `${far.length} far away`)
+      }
+      if (focus === null) {
+        const again = generateWorld(pieces, {cols, mode, seed: 42, maxSpan})
+        const other = generateWorld(pieces, {cols, mode, seed: 43, maxSpan})
+        check(`${tag}: the same seed gives the same world, another another`, JSON.stringify(again.placed) === JSON.stringify(p) && JSON.stringify(other.placed) !== JSON.stringify(p))
+      }
     }
-    const again = generateWorld(pieces, {cols, mode, seed: 42, maxSpan: cols >= 12 ? 6 : 3})
-    const other = generateWorld(pieces, {cols, mode, seed: 43, maxSpan: cols >= 12 ? 6 : 3})
-    check(`${tag}: the same seed gives the same world, another another`, JSON.stringify(again.placed) === JSON.stringify(p) && JSON.stringify(other.placed) !== JSON.stringify(p))
   }
 }
 

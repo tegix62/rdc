@@ -1,0 +1,28 @@
+# Pictures through Cloudflare against straight from Sanity - see
+# scripts/measure-image-speed.mjs. By hand only: it downloads real
+# pictures (a few megabytes), so it must never be put on a schedule.
+name: Measure picture speed
+
+on:
+  workflow_dispatch:
+    inputs:
+      site:
+        description: 'Site to measure'
+        default: 'https://rumeaudesign.co'
+      count:
+        description: 'How many pictures'
+        default: '24'
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Time the pictures
+        run: |
+          node scripts/measure-image-speed.mjs "${{ inputs.site }}" "${{ inputs.count }}" | tee /tmp/speed.txt
+          { echo '## Picture speed'; echo '```'; cat /tmp/speed.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

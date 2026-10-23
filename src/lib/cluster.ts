@@ -42,7 +42,59 @@ export interface ClusterOptions {
   maxRow: number;
   /** How much larger than its row the first piece is drawn. 1 = not at all. */
   lead?: number;
+  /** An organic outline instead of the even lens - see OUTLINE below. */
+  outline?: Outline;
 }
+
+/*
+  OUTLINE: THE LENS, ROUGHENED WITH NOISE.
+
+  Chris, on Minecraft's caves - two noise fields, with interesting shapes
+  where they cross, and the block's height making a cave more or less
+  likely: "I wonder if that would help on a smaller scale."
+
+  The lens is the height term: the pull towards the middle that keeps this
+  a cluster. On top of it, two smooth noise fields, each read along the
+  rows. One widens and narrows each row (`wobble`); the other slides each
+  row left or right within the room it has (`drift`). Both fade out towards
+  the middle row, so the chosen piece stays at the centre and the edges get
+  the character - a different hand-placed outline for every seed, and the
+  same one every time for the same seed (seedOf a project's address).
+*/
+export interface Outline {
+  seed: number;
+  /** How much a row's width may vary, as a share of it. */
+  wobble?: number;
+  /** How far a row may slide, as a share of the room either side of it. */
+  drift?: number;
+}
+
+/* A repeatable number in [-1, 1] for a seed and a whole number. */
+function hash(seed: number, k: number) {
+  let h = (seed ^ Math.imul(k, 0x9e3779b1)) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b) >>> 0;
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35) >>> 0;
+  h = (h ^ (h >>> 16)) >>> 0;
+  return (h / 4294967295) * 2 - 1;
+}
+
+/* Smooth noise along a line: values at whole numbers, eased between. */
+export function noise1(seed: number, x: number) {
+  const i = Math.floor(x);
+  const f = x - i;
+  const s = f * f * (3 - 2 * f);
+  return hash(seed, i) * (1 - s) + hash(seed, i + 1) * s;
+}
+
+/* A seed from text - a project's address, say. */
+export function seedOf(text: string) {
+  let h = 0x811c9dc5;
+  for (let k = 0; k < text.length; k++) h = Math.imul(h ^ text.charCodeAt(k), 0x01000193) >>> 0;
+  return h;
+}
+
+/* Rows apart that the noise changes over: neighbours alike, far rows not. */
+const NOISE_STEP = 0.65;
 
 export interface ClusterPlaced {
   i: number;
@@ -80,7 +132,14 @@ function fill(pieces: ClusterPiece[], o: ClusterOptions, base: number, count: nu
   const rows: Row[] = [];
   for (let r = 0; r < count; r++) {
     const d = count === 1 ? 0 : Math.abs(r - mid) / (mid + 0.75);
-    rows.push({h: base * (1 - SHRINK * d), cap: o.width * reach(d), used: 0, items: []});
+    let cap = o.width * reach(d);
+    if (o.outline) {
+      // Read relative to the middle row, so the same row of the same seed
+      // gets the same value however many rows there are.
+      const n = noise1(o.outline.seed, (r - mid) * NOISE_STEP + 0.5);
+      cap = Math.min(o.width, Math.max(o.width * 0.25, cap * (1 + (o.outline.wobble ?? 0.3) * n * Math.min(1, d * 2))));
+    }
+    rows.push({h: base * (1 - SHRINK * d), cap, used: 0, items: []});
   }
   // The middle row first, then outwards, alternating above and below.
   const order = [Math.floor(mid)];
@@ -165,7 +224,9 @@ function widestInward(rows: Row[], o: ClusterOptions, lead: number) {
 }
 
 function place(all: Row[], o: ClusterOptions, base: number): ClusterLayout {
-  const rows = widestInward(all, o, o.lead ?? 1).filter((r) => r.items.length);
+  // Not with an outline: sorting rows widest-in would iron the noise out.
+  const rows = (o.outline ? all : widestInward(all, o, o.lead ?? 1)).filter((r) => r.items.length);
+  const m = Math.floor((rows.length - 1) / 2);
   const placed: ClusterPlaced[] = [];
   let y = 0;
   rows.forEach((row, r) => {
@@ -175,6 +236,12 @@ function place(all: Row[], o: ClusterOptions, base: number): ClusterLayout {
     const seq: typeof row.items = [];
     row.items.forEach((it, k) => (k % 2 ? seq.push(it) : seq.unshift(it)));
     let x = (o.width - row.used) / 2;
+    if (o.outline && r !== m) {
+      // Slide within the room the row leaves, more the further out it is.
+      const n = noise1(o.outline.seed ^ 0x5bd1e995, (r - m) * NOISE_STEP + 0.5);
+      const fade = Math.min(1, Math.abs(r - m) / 1.5);
+      x += n * (o.outline.drift ?? 0.6) * fade * x;
+    }
     for (const it of seq) {
       placed.push({i: it.i, x, y: y + (rowH - it.h) / 2, w: it.w, h: it.h, row: r});
       x += it.w + o.gap;

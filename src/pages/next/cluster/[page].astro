@@ -170,6 +170,9 @@ const data = {pieces: pieces.map(({w, h, project, own}) => ({w, h, project, own}
           </p>
         </div>
       ))}
+      <p class="cl-try">
+        <button type="button" class="cl-back" data-outline>Outline: lens (switch to noise)</button>
+      </p>
       <nav class="cl-links" aria-label="More">
         <a href="/portfolio">All work</a>
         <a href="/about">About</a>
@@ -293,6 +296,11 @@ const data = {pieces: pieces.map(({w, h, project, own}) => ({w, h, project, own}
     text-decoration: underline;
     cursor: pointer;
   }
+  .cl-try {
+    margin: 0 0 1.25rem;
+    font-size: 0.75rem;
+    opacity: 0.7;
+  }
   .cl-links {
     display: flex;
     justify-content: center;
@@ -302,7 +310,7 @@ const data = {pieces: pieces.map(({w, h, project, own}) => ({w, h, project, own}
 </style>
 
 <script>
-  import {layoutCluster} from '../../../lib/cluster';
+  import {layoutCluster, seedOf} from '../../../lib/cluster';
 
   type Piece = {w: number; h: number; project: string | null; own: boolean};
   const data: {pieces: Piece[]; opening: number[]} = JSON.parse(document.getElementById('cl-data')!.textContent!);
@@ -323,6 +331,39 @@ const data = {pieces: pieces.map(({w, h, project, own}) => ({w, h, project, own}
   const GAP = 3;
   const GAP_PHONE = 2;
 
+  /*
+    The outline: the even lens, or the lens roughened with noise (Chris's
+    Minecraft-caves idea - see OUTLINE in lib/cluster.ts). Each project has
+    its own outline, seeded from its address; the opening cluster from the
+    page's. Switched by the button under the cluster, kept in the address
+    (?outline=noise) so a link shows the same thing, and remembered here.
+  */
+  const outlineSwitch = document.querySelector<HTMLButtonElement>('[data-outline]');
+  const stored = (() => {
+    try {
+      return localStorage.getItem('rdc-cluster-outline');
+    } catch {
+      return null;
+    }
+  })();
+  let noisy = (new URLSearchParams(location.search).get('outline') ?? stored) === 'noise';
+  const showOutline = () => {
+    if (outlineSwitch) outlineSwitch.textContent = noisy ? 'Outline: noise (switch to lens)' : 'Outline: lens (switch to noise)';
+  };
+  showOutline();
+  outlineSwitch?.addEventListener('click', () => {
+    noisy = !noisy;
+    try {
+      localStorage.setItem('rdc-cluster-outline', noisy ? 'noise' : 'lens');
+    } catch {}
+    const q = new URLSearchParams(location.search);
+    if (noisy) q.set('outline', 'noise');
+    else q.delete('outline');
+    history.replaceState(history.state, '', `${location.pathname}${q.toString() ? `?${q}` : ''}`);
+    showOutline();
+    draw();
+  });
+
   function draw() {
     const set = new Set(shown);
     tiles.forEach((t, i) => (t.hidden = !set.has(i)));
@@ -331,16 +372,22 @@ const data = {pieces: pieces.map(({w, h, project, own}) => ({w, h, project, own}
 
     const box = getComputedStyle(stage.parentElement!);
     const inner = stage.parentElement!.clientWidth - parseFloat(box.paddingLeft) - parseFloat(box.paddingRight);
-    const width = Math.min(inner, 1200);
+    /*
+      Narrower than the page on a wide screen, so the cluster has rows
+      enough to read as a shape round its centre: at the full 1200px a
+      dozen pieces fit in three rows and the cluster becomes a band.
+    */
+    const width = Math.min(inner, phone() ? inner : 980);
     const top = stage.getBoundingClientRect().top + scrollY;
     // Room for the label (or the hint) and the links under the cluster.
     const under = project ? 150 : 90;
     const maxHeight = Math.max(260, innerHeight - Math.min(top, 200) - under);
+    const outline = noisy ? {seed: seedOf(project ?? location.pathname)} : undefined;
     const out = layoutCluster(
       shown.map((i) => data.pieces[i]),
       phone()
-        ? {width, maxHeight, gap: GAP_PHONE, minRow: 56, maxRow: 180, lead: lead === null ? 1 : 1.3}
-        : {width, maxHeight, gap: GAP, minRow: 90, maxRow: 300, lead: lead === null ? 1 : 1.35},
+        ? {width, maxHeight, gap: GAP_PHONE, minRow: 56, maxRow: 180, lead: lead === null ? 1 : 1.3, outline}
+        : {width, maxHeight, gap: GAP, minRow: 90, maxRow: 300, lead: lead === null ? 1 : 1.35, outline},
     );
     /*
       Set here, not by a class in the stylesheet: the build's critical-CSS
@@ -370,7 +417,7 @@ const data = {pieces: pieces.map(({w, h, project, own}) => ({w, h, project, own}
     lead = i;
     project = href;
     draw();
-    if (push) history.pushState({i}, '', `?piece=${i}`);
+    if (push) history.pushState({i}, '', `?piece=${i}${noisy ? '&outline=noise' : ''}`);
     stage.scrollIntoView({block: 'nearest'});
   }
 
@@ -379,7 +426,7 @@ const data = {pieces: pieces.map(({w, h, project, own}) => ({w, h, project, own}
     lead = null;
     project = null;
     draw();
-    if (push) history.pushState({}, '', location.pathname);
+    if (push) history.pushState({}, '', `${location.pathname}${noisy ? '?outline=noise' : ''}`);
   }
 
   stage.addEventListener('click', (e) => {

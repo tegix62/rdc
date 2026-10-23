@@ -16,7 +16,7 @@
 
   Usage: node scripts/test-cluster-layout.mjs
 */
-import {layoutCluster} from '../src/lib/cluster.ts'
+import {layoutCluster, seedOf} from '../src/lib/cluster.ts'
 
 let failures = 0
 const check = (name, ok, detail = '') => {
@@ -107,6 +107,39 @@ for (const size of sizes) {
         const same = p.filter((q) => q.i !== 0 && pieces[q.i].w / pieces[q.i].h === pieces[0].w / pieces[0].h)
         check(`${tag}: the lead is the largest of its shape`, same.every((q) => area(first) >= area(q) - 0.5), `${same.length} compared`)
       }
+    }
+  }
+}
+
+// ---------------------------------------------------------------- the noise outline
+{
+  const pieces = sets['a 22-piece project']
+  for (const size of sizes) {
+    const at = (seed) => layoutCluster(pieces, {...size, lead: 1.35, outline: {seed}})
+    const a = at(seedOf('/work/dumpstat'))
+    const again = at(seedOf('/work/dumpstat'))
+    const b = at(seedOf('/work/adelante-barbell-club'))
+    const tag = `${size.name}, outline`
+    check(`${tag}: the same seed gives the same cluster`, JSON.stringify(a) === JSON.stringify(again))
+    check(`${tag}: another seed gives another outline`, JSON.stringify(a.placed) !== JSON.stringify(b.placed))
+    for (const [name, out] of [['dumpstat', a], ['adelante', b]]) {
+      const p = out.placed
+      let clash = 0
+      for (let x = 0; x < p.length; x++) for (let y = x + 1; y < p.length; y++) if (overlap(p[x], p[y])) clash++
+      const outside = p.filter((q) => q.x < -0.5 || q.x + q.w > size.width + 0.5).length
+      check(`${tag} (${name}): every piece placed, no overlaps, nothing past the edge`, p.length === pieces.length && clash === 0 && outside === 0, `${clash} overlap(s), ${outside} outside`)
+      const ids = [...new Set(p.map((q) => q.row))].sort((m, n) => m - n)
+      const mid = ids[Math.floor((ids.length - 1) / 2)]
+      const inMid = p.filter((q) => q.row === mid)
+      const l = Math.min(...inMid.map((q) => q.x))
+      const r = Math.max(...inMid.map((q) => q.x + q.w))
+      const first = p.find((q) => q.i === 0)
+      check(`${tag} (${name}): the middle row stays centred, with the first piece in it`, first.row === mid && Math.abs(l - (size.width - r)) < 1, `${Math.abs(l - (size.width - r)).toFixed(1)}px off`)
+      const offsets = ids.filter((k) => k !== mid).map((k) => {
+        const row = p.filter((q) => q.row === k)
+        return Math.min(...row.map((q) => q.x)) - (size.width - Math.max(...row.map((q) => q.x + q.w)))
+      })
+      check(`${tag} (${name}): and the other rows are not all centred`, offsets.some((o) => Math.abs(o) > 4), offsets.map((o) => Math.round(o)).join(' '))
     }
   }
 }

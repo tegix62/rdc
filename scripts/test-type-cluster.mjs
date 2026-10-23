@@ -29,7 +29,8 @@ const state = (page) =>
     const stage = document.querySelector('.tc')
     const grid = document.querySelector('#pf-grid')
     const ps = Array.from(document.querySelectorAll('.tc-piece'))
-    const boxes = ps.map((b) => b.getBoundingClientRect())
+    const rows = Array.from(document.querySelectorAll('.tc-pic'))
+    const boxes = [...ps, ...rows].map((b) => b.getBoundingClientRect())
     let overlaps = 0
     for (let a = 0; a < boxes.length; a++)
       for (let z = a + 1; z < boxes.length; z++) {
@@ -44,12 +45,14 @@ const state = (page) =>
       showing: !!stage && !stage.hidden,
       gridHidden: getComputedStyle(grid).visibility === 'hidden',
       pieces: ps.length,
+      pics: rows.length,
+      viewing: !!document.querySelector('.tc-view')?.open,
       dim: ps.filter((b) => b.classList.contains('is-dim')).length,
       lead: ps.findIndex((b) => b.classList.contains('is-lead')),
       bar: !!document.querySelector('.tc-bar') && !document.querySelector('.tc-bar').hidden,
       overlaps,
       outside,
-      area: boxes.reduce((n, b) => n + b.width * b.height, 0),
+      area: ps.reduce((n, b) => n + b.getBoundingClientRect().width * b.getBoundingClientRect().height, 0),
       order: kinds.join('|'),
       tops: boxes.map((b) => Math.round(b.top + scrollY)).join(','),
       gridTiles: grid.querySelectorAll('.pf-item').length,
@@ -79,8 +82,8 @@ for (const [name, w, h] of [
   await page.click('.pf-btn[data-filter=".type-lettering"]')
   await page.waitForTimeout(2500)
   const rest = await state(page)
-  check(`${name}: the Type tab shows the clusters and hides the grid`, rest.showing && rest.gridHidden)
-  check(`${name}: every type piece is in them`, rest.pieces === counts.words + counts.pics, `${rest.pieces} of ${counts.words} lettering + ${counts.pics} illustration`)
+  check(`${name}: the Type tab shows the lettering and illustration and hides the grid`, rest.showing && rest.gridHidden)
+  check(`${name}: the lettering is the cluster, the illustration the rows below`, rest.pieces === counts.words && rest.pics === counts.pics, `${rest.pieces} of ${counts.words} lettering, ${rest.pics} of ${counts.pics} illustration`)
   check(`${name}: nothing overlaps, nothing runs off the side`, rest.overlaps === 0 && rest.outside === 0, `${rest.overlaps} overlap(s), ${rest.outside} outside`)
   check(`${name}: nothing is dimmed and there is no bar at rest`, rest.dim === 0 && !rest.bar)
 
@@ -126,6 +129,17 @@ for (const [name, w, h] of [
   const smaller = await state(page)
   check(`${name}: - makes them smaller`, smaller.area < bigger.area * 0.95, `${Math.round(smaller.area / bigger.area * 100)}%`)
   check(`${name}: and the hidden grid was left alone`, smaller.gridTiles === before)
+
+  if (counts.pics) {
+    await page.locator('.tc-pic').first().click()
+    await page.waitForTimeout(500)
+    const viewing = await state(page)
+    check(`${name}: an illustration opens large`, viewing.viewing)
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(400)
+    const closed = await state(page)
+    check(`${name}: and Escape closes it, leaving the tab as it was`, !closed.viewing && closed.showing && closed.dim === 0)
+  }
 
   await page.click('.pf-btn[data-filter="*"]')
   await page.waitForTimeout(1500)

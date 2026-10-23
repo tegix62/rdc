@@ -1,47 +1,46 @@
 /*
-  THE TYPE TAB AS NOISE CLUSTERS - preview only.
+  THE TYPE TAB - preview only.
 
   Chris: each tab "pretty radically different"; All and Merch are
   successful, "Type is half-baked" - "Let's try Typography as the noise
-  cluster", the outline he liked on /next/cluster/home. Then, on the first
-  version: "vary the sizing even more based on complexity of the file", "a
-  wordmark cluster and an illustration cluster under it ... maybe they
-  overlap slightly but are largely separate", and two faults - a pick
-  replaced the whole cluster with no way back, and Shuffle and -/+ did
-  nothing here.
+  cluster". Then: "more variation in sizes ... more radical sizing", "we
+  got to find a way to make the type and the illustration work in the same
+  page", "maybe we just do a noise cluster ... and then maybe the
+  illustration stuff is just like full width on the bottom. It's like the
+  second half of the page."
 
-  While the grid is in the Type/Lettering view (portfolio.astro puts
-  .is-type-view on it) the grid is hidden and its pieces are drawn as two
-  clusters (lib/cluster.ts, noise outline, hairline gaps): the lettering
-  (category Typography) above, the illustration below, pulled up until
-  their edges nearly meet - two shapes, almost touching.
+  So the tab is two halves, while the grid is in the Type/Lettering view
+  (portfolio.astro puts .is-type-view on it; the grid is hidden meanwhile
+  and given back untouched):
 
-  SIZE BY DETAIL. Each picture's detail is measured once it has loaded -
-  how much its tone changes from pixel to pixel, on a small copy drawn to
-  a canvas - and ranked: the busiest are drawn largest, the plainest
-  smallest, about 0.65x to 1.45x. A bold wordmark reads small; a dense
-  drawing needs the room. The clusters are shown once the measuring is
-  done (or after a moment), so nothing jumps.
+  THE LETTERING - one noise cluster with radically different sizes
+  (lib/spiralCluster.ts: biggest in the middle, each next piece spiralling
+  out to the nearest free spot, the spiral warped by noise). Sizes come in
+  tiers by each picture's detail, measured once it has loaded on a small
+  canvas copy and ranked: the busiest few huge, the next medium, the rest
+  small - about a sixfold range in area. Shown once measured, so nothing
+  jumps.
 
-  A PICK GATHERS IN PLACE. The piece's project comes to the middle of its
-  cluster - the piece itself central and larger, the project's other
-  pieces round it - and the rest of that cluster stays, dimmed, further
-  out. The other cluster is untouched. A dimmed piece picks its own
-  project; the middle piece opens the project's page. The bar above the
-  clusters names the project and says how to get back: "All type",
-  Escape, or the browser's back.
+  A pick gathers in place: the piece becomes the giant in the middle, its
+  project round it at medium size, everything else small and dimmed further
+  out. A dimmed piece picks its own project; the middle piece opens the
+  project's page. A bar above names the project and has the way back ("All
+  type"), as do Escape and the browser's back.
 
-  Shuffle deals each cluster in a new order and outline; - and + make the
-  pieces smaller or larger. Their clicks are taken here while the view is
-  showing, so the hidden grid is not shuffled or resized underneath.
+  THE ILLUSTRATION - below, the full width of the page, in edge-to-edge
+  rows of one height (each row stretched to the width, the last left
+  short), under its own small heading. A tap shows the piece large, with
+  its project's name and a link; Escape or a tap outside closes it.
 
-  Nothing here changes the grid's own tiles or layout: leaving the view
-  gives it back as it was. The pictures are the grid's own (same srcset,
-  same cached files), each told its drawn width. Styles are in global.css
-  (TYPE CLUSTER): the critical-CSS step drops scoped rules for elements
-  that only exist once the script runs.
+  Shuffle deals both halves anew; - and + make the lettering smaller or
+  larger. Their clicks are taken here while the tab shows, so the hidden
+  grid is not shuffled or resized underneath. The pictures are the grid's
+  own (same srcset, same cached files), each told its drawn width. Styles
+  are in global.css (TYPE TAB): the critical-CSS step drops scoped rules
+  for elements that only exist once the script runs.
 */
-import {layoutCluster, seedOf, type ClusterLayout} from './cluster';
+import {seedOf} from './cluster';
+import {layoutSpiral} from './spiralCluster';
 
 interface Piece {
   tile: HTMLElement;
@@ -56,10 +55,18 @@ interface Piece {
 
 const GAP = 3;
 const GAP_PHONE = 2;
-// Smallest and largest a piece is drawn, against its row, by its detail.
-const SMALLEST = 0.65;
-const LARGEST = 1.45;
-// Longest the clusters wait for their pictures before showing anyway.
+// Tiers of area by detail rank: the busiest TOP share huge, the next MID
+// share medium, the rest small.
+const TOP = 0.12;
+const MID = 0.3;
+const HUGE = 6;
+const MEDIUM = 2.5;
+const SMALL = 1;
+// A pick: the piece, its project, everything else.
+const PICKED = 8;
+const KIN = 2.5;
+const OTHERS = 0.55;
+// Longest the lettering waits for its pictures before showing anyway.
 const WAIT = 1600;
 
 export function startTypeCluster(grid: HTMLElement) {
@@ -70,10 +77,17 @@ export function startTypeCluster(grid: HTMLElement) {
   bar.className = 'tc-bar';
   const field = document.createElement('div');
   field.className = 'tc-field';
-  const under = document.createElement('p');
-  under.className = 'tc-hint';
-  under.textContent = 'Pick a piece to see the project it belongs to.';
-  stage.append(bar, field, under);
+  const hint = document.createElement('p');
+  hint.className = 'tc-hint';
+  hint.textContent = 'Pick a piece to see the project it belongs to.';
+  const picsHead = document.createElement('h2');
+  picsHead.className = 'tc-head';
+  picsHead.textContent = 'Illustration';
+  const picsField = document.createElement('div');
+  picsField.className = 'tc-rows';
+  const viewer = document.createElement('dialog');
+  viewer.className = 'tc-view';
+  stage.append(bar, field, hint, picsHead, picsField, viewer);
   grid.after(stage);
 
   let pieces: Piece[] = [];
@@ -87,6 +101,7 @@ export function startTypeCluster(grid: HTMLElement) {
   let pushed = false;
 
   const phone = () => innerWidth < 768;
+  const gap = () => (phone() ? GAP_PHONE : GAP);
   const clean = (s: string) => s.replace(/[​-‍⁠﻿]/g, '').trim();
 
   /* How busy a picture is: mean tone change between neighbouring pixels. */
@@ -113,17 +128,19 @@ export function startTypeCluster(grid: HTMLElement) {
         for (let x = 0; x < w - 1; x++) sum += Math.abs(tone(x + 1, y) - tone(x, y)) + Math.abs(tone(x, y + 1) - tone(x, y));
       return sum / ((w - 1) * (h - 1) * 2 * 255);
     } catch {
-      return null; // a picture from another address cannot be read; it keeps the middle size
+      return null; // unreadable: it takes the middle tier
     }
   };
 
-  /* Ranked, so the spread is the same however busy the set is overall. */
-  const scales = () => {
-    const known = pieces.map((p, i) => [i, p.detail] as const).filter(([, d]) => d !== null) as [number, number][];
-    known.sort((a, b) => a[1] - b[1]);
-    const out = new Map<number, number>();
-    known.forEach(([i], r) => out.set(i, SMALLEST + (LARGEST - SMALLEST) * (known.length > 1 ? r / (known.length - 1) : 0.5)));
-    return out;
+  /* The lettering's tiers, by detail rank (the deal breaks ties). */
+  const tierOf = () => {
+    const ranked = [...words].sort((a, b) => (pieces[b].detail ?? 0.5) - (pieces[a].detail ?? 0.5));
+    const size = new Map<number, number>();
+    ranked.forEach((i, r) => {
+      const f = ranked.length > 1 ? r / ranked.length : 0.5;
+      size.set(i, f < TOP ? HUGE : f < TOP + MID ? MEDIUM : SMALL);
+    });
+    return size;
   };
 
   const read = () => {
@@ -151,7 +168,7 @@ export function startTypeCluster(grid: HTMLElement) {
       };
       const done = () => {
         if (piece.detail === null) piece.detail = measure(img) ?? 0.5;
-        if (!ready && [...words, ...pics].every((i) => pieces[i].detail !== null)) show();
+        if (!ready && words.every((i) => pieces[i].detail !== null)) show();
       };
       img.addEventListener('load', done);
       img.addEventListener('error', () => {
@@ -181,45 +198,11 @@ export function startTypeCluster(grid: HTMLElement) {
     pieces.find((p) => p.project === href)?.title ??
     '';
 
-  const lay = (list: number[], seed: string, width: number, maxHeight: number, size: Map<number, number>) =>
-    layoutCluster(
-      list.map((i) => ({w: pieces[i].w, h: pieces[i].h, scale: size.get(i) ?? 1})),
-      {
-        width,
-        maxHeight,
-        gap: phone() ? GAP_PHONE : GAP,
-        minRow: (phone() ? 46 : 72) * zoom,
-        maxRow: (phone() ? 150 : 230) * zoom,
-        lead: lead !== null && list[0] === lead ? 1.3 : 1,
-        outline: {seed: seedOf(`${seed}:${deal}`)},
-      },
-    );
-
-  /* How far down the second cluster can sit with no piece touching the first. */
-  const nestBelow = (a: ClusterLayout, b: ClusterLayout, ax: number, bx: number, gap: number) => {
-    const clear = (dy: number) =>
-      a.placed.every((p) =>
-        b.placed.every(
-          (q) =>
-            q.x + bx >= p.x + ax + p.w + gap ||
-            p.x + ax >= q.x + bx + q.w + gap ||
-            q.y + dy >= p.y + p.h + gap ||
-            p.y >= q.y + dy + q.h + gap,
-        ),
-      );
-    let dy = a.height + gap * 6;
-    // Up while nothing touches, but never more than a third into the first.
-    while (dy - 4 > a.height * 0.66 && clear(dy - 4)) dy -= 4;
-    return dy;
-  };
-
-  const piece = (k: number, x: number, y: number, w: number, h: number, dim: boolean) => {
+  const box = (cls: string, k: number, x: number, y: number, w: number, h: number) => {
     const p = pieces[k];
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'tc-piece';
-    if (k === lead) b.classList.add('is-lead');
-    if (dim) b.classList.add('is-dim');
+    b.className = cls;
     if (p.tile.classList.contains('pf-item--mark')) b.classList.add('is-mark');
     b.setAttribute('aria-label', p.title);
     b.style.left = `${x}px`;
@@ -228,43 +211,90 @@ export function startTypeCluster(grid: HTMLElement) {
     b.style.height = `${h}px`;
     p.img.sizes = `${Math.ceil(w)}px`;
     b.append(p.img);
-    b.addEventListener('click', () => pick(k));
     return b;
   };
 
-  const draw = () => {
-    if (!on) return;
+  /* The lettering: one radically sized cluster. */
+  const drawWords = () => {
     const full = stage.clientWidth;
-    const width = Math.min(full, phone() ? full : 1000);
-    const size = scales();
+    const width = Math.min(full, phone() ? full : 1100);
+    const tiers = tierOf();
     const fam = lead === null ? new Set<number>() : new Set(familyOf(lead));
-    // The project gathers in its own cluster: the piece, its project, then
-    // the rest of that cluster. Its pieces leave the other cluster.
-    const inWords = lead !== null && pieces[lead].words;
-    const arrange = (list: number[], mine: boolean) =>
-      lead === null
-        ? list
-        : mine
-          ? [lead, ...[...fam].filter((i) => i !== lead), ...list.filter((i) => !fam.has(i))]
-          : list.filter((i) => !fam.has(i));
-    const top = arrange(words, inWords);
-    const bottom = arrange(pics, lead !== null && !inWords);
-    // Each cluster's height budget follows - and + too: the layout takes
-    // the largest size that fits it, so a fixed budget held the size still
-    // whatever the buttons said (measured: + 106%, - 99%).
-    const each = Math.max(200, innerHeight * 0.5 * zoom);
-    const A = lay(top, lead !== null && inWords ? pieces[lead].project ?? 'words' : 'words', width, each, size);
-    const B = lay(bottom, lead !== null && !inWords ? pieces[lead].project ?? 'pics' : 'pics', width, each, size);
-    const ax = (full - A.width) / 2;
-    const bx = (full - B.width) / 2;
-    const gap = phone() ? GAP_PHONE : GAP;
-    const dy = top.length && bottom.length ? nestBelow(A, B, ax, bx, gap * 3) : top.length ? A.height : 0;
-
+    let order: number[];
+    let size: (i: number) => number;
+    if (lead === null) {
+      order = [...words].sort((a, b) => (tiers.get(b) ?? 1) - (tiers.get(a) ?? 1));
+      size = (i) => tiers.get(i) ?? SMALL;
+    } else {
+      const kin = [...fam].filter((i) => i !== lead);
+      order = [lead, ...kin, ...words.filter((i) => !fam.has(i))];
+      size = (i) => (i === lead ? PICKED : fam.has(i) ? KIN : OTHERS);
+    }
+    const out = layoutSpiral(
+      order.map((i) => ({w: pieces[i].w, h: pieces[i].h, size: size(i)})),
+      {
+        width,
+        height: Math.max(260, innerHeight * 0.62) * zoom,
+        gap: gap(),
+        seed: seedOf(`${lead === null ? 'type' : pieces[lead].project ?? lead}:${deal}`),
+        squash: phone() ? 1.2 : 0.62,
+        fill: 0.5,
+      },
+    );
+    const ox = (full - out.width) / 2;
     field.replaceChildren();
-    field.style.height = `${Math.ceil(dy + (bottom.length ? B.height : 0))}px`;
-    for (const p of A.placed) field.append(piece(top[p.i], ax + p.x, p.y, p.w, p.h, lead !== null && !fam.has(top[p.i])));
-    for (const p of B.placed) field.append(piece(bottom[p.i], bx + p.x, dy + p.y, p.w, p.h, lead !== null && !fam.has(bottom[p.i])));
+    field.style.height = `${Math.ceil(out.height)}px`;
+    for (const p of out.placed) {
+      const k = order[p.i];
+      const b = box('tc-piece', k, ox + p.x, p.y, p.w, p.h);
+      if (k === lead) b.classList.add('is-lead');
+      if (lead !== null && !fam.has(k)) b.classList.add('is-dim');
+      b.addEventListener('click', () => pick(k));
+      field.append(b);
+    }
+  };
 
+  /* The illustration: full width, rows of one height, each row filled. */
+  const drawPics = () => {
+    picsHead.hidden = picsField.hidden = pics.length === 0;
+    if (!pics.length) return;
+    const width = stage.clientWidth;
+    const target = phone() ? 130 : 250;
+    const g = gap();
+    const rows: number[][] = [];
+    let row: number[] = [];
+    let sum = 0;
+    for (const i of pics) {
+      row.push(i);
+      sum += pieces[i].w / pieces[i].h;
+      if (sum * target + g * (row.length - 1) >= width) {
+        rows.push(row);
+        row = [];
+        sum = 0;
+      }
+    }
+    if (row.length) rows.push(row);
+    picsField.replaceChildren();
+    let y = 0;
+    rows.forEach((r, n) => {
+      const ratios = r.reduce((s, i) => s + pieces[i].w / pieces[i].h, 0);
+      const last = n === rows.length - 1;
+      // A full row is stretched to the width; the last keeps the target height.
+      const h = last && ratios * target + g * (r.length - 1) < width ? target : (width - g * (r.length - 1)) / ratios;
+      let x = 0;
+      for (const i of r) {
+        const w = (pieces[i].w / pieces[i].h) * h;
+        const b = box('tc-pic', i, x, y, w, h);
+        b.addEventListener('click', () => view(i));
+        picsField.append(b);
+        x += w + g;
+      }
+      y += h + g;
+    });
+    picsField.style.height = `${Math.ceil(y - g)}px`;
+  };
+
+  const drawBar = () => {
     bar.replaceChildren();
     if (lead !== null) {
       const back = document.createElement('button');
@@ -288,8 +318,44 @@ export function startTypeCluster(grid: HTMLElement) {
       }
     }
     bar.hidden = lead === null;
-    under.hidden = lead !== null;
+    hint.hidden = lead !== null;
   };
+
+  const draw = () => {
+    if (!on) return;
+    drawWords();
+    drawPics();
+    drawBar();
+  };
+
+  /* One illustration, large. */
+  const view = (k: number) => {
+    const p = pieces[k];
+    viewer.replaceChildren();
+    const img = document.createElement('img');
+    img.alt = p.title;
+    if (p.img.srcset) img.srcset = p.img.srcset;
+    img.src = p.img.src;
+    img.sizes = '(max-width: 48rem) 94vw, 70vw';
+    const cap = document.createElement('p');
+    cap.className = 'tc-view__cap';
+    cap.textContent = p.title;
+    if (p.project?.startsWith('/')) {
+      const go = document.createElement('a');
+      go.href = p.project;
+      go.textContent = `${projectName(p.project)} →`;
+      cap.append(' · ', go);
+    }
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'tc-view__close';
+    close.textContent = 'Close';
+    close.addEventListener('click', () => viewer.close());
+    viewer.append(img, cap, close);
+    viewer.showModal();
+  };
+  // A tap on the backdrop (the dialog itself, outside its contents) closes it.
+  viewer.addEventListener('click', (e) => e.target === viewer && viewer.close());
 
   const pick = (k: number, push = true) => {
     const href = pieces[k].project;
@@ -319,10 +385,11 @@ export function startTypeCluster(grid: HTMLElement) {
     else reset();
   });
   addEventListener('keydown', (e) => {
-    if (on && e.key === 'Escape' && lead !== null) pushed ? history.back() : reset();
+    if (!on || viewer.open) return;
+    if (e.key === 'Escape' && lead !== null) pushed ? history.back() : reset();
   });
 
-  // Shuffle and -/+ act on the clusters while they are showing.
+  // Shuffle and -/+ act on the tab while it is showing.
   const take = (id: string, act: () => void) =>
     document.getElementById(id)?.addEventListener(
       'click',
@@ -346,8 +413,8 @@ export function startTypeCluster(grid: HTMLElement) {
     shuffle(pics);
     deal++;
   });
-  take('pf-minus', () => (zoom = Math.max(0.6, zoom / 1.2)));
-  take('pf-plus', () => (zoom = Math.min(1.8, zoom * 1.2)));
+  take('pf-minus', () => (zoom = Math.max(0.55, zoom / 1.25)));
+  take('pf-plus', () => (zoom = Math.min(2, zoom * 1.25)));
 
   const sync = () => {
     const want = grid.classList.contains('is-type-view');
@@ -368,6 +435,8 @@ export function startTypeCluster(grid: HTMLElement) {
     } else {
       stage.hidden = true;
       field.replaceChildren();
+      picsField.replaceChildren();
+      if (viewer.open) viewer.close();
       grid.style.visibility = '';
       grid.style.position = '';
       grid.style.pointerEvents = '';

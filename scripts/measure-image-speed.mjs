@@ -28,7 +28,7 @@ async function pictureUrls() {
     for (const m of html.matchAll(/(?:src|srcset)="([^"]+)"/g)) {
       for (const part of m[1].split(',')) {
         const u = part.trim().split(/\s+/)[0].replace(/&amp;/g, '&')
-        if (u.startsWith('/img/images/')) found.add(u)
+        if (/^\/img\/(v2\/)?images\//.test(u)) found.add(u)
       }
     }
   }
@@ -78,12 +78,12 @@ const rows = []
 for (const path of urls) {
   const first = await time(`${SITE}${path}`)
   const again = await time(`${SITE}${path}`)
-  const direct = await time(`https://cdn.sanity.io/${path.replace(/^\/img\//, '')}`)
+  const direct = await time(`https://cdn.sanity.io/${path.replace(/^\/img\/(v2\/)?/, '')}`)
   // A browser that does not take AVIF (older Safari): the WebP route.
   const webp = await time(`${SITE}${path}`, 'image/webp,image/*,*/*;q=0.8')
   // The exact address the route asks Sanity for an AVIF browser (dpr=1 added
   // to auto=format), asked straight from here: does Sanity itself give AVIF?
-  const raw = `https://cdn.sanity.io/${path.replace(/^\/img\//, '')}`
+  const raw = `https://cdn.sanity.io/${path.replace(/^\/img\/(v2\/)?/, '')}`
   const dpr = /auto=format/.test(raw) && !/dpr=/.test(raw) ? await time(`${raw}&dpr=1`) : null
   rows.push({path, first, again, direct, webp, dpr})
   console.log(

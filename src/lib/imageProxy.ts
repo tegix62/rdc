@@ -12,8 +12,9 @@ export const YEAR = 31536000;
 /** images/<project>/<dataset>/<file> or files/<project>/<dataset>/<file>, nothing else. */
 export const ALLOWED = new RegExp(`^(images|files)/${PROJECT}/${DATASET}/[A-Za-z0-9._-]+$`);
 
+/* The asset's path; a leading v2/ (see TO in scripts/lib/proxy-images.mjs) is only a fresh address. */
 export const pathOf = (params: {path?: string | string[]}) =>
-  Array.isArray(params.path) ? params.path.join('/') : (params.path ?? '');
+  (Array.isArray(params.path) ? params.path.join('/') : (params.path ?? '')).replace(/^v2\//, '');
 
 const KEEP = ['content-type', 'content-length', 'content-range', 'accept-ranges', 'etag', 'last-modified'];
 
@@ -42,8 +43,23 @@ export function passHeaders(from: Headers, extra: Record<string, string> = {}) {
 export const ACCEPT = 'image/webp,image/*;q=0.9,*/*;q=0.8';
 export const ACCEPT_AVIF = 'image/avif,image/webp;q=0.9,image/*;q=0.8,*/*;q=0.7';
 
+/*
+  WebP for everyone, for now - AVIF switched off.
+
+  Measured on the live domain (October 2026): three times a request from a
+  browser WITHOUT AVIF was answered with AVIF. Something in front of the
+  route on rumeaudesign.co keeps one copy per address and does not honour
+  Vary: Accept (the preview address did not do this), and an AVIF given to
+  an older Safari is a broken picture. One format per address is the only
+  safe arrangement there, and every browser the site supports shows WebP.
+  Turning AVIF back on needs the two formats at two different PAGE
+  addresses (a <picture> with an AVIF source and a WebP one), not one
+  address that answers differently - see AVIF_ENABLED.
+*/
+export const AVIF_ENABLED = false;
+
 export const formatFor = (request: Request): 'avif' | 'webp' =>
-  /image\/avif/i.test(request.headers.get('accept') ?? '') ? 'avif' : 'webp';
+  AVIF_ENABLED && /image\/avif/i.test(request.headers.get('accept') ?? '') ? 'avif' : 'webp';
 
 /*
   The address asked of Sanity, different for each format, so no cache keyed
@@ -102,7 +118,7 @@ export async function proxyImage(
   // One stored copy per format: the key is any URL, so the format goes in
   // it. v5: entries before it may hold the wrong format (see below), and
   // v2's were asked with fm=avif, which Sanity answers 400 (not kept, but to be sure).
-  const key = new Request(`${url.origin}/img/${path}${url.search}${url.search ? '&' : '?'}_as=${format}&_v=5`);
+  const key = new Request(`${url.origin}/img/${path}${url.search}${url.search ? '&' : '?'}_as=${format}&_v=6`);
   const hit = await deps.cache.match(key);
   if (hit) return hit;
 

@@ -16,9 +16,16 @@
   the preview's route and the live site's use its own.
 */
 const FROM = 'https://cdn.sanity.io/'
-const TO = '/img/'
+/*
+  /img/v2/, not /img/: for a few minutes in October 2026 the route sent
+  AVIF, and something in front of it on the live domain keeps one copy per
+  address for a year without regard to which format a browser asked for.
+  New addresses mean none of those copies is ever asked for again. The
+  route still answers the old /img/ addresses, for pages already saved.
+*/
+const TO = '/img/v2/'
 const FROM_ESCAPED = 'https:\\/\\/cdn.sanity.io\\/'
-const TO_ESCAPED = '\\/img\\/'
+const TO_ESCAPED = '\\/img\\/v2\\/'
 
 const KEEP = /<meta\b[^>]*>|<script\b[^>]*type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>|<link\b[^>]*rel=["']preconnect["'][^>]*>/gi
 

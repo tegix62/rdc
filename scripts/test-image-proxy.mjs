@@ -82,20 +82,17 @@ check('nor another host', !ALLOWED.test('https://evil.example/x.jpg'))
 }
 
 {
-  // Sanity sends AVIF to browsers that take it - 27% fewer bytes, measured.
+  // AVIF is off (AVIF_ENABLED in src/lib/imageProxy.ts): on the live domain
+  // a browser without AVIF was handed AVIF. Every browser gets WebP.
   const r = rig()
   const params = {path: ASSET.split('/')}
   const avif = {accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8'}
-  const res = await proxyImage(req(`${ASSET}?w=800&auto=format`, avif), params, r.deps)
-  await r.settle()
-  check('a browser that takes AVIF is asked AVIF for', /^image\/avif/.test(r.calls[0]?.init?.headers?.accept ?? ''))
-  check('by auto=format and the Accept header, never fm=avif, which Sanity rejects (400)', r.calls[0]?.url === `https://cdn.sanity.io/${ASSET}?w=800&auto=format&dpr=1` && !r.calls.some((c) => /fm=avif/.test(c.url)), r.calls[0]?.url)
-  check('and told the answer varies by what it accepts', res.headers.get('vary') === 'Accept')
-  await proxyImage(req(`${ASSET}?w=800&auto=format`, {accept: 'image/webp,*/*'}), params, r.deps)
-  await r.settle()
-  check('a WebP browser is not handed the AVIF copy - each format is kept apart', r.calls.length === 2 && r.store.size === 2, `${r.calls.length} call(s), ${r.store.size} kept`)
   await proxyImage(req(`${ASSET}?w=800&auto=format`, avif), params, r.deps)
-  check('and the AVIF copy is served again from the cache', r.calls.length === 2)
+  await r.settle()
+  check('even a browser that takes AVIF is sent WebP, one format per address', r.calls[0]?.url === `https://cdn.sanity.io/${ASSET}?w=800&fm=webp` && /^image\/webp/.test(r.calls[0]?.init?.headers?.accept ?? ''), r.calls[0]?.url)
+  check('never fm=avif, which Sanity rejects (400)', !r.calls.some((c) => /fm=avif/.test(c.url)))
+  await proxyImage(req(`${ASSET}?w=800&auto=format`, {accept: 'image/webp,*/*'}), params, r.deps)
+  check('and both browsers share the one WebP copy', r.calls.length === 1 && r.store.size === 1, `${r.calls.length} call(s), ${r.store.size} kept`)
 }
 
 {
@@ -113,6 +110,13 @@ check('nor another host', !ALLOWED.test('https://evil.example/x.jpg'))
   check('a video\'s byte range is passed through', r.calls[0]?.init?.headers?.range === 'bytes=0-999')
 }
 
+{
+  // The fresh /img/v2/ addresses reach the same asset as the old /img/ ones.
+  const r = rig()
+  const res = await proxyImage(new Request(`https://rumeaudesign.co/img/v2/${ASSET}?w=800&auto=format`), {path: ['v2', ...ASSET.split('/')]}, r.deps)
+  check('a /img/v2/ address reaches the same picture', res.status === 200 && r.calls[0]?.url === `https://cdn.sanity.io/${ASSET}?w=800&fm=webp`, r.calls[0]?.url)
+}
+
 // ---------------------------------------------------------------- the rewrite
 const page = `<!doctype html><html><head>
 <link rel="preconnect" href="https://cdn.sanity.io" crossorigin />
@@ -127,7 +131,7 @@ const page = `<!doctype html><html><head>
 </body></html>`
 const {html, count} = rewriteHtml(page)
 check('every picture the page loads now goes through /img/', count === 7 && !/<(img|video|figure|div)[^>]*cdn\.sanity\.io/.test(html), `${count} rewritten`)
-check('including srcset entries and escaped addresses in scripts', html.includes('/img/images/8337vjtf/production/a-1x1.jpg?w=400 400w') && html.includes('\\/img\\/images'))
+check('including srcset entries and escaped addresses in scripts', html.includes('/img/v2/images/8337vjtf/production/a-1x1.jpg?w=400 400w') && html.includes('\\/img\\/v2\\/images'))
 check('the og:image tag is left absolute, for other sites\' crawlers', html.includes('content="https://cdn.sanity.io/images/8337vjtf/production/og-1200x630.jpg"'))
 check('so is the structured data', html.includes('"image":"https://cdn.sanity.io/images/8337vjtf/production/ld-10x10.jpg"'))
 check('a page with no pictures is unchanged', rewriteHtml('<p>hi</p>').html === '<p>hi</p>')

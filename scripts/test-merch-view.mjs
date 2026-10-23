@@ -764,7 +764,7 @@ const press = async (page, filter) => {
     // fetched: fallback() lets the tests' placeholder answer it (see
     // scripts/lib/test-images-off.mjs), so the delay costs no download.
     await page.route(
-      (url) => url.hostname === 'cdn.sanity.io' || url.pathname.startsWith('/img/images/'),
+      (url) => url.hostname === 'cdn.sanity.io' || /^\/img\/(v2\/)?images\//.test(url.pathname),
       async (route) => {
         await new Promise((r) => setTimeout(r, 1200))
         await route.fallback()

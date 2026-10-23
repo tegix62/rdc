@@ -46,29 +46,26 @@ export const formatFor = (request: Request): 'avif' | 'webp' =>
   /image\/avif/i.test(request.headers.get('accept') ?? '') ? 'avif' : 'webp';
 
 /*
-  The address asked of Sanity, with the format written into it. Where the
-  page asks for auto=format, that is swapped for fm=avif or fm=webp - so
-  the two formats are two different addresses, and no cache keyed on the
-  address alone can hand one browser the other's. Cloudflare's own fetch
-  cache is one such: it keeps .jpg and .png answers by URL even when not
-  asked to, and on the first version two pictures came back WebP to a
-  browser that asked for AVIF. An animated GIF is left as asked: converting
+  The address asked of Sanity, different for each format, so no cache keyed
+  on the address alone can hand one browser the other's. Cloudflare's own
+  fetch cache is one such: it keeps .jpg and .png answers by URL even when
+  not asked to, and on the first version two pictures came back WebP to a
+  browser that asked for AVIF.
+
+  For WebP, auto=format is swapped for fm=webp. For AVIF the address is
+  left as the page asked, and Sanity picks AVIF from the Accept header -
+  because Sanity does NOT take fm=avif: tried on preview (October 2026),
+  every picture came back 400. An animated GIF is left as asked: converting
   it is not this route's decision.
 */
 export function upstreamFor(path: string, search: string, format: 'avif' | 'webp') {
   const q = new URLSearchParams(search);
-  if (q.get('auto') === 'format' && !/\.gif$/i.test(path)) {
+  if (format === 'webp' && q.get('auto') === 'format' && !/\.gif$/i.test(path)) {
     q.delete('auto');
-    q.set('fm', format);
+    q.set('fm', 'webp');
   }
   const query = q.toString();
   return `https://cdn.sanity.io/${path}${query ? `?${query}` : ''}`;
-}
-
-export interface ProxyDeps {
-  fetch: (url: string, init: RequestInit) => Promise<Response>;
-  cache: {match(r: Request): Promise<Response | undefined>; put(r: Request, res: Response): Promise<void>};
-  waitUntil(p: Promise<unknown>): void;
 }
 
 export async function proxyImage(
@@ -96,8 +93,9 @@ export async function proxyImage(
   }
 
   // One stored copy per format: the key is any URL, so the format goes in
-  // it. v2: entries from before upstreamFor may hold the wrong format.
-  const key = new Request(`${url.origin}/img/${path}${url.search}${url.search ? '&' : '?'}_as=${format}&_v=2`);
+  // it. v3: entries from before upstreamFor may hold the wrong format, and
+  // v2's were asked with fm=avif, which Sanity answers 400 (not kept, but to be sure).
+  const key = new Request(`${url.origin}/img/${path}${url.search}${url.search ? '&' : '?'}_as=${format}&_v=3`);
   const hit = await deps.cache.match(key);
   if (hit) return hit;
 

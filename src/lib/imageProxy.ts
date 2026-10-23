@@ -30,12 +30,20 @@ export function passHeaders(from: Headers, extra: Record<string, string> = {}) {
 }
 
 /*
-  One format for everyone. Many URLs ask Sanity for auto=format, which picks
-  by the browser's Accept header; cached once for all visitors, the first
-  visitor's browser would decide for the rest. WebP is what every current
-  browser accepts, so that is what is asked for.
+  Two formats, each kept separately. Many URLs ask Sanity for auto=format,
+  which picks by the browser's Accept header - so a single cached copy would
+  let the first visitor's browser decide for everyone. The first version
+  asked for WebP for everyone; measured on the live site (October 2026,
+  scripts/measure-image-speed.mjs) that was 27% more bytes than Sanity sent
+  directly, because Sanity gives AVIF to the browsers that take it. Now a
+  browser that says it takes AVIF is given Sanity's AVIF, and every other
+  browser WebP, and the cache keeps one copy of each.
 */
 export const ACCEPT = 'image/webp,image/*;q=0.9,*/*;q=0.8';
+export const ACCEPT_AVIF = 'image/avif,image/webp;q=0.9,image/*;q=0.8,*/*;q=0.7';
+
+export const formatFor = (request: Request): 'avif' | 'webp' =>
+  /image\/avif/i.test(request.headers.get('accept') ?? '') ? 'avif' : 'webp';
 
 export interface ProxyDeps {
   fetch: (url: string, init: RequestInit) => Promise<Response>;
@@ -56,27 +64,39 @@ export async function proxyImage(
 
   // A video asks for byte ranges; those go to Cloudflare's own cache, which
   // serves ranges from a cached file.
+  const format = formatFor(request);
+  const accept = format === 'avif' ? ACCEPT_AVIF : ACCEPT;
   const range = request.headers.get('range');
   if (range) {
-    const r = await deps.fetch(upstream, {headers: {range, accept: ACCEPT}, cf} as RequestInit);
+    const r = await deps.fetch(upstream, {headers: {range, accept}, cf} as RequestInit);
     return new Response(r.body, {
       status: r.status,
       headers: passHeaders(r.headers, {'cache-control': r.ok ? `public, max-age=${YEAR}` : 'no-store'}),
     });
   }
 
-  const key = new Request(`${url.origin}/img/${path}${url.search}`);
+  // One stored copy per format: the key is any URL, so the format goes in it.
+  const key = new Request(`${url.origin}/img/${path}${url.search}${url.search ? '&' : '?'}_as=${format}`);
   const hit = await deps.cache.match(key);
   if (hit) return hit;
 
-  const r = await deps.fetch(upstream, {headers: {accept: ACCEPT}, cf} as RequestInit);
+  /*
+    No `cf` cache options here. Cloudflare's fetch cache keys on the URL
+    alone, so with them an AVIF and a WebP of the same picture would share
+    one entry and a browser could be handed the other's format (a key of
+    our own, cf.cacheKey, is an Enterprise feature). The Cache API entry
+    above is keyed by format and is the only copy kept.
+  */
+  const r = await deps.fetch(upstream, {headers: {accept}});
   if (!r.ok) {
     // Not kept: a failure (Sanity over quota, say) must not be cached for a year.
     return new Response(r.body, {status: r.status, headers: passHeaders(r.headers, {'cache-control': 'no-store'})});
   }
   const res = new Response(r.body, {
     status: 200,
-    headers: passHeaders(r.headers, {'cache-control': `public, max-age=${YEAR}, immutable`}),
+    // Vary, so nothing between here and the browser hands one browser's
+    // format to another.
+    headers: passHeaders(r.headers, {'cache-control': `public, max-age=${YEAR}, immutable`, vary: 'Accept'}),
   });
   deps.waitUntil(deps.cache.put(key, res.clone()));
   return res;

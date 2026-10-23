@@ -42,6 +42,28 @@ const allItems = await getAllGridItems();
 */
 const ordered = orderTiles(allItems as any[]);
 const items = ordered.items;
+
+/*
+  A SHIRT AND ITS OWN SHOTS, WITH NO PROJECT ABOVE THEM.
+
+  Chris parented an alternate lockup to the BalloonShop 19th Anniversary
+  Tee - "that's what I want" - so that opening the tee brings the alternate
+  beside it. But the gather groups by project, and the tee belongs to none:
+  BalloonShop is "not fully ready for its own buildout", something that
+  should "just exist on the portfolio grid for now". So a piece with no
+  project, together with the pieces parented to it, is a set of its own:
+  data-family names it, projectOf() falls back to it, and it gathers from
+  two pieces up (see familyMin). It has no project page, so no jump bar
+  and no block - only the shirt opened with its shots beside it.
+*/
+const shirtRoot = (it: any) =>
+  it.pieceParent ? cleanKey(it.pieceParent) : cleanKey(it._id).replace(/^drafts\./, '');
+const shirtCount = new Map<string, number>();
+for (const it of items) {
+  if (!tileHref(it) && tileImage(it)) shirtCount.set(shirtRoot(it), (shirtCount.get(shirtRoot(it)) ?? 0) + 1);
+}
+const shirtFamily = (it: any) =>
+  !tileHref(it) && (shirtCount.get(shirtRoot(it)) ?? 0) >= 2 ? `#shirt-${shirtRoot(it)}` : undefined;
 if (ordered.adjacentPairs > 0) {
   console.warn(
     `[portfolio] ${ordered.adjacentPairs} tile(s) had to sit beside one from the ` +
@@ -348,6 +370,7 @@ if (emptyFilters.length > 0) {
             data-merch={merch}
             data-piece={pieceId}
             data-piece-parent={pieceParent}
+            data-family={shirtFamily(item)}
             data-slug={pieceSlug}
             data-cutout={item.tileOpaque === false ? '' : undefined}
           >
@@ -2213,8 +2236,11 @@ if (emptyFilters.length > 0) {
     */
     const FAMILY_MIN = 4;
 
+    // A project's page; else a shirt's own set (data-family - see A SHIRT
+    // AND ITS OWN SHOTS in the frontmatter).
     const projectOf = (el: Element) =>
-      el.querySelector('.pf-item__jump')?.getAttribute('href') ?? null;
+      el.querySelector('.pf-item__jump')?.getAttribute('href') ?? (el as HTMLElement).dataset?.family ?? null;
+    const isShirtSet = (key: string | null | undefined) => !!key && key.startsWith('#shirt-');
 
     /*
       A PROJECT'S PIECES THAT ARE ACTUALLY ON THE PAGE.
@@ -2246,7 +2272,9 @@ if (emptyFilters.length > 0) {
       over: Hug a Mug has three merch pieces and would otherwise never gather.
     */
     const VIEW_FAMILY_MIN = 2;
-    const familyMin = () => (view ? VIEW_FAMILY_MIN : FAMILY_MIN);
+    // A shirt's own set is opened from two: the shirt and one shot is the
+    // whole of it, and it is what was asked for.
+    const familyMin = (key?: string | null) => (isShirtSet(key) ? 2 : view ? VIEW_FAMILY_MIN : FAMILY_MIN);
 
     /*
       Every piece of a project, whatever the filter shows. The merch view
@@ -4545,7 +4573,7 @@ if (emptyFilters.length > 0) {
         const family = familyOf(href);
         // Same threshold as the click path. A pair is not a set, and the two
         // must agree or hovering teaches the wrong lesson about clicking.
-        if (family.length < familyMin()) {
+        if (family.length < familyMin()) { // no hover preview for a shirt's own pair: only a project's set is previewed
           scheduleDrop();
           return;
         }
@@ -4579,7 +4607,7 @@ if (emptyFilters.length > 0) {
         where the lit tiles read as a set - it takes in DumpStat's nineteen,
         Adelante's ten and Two Point Oh's seven, and leaves the pairs alone.
       */
-      if (family.length < familyMin()) return;
+      if (family.length < familyMin(href)) return;
 
       for (const el of family) el.classList.add('is-sibling');
       if (clustered()) for (const el of family) revealed.add(el);
@@ -4712,7 +4740,7 @@ if (emptyFilters.length > 0) {
             trying to choose between.
           */
           if (gatherMode) {
-            if (focusItem && focusFamily.length >= familyMin()) {
+            if (focusItem && focusFamily.length >= familyMin(projectOf(focusItem))) {
               /*
                 THE LINES EXPLAIN THE MOVE, THEN THE MOVE HAPPENS.
 
@@ -4809,7 +4837,7 @@ if (emptyFilters.length > 0) {
               draw attention to the correction instead of hiding it.
             */
             window.setTimeout(() => {
-              if (focusItem && focusFamily.length >= familyMin()) {
+              if (focusItem && focusFamily.length >= familyMin(projectOf(focusItem))) {
                 drawLinks(focusItem, focusFamily, 'flash');
               }
             }, 420);

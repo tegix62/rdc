@@ -9,6 +9,10 @@ on:
       - 'package.json'
       - 'astro.config.mjs'
       - '.github/workflows/build-check.yml'
+      # Every workflow, for test-workflows-no-pictures.mjs: a new browser test
+      # without the blank-picture step must fail here, and a commit that only
+      # adds a workflow would otherwise never run it.
+      - '.github/workflows/**'
       # scripts/ too, because this workflow RUNS scripts - test-images.mjs,
       # test-image-guards.mjs, and build-overlay.mjs via `npm run build` - and
       # none of them were in this list. So a commit that changed only a test
@@ -213,6 +217,7 @@ jobs:
       # never keeps a failure; the build's rewrite moves every picture the
       # pages load to /img/. No network - it must not spend what it saves.
       - run: node scripts/test-image-proxy.mjs
+      - run: node scripts/test-workflows-no-pictures.mjs
 
       - run: npm run build
 

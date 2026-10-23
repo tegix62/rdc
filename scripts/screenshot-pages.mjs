@@ -102,6 +102,19 @@ for (const path of PATHS) {
         nav: Array.from(document.querySelectorAll('header a')).map((a) => `${text(a)} → ${a.getAttribute('href')}`),
         images: imgs.length,
         imagesNoAlt: imgs.filter((i) => !i.getAttribute('alt')).length,
+        // Pictures that failed to load (asked for, finished, no pixels), and
+        // where every picture came from - after October 2026 that should be
+        // this site's /img/, never cdn.sanity.io directly.
+        imagesBroken: imgs.filter((i) => i.currentSrc && i.complete && i.naturalWidth === 0).map((i) => i.currentSrc.slice(0, 140)),
+        imageHosts: Object.entries(
+          imgs.reduce((n, i) => {
+            if (!i.currentSrc) return n
+            const u = new URL(i.currentSrc, location.href)
+            const k = u.pathname.startsWith('/img/') ? `${u.host}/img/` : u.host
+            n[k] = (n[k] ?? 0) + 1
+            return n
+          }, {}),
+        ),
         words: text(main).split(' ').length,
         pageHeight: document.documentElement.scrollHeight,
         screens: +(document.documentElement.scrollHeight / innerHeight).toFixed(1),

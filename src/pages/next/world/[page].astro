@@ -125,13 +125,16 @@ const data = {pieces, names};
   .wd-piece[hidden] {
     display: none;
   }
+  /*
+    Whole, never cropped. A piece's box is rounded to whole cells, so it is
+    rarely the picture's own shape; filling it cut lettering off ("ERATE"
+    for Desperate Foes, "IM" for RIME, on Chris's phone). The picture sits
+    inside its box at its own shape instead, the box's spare edge left white.
+  */
   .wd-piece :global(img) {
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;
-  }
-  .wd-piece--mark :global(img) {
     object-fit: contain;
   }
 </style>

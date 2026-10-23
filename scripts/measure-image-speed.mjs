@@ -104,4 +104,6 @@ console.log(`\n${failed.length} picture(s) did not come back 200 through Cloudfl
 const webpFailed = rows.filter((r) => r.webp.status !== 200)
 const webpWrong = rows.filter((r) => r.webp.status === 200 && /avif/.test(r.webp.type ?? ''))
 console.log(`${webpFailed.length} did not come back 200 for a browser without AVIF; ${webpWrong.length} were sent AVIF it cannot show`)
+const lost = rows.filter((r) => /avif/.test(r.direct.type ?? '') && !/avif/.test(r.first.type ?? ''))
+console.log(`${lost.length} sent WebP through Cloudflare where Sanity would have sent the smaller AVIF`)
 console.log(`Cloudflare location: ${rows[0]?.again.colo || 'unknown'}`)

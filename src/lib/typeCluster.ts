@@ -249,7 +249,10 @@ export function startTypeCluster(grid: HTMLElement) {
           : list.filter((i) => !fam.has(i));
     const top = arrange(words, inWords);
     const bottom = arrange(pics, lead !== null && !inWords);
-    const each = Math.max(240, innerHeight * 0.5);
+    // Each cluster's height budget follows - and + too: the layout takes
+    // the largest size that fits it, so a fixed budget held the size still
+    // whatever the buttons said (measured: + 106%, - 99%).
+    const each = Math.max(200, innerHeight * 0.5 * zoom);
     const A = lay(top, lead !== null && inWords ? pieces[lead].project ?? 'words' : 'words', width, each, size);
     const B = lay(bottom, lead !== null && !inWords ? pieces[lead].project ?? 'pics' : 'pics', width, each, size);
     const ax = (full - A.width) / 2;

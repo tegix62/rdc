@@ -372,6 +372,7 @@ if (emptyFilters.length > 0) {
               item.heroTile && 'pf-item--hero',
             ]}
             data-category={cat}
+            data-kind={cleanKey(item.category) || undefined}
             data-merch={merch}
             data-piece={pieceId}
             data-piece-parent={pieceParent}

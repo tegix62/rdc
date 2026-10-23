@@ -8092,25 +8092,36 @@ html.realsize-open {
   outline: 2px solid currentColor;
   outline-offset: 2px;
 }
-.tc-under {
-  margin-top: 1.25rem;
-  text-align: center;
+.tc-piece.is-dim img {
+  opacity: 0.22;
 }
 .tc-hint {
+  margin: 1.25rem 0 0;
+  text-align: center;
   font-size: 0.8rem;
   opacity: 0.6;
-  margin: 0;
+}
+.tc-hint[hidden],
+.tc-bar[hidden] {
+  display: none;
+}
+/* Above the clusters while a project is gathered: the way back, always in view. */
+.tc-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.35rem 1.25rem;
+  padding: 0.6rem 0;
+  margin-bottom: 0.5rem;
+  background: var(--color-bg, #fff);
+  font-size: 0.85rem;
 }
 .tc-name {
   font-weight: 700;
-  margin: 0;
-}
-.tc-links {
-  margin: 0.6rem 0 0;
-  display: flex;
-  justify-content: center;
-  gap: 1.25rem;
-  font-size: 0.85rem;
 }
 .tc-back {
   border: 0;

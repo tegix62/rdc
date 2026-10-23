@@ -28,6 +28,8 @@ export interface ClusterPiece {
   /** The picture's own width and height; only their ratio is used. */
   w: number;
   h: number;
+  /** Drawn this much larger or smaller than its row (1 = the row's height). */
+  scale?: number;
 }
 
 export interface ClusterOptions {
@@ -149,7 +151,7 @@ function fill(pieces: ClusterPiece[], o: ClusterOptions, base: number, count: nu
   }
   for (let i = 0; i < pieces.length; i++) {
     const ratio = pieces[i].w / pieces[i].h || 1;
-    const scale = i === 0 ? (o.lead ?? 1) : 1;
+    const scale = (i === 0 ? (o.lead ?? 1) : 1) * (pieces[i].scale ?? 1);
     let placed = false;
     for (const r of order) {
       const row = rows[r];
@@ -191,7 +193,7 @@ const balanced = (rows: Row[]) => {
   first piece - stays put; the others are dealt back out widest first, each
   redrawn at its new row's height, and kept only if every one still fits.
 */
-function widestInward(rows: Row[], o: ClusterOptions, lead: number) {
+function widestInward(rows: Row[], o: ClusterOptions, lead: number, pieces: ClusterPiece[]) {
   const m = Math.floor((rows.length - 1) / 2);
   const slots: number[] = [];
   for (let k = 1; slots.length < rows.length - 1; k++) {
@@ -206,7 +208,7 @@ function widestInward(rows: Row[], o: ClusterOptions, lead: number) {
     let used = 0;
     const items = sets[s].items.map((it) => {
       const ratio = it.w / it.h;
-      let h = to.h * (it.i === 0 ? lead : 1);
+      let h = to.h * (it.i === 0 ? lead : 1) * (pieces[it.i].scale ?? 1);
       let w = ratio * h;
       if (w > to.cap) {
         w = to.cap;
@@ -223,9 +225,9 @@ function widestInward(rows: Row[], o: ClusterOptions, lead: number) {
   return next;
 }
 
-function place(all: Row[], o: ClusterOptions, base: number): ClusterLayout {
+function place(all: Row[], o: ClusterOptions, base: number, pieces: ClusterPiece[]): ClusterLayout {
   // Not with an outline: sorting rows widest-in would iron the noise out.
-  const rows = (o.outline ? all : widestInward(all, o, o.lead ?? 1)).filter((r) => r.items.length);
+  const rows = (o.outline ? all : widestInward(all, o, o.lead ?? 1, pieces)).filter((r) => r.items.length);
   const m = Math.floor((rows.length - 1) / 2);
   const placed: ClusterPlaced[] = [];
   let y = 0;
@@ -273,7 +275,7 @@ export function layoutCluster(pieces: ClusterPiece[], o: ClusterOptions): Cluste
   for (let base = o.maxRow; base >= o.minRow; base *= 0.95) {
     const rows = fewest(base);
     if (!rows) continue;
-    const out = place(rows, o, base);
+    const out = place(rows, o, base, pieces);
     if (out.height > o.maxHeight) continue;
     if (balanced(rows)) return out;
     fallback ??= out;
@@ -281,8 +283,8 @@ export function layoutCluster(pieces: ClusterPiece[], o: ClusterOptions): Cluste
   if (fallback) return fallback;
   for (let base = o.minRow; base >= o.minRow * 0.8; base *= 0.97) {
     const rows = fewest(base);
-    if (rows && balanced(rows)) return place(rows, o, base);
+    if (rows && balanced(rows)) return place(rows, o, base, pieces);
   }
   const rows = fewest(o.minRow);
-  return rows ? place(rows, o, o.minRow) : {placed: [], width: o.width, height: 0, rows: 0, base: o.minRow};
+  return rows ? place(rows, o, o.minRow, pieces) : {placed: [], width: o.width, height: 0, rows: 0, base: o.minRow};
 }

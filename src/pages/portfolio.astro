@@ -2234,7 +2234,13 @@ if (emptyFilters.length > 0) {
       Nothing here relayouts. It is one class on the grid and one on each
       sibling, so Isotope never runs and the placement work is untouched.
     */
-    const FAMILY_MIN = 4;
+    /*
+      3, not 4 (October 2026): Chateau Seven had grown to its case study and
+      two pieces - "Chateau Seven isn't gathering - let's fix that" - and
+      Chris is adding more. A project's tile and two of its pieces already
+      read as a set; a project's tile and one piece still do not.
+    */
+    const FAMILY_MIN = 3;
 
     // A project's page; else a shirt's own set (data-family - see A SHIRT
     // AND ITS OWN SHOTS in the frontmatter).
@@ -4606,9 +4612,10 @@ if (emptyFilters.length > 0) {
       /*
         Below the threshold the effect is worse than nothing: Chateau Seven is
         one piece plus its case study, and dimming eighty tiles to spotlight
-        two looks like a bug rather than a reveal. Four is the smallest group
-        where the lit tiles read as a set - it takes in DumpStat's nineteen,
-        Adelante's ten and Two Point Oh's seven, and leaves the pairs alone.
+        two looks like a bug rather than a reveal. Three is the smallest group
+        where the lit tiles read as a set (it was four, until Chateau Seven
+        reached three - see FAMILY_MIN) and leaves the pairs alone. A shirt's
+        own set is the exception: two, the shirt and its shot.
       */
       if (family.length < familyMin(href)) return;
 

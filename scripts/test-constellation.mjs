@@ -94,8 +94,10 @@ const clickAndRead = (mode) =>
 
     let target = null
     if (mode === 'big') target = tiles.find((el) => hrefOf(el) && sizes[hrefOf(el)] >= 4)
-    if (mode === 'small') target = tiles.find((el) => hrefOf(el) && sizes[hrefOf(el)] < 4)
-    if (mode === 'solo') target = tiles.find((el) => !hrefOf(el))
+    // Below FAMILY_MIN (3 since October 2026).
+    if (mode === 'small') target = tiles.find((el) => hrefOf(el) && sizes[hrefOf(el)] < 3)
+    // Standalone: no project, and not a shirt with its own shots (data-family).
+    if (mode === 'solo') target = tiles.find((el) => !hrefOf(el) && !el.dataset.family)
     if (!target) return null
 
     const href = hrefOf(target)
@@ -811,7 +813,7 @@ await page.waitForTimeout(2500)
 const small = await clickAndRead('small')
 console.log('')
 if (!small) {
-  console.log('  (no project with fewer than four tiles on the page; nothing to suppress)')
+  console.log('  (no project with fewer than three tiles on the page; nothing to suppress)')
 } else {
   console.log(`  clicked a tile from ${small.href} (${small.familySize} tiles)`)
   check(

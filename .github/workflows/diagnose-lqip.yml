@@ -1,0 +1,21 @@
+# What Sanity's tiny previews hold for pictures on transparency. See scripts/diagnose-lqip.mjs.
+# By hand only; reads metadata, downloads no pictures.
+name: Diagnose tiny previews
+
+on:
+  workflow_dispatch:
+
+jobs:
+  look:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save sharp@0.34.4
+      - run: |
+          set -o pipefail
+          node scripts/diagnose-lqip.mjs 2>&1 | tee lqip.txt
+          { echo '## Tiny previews'; echo '```'; cat lqip.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

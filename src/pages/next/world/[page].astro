@@ -276,8 +276,7 @@ const data = {pieces, names};
     const [cols, maxSpan] =
       mode === 'lands' ? (phone ? [6, 3] : [20, 6]) : mode === 'biomes' ? (phone ? [15, 6] : [40, 12]) : phone ? [6, 3] : [20, 6];
     const cell = width / cols;
-    // Air between tiles - on a phone more than it was ("a little clunky on mobile - can we widen the margins").
-    const gap = phone ? 8 : 4;
+    const gap = phone ? 2 : 3;
     const sort = colour && mode !== 'biomes' ? 'colour' : 'seed';
     /*
       The opened project's block of type, measured at the width it will

@@ -21,6 +21,7 @@ const query = `*[_type == "caseStudy" && title match $term]{
   "thumbFile": thumbnail.asset->{_id, url, "w": metadata.dimensions.width, "h": metadata.dimensions.height, size, "opaque": metadata.isOpaque},
   "mainFile": mainImage.asset->{_id, url, "w": metadata.dimensions.width, "h": metadata.dimensions.height, size},
   "thumbSet": defined(thumbnail), "mainSet": defined(mainImage),
+  "thumbCrop": thumbnail.crop, "mainCrop": mainImage.crop,
   "parent": parentBrand->{title, pageType, "parent": parentBrand->title}
 }`
 const ask = async (q, token) => {
@@ -43,6 +44,13 @@ for (const d of docs.filter((d) => !d._id.startsWith('drafts.'))) {
   ok(['Case Study', 'Grid Item'].includes(d.pageType), `Page Type: ${d.pageType ?? '(empty)'}`, 'set it to Grid Item')
   ok(!!file, `picture: ${d.thumbFile ? 'Grid Thumbnail' : d.mainFile ? 'Main Image' : 'none'}${file ? `, ${file.w}x${file.h}, ${(file.size / 1048576).toFixed(1)} MB` : ''}`,
     d.thumbSet || d.mainSet ? 'the image field is saved but holds no file - upload the picture into it' : 'add a Grid Thumbnail')
+  // Both picture fields, as uploaded: the site shows the Grid Thumbnail
+  // when it holds a file, so a small one there hides a big Main Image.
+  for (const [name, f, crop] of [['Grid Thumbnail', d.thumbFile, d.thumbCrop], ['Main Image', d.mainFile, d.mainCrop]]) {
+    if (!f) continue
+    const kept = crop ? (1 - (crop.left ?? 0) - (crop.right ?? 0)) : 1
+    console.log(`       ${name}: ${f.w}x${f.h}, ${(f.size / 1048576).toFixed(1)} MB, ${f.url}${crop && kept < 0.999 ? ` - cropped to ${Math.round(kept * 100)}% of its width (${Math.round(f.w * kept)}px)` : ''}`)
+  }
   ok(!!d.category, `Category: ${d.category ?? '(empty)'}`, 'set Merch & Apparel to show under that filter')
   ok(!!d.parent, `Parent Brand: ${d.parent ? `${d.parent.title}${d.parent.parent ? ` (in ${d.parent.parent})` : ''}` : '(none)'}`, 'set the project, so it gathers with it')
   if (d.category === 'Merch & Apparel') console.log(`       merch view: ${d.merchPlacement ?? (d.thumbFile?.opaque === false ? 'front (see-through background)' : 'back (has a background)')}`)

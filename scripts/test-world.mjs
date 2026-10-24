@@ -330,7 +330,15 @@ for (const [name, cols, maxSpan] of [
       all++
       if (own.r === Math.min(...qs.map((q) => q.r))) tops++
     }
-    check(`real pieces, ${name}: each project's own tile at the top of its patch, mostly`, tops >= Math.ceil(all * 0.6), `${tops} of ${all}`)
+    // Simple (the default) does not pin the lead to the top; the rules version does.
+    const rules = generateWorld(ps, {cols, mode: 'lands', seed: 4187, maxSpan, rowsPerCell: 2, tune: {simple: false}})
+    let rulesTop = 0
+    for (const k of new Set(realSets)) {
+      const qs = rules.placed.filter((q) => realSets[q.i] === k)
+      const own = qs.find((q) => ps[q.i].own)
+      if (k.startsWith('/') && own && own.r === Math.min(...qs.map((q) => q.r))) rulesTop++
+    }
+    check(`real pieces, ${name}, ?v=rules: each project's own tile at the top of its patch, mostly`, rulesTop >= Math.ceil(all * 0.6), `${rulesTop} of ${all} (simple: ${tops})`)
     // Nothing but a case study or a hero tile outsizes the smallest case study.
     const minBig = Math.min(...o.placed.filter((q) => ps[q.i].big).map((q) => q.cw))
     const over = o.placed.filter((q) => !ps[q.i].big && q.cw > minBig)

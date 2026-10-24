@@ -250,8 +250,8 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   const q = new URLSearchParams(location.search);
   const mode = (['heights', 'biomes'].includes(q.get('mode') ?? '') ? q.get('mode') : 'lands') as WorldMode;
   let seed = Number(q.get('seed')) || 4187;
-  // ?v=simple: the layout with the stiff rules off, to compare (lib/world.ts, SIMPLE).
-  const simple = q.get('v') === 'simple';
+  // Simple is the default; ?v=rules is the version with the stiffer rules, to compare (lib/world.ts, SIMPLE).
+  const simple = q.get('v') !== 'rules';
   // Lands is the All view; a link naming another view goes to the portfolio's own.
   const asked = data.filters.find((f) => f.name === q.get('view'));
   if (asked) location.replace(asked.name === 'brand' ? '/portfolio' : `/portfolio?view=${asked.name}`);
@@ -316,7 +316,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       card = {cw, ch: Math.max(1, Math.ceil((cardEl.offsetHeight + gap) / rowH))};
       cardEl.style.visibility = '';
     }
-    const out = generateWorld(sub, {cols, mode, seed, maxSpan, rowsPerCell: kr, focus: focus === null ? null : subset.indexOf(focus), focusRow, card, tune: simple ? {simple: true} : undefined});
+    const out = generateWorld(sub, {cols, mode, seed, maxSpan, rowsPerCell: kr, focus: focus === null ? null : subset.indexOf(focus), focusRow, card, tune: {simple}});
     last = {out, subset};
     const fam = new Set(out.family.map((k) => subset[k]));
     if (cardEl && out.card) {
@@ -364,7 +364,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     set('open', focus === null ? null : keyOf(focus));
     set('seed', String(seed));
     set('mode', mode === 'lands' ? null : mode);
-    set('v', simple ? 'simple' : null);
+    set('v', simple ? null : 'rules');
     if (url.href !== location.href) history.replaceState(history.state, '', url);
   };
 

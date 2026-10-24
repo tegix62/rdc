@@ -662,7 +662,9 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     no lead pinned to the top, no hard least sizes for wordmarks, no holes
     filled from the bottom, nothing grown.
   */
-  const simple = o.tune?.simple ?? false;
+  // The default now (Chris: "sure", to Simple with the one fix below); the
+  // rules version is simple: false (?v=rules on the page).
+  const simple = o.tune?.simple ?? true;
   const {
     leadBonus = 0,
     seenW = 1,
@@ -685,7 +687,12 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     sizes; everything else stops a step or two below, and a case study is
     never smaller than one step above that.
   */
-  const cap = simple ? maxSpan - 1 : caps ? Math.max(2, maxSpan - Math.max(1, Math.round(maxSpan / 3))) : maxSpan;
+  /*
+    Simple's one fix: no supporting piece bigger than the smallest a case
+    study can be - "Shine Unto" and the More Kilos badge had taken four
+    and five columns beside case studies at four.
+  */
+  const cap = simple ? Math.ceil((maxSpan * 2) / 3) : caps ? Math.max(2, maxSpan - Math.max(1, Math.round(maxSpan / 3))) : maxSpan;
   /*
     And the case studies a step smaller than they were - Chris: "the case
     study tiles are dominating a little too much, it makes it look clunky.
@@ -694,7 +701,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     air, a step below that.
   */
   const bigMin = simple ? Math.ceil((maxSpan * 2) / 3) : caps ? cap : Math.ceil((maxSpan * 2) / 3);
-  const bigMax = (p: WorldPiece) => (simple ? maxSpan - (p.mark ? 2 : 1) : caps ? Math.min(maxSpan, p.mark ? cap : cap + 1) : maxSpan);
+  const bigMax = (p: WorldPiece) => (simple ? (p.mark ? cap : maxSpan - 1) : caps ? Math.min(maxSpan, p.mark ? cap : cap + 1) : maxSpan);
   /*
     A wide piece is sized by its area, not its width - Chris: "some things
     are actually too small, like the DumpStat wordmark". A 3:1 wordmark two

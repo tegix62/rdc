@@ -642,45 +642,68 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     Each piece takes, of the next few free cells in patch order, the first
     where it touches a piece of its own set (the piece it is parented to
     first) - so a set never comes apart round a hole another set left. A
-    set's first piece takes the very first free cell, which is what keeps
-    the holes filled.
+    loose piece takes the very first free cell, which is what keeps the
+    holes filled. A set's first piece takes the first with room round it
+    for the rest of its set to gather - on a phone the Hug a Mug tile
+    squeezed into a one-cell hole and its nine pieces landed a screen
+    away, "all separated". And a case study never shrinks below its size
+    to fit a hole: it waits for the room.
   */
   const inFamily = new Set(family);
   const mine = new Map<string, WorldPlaced[]>();
   const whereId = new Map<string, WorldPlaced>();
+  const setSize = new Map<string, number>();
+  for (const k of sets) setSize.set(k, (setSize.get(k) ?? 0) + 1);
   const touches = (a: WorldPlaced, b: WorldPlaced) => a.c <= b.c + b.cw && b.c <= a.c + a.cw && a.r <= b.r + b.ch && b.r <= a.r + a.ch;
+  // Free cells in the ring one cell round a box.
+  const room = (q: WorldPlaced) => {
+    let n = 0;
+    for (let y = q.r - 1; y <= q.r + q.ch; y++)
+      for (let x = q.c - 1; x <= q.c + q.cw; x++) {
+        if (x < 0 || x >= o.cols || y < 0 || y >= grid.maxRows) continue;
+        if (y >= q.r && y < q.r + q.ch && x >= q.c && x < q.c + q.cw) continue;
+        if (grid.used[y * o.cols + x] === -1) n++;
+      }
+    return n;
+  };
   let cursor = 0;
   for (const i of laid) {
     if (inFamily.has(i)) continue;
     const p = pieces[i];
     const kin = mine.get(sets[i]) ?? [];
     const up = p.parent ? whereId.get(p.parent) : undefined;
+    const lo = Math.min(o.cols, Math.max(p.least ?? 1, p.big ? Math.ceil((maxSpan * 2) / 3) : 1));
+    // Loose, and not a case study: the first free cell, as the height map.
+    const plain = kin.length === 0 && (setSize.get(sets[i]) ?? 1) === 1 && lo === 1;
     let first: WorldPlaced | null = null;
     let best: WorldPlaced | null = null;
     let bestScore = Infinity;
     let seen = 0;
-    for (let k = cursor; k < cells.length && (seen < 48 || (kin.length > 0 && !best)); k++) {
+    for (let k = cursor; k < cells.length && (seen < 48 || !best); k++) {
       const at = cells[k];
       if (grid.used[at] !== -1) continue;
       seen++;
       const c = at % o.cols;
       const r = Math.floor(at / o.cols);
       const want = wantAt(p, o.seed, o.cols, maxSpan, c, r);
-      for (let cw = Math.min(Math.max(want, p.least ?? 1), o.cols - c); cw >= Math.min(p.least ?? 1, o.cols); cw--) {
+      for (let cw = Math.min(Math.max(want, lo), o.cols - c); cw >= lo; cw--) {
         const {ch} = boxAt(p, cw);
         if (!grid.fits(c, r, cw, ch)) continue;
         const q = {i, c, r, cw, ch};
         first ??= q;
-        if (kin.length === 0) break;
-        // Beside its parent best, then beside any of its set; earlier cells first.
-        const score = (up && touches(q, up) ? 0 : kin.some((x) => touches(q, x)) ? 100 : Infinity) + seen;
+        // Beside its parent best, then beside any of its set; a set's first
+        // piece where its set has room to follow; earlier cells first.
+        const score =
+          kin.length > 0
+            ? (up && touches(q, up) ? 0 : kin.some((x) => touches(q, x)) ? 100 : Infinity) + seen
+            : (room(q) >= Math.min(cw + ch + 2, 2 * (setSize.get(sets[i]) ?? 1)) ? 0 : 1000) + seen;
         if (score < bestScore) {
           bestScore = score;
           best = q;
         }
         break;
       }
-      if (kin.length === 0 && first) break;
+      if (plain && first) break;
     }
     const q = best ?? first;
     if (!q) continue;

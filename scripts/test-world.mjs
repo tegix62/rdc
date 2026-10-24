@@ -201,6 +201,8 @@ for (const [name, grids] of [
         const tagged = pieces.map((x, i) => ({...x, least: photos.includes(i) ? 2 : 1}))
         const w = generateWorld(tagged, {cols, mode, seed: 42, maxSpan})
         const tiny = w.placed.filter((q) => photos.includes(q.i) && q.cw < 2)
+        const small = p.filter((q) => pieces[q.i].big && q.cw < Math.ceil((maxSpan * 2) / 3))
+        check(`${tag}: a case study never squeezed small into a hole`, small.length === 0, small.map((q) => `${pieces[q.i].id} ${q.cw}`).join(', '))
         check(`${tag}: a piece given a least size is never smaller`, tiny.length === 0 && w.placed.length === pieces.length, `${tiny.length} too small`)
       }
       if (focus === null && mode !== 'biomes') {

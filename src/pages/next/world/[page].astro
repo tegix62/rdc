@@ -236,7 +236,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
 </Layout>
 
 <script>
-  import {generateWorld, type WorldMode, type WorldPiece, type WorldResult} from '../../../lib/world';
+  import {generateWorld, setsOf, type WorldMode, type WorldPiece, type WorldResult} from '../../../lib/world';
   import {seedOf} from '../../../lib/cluster';
 
   type P = WorldPiece & {id: string; slug: string | null; title: string; cat: string; photo: boolean};
@@ -266,7 +266,9 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     noticeably less compact and more clunky", 8 "might mean too small to
     tell what some tiles are", hence the photographs' floor below).
   */
-  const STEPS = {desktop: [28, 24, 20, 16, 13], phone: [10, 9, 8, 7, 6]};
+  // A wide screen now 14 columns, not 20 - Chris: "too disparaging of a size
+  // between tiles"; the smallest are larger and nothing takes over.
+  const STEPS = {desktop: [20, 17, 14, 12, 10], phone: [10, 9, 8, 7, 6]};
   let zoom = 2;
 
   const phoneNow = () => innerWidth < 768;
@@ -306,20 +308,46 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       have - beside the piece on a wide screen, the width of the page on a
       phone - so the world leaves it exactly the rows it needs.
     */
-    cards.forEach((el) => (el.hidden = true));
-    const cardEl = focus !== null && mode === 'lands' ? cards.get(data.pieces[focus].project ?? '') : undefined;
+    /*
+      LANDS OPENS IN PLACE. Chris: "when you click on one, I wonder if we
+      even need to have it gather to a certain area of the screen, or if we
+      could just ... throw transparency on everything else and have that
+      little cluster work itself out." Its set is already together there, so
+      nothing moves: the rest drops back, the piece wears its navy frame and
+      bar, and the project's block of type floats in a card at the foot of
+      the screen. (The shelved modes still gather.)
+    */
+    const inPlace = mode === 'lands';
+    cards.forEach((el) => {
+      el.hidden = true;
+      el.classList.remove('wd-card--float');
+    });
+    const cardEl = focus !== null ? cards.get(data.pieces[focus].project ?? '') : undefined;
     let card: {cw: number; ch: number} | null = null;
-    if (cardEl) {
+    if (cardEl && inPlace) {
+      cardEl.removeAttribute('style');
+      cardEl.classList.add('wd-card--float');
+      cardEl.hidden = false;
+    } else if (cardEl) {
       const cw = phone ? cols : Math.min(cols, Math.round(cols * 0.3));
       Object.assign(cardEl.style, {left: '0', top: '0', width: `${cw * cell - gap}px`, height: '', visibility: 'hidden'});
       cardEl.hidden = false;
       card = {cw, ch: Math.max(1, Math.ceil((cardEl.offsetHeight + gap) / rowH))};
       cardEl.style.visibility = '';
     }
-    const out = generateWorld(sub, {cols, mode, seed, maxSpan, rowsPerCell: kr, focus: focus === null ? null : subset.indexOf(focus), focusRow, card, tune: {simple}});
+    const out = generateWorld(sub, {cols, mode, seed, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple}});
     last = {out, subset};
-    const fam = new Set(out.family.map((k) => subset[k]));
-    if (cardEl && out.card) {
+    const sets = inPlace ? setsOf(sub) : [];
+    const fam = new Set(
+      inPlace
+        ? focus === null
+          ? []
+          : sub.map((_, k) => k).filter((k) => sets[k] === sets[subset.indexOf(focus!)]).map((k) => subset[k])
+        : out.family.map((k) => subset[k]),
+    );
+    if (inPlace) {
+      // The card floats; nothing to place.
+    } else if (cardEl && out.card) {
       Object.assign(cardEl.style, {left: `${out.card.c * cell + gap / 2}px`, top: `${out.card.r * rowH + gap / 2}px`, width: `${out.card.cw * cell - gap}px`, height: `${out.card.ch * rowH - gap}px`});
     } else if (cardEl) cardEl.hidden = true;
 
@@ -346,7 +374,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     // The order they are seen in, for the Tab key and screen readers.
     const seen = [...out.placed].sort((a, z) => a.r - z.r || a.c - z.c);
     for (const p of seen) world.append(tiles[subset[p.i]]);
-    if (cardEl && out.card) world.append(cardEl);
+    if (cardEl && out.card && !inPlace) world.append(cardEl);
 
     document.querySelector<HTMLButtonElement>('[data-zoom="-1"]')!.disabled = zoom === 0;
     document.querySelector<HTMLButtonElement>('[data-zoom="1"]')!.disabled = zoom === steps.length - 1;
@@ -382,7 +410,8 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     }
     focus = i;
     draw();
-    tiles[i].scrollIntoView({block: 'center'});
+    // In place, it is already where it was picked; a gathering mode brings it into view.
+    if (mode !== 'lands') tiles[i].scrollIntoView({block: 'center'});
   };
   function close() {
     if (pushed) {

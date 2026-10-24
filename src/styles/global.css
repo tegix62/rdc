@@ -8529,3 +8529,30 @@ a.pf-btn {
   padding: var(--pf-air-inset, 10%);
   box-sizing: border-box;
 }
+/*
+  Lands opens in place: the project's block of type floats at the foot of
+  the screen rather than taking room in the world. Chris: "throw
+  transparency on everything else and have that little cluster work itself
+  out".
+*/
+.wd-card.wd-card--float {
+  position: fixed;
+  z-index: 5;
+  left: 1rem;
+  bottom: 1rem;
+  width: min(24rem, calc(100vw - 2rem));
+  height: auto;
+  max-height: 45svh;
+  overflow: auto;
+  padding: 1rem 1.1rem 1.1rem;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--color-navy), 0 12px 32px -12px rgb(0 0 0 / 0.35);
+}
+@media (max-width: 47.99rem) {
+  .wd-card.wd-card--float {
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    width: auto;
+  }
+}

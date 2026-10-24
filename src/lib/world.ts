@@ -118,7 +118,7 @@ export interface WorldOptions {
   /** Lands: rows to a cell's width (2: half-height rows, so boxes follow their pictures' shapes). Rows, `r` and `ch` are then in these. */
   rowsPerCell?: number;
   /** Lands: weights for how a set's pieces gather (for tuning; the defaults are the chosen ones). */
-  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean; simple?: boolean};
+  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean; simple?: boolean; floor?: number; curve?: number; capDrop?: number};
   /** Lands: room for the opened project's card, beside the opened piece. */
   card?: {cw: number; ch: number} | null;
 }
@@ -244,8 +244,8 @@ const boxAt = (p: WorldPiece, cw: number, k = 1) => ({cw, ch: p.rows ?? Math.max
   lands: as high as the ground there, scaled by its weight; a big piece at
   least two thirds of the widest.
 */
-const wantAt = (p: WorldPiece, seed: number, cols: number, maxSpan: number, c: number, r: number) => {
-  const want = 1 + Math.round(groundAt(seed, cols, c, r) ** 1.6 * (maxSpan - 1) * (p.weight ?? 1));
+const wantAt = (p: WorldPiece, seed: number, cols: number, maxSpan: number, c: number, r: number, curve = 1.6) => {
+  const want = 1 + Math.round(groundAt(seed, cols, c, r) ** curve * (maxSpan - 1) * (p.weight ?? 1));
   return p.big ? Math.max(want, Math.ceil((maxSpan * 2) / 3)) : want;
 };
 
@@ -665,6 +665,11 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
   // The default now (Chris: "sure", to Simple with the one fix below); the
   // rules version is simple: false (?v=rules on the page).
   const simple = o.tune?.simple ?? true;
+  // The size range (tuned on the real pieces): the least any piece may be, the
+  // ground's curve (lower: more middling sizes, fewer extremes), and how far
+  // under the largest the supporting work stops.
+  // Chris: "too disparaging of a size between tiles" - a gentler curve: more middling sizes.
+  const {floor = 1, curve = 1, capDrop = 0} = o.tune ?? {};
   const {
     leadBonus = 0,
     seenW = 1,
@@ -692,7 +697,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     study can be - "Shine Unto" and the More Kilos badge had taken four
     and five columns beside case studies at four.
   */
-  const cap = simple ? Math.ceil((maxSpan * 2) / 3) : caps ? Math.max(2, maxSpan - Math.max(1, Math.round(maxSpan / 3))) : maxSpan;
+  const cap = simple ? Math.max(1, Math.ceil((maxSpan * 2) / 3) - capDrop) : caps ? Math.max(2, maxSpan - Math.max(1, Math.round(maxSpan / 3))) : maxSpan;
   /*
     And the case studies a step smaller than they were - Chris: "the case
     study tiles are dominating a little too much, it makes it look clunky.
@@ -796,7 +801,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
   const spotFor = (i: number, kin: WorldPlaced[], where: Map<string, WorldPlaced>, skip = 0): WorldPlaced | null => {
     const p = pieces[i];
     const up = p.parent ? where.get(p.parent) : undefined;
-    const lo = Math.min(o.cols, Math.max(p.least ?? 1, p.big ? Math.min(bigMin, bigMax(p)) : 1, wideLeast(p)));
+    const lo = Math.min(o.cols, Math.max(p.least ?? 1, floor, p.big ? Math.min(bigMin, bigMax(p)) : 1, wideLeast(p)));
     // Loose, and not a case study: the first free cell, as the height map.
     const plain = kin.length === 0 && (setSize.get(sets[i]) ?? 1) === 1 && lo === 1;
     let first: WorldPlaced | null = null;
@@ -814,7 +819,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
       seen++;
       const c = at % o.cols;
       const r = Math.floor(at / o.cols);
-      const want = Math.min(p.big ? bigMax(p) : cap, widen(p, wantAt(p, o.seed, o.cols, maxSpan, c, r / kr)));
+      const want = Math.min(p.big ? bigMax(p) : cap, widen(p, wantAt(p, o.seed, o.cols, maxSpan, c, r / kr, curve)));
       /*
         Of the widths that fit here, the widest whose box - rounded to whole
         cells - is close to the picture's own shape; else the closest. A

@@ -8710,6 +8710,12 @@ a.pf-btn {
   .ty-rows {
     margin-left: var(--space-1);
   }
+}
+@media (max-width: 40rem) {
+  /* Out through the section's narrower phone padding (.pf-section), no further. */
+  .ty-rows {
+    margin-right: -0.25rem;
+  }
   /* The pictures run to the edge; the words keep off it. */
   .ty-head {
     padding-right: var(--space-2);

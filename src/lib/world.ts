@@ -523,178 +523,121 @@ function biomes(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: st
 }
 
 /*
-  Lands: each set a compact block, packed by the skyline - always filling
-  the lowest open stretch of the page next. A set's block is built to that
-  stretch's width (within reason), so it sits flat on what is below it and
-  traps nothing; a stretch too narrow for the next block takes a loose
-  piece, which is what the loose pieces are for. Whatever is left empty a
-  neighbour grows into.
+  Lands: the height map, grouped. The same ground, the same sizes, the same
+  fill - every piece at the first free cell, as large as the ground there
+  and shrinking to fit - but the cells are visited a square patch at a
+  time (snaking along each row of patches) rather than a whole page-width
+  row at a time, and the pieces come a set at a time. Pieces laid one after
+  another fill the same patch, so a project lands together; the page fills
+  as tightly as the height map does.
+
+  Opened, the set is laid as a block round the opened piece, with room for
+  the project's card beside it, at about the row it was on; the rest flows
+  round it as before.
 */
 function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: string[], focus: number | null, family: number[]): WorldResult {
   const groups = new Map<string, number[]>();
   sets.forEach((k, i) => groups.set(k, [...(groups.get(k) ?? []), i]));
-  const opened = Math.min(o.cols, maxSpan + Math.ceil(maxSpan / 2));
-
-  // A piece's size: its detail, nudged by the ground (sampled at a spot of
-  // its own), raised to a power so most are small and a few are huge. A
-  // project's own tile is never among the smallest.
-  const spanFor = (i: number) => {
-    const ground = groundAt(o.seed, o.cols, (i * 7.3) % o.cols, i * 1.9);
-    const d = pieces[i].detail;
-    const s = d === undefined ? ground : 0.8 * d + 0.2 * ground;
-    const span = 1 + Math.round(Math.min(1, s) ** 1.5 * (maxSpan - 1));
-    return Math.min(o.cols, pieces[i].own ? Math.max(span, Math.round(maxSpan / 2)) : span);
-  };
-
-  // The card, as one more piece of the opened set, parented to the opened
-  // piece so it is laid straight after it, beside it.
-  const CARD = pieces.length;
-  const all: WorldPiece[] = [...pieces];
-  if (focus !== null && o.card) {
-    const cw = Math.min(o.cols, o.card.cw);
-    all.push({w: cw, h: o.card.ch, rows: o.card.ch, project: pieces[focus].project, id: '#card', parent: pieces[focus].id ?? null});
-  }
-  const hasCard = all.length > pieces.length;
-
-  type Set = {key: string; list: number[]; spanOf: (i: number) => number; ideal: number; widest: number; cells: number; tone: number};
   const keys = [...groups.keys()];
   const rank = new Map(order(keys.length, o.seed).map((k, n) => [keys[k], n]));
-  const toneOf = (members: number[]) => {
-    const t = members.map((i) => pieces[i].tone ?? 1.5).sort((a, z) => a - z);
+  const toneOf = (k: string) => {
+    const t = groups.get(k)!.map((i) => pieces[i].tone ?? 1.5).sort((a, z) => a - z);
     return t[Math.floor(t.length / 2)];
   };
-  const blocks: Set[] = [];
-  const loose: number[] = [];
-  for (const key of keys) {
-    const members = groups.get(key)!;
-    const isFocus = focus !== null && sets[focus] === key;
-    if (members.length === 1 && !isFocus) {
-      loose.push(members[0]);
-      continue;
-    }
-    const list = laidOrder(all, isFocus && hasCard ? [...members, CARD] : members, isFocus ? focus : null);
-    const spanOf = (i: number) =>
-      i === CARD ? all[CARD].w : isFocus ? (i === focus ? opened : Math.min(opened - 1, spanFor(i))) : spanFor(i);
-    const ideal = blockWidth(all, list, spanOf, o.cols);
-    const widest = Math.max(...list.map((i) => Math.min(o.cols, spanOf(i))));
-    const cells = list.reduce((n, i) => n + boxAt(all[i], spanOf(i)).cw * boxAt(all[i], spanOf(i)).ch, 0);
-    blocks.push({key, list, spanOf, ideal, widest, cells, tone: toneOf(members)});
-  }
-  // By colour, in colour order; else in the seed's order, the larger sets a
-  // little earlier so the small ones and the loose pieces fill round them.
-  const bias = (b: Set) => rank.get(b.key)! - Math.log2(b.cells + 1) * 2;
-  blocks.sort((a, z) => (o.sort === 'colour' ? a.tone - z.tone || rank.get(a.key)! - rank.get(z.key)! : bias(a) - bias(z)));
-  loose.sort((a, z) => (o.sort === 'colour' ? (pieces[a].tone ?? 1.5) - (pieces[z].tone ?? 1.5) : 0) || rank.get(sets[a])! - rank.get(sets[z])!);
-  // The opened set where it was in the order, so it opens about where it was.
+  keys.sort((a, z) => (o.sort === 'colour' ? toneOf(a) - toneOf(z) : 0) || rank.get(a)! - rank.get(z)!);
+  const laid = keys.flatMap((k) => laidOrder(pieces, groups.get(k)!, null));
 
-  const area = all.reduce((n, p, i) => n + boxAt(p, i === CARD ? p.w : maxSpan).cw * boxAt(p, i === CARD ? p.w : maxSpan).ch, 0);
-  const grid = new Grid(o.cols, Math.max(80, Math.ceil((area * 3) / o.cols) + 80));
+  const area = pieces.reduce((n, p) => n + boxAt(p, 2).cw * boxAt(p, 2).ch, 0);
+  const grid = new Grid(o.cols, Math.max(60, Math.ceil((area * 8) / o.cols) + 60));
   const placed: WorldPlaced[] = [];
   let card: WorldPlaced | undefined;
-  const sky = new Array<number>(o.cols).fill(0);
-  const settle = (c0: number, c1: number) => {
-    for (let c = c0; c < c1; c++) while (sky[c] < grid.maxRows && grid.used[sky[c] * o.cols + c] !== -1) sky[c]++;
-  };
-  // The lowest open stretch: its row, its first column and its width.
-  const lowest = () => {
-    const r = Math.min(...sky);
-    const c = sky.indexOf(r);
-    let w = 0;
-    while (c + w < o.cols && sky[c + w] === r) w++;
-    return {r, c, w};
-  };
-  const put = (i: number, c: number, r: number, cw: number, ch: number) => {
-    grid.take(c, r, cw, ch);
-    if (i === CARD) card = {i, c, r, cw, ch};
-    else placed.push({i, c, r, cw, ch});
-  };
 
-  let bi = 0;
-  let li = 0;
-  for (let guard = 0; (bi < blocks.length || li < loose.length) && guard < 5000; guard++) {
-    const {r, c, w} = lowest();
-    const b = blocks[bi];
-    // A block when the stretch is wide enough for it (or nothing loose is
-    // left to fill a narrow one): built at the stretch's width, held within
-    // reason of its own best width.
-    if (b && (w >= Math.max(b.widest, Math.ceil(b.ideal * 0.6)) || li >= loose.length) && w >= Math.min(b.widest, o.cols)) {
-      const width = Math.min(w, Math.max(b.widest, Math.round(b.ideal * 1.1)));
-      // The set fills its band of columns the way the height map fills the
-      // page: each piece, in the set's order, at the first free cell of the
-      // band, as large as it wants and shrinking to fit.
-      for (const i of b.list) {
-        let done = false;
-        for (let y = r; y < grid.maxRows && !done; y++)
-          for (let x = c; x < c + width && !done; x++) {
-            if (grid.used[y * o.cols + x] !== -1) continue;
-            for (let cw = Math.min(b.spanOf(i), c + width - x); cw >= 1 && !done; cw--) {
-              const {ch} = boxAt(all[i], cw);
-              // The opened piece and the card do not shrink: they wait for room.
-              if ((i === focus || i === CARD) && cw < Math.min(b.spanOf(i), width)) break;
-              if (grid.fits(x, y, cw, ch)) {
-                put(i, x, y, cw, ch);
-                done = true;
-              }
-            }
-          }
+  // The cells in patch order: square patches about a quarter of the page
+  // wide, each read left to right, top to bottom; the patches along a row
+  // of patches snaking left and right so the next patch is always beside
+  // the last.
+  const side = Math.max(3, Math.round(o.cols / 4));
+  const across = Math.ceil(o.cols / side);
+  const cells: number[] = [];
+  for (let band = 0; band * side < grid.maxRows; band++)
+    for (let k = 0; k < across; k++) {
+      const pc = band % 2 === 0 ? k : across - 1 - k;
+      for (let r = band * side; r < Math.min(grid.maxRows, (band + 1) * side); r++)
+        for (let c = pc * side; c < Math.min(o.cols, (pc + 1) * side); c++) cells.push(r * o.cols + c);
+    }
+
+  // The opened set first, as a block with the card, at about the row it was on.
+  if (focus !== null) {
+    const CARD = pieces.length;
+    const all: WorldPiece[] = [...pieces];
+    if (o.card) all.push({w: o.card.cw, h: o.card.ch, rows: o.card.ch, project: pieces[focus].project, id: '#card', parent: pieces[focus].id ?? null});
+    const list = laidOrder(all, all.length > pieces.length ? [...family, CARD] : family, focus);
+    const opened = Math.min(o.cols, maxSpan + Math.ceil(maxSpan / 2));
+    const spanOf = (i: number) => (i === CARD ? Math.min(o.cols, all[CARD].w) : i === focus ? opened : Math.max(2, Math.round(maxSpan / 2)));
+    const b = block(all, list, spanOf, blockWidth(all, list, spanOf, o.cols));
+    const left = Math.max(0, Math.floor((o.cols - b.width) / 2));
+    for (let r = Math.max(0, o.focusRow ?? 0); r < grid.maxRows; r++) {
+      if (!b.placed.every((q) => grid.fits(left + q.c, r + q.r, q.cw, q.ch))) continue;
+      for (const q of b.placed) {
+        grid.take(left + q.c, r + q.r, q.cw, q.ch);
+        if (q.i === CARD) card = {...q, c: left + q.c, r: r + q.r};
+        else placed.push({...q, c: left + q.c, r: r + q.r});
       }
-      settle(c, c + width);
-      bi++;
-      continue;
+      break;
     }
-    if (li < loose.length) {
-      // A loose piece in the stretch: as large as it wants, within it.
-      const i = loose[li++];
-      let done = false;
-      for (let y = r; y < grid.maxRows && !done; y++)
-        for (let x = c; x < c + w && !done; x++)
-          for (let cw = Math.min(spanFor(i), c + w - x); cw >= 1 && !done; cw--)
-            if (grid.fits(x, y, cw, boxAt(pieces[i], cw).ch)) {
-              put(i, x, y, cw, boxAt(pieces[i], cw).ch);
-              done = true;
-            }
-      settle(c, c + w);
-      continue;
-    }
-    // Too narrow for what is left, and nothing loose to fill it: raise it
-    // to its lower neighbour, leaving the cells for the growing below.
-    const left = c > 0 ? sky[c - 1] : Infinity;
-    const right = c + w < o.cols ? sky[c + w] : Infinity;
-    const to = Math.min(left, right);
-    for (let k = c; k < c + w; k++) sky[k] = to === Infinity ? r + 1 : to;
   }
 
   /*
-    What is still empty, a piece beside it grows into, keeping its shape: a
-    cell wider (and as much taller as that makes it), from wherever round
-    its corner it fits. Over and over until nothing more grows. The opened
-    piece keeps its size.
+    Each piece takes, of the next few free cells in patch order, the first
+    where it touches a piece of its own set (the piece it is parented to
+    first) - so a set never comes apart round a hole another set left. A
+    set's first piece takes the very first free cell, which is what keeps
+    the holes filled.
   */
-  const at = new Int16Array(grid.used.length).fill(-1);
-  placed.forEach((q, n) => {
-    for (let y = q.r; y < q.r + q.ch; y++) for (let x = q.c; x < q.c + q.cw; x++) at[y * o.cols + x] = n;
-  });
-  if (card) for (let y = card.r; y < card.r + card.ch; y++) for (let x = card.c; x < card.c + card.cw; x++) at[y * o.cols + x] = -2;
-  const bottom = grid.rows;
-  for (let round = 0, grew = true; grew && round < 6; round++) {
-    grew = false;
-    placed.forEach((q, n) => {
-      if (q.i === focus || q.cw >= maxSpan) return;
-      const {ch} = boxAt(pieces[q.i], q.cw + 1);
-      for (const [dc, dr] of [[0, 0], [-1, 0], [0, q.ch - ch], [-1, q.ch - ch]]) {
-        const c = q.c + dc;
-        const r = q.r + dr;
-        if (c < 0 || r < 0 || c + q.cw + 1 > o.cols || r + ch > bottom) continue;
-        let ok = true;
-        for (let y = r; y < r + ch && ok; y++) for (let x = c; x < c + q.cw + 1 && ok; x++) if (at[y * o.cols + x] !== -1 && at[y * o.cols + x] !== n) ok = false;
-        if (!ok) continue;
-        for (let y = q.r; y < q.r + q.ch; y++) for (let x = q.c; x < q.c + q.cw; x++) at[y * o.cols + x] = -1;
-        Object.assign(q, {c, r, cw: q.cw + 1, ch});
-        for (let y = r; y < r + ch; y++) for (let x = c; x < c + q.cw; x++) at[y * o.cols + x] = n;
-        grew = true;
-        return;
+  const inFamily = new Set(family);
+  const mine = new Map<string, WorldPlaced[]>();
+  const whereId = new Map<string, WorldPlaced>();
+  const touches = (a: WorldPlaced, b: WorldPlaced) => a.c <= b.c + b.cw && b.c <= a.c + a.cw && a.r <= b.r + b.ch && b.r <= a.r + a.ch;
+  let cursor = 0;
+  for (const i of laid) {
+    if (inFamily.has(i)) continue;
+    const p = pieces[i];
+    const kin = mine.get(sets[i]) ?? [];
+    const up = p.parent ? whereId.get(p.parent) : undefined;
+    let first: WorldPlaced | null = null;
+    let best: WorldPlaced | null = null;
+    let bestScore = Infinity;
+    let seen = 0;
+    for (let k = cursor; k < cells.length && (seen < 48 || (kin.length > 0 && !best)); k++) {
+      const at = cells[k];
+      if (grid.used[at] !== -1) continue;
+      seen++;
+      const c = at % o.cols;
+      const r = Math.floor(at / o.cols);
+      const want = 1 + Math.round(groundAt(o.seed, o.cols, c, r) ** 1.6 * (maxSpan - 1));
+      for (let cw = Math.min(want, o.cols - c); cw >= 1; cw--) {
+        const {ch} = boxAt(p, cw);
+        if (!grid.fits(c, r, cw, ch)) continue;
+        const q = {i, c, r, cw, ch};
+        first ??= q;
+        if (kin.length === 0) break;
+        // Beside its parent best, then beside any of its set; earlier cells first.
+        const score = (up && touches(q, up) ? 0 : kin.some((x) => touches(q, x)) ? 100 : Infinity) + seen;
+        if (score < bestScore) {
+          bestScore = score;
+          best = q;
+        }
+        break;
       }
-    });
+      if (kin.length === 0 && first) break;
+    }
+    const q = best ?? first;
+    if (!q) continue;
+    grid.take(q.c, q.r, q.cw, q.ch);
+    placed.push(q);
+    mine.set(sets[i], [...kin, q]);
+    if (p.id) whereId.set(p.id, q);
+    while (cursor < cells.length && grid.used[cells[cursor]] !== -1) cursor++;
   }
   return {placed, cols: o.cols, rows: grid.rows, labels: [], family, card};
 }

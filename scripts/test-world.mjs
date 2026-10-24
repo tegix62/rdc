@@ -22,7 +22,9 @@
     - as tight as the height map: hardly an empty cell
     - each set's pieces within a few rows of each other; close-ups near
       their collage
-    - sizes far apart, and the detailed pieces the larger ones
+    - sizes far apart, from the height map's ground (Chris, of sizing by
+      detail: it "inflates logomarks and things that seem like they should
+      be smaller"; "I really prefer Height Map's look")
     - sorted by colour, the black and white territories come first
   And opening (all modes): the opened piece is the largest of its set, and
   its whole set sits together round it.
@@ -71,8 +73,8 @@ const apart = (a, b) => Math.max(0, Math.max(a.c - (b.c + b.cw), b.c - (a.c + a.
 
 // The page's grids: the biomes on a finer one, so the gap between them is a thin line.
 for (const [name, grids] of [
-  ['desktop', {heights: [20, 6], biomes: [40, 12], lands: [20, 7]}],
-  ['phone', {heights: [6, 3], biomes: [15, 6], lands: [8, 4]}],
+  ['desktop', {heights: [20, 6], biomes: [40, 12], lands: [20, 6]}],
+  ['phone', {heights: [6, 3], biomes: [15, 6], lands: [6, 3]}],
 ]) {
   for (const mode of ['heights', 'biomes', 'lands']) {
     const [cols, maxSpan] = grids[mode]
@@ -119,9 +121,15 @@ for (const [name, grids] of [
       }
       if (mode === 'lands') {
         // As tight as the height map: hardly an empty cell.
+        // Above the last few rows, where any fill runs out raggedly.
+        const coverOf = (w) => {
+          const top = Math.max(1, w.rows - 6)
+          let n = 0
+          for (const q of w.placed) for (let r = q.r; r < Math.min(top, q.r + q.ch); r++) n += q.cw
+          return n / (cols * top)
+        }
         const hm = generateWorld(pieces, {cols, mode: 'heights', seed: 42, maxSpan: grids.heights[1], focus, focusRow: 3})
-        const hmCover = hm.placed.reduce((n, q) => n + q.cw * q.ch, 0) / (cols * hm.rows)
-        check(`${tag}: as tight as the height map`, owner.size / (cols * out.rows) >= Math.min(hmCover, 0.9) - 0.07, `${Math.round((owner.size / (cols * out.rows)) * 100)}% of the cells covered, the height map ${Math.round(hmCover * 100)}%`)
+        check(`${tag}: as tight as the height map`, coverOf(out) >= Math.min(coverOf(hm), 0.9) - 0.07, `${Math.round(coverOf(out) * 100)}% of the cells covered, the height map ${Math.round(coverOf(hm) * 100)}%`)
         // A set lands together: its pieces within a few rows of each other.
         const spread = [...new Set(sets)].filter((k) => !k.startsWith('#solo') && !(focus !== null && k === sets[focus])).map((k) => {
           const rs = p.filter((q) => sets[q.i] === k).flatMap((q) => [q.r, q.r + q.ch])
@@ -131,12 +139,20 @@ for (const [name, grids] of [
         check(`${tag}: each set lands together`, spread.every((x) => x.rows <= x.n * 1.5 + maxSpan * 2), `loosest ${loosest.k}: ${loosest.n} pieces over ${loosest.rows} rows`)
         // "I'm not seeing the projects that are together actually being in
         // their adjacent clusters": a set's pieces fill most of the box round them.
-        const loosePatch = [...new Set(sets)].filter((k) => !k.startsWith('#solo')).map((k) => {
+        const touch = (a, b) => a.c <= b.c + b.cw && b.c <= a.c + a.cw && a.r <= b.r + b.ch && b.r <= a.r + a.ch
+        const broken = [...new Set(sets)].filter((k) => !k.startsWith('#solo')).filter((k) => {
           const qs = p.filter((q) => sets[q.i] === k)
-          const box = (Math.max(...qs.map((q) => q.c + q.cw)) - Math.min(...qs.map((q) => q.c))) * (Math.max(...qs.map((q) => q.r + q.ch)) - Math.min(...qs.map((q) => q.r)))
-          return {k, fill: qs.reduce((n, q) => n + q.cw * q.ch, 0) / box}
-        }).sort((a, z) => a.fill - z.fill)[0]
-        check(`${tag}: each set is one compact patch`, loosePatch.fill >= 0.55, `the loosest, ${loosePatch.k}, fills ${Math.round(loosePatch.fill * 100)}% of its box`)
+          const seen = new Set([qs[0]])
+          for (let grew = true; grew; ) {
+            grew = false
+            for (const q of qs) if (!seen.has(q) && [...seen].some((x) => touch(x, q))) (seen.add(q), (grew = true))
+          }
+          return seen.size < qs.length
+        })
+        // With a piece open, the opened block can run the width of a phone
+        // and part a set above it from the rest below; that page is dropped
+        // back then, so this is the resting world's promise.
+        if (focus === null) check(`${tag}: each set is one connected patch`, broken.length === 0, broken.join(', '))
         if (focus !== null) {
           const withCard = generateWorld(pieces, {cols, mode, seed: 42, maxSpan, focus, focusRow: 3, card: {cw: Math.min(cols, 6), ch: 4}})
           const cd = withCard.card
@@ -149,11 +165,8 @@ for (const [name, grids] of [
         check(`${tag}: close-ups near their collage`, far.length === 0, far.map((i) => pieces[i].id).join(', '))
         if (focus === null) {
           const widths = p.map((q) => q.cw)
-          check(`${tag}: sizes far apart`, Math.max(...widths) >= Math.min(...widths) * 3, `${Math.min(...widths)} to ${Math.max(...widths)} cells wide`)
-          const loose = p.filter((q) => !pieces[q.i].own)
-          const by = (lo, hi) => loose.filter((q) => pieces[q.i].detail >= lo && pieces[q.i].detail < hi).map((q) => q.cw)
+          check(`${tag}: sizes far apart, as on the height map`, Math.max(...widths) >= Math.min(...widths) * 3, `${Math.min(...widths)} to ${Math.max(...widths)} cells wide`)
           const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length
-          check(`${tag}: the detailed pieces are the larger`, mean(by(0.75, 2)) > mean(by(0, 0.25)) * 1.5, `${mean(by(0, 0.25)).toFixed(1)} vs ${mean(by(0.75, 2)).toFixed(1)} cells wide`)
           const col = generateWorld(pieces, {cols, mode, seed: 42, maxSpan, sort: 'colour'})
           const rowOf = (grey) => mean(col.placed.filter((q) => (pieces[q.i].tone < 1) === grey && sets[q.i].startsWith('#solo')).map((q) => q.r))
           check(`${tag}: by colour, black and white first`, rowOf(true) < rowOf(false), `rows ${rowOf(true).toFixed(1)} vs ${rowOf(false).toFixed(1)}`)

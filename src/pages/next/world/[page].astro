@@ -175,7 +175,7 @@ const data = {pieces, names};
   const ABOUT: Record<string, string> = {
     heights: 'Under the page is an invisible landscape of hills and valleys; each piece is drawn as big as the ground is high where it lands.',
     biomes: 'Each project - or a piece with the pieces parented to it - is its own patch of land, a small gap between them.',
-    lands: 'The height map, but each project lands together; the more detailed a picture, the more ground it takes.',
+    lands: 'The height map, but each project lands together in its own patch of ground.',
   };
   const byId = new Map(data.pieces.map((p, i) => [p.id, i]));
 
@@ -264,7 +264,7 @@ const data = {pieces, names};
     const width = Math.min(world.parentElement!.clientWidth - 32, 1400);
     // Biomes on a finer grid, so the gap between them is a thin line.
     const [cols, maxSpan] =
-      mode === 'lands' ? (phone ? [8, 4] : [20, 7]) : mode === 'biomes' ? (phone ? [15, 6] : [40, 12]) : phone ? [6, 3] : [20, 6];
+      mode === 'lands' ? (phone ? [6, 3] : [20, 6]) : mode === 'biomes' ? (phone ? [15, 6] : [40, 12]) : phone ? [6, 3] : [20, 6];
     const cell = width / cols;
     const gap = phone ? 2 : 3;
     const sort = colour && mode !== 'biomes' ? 'colour' : 'seed';

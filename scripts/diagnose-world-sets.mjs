@@ -61,6 +61,11 @@ for (const [name, w, h] of [
     })
     return {rows, patches}
   }, TERM)
+  if (name === 'phone' && process.env.DUMP_DATA) {
+    // The page's own piece data, for tuning the layout on the real pieces offline.
+    const json = await page.evaluate(() => document.getElementById('wd-data').textContent)
+    console.log(`\n== data\n${Buffer.from(json).toString('base64')}\n== end data`)
+  }
   console.log(`\n== ${name}: pieces matching "${TERM}"`)
   out.rows.forEach((r) => console.log(r))
   console.log(`\n== ${name}: patches per project`)

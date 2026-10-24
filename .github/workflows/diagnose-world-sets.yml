@@ -8,6 +8,10 @@ on:
       term:
         description: 'Part of a title or project address'
         default: 'hug'
+      dump:
+        description: 'Print the page data too (for tuning offline)'
+        type: boolean
+        default: false
       base_url:
         description: 'Site'
         default: 'https://preview.rumeau-design-co.pages.dev'
@@ -30,4 +34,5 @@ jobs:
           { echo '## World sets'; echo '```'; cat sets.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
         env:
           TERM_IN: ${{ inputs.term }}
+          DUMP_DATA: ${{ inputs.dump }}
           BASE: ${{ inputs.base_url }}

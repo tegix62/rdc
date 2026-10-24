@@ -10,8 +10,10 @@
   Biomes". See src/lib/world.ts for the rules.
 
   Then: "the height map and the biome idea should just be combined", so
-  LANDS - the biomes' tight sets, packed with no gap between territories,
-  each piece as large as its picture is detailed. And a COLOUR switch
+  LANDS - first as tinted territories ("too clunky - think like how tight
+  Height Map is, but we're grouping things together"), now the height
+  map's own tight fill with each project's pieces landing together, each
+  piece as large as its picture is detailed. And a COLOUR switch
   (heights and lands): "black and white things might appear first".
 
   Detail and colour come from each picture's tiny preview (Sanity's LQIP,
@@ -208,7 +210,7 @@ const data = {pieces, names};
   const ABOUT: Record<string, string> = {
     heights: 'Under the page is an invisible landscape of hills and valleys; each piece is drawn as big as the ground is high where it lands.',
     biomes: 'Each project - or a piece with the pieces parented to it - is its own patch of land, a small gap between them.',
-    lands: 'Each project is its own territory, packed tight against its neighbours; the more detailed a picture, the more land it takes.',
+    lands: 'The height map, but each project lands together; the more detailed a picture, the more ground it takes.',
   };
   const byId = new Map(data.pieces.map((p, i) => [p.id, i]));
 
@@ -297,7 +299,7 @@ const data = {pieces, names};
     const width = Math.min(world.parentElement!.clientWidth - 32, 1400);
     // Biomes on a finer grid, so the gap between them is a thin line.
     const [cols, maxSpan] =
-      mode === 'lands' ? (phone ? [12, 6] : [40, 14]) : mode === 'biomes' ? (phone ? [15, 6] : [40, 12]) : phone ? [6, 3] : [20, 6];
+      mode === 'lands' ? (phone ? [8, 4] : [20, 7]) : mode === 'biomes' ? (phone ? [15, 6] : [40, 12]) : phone ? [6, 3] : [20, 6];
     const cell = width / cols;
     const gap = phone ? 2 : 3;
     const sort = colour && mode !== 'biomes' ? 'colour' : 'seed';
@@ -329,7 +331,7 @@ const data = {pieces, names};
         for (let c = 0; c < cols; c++) {
           const k = out.biome[r * cols + c];
           if (k < 0) continue;
-          ctx.fillStyle = `hsl(${(k * 137.5 + (seed % 360)) % 360} ${mode === 'lands' ? '40% 91%' : '45% 94%'})`;
+          ctx.fillStyle = `hsl(${(k * 137.5 + (seed % 360)) % 360} 45% 94%)`;
           ctx.fillRect(c, r, 1, 1);
         }
       world.prepend(canvas);
@@ -342,15 +344,11 @@ const data = {pieces, names};
       const el = document.createElement(l.set.startsWith('/') ? 'a' : 'span');
       el.textContent = name;
       if (el instanceof HTMLAnchorElement) el.href = l.set;
-      // In the lands a name sits over its territory's corner, as a tag, since
-      // there is no row to spare for it.
-      const tag = mode === 'lands';
       Object.assign(el.style, {
-        position: 'absolute', left: `${l.c * cell}px`, top: `${l.r * cell}px`, maxWidth: `${Math.max(l.cw, 4) * cell}px`, height: tag ? 'auto' : `${cell}px`,
-        ...(tag ? {background: 'rgba(255,255,255,0.88)', padding: '0.15rem 0.35rem', fontSize: phone ? '0.55rem' : '0.62rem', zIndex: '2'} : {width: `${l.cw * cell}px`, padding: '0 0.35rem'}),
-        display: 'flex', alignItems: 'center', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
-        ...(tag ? {} : {fontSize: phone ? '0.6rem' : '0.7rem'}), fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase',
-        color: '#0a2a8a', textDecoration: 'none', ...(tag ? {} : {zIndex: '1'}),
+        position: 'absolute', left: `${l.c * cell}px`, top: `${l.r * cell}px`, width: `${l.cw * cell}px`, height: `${cell}px`,
+        display: 'flex', alignItems: 'center', padding: '0 0.35rem', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+        fontSize: phone ? '0.6rem' : '0.7rem', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase',
+        color: '#0a2a8a', textDecoration: 'none', zIndex: '1',
         opacity: focus !== null && l.set !== focusSet && !out.family.some((i) => `#set-${data.pieces[i].id}` === l.set || (data.pieces[i].parent && `#set-${data.pieces[i].parent}` === l.set)) ? '0.4' : '',
       });
       world.append(el);

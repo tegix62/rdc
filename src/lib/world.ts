@@ -29,13 +29,15 @@
              together very closely, and then things that aren't a case
              study are still in their own territories, but everything's
              still touching. And it has that radical size difference",
-             "more complex imagery takes up the larger spots"). Each set is
-             a tight block as in the biomes, but the blocks pack against
-             each other with no gap, and the land between them is shared
-             out to the nearest territory, so the territories touch. Within
-             a block a piece is as large as it is detailed (`detail`, from
-             the page), lifted or lowered a little by the ground where the
-             height map would put it: a few huge, most small.
+             "more complex imagery takes up the larger spots"; then, of a
+             first go with tinted territories: "too clunky - think like how
+             tight Height Map is, but we're grouping things together").
+             The height map's fill, every gap taken, but the pieces come a
+             set at a time - a project's pieces one after another, each
+             followed by the pieces parented to it - so a set lands
+             together. A piece is as large as it is detailed (`detail`,
+             from the page), lifted or lowered by the ground where it
+             lands: a few huge, most small.
 
   COLOUR (heights and lands): `sort: 'colour'` lays pieces - in lands, whole
   territories - by `tone` instead: black and white first, then round the
@@ -320,11 +322,28 @@ export function generateWorld(pieces: WorldPiece[], o: WorldOptions): WorldResul
   const focus = o.focus ?? null;
   const family = focus === null ? [] : pieces.map((_, i) => i).filter((i) => sets[i] === sets[focus]);
   if (o.mode === 'biomes') return biomes(pieces, o, maxSpan, sets, focus, family);
-  if (o.mode === 'lands') return lands(pieces, o, maxSpan, sets, focus, family);
   return flow(pieces, o, maxSpan, sets, focus, family);
 }
 
-/* Heights (and the shelved heights2 and caves): pieces flow in reading order. */
+/*
+  The order lands lays pieces in: a set at a time (the sets in the seed's
+  order, or by colour - a set's middle tone), each set in its laid order.
+*/
+function bySet(pieces: WorldPiece[], o: WorldOptions, sets: string[]) {
+  const groups = new Map<string, number[]>();
+  sets.forEach((k, i) => groups.set(k, [...(groups.get(k) ?? []), i]));
+  const keys = [...groups.keys()];
+  const rank = new Map(order(keys.length, o.seed).map((k, n) => [keys[k], n]));
+  const tone = (k: string) => {
+    const t = groups.get(k)!.map((i) => pieces[i].tone ?? 1.5).sort((a, z) => a - z);
+    return t[Math.floor(t.length / 2)];
+  };
+  if (o.sort === 'colour') keys.sort((a, z) => tone(a) - tone(z) || rank.get(a)! - rank.get(z)!);
+  else keys.sort((a, z) => rank.get(a)! - rank.get(z)!);
+  return keys.flatMap((k) => laidOrder(pieces, groups.get(k)!, null));
+}
+
+/* Heights and lands (and the shelved heights2 and caves): pieces flow in reading order. */
 function flow(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: string[], focus: number | null, family: number[]): WorldResult {
   const area = pieces.reduce((n, p) => n + boxAt(p, 2).cw * boxAt(p, 2).ch, 0);
   const grid = new Grid(o.cols, Math.max(60, Math.ceil((area * 8) / o.cols) + 60));
@@ -365,11 +384,54 @@ function flow(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: stri
 
   const inFamily = new Set(family);
   let cursor = 0;
-  const laid = order(pieces.length, o.seed);
-  if (o.sort === 'colour') laid.sort((a, b) => (pieces[a].tone ?? 1.5) - (pieces[b].tone ?? 1.5));
+  const laid = o.mode === 'lands' ? bySet(pieces, o, sets) : order(pieces.length, o.seed);
+  if (o.sort === 'colour' && o.mode !== 'lands') laid.sort((a, b) => (pieces[a].tone ?? 1.5) - (pieces[b].tone ?? 1.5));
+  // Lands: where each set's pieces, and each parented piece's parent, went.
+  const whereId = new Map<string, WorldPlaced>();
+  const lastOf = new Map<string, WorldPlaced>();
   for (const i of laid) {
     if (inFamily.has(i)) continue;
     const p = pieces[i];
+    if (o.mode === 'lands') {
+      /*
+        Not simply the first free cell, as the height map does, but the
+        best of the free cells near the front edge of the fill (within two
+        rows of the first): the one beside the piece this one is parented
+        to, else beside its set's last piece - so a set stays together and
+        the fill stays as tight.
+      */
+      const anchor = (p.parent && whereId.get(p.parent)) || lastOf.get(sets[i]) || null;
+      const row0 = Math.floor(cursor / o.cols);
+      let best: (WorldPlaced & {score: number}) | null = null;
+      for (let at = cursor; at < Math.min(grid.used.length, (row0 + 3) * o.cols); at++) {
+        if (grid.used[at] !== -1) continue;
+        const c = at % o.cols;
+        const r = Math.floor(at / o.cols);
+        const ground = groundAt(o.seed, o.cols, c, r);
+        const s = p.detail === undefined ? ground : 0.7 * p.detail + 0.3 * ground;
+        let want = 1 + Math.round(Math.min(1, s) ** 1.6 * (maxSpan - 1));
+        if (p.own) want = Math.max(want, Math.round(maxSpan / 2));
+        for (let cw = Math.min(want, o.cols - c); cw >= 1; cw--) {
+          const {ch} = boxAt(p, cw);
+          if (!grid.fits(c, r, cw, ch)) continue;
+          const gap = anchor
+            ? Math.max(0, c - (anchor.c + anchor.cw), anchor.c - (c + cw)) + Math.max(0, r - (anchor.r + anchor.ch), anchor.r - (r + ch))
+            : 0;
+          const score = gap * 3 + (r - row0) * 2 + (want - cw) * 1.5 + c * 0.01;
+          if (!best || score < best.score) best = {i, c, r, cw, ch, score};
+          break;
+        }
+      }
+      if (best) {
+        const {score: _, ...q} = best;
+        grid.take(q.c, q.r, q.cw, q.ch);
+        placed.push(q);
+        if (p.id) whereId.set(p.id, q);
+        lastOf.set(sets[i], q);
+        while (cursor < grid.used.length && grid.used[cursor] !== -1) cursor++;
+        continue;
+      }
+    }
     for (let at = cursor; at < grid.used.length; at++) {
       const c = at % o.cols;
       const r = Math.floor(at / o.cols);
@@ -507,115 +569,3 @@ function biomes(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: st
   return {placed, cols: o.cols, rows: grid.rows, biome, regions, labels, family};
 }
 
-/*
-  Lands: each set a tight block, sized by detail and the ground; the blocks
-  packed with no gap; the land left between them given to the nearest
-  territory, so every territory touches its neighbours.
-*/
-function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: string[], focus: number | null, family: number[]): WorldResult {
-  const groups = new Map<string, number[]>();
-  sets.forEach((k, i) => groups.set(k, [...(groups.get(k) ?? []), i]));
-  const regions = [...groups.keys()];
-  const opened = Math.min(o.cols, maxSpan + Math.ceil(maxSpan / 2));
-  const big = Math.max(2, Math.round(maxSpan * 0.5));
-
-  // A piece's size: its detail, nudged by the ground (heights' own field,
-  // sampled at a spot of its own), raised to a power so most are small and
-  // a few are huge. A project's own tile is never among the smallest.
-  const spanFor = (i: number) => {
-    const ground = groundAt(o.seed, o.cols, (i * 7.3) % o.cols, i * 1.9);
-    const d = pieces[i].detail;
-    const s = d === undefined ? ground : 0.72 * d + 0.28 * ground;
-    const span = 1 + Math.round(Math.min(1, s) ** 1.7 * (maxSpan - 1));
-    return pieces[i].own ? Math.max(span, big) : span;
-  };
-
-  const blocks = regions.map((key, region) => {
-    const members = groups.get(key)!;
-    const isFocus = focus !== null && sets[focus] === key;
-    const list = laidOrder(pieces, members, isFocus ? focus : null);
-    // Opened: the piece large, the rest of its set below it in size.
-    const spanOf = (i: number) => (isFocus ? (i === focus ? opened : Math.min(opened - 1, Math.max(2, spanFor(i)))) : spanFor(i));
-    const base = blockWidth(pieces, list, spanOf, o.cols);
-    const widest = Math.max(...list.map((i) => Math.min(o.cols, spanOf(i))));
-    const widths = [...new Set([base, base - 2, base + 2, base + 5].map((w) => Math.min(o.cols, Math.max(widest, w))))];
-    const shapes = widths.map((w) => {
-      const b = block(pieces, list, spanOf, w);
-      const used = Math.max(...b.placed.map((q) => q.c + q.cw));
-      const cells: [number, number][] = b.placed.flatMap((q) => {
-        const out: [number, number][] = [];
-        for (let y = q.r; y < q.r + q.ch; y++) for (let x = q.c; x < q.c + q.cw; x++) out.push([x, y]);
-        return out;
-      });
-      return {b, cells, used, height: b.rows};
-    });
-    const cells = shapes[0].cells.length;
-    // A territory's colour: its middle piece's, so one stray does not move it.
-    const tones = members.map((i) => pieces[i].tone ?? 1.5).sort((a, z) => a - z);
-    return {key, region, members, named: members.length > 1, shapes, cells, tone: tones[Math.floor(tones.length / 2)]};
-  });
-
-  const shuffle = order(blocks.length, o.seed);
-  const rank = new Map(shuffle.map((k, n) => [k, n]));
-  const sorted = [...blocks].sort((a, z) =>
-    o.sort === 'colour'
-      ? a.tone - z.tone || rank.get(a.region)! - rank.get(z.region)!
-      : Math.round(Math.log2(z.cells + 1)) - Math.round(Math.log2(a.cells + 1)) || rank.get(a.region)! - rank.get(z.region)!,
-  );
-  if (focus !== null) sorted.sort((a, z) => Number(z.key === sets[focus]) - Number(a.key === sets[focus]));
-
-  const total = blocks.reduce((n, b) => n + b.cells, 0);
-  const grid = new Grid(o.cols, Math.max(60, Math.ceil((total * 4) / o.cols) + 60));
-  const placed: WorldPlaced[] = [];
-  const labels: WorldLabel[] = [];
-  let from = 0;
-
-  for (const s of sorted) {
-    const free = (cells: [number, number][], c: number, r: number) =>
-      cells.every(([x, y]) => c + x < o.cols && r + y < grid.maxRows && grid.used[(r + y) * o.cols + c + x] === -1);
-    // Each width's first spot; keep the one whose bottom is highest, then
-    // the one that leaves the fewest empty cells above it.
-    let best: {shape: (typeof s.shapes)[number]; c: number; r: number; score: number} | null = null;
-    for (const shape of s.shapes) {
-      for (let at = from * o.cols; at < grid.used.length; at++) {
-        const c = at % o.cols;
-        const r = Math.floor(at / o.cols);
-        if (best && r + shape.height > best.r + best.shape.height + 2) break;
-        if (c + shape.used > o.cols || grid.used[at] !== -1) continue;
-        if (!free(shape.cells, c, r)) continue;
-        let holes = 0;
-        for (const [x, y] of shape.cells) if (r + y > 0 && grid.used[(r + y - 1) * o.cols + c + x] === -1 && !shape.cells.some(([a, b]) => a === x && b === y - 1)) holes++;
-        const score = (r + shape.height) * 4 + holes;
-        if (!best || score < best.score) best = {shape, c, r, score};
-        break;
-      }
-    }
-    if (!best) continue;
-    const {shape, c, r} = best;
-    for (const [x, y] of shape.cells) grid.used[(r + y) * o.cols + c + x] = s.region;
-    grid.rows = Math.max(grid.rows, r + shape.height);
-    for (const q of shape.b.placed) placed.push({...q, c: c + q.c, r: r + q.r});
-    if (s.named) labels.push({text: s.key, set: s.key, c, r, cw: shape.used});
-    while (from < grid.maxRows && [...grid.used.subarray(from * o.cols, (from + 1) * o.cols)].every((v) => v !== -1)) from++;
-  }
-
-  // The land between: every empty cell goes to the territory nearest it,
-  // grown out a ring at a time, so the territories meet.
-  const n = o.cols * grid.rows;
-  const biome = new Int16Array(grid.used.length).fill(-1);
-  biome.set(grid.used.subarray(0, n));
-  for (let changed = true; changed; ) {
-    changed = false;
-    const prev = biome.slice(0, n);
-    for (let k = 0; k < n; k++) {
-      if (prev[k] !== -1) continue;
-      const c = k % o.cols;
-      const near = [c > 0 ? prev[k - 1] : -1, c < o.cols - 1 ? prev[k + 1] : -1, k >= o.cols ? prev[k - o.cols] : -1, k + o.cols < n ? prev[k + o.cols] : -1].filter((v) => v !== -1);
-      if (near.length) {
-        biome[k] = near[Math.floor(((hash2(o.seed, k, 3) + 1) / 2) * near.length) % near.length];
-        changed = true;
-      }
-    }
-  }
-  return {placed, cols: o.cols, rows: grid.rows, biome, regions, labels, family};
-}

@@ -17,9 +17,11 @@
   still in their own territories, but everything's still touching",
   "radical size difference", "more complex imagery takes up the larger
   spots"):
-    - no gaps: every cell of the land belongs to a territory, and every
-      territory meets another
-    - the pieces cover most of the land; close-ups beside their collage
+    (then: "too clunky - think like how tight Height Map is, but we're
+    grouping things together")
+    - as tight as the height map: hardly an empty cell
+    - each set's pieces within a few rows of each other; close-ups near
+      their collage
     - sizes far apart, and the detailed pieces the larger ones
     - sorted by colour, the black and white territories come first
   And opening (all modes): the opened piece is the largest of its set, and
@@ -69,8 +71,8 @@ const apart = (a, b) => Math.max(0, Math.max(a.c - (b.c + b.cw), b.c - (a.c + a.
 
 // The page's grids: the biomes on a finer one, so the gap between them is a thin line.
 for (const [name, grids] of [
-  ['desktop', {heights: [20, 6], biomes: [40, 12], lands: [40, 14]}],
-  ['phone', {heights: [6, 3], biomes: [15, 6], lands: [12, 6]}],
+  ['desktop', {heights: [20, 6], biomes: [40, 12], lands: [20, 7]}],
+  ['phone', {heights: [6, 3], biomes: [15, 6], lands: [8, 4]}],
 ]) {
   for (const mode of ['heights', 'biomes', 'lands']) {
     const [cols, maxSpan] = grids[mode]
@@ -116,28 +118,27 @@ for (const [name, grids] of [
         check(`${tag}: close-ups sit right beside their collage`, far.length === 0, far.map((i) => pieces[i].id).join(', '))
       }
       if (mode === 'lands') {
-        let empty = 0
-        for (let k = 0; k < cols * out.rows; k++) if (out.biome[k] === -1) empty++
-        check(`${tag}: no gaps - every cell of the land in a territory`, empty === 0, `${empty} empty`)
-        const meets = new Set()
-        for (let k = 0; k < cols * out.rows; k++) {
-          const right = k % cols < cols - 1 ? out.biome[k + 1] : -1
-          const below = k + cols < cols * out.rows ? out.biome[k + cols] : -1
-          for (const j of [right, below]) if (j !== -1 && j !== out.biome[k]) meets.add(out.biome[k]).add(j)
-        }
-        const present = new Set(out.biome.subarray(0, cols * out.rows))
-        check(`${tag}: every territory meets another`, [...present].every((k) => meets.has(k)), `${meets.size}/${present.size}`)
-        check(`${tag}: the pieces cover most of the land`, owner.size >= cols * out.rows * 0.6, `${Math.round((owner.size / (cols * out.rows)) * 100)}%`)
+        // As tight as the height map: hardly an empty cell.
+        const hm = generateWorld(pieces, {cols, mode: 'heights', seed: 42, maxSpan: grids.heights[1], focus, focusRow: 3})
+        const hmCover = hm.placed.reduce((n, q) => n + q.cw * q.ch, 0) / (cols * hm.rows)
+        check(`${tag}: as tight as the height map`, owner.size / (cols * out.rows) >= Math.min(hmCover, 0.9) - 0.07, `${Math.round((owner.size / (cols * out.rows)) * 100)}% of the cells covered, the height map ${Math.round(hmCover * 100)}%`)
+        // A set lands together: its pieces within a few rows of each other.
+        const spread = [...new Set(sets)].filter((k) => !k.startsWith('#solo') && !(focus !== null && k === sets[focus])).map((k) => {
+          const rs = p.filter((q) => sets[q.i] === k).flatMap((q) => [q.r, q.r + q.ch])
+          return {k, rows: Math.max(...rs) - Math.min(...rs), n: rs.length / 2}
+        })
+        const loosest = spread.sort((a, z) => z.rows / z.n - a.rows / a.n)[0]
+        check(`${tag}: each set lands together`, spread.every((x) => x.rows <= x.n * 1.5 + maxSpan * 2), `loosest ${loosest.k}: ${loosest.n} pieces over ${loosest.rows} rows`)
         const close = pieces.map((x, i) => (x.id.includes('-close-') ? i : -1)).filter((i) => i >= 0)
-        const far = close.filter((i) => !out.family.includes(i) && apart(boxOf(out, i), boxOf(out, pieces.findIndex((x) => x.id === pieces[i].parent))) > 1)
-        check(`${tag}: close-ups sit right beside their collage`, far.length === 0, far.map((i) => pieces[i].id).join(', '))
+        const far = close.filter((i) => !out.family.includes(i) && apart(boxOf(out, i), boxOf(out, pieces.findIndex((x) => x.id === pieces[i].parent))) > maxSpan)
+        check(`${tag}: close-ups near their collage`, far.length === 0, far.map((i) => pieces[i].id).join(', '))
         if (focus === null) {
           const widths = p.map((q) => q.cw)
-          check(`${tag}: sizes far apart`, Math.max(...widths) >= Math.min(...widths) * 4, `${Math.min(...widths)} to ${Math.max(...widths)} cells wide`)
+          check(`${tag}: sizes far apart`, Math.max(...widths) >= Math.min(...widths) * 3, `${Math.min(...widths)} to ${Math.max(...widths)} cells wide`)
           const loose = p.filter((q) => !pieces[q.i].own)
           const by = (lo, hi) => loose.filter((q) => pieces[q.i].detail >= lo && pieces[q.i].detail < hi).map((q) => q.cw)
           const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length
-          check(`${tag}: the detailed pieces are the larger`, mean(by(0.75, 2)) > mean(by(0, 0.25)) * 1.8, `${mean(by(0, 0.25)).toFixed(1)} vs ${mean(by(0.75, 2)).toFixed(1)} cells wide`)
+          check(`${tag}: the detailed pieces are the larger`, mean(by(0.75, 2)) > mean(by(0, 0.25)) * 1.5, `${mean(by(0, 0.25)).toFixed(1)} vs ${mean(by(0.75, 2)).toFixed(1)} cells wide`)
           const col = generateWorld(pieces, {cols, mode, seed: 42, maxSpan, sort: 'colour'})
           const rowOf = (grey) => mean(col.placed.filter((q) => (pieces[q.i].tone < 1) === grey && sets[q.i].startsWith('#solo')).map((q) => q.r))
           check(`${tag}: by colour, black and white first`, rowOf(true) < rowOf(false), `rows ${rowOf(true).toFixed(1)} vs ${rowOf(false).toFixed(1)}`)

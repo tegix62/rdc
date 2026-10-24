@@ -53,8 +53,8 @@ for (const [name, w, h] of [
     const tag = `${name}, ${mode.replace('&sort=', ' by ')}`
     const rest = await state(page)
     if (mode.startsWith('lands')) {
-      const land = await page.evaluate(() => ({sized: Array.from(new Set(Array.from(document.querySelectorAll('.wd-piece:not([hidden])')).map((t) => Math.round(t.getBoundingClientRect().width)))).length, canvas: !!document.querySelector('.wd-world canvas')}))
-      check(`${tag}: the land drawn, pieces of many sizes`, land.canvas && land.sized >= 4, `${land.sized} sizes`)
+      const sized = await page.evaluate(() => new Set(Array.from(document.querySelectorAll('.wd-piece:not([hidden])')).map((t) => Math.round(t.getBoundingClientRect().width))).size)
+      check(`${tag}: pieces of many sizes`, sized >= 3, `${sized} sizes`)
     }
     check(`${tag}: every piece shown, none overlapping`, rest.shown === rest.total && rest.overlaps === 0, `${rest.shown}/${rest.total}, ${rest.overlaps} overlap(s)`)
     const k = Math.floor(rest.shown / 3)

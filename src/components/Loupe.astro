@@ -54,9 +54,18 @@ interface Props {
     window; see /collage/lens/[piece].
   */
   mode?: 'window' | 'canvas';
+  /**
+    For a piece that is not a square collage (the Up close view shows every
+    piece this way): its alt text; its shape, width over height, so 'page'
+    fits the whole of it in the window; and `flat`, no paper shadow under
+    a mark or a cut-out. All optional - a collage needs none of them.
+  */
+  alt?: string;
+  aspect?: number;
+  flat?: boolean;
 }
 
-const {name, scan, image, size = 'page', hint = true, loading = 'eager', mode = 'window'} = Astro.props;
+const {name, scan, image, size = 'page', hint = true, loading = 'eager', mode = 'window', alt, aspect, flat = false} = Astro.props;
 
 const hasScan = Boolean(scan?.url && scan?.w && scan?.h);
 const W = hasScan ? scan!.w! : 0;
@@ -65,7 +74,9 @@ const H = hasScan ? scan!.h! : 0;
 const sizes =
   size === 'fill'
     ? '(max-width: 48rem) calc(100vw - 2rem), 40rem'
-    : '(max-width: 48rem) calc(100vw - 2rem), min(calc(100svh - 15rem), 1100px)';
+    : aspect
+      ? `(max-width: 48rem) calc(100vw - 2rem), min(calc((100svh - 15rem) * ${aspect.toFixed(4)}), 1400px)`
+      : '(max-width: 48rem) calc(100vw - 2rem), min(calc(100svh - 15rem), 1100px)';
 
 // The web-sized copy: from the scan itself when there is one, so what the
 // glass magnifies is the same picture it then sharpens.
@@ -88,7 +99,8 @@ const web = hasScan ? webFrom(scan!.url!) : plainFrom(image);
 {web && (
   <div class:list={['loupe-wrap', size === 'fill' && 'loupe-wrap--fill']}>
     <figure
-      class:list={['loupe', size === 'fill' && 'loupe--fill']}
+      class:list={['loupe', size === 'fill' && 'loupe--fill', aspect && 'loupe--shaped', flat && 'loupe--flat']}
+      style={aspect ? `--loupe-a:${aspect.toFixed(4)}` : undefined}
       data-loupe={hasScan ? '' : undefined}
       data-mode={hasScan ? mode : undefined}
       data-scan={hasScan ? scan!.url : undefined}
@@ -104,7 +116,7 @@ const web = hasScan ? webFrom(scan!.url!) : plainFrom(image);
         sizes={sizes}
         width={hasScan ? W : undefined}
         height={hasScan ? H : undefined}
-        alt={`${name}, a square paper collage`}
+        alt={alt ?? `${name}, a square paper collage`}
         draggable="false"
         loading={loading}
         fetchpriority={loading === 'eager' ? 'high' : undefined}
@@ -160,6 +172,18 @@ const web = hasScan ? webFrom(scan!.url!) : plainFrom(image);
 
   .loupe--fill {
     width: 100%;
+  }
+
+  /* Any shape: as wide as fits the whole piece in the window. */
+  .loupe--shaped {
+    width: min(100%, calc((100svh - 15rem) * var(--loupe-a)), 1400px);
+  }
+  .loupe--shaped.loupe--fill {
+    width: min(100%, calc((100svh - 15rem) * var(--loupe-a)));
+  }
+
+  .loupe--flat {
+    box-shadow: none;
   }
 
   .loupe__img {

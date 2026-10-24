@@ -186,6 +186,56 @@ for (const [name, w, h] of [
   await page.close()
 }
 
+
+/*
+  Up close and Index (preview): every piece has its place, the pieces
+  parented to one sit just under it, a row of the Index opens its piece in
+  Up close, and the toolbars offer Up close in place of Type/Lettering.
+*/
+for (const [name, w, h] of [
+  ['desktop', 1440, 900],
+  ['phone', 390, 844],
+]) {
+  const page = await browser.newPage({viewport: {width: w, height: h}})
+  const errors = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  await page.goto(`${BASE}/next/close/home`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.waitForTimeout(1200)
+  const uc = await page.evaluate(() => {
+    const stops = Array.from(document.querySelectorAll('.uc-stop'))
+    const deep = stops.filter((s) => !s.classList.contains('uc-stop--d0'))
+    // Each deeper stop follows its piece, or another of that piece's.
+    const orphan = deep.filter((s) => {
+      const prev = s.previousElementSibling
+      return !prev || !prev.classList.contains('uc-stop')
+    }).length
+    const wide = stops.filter((s) => s.getBoundingClientRect().width > innerWidth + 1).length
+    return {stops: stops.length, deep: deep.length, orphan, wide, labelled: stops.filter((s) => s.querySelector('.uc-label__title')).length, ids: new Set(stops.map((s) => s.id)).size}
+  })
+  check(`${name}, up close: every piece has its place, labelled, by its own address`, uc.stops > 50 && uc.labelled === uc.stops && uc.ids === uc.stops, `${uc.stops} pieces, ${uc.labelled} labelled, ${uc.ids} addresses`)
+  check(`${name}, up close: the pieces parented to one sit under it`, uc.deep > 0 && uc.orphan === 0, `${uc.deep} deeper`)
+  check(`${name}, up close: nothing wider than the screen`, uc.wide === 0 && !(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), `${uc.wide}`)
+  check(`${name}, up close: no script errors`, errors.length === 0, errors.join(' | '))
+  await page.goto(`${BASE}/next/index/home`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.waitForTimeout(800)
+  const first = await page.evaluate(() => ({rows: document.querySelectorAll('.ix-row').length, href: document.querySelector('.ix-title')?.getAttribute('href')}))
+  check(`${name}, index: a row for every piece`, first.rows === uc.stops, `${first.rows} rows, ${uc.stops} pieces`)
+  await page.click('.ix-title')
+  await page.waitForTimeout(1200)
+  const landed = await page.evaluate(() => {
+    const el = document.getElementById(location.hash.slice(1))
+    return el ? Math.round(el.getBoundingClientRect().top) : null
+  })
+  check(`${name}, index: a row opens its piece in Up close`, page.url().includes('/next/close/home#') && landed !== null && landed < 200, `${page.url()} at ${landed}px`)
+  for (const path of ['/next/world/home', '/portfolio']) {
+    await page.goto(`${BASE}${path}`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+    const bar = await page.evaluate(() => Array.from(document.querySelectorAll('.pf-group--filters .pf-btn')).map((b) => b.textContent.trim()))
+    check(`${name}, ${path}: Up close in the toolbar, not Type/Lettering`, bar.includes('Up close') && !bar.some((t) => /type/i.test(t)), bar.join(' | '))
+  }
+  check(`${name}, the views: no script errors`, errors.length === 0, errors.join(' | '))
+  await page.close()
+}
+
 await browser.close()
 console.log(failures ? `\n${failures} check(s) failed.` : '\nall checks passed')
 process.exit(failures ? 1 : 0)

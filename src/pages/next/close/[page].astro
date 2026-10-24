@@ -1,0 +1,178 @@
+---
+/*
+  UP CLOSE - preview only, at /next/close/home: the portfolio's fourth view,
+  in place of Type/Lettering.
+
+  Chris: the type cluster is "woefully outdated and obsolete. We just don't
+  have enough type work presented yet"; the views "are not actually
+  filters. They're just like different views." All (Lands) wanders,
+  Brand Identity gathers, Merch shelves; this one looks closely, one thing
+  at a time - "depth reveals process", an idea he called great and parked.
+
+  Each piece fills the screen, captioned as a museum captions a painting
+  (lib/museumLabel.ts), with the picture itself as the magnifier: move over
+  it (or press and hold) and it becomes the full-resolution original,
+  magnified in place (components/Loupe.astro, 'canvas'). Under it, deeper:
+  the pieces parented to it - its close-ups, its other shots, and, when
+  they are uploaded, its sketches - smaller, then on to the next piece. No
+  new fields: the parent links already set do it.
+
+  The order: the case studies, in the order dragged in Studio, each with
+  its project's block of type and then its project's pieces; then
+  everything else. A piece's address is #<its slug>, so a link can open
+  this view at it.
+
+  Never built for production (getStaticPaths), and noindex.
+*/
+import Layout from '../../../layouts/Layout.astro';
+import Loupe from '../../../components/Loupe.astro';
+import {getAllGridItems} from '../../../lib/queries';
+import {tileImage, imageDimensions} from '../../../lib/image';
+import {tileHref, cleanKey, treatmentOf} from '../../../lib/tiles';
+import {stripStegaKey} from '../../../lib/stega';
+import {clusterCard} from '../../../lib/clusterCard';
+import {museumLabel} from '../../../lib/museumLabel';
+
+export async function getStaticPaths() {
+  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
+  return [{params: {page: 'home'}}];
+}
+
+const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
+const items: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)));
+const isProject = (it: any) => cleanKey(it.pageType) === 'Case Study';
+const idOf = (it: any) => cleanKey(it._id).replace(/^drafts\./, '');
+const ids = new Set(items.map(idOf));
+const parentOf = (it: any) => (it.pieceParent && ids.has(cleanKey(it.pieceParent)) ? cleanKey(it.pieceParent) : null);
+
+// The pieces parented to each piece: its depth.
+const kids = new Map<string, any[]>();
+for (const it of items) {
+  const up = parentOf(it);
+  if (up) kids.set(up, [...(kids.get(up) ?? []), it]);
+}
+const byTitle = (a: any, z: any) => clean(a.title).localeCompare(clean(z.title));
+for (const list of kids.values()) list.sort(byTitle);
+
+// The order: case studies as dragged in Studio, each followed by its
+// project's own top-level pieces; then everything else.
+const top = items.filter((it) => !parentOf(it));
+const studies = top
+  .filter(isProject)
+  .sort((a, z) => {
+    const ra = typeof a.orderRank === 'string' ? a.orderRank : null;
+    const rz = typeof z.orderRank === 'string' ? z.orderRank : null;
+    if (ra && rz) return ra < rz ? -1 : 1;
+    if (ra || rz) return ra ? -1 : 1;
+    return byTitle(a, z);
+  });
+const used = new Set<string>();
+const order: any[] = [];
+for (const s of studies) {
+  order.push(s);
+  used.add(idOf(s));
+  for (const it of top.filter((x) => !isProject(x) && tileHref(x) === tileHref(s)).sort(byTitle)) {
+    order.push(it);
+    used.add(idOf(it));
+  }
+}
+for (const it of top.filter((x) => !used.has(idOf(x))).sort(byTitle)) order.push(it);
+
+const count: Record<string, number> = {};
+for (const it of items) {
+  const h = tileHref(it);
+  if (h) count[h] = (count[h] ?? 0) + 1;
+}
+
+/*
+  The original, for the magnifier: every Sanity picture's full file, by its
+  reference (image-<hash>-<w>x<h>-<ext>). A GIF or an SVG is shown plainly -
+  the magnifier cuts still patches.
+*/
+const originalOf = (img: any) => {
+  const m = String(img?.asset?._ref ?? '').match(/^image-([a-f0-9]+)-(\d+)x(\d+)-([a-z0-9]+)$/i);
+  if (!m || ['gif', 'svg'].includes(m[4].toLowerCase())) return null;
+  return {url: `https://cdn.sanity.io/images/8337vjtf/production/${m[1]}-${m[2]}x${m[3]}.${m[4]}`, w: Number(m[2]), h: Number(m[3])};
+};
+
+type Stop = {it: any; depth: number; label: ReturnType<typeof museumLabel>; card: ReturnType<typeof clusterCard> | null; scan: any; aspect: number; key: string; parentTitle: string | null};
+const stops: Stop[] = [];
+const add = (it: any, depth: number, parentTitle: string | null) => {
+  const img = tileImage(it);
+  const d = imageDimensions(img)!;
+  stops.push({
+    it,
+    depth,
+    label: museumLabel(it),
+    card: depth === 0 && isProject(it) ? clusterCard(it) : null,
+    scan: originalOf(img),
+    aspect: d.width / d.height,
+    key: it.slug?.current ? cleanKey(it.slug.current) : idOf(it),
+    parentTitle,
+  });
+  if (depth < 2) for (const k of kids.get(idOf(it)) ?? []) add(k, depth + 1, clean(it.title));
+};
+for (const it of order) add(it, 0, null);
+---
+
+<Layout title="Up close - Rumeau Design Co" description="The portfolio, one piece at a time." noindex>
+  <div class="uc pf-section">
+    <div class="pf-controls">
+      <div class="pf-group pf-group--filters" role="group" aria-label="Views">
+        <a class="pf-btn" href="/next/world/home">All</a>
+        <a class="pf-btn" href="/portfolio">Brand Identity</a>
+        <a class="pf-btn" href="/portfolio?view=merch">Merch &amp; Apparel</a>
+        <a class="pf-btn is-active" href="/next/close/home" aria-current="page">Up close</a>
+      </div>
+    </div>
+
+    <ol class="uc-list">
+      {stops.map((s, n) => {
+        const href = tileHref(s.it);
+        const mark = treatmentOf(s.it) === 'mark' || s.it.tileOpaque === false;
+        return (
+          <li class:list={['uc-stop', `uc-stop--d${s.depth}`]} id={s.key}>
+            {s.depth > 0 && s.parentTitle && <p class="uc-from">Deeper into {s.parentTitle}</p>}
+            <Loupe
+              name={clean(s.it.title)}
+              alt={clean(s.it.title)}
+              scan={s.scan}
+              image={tileImage(s.it)}
+              aspect={s.aspect}
+              flat={mark}
+              mode="canvas"
+              hint={false}
+              size={s.depth > 0 ? 'fill' : 'page'}
+              loading={n === 0 ? 'eager' : 'lazy'}
+            />
+            <div class="uc-caption">
+              {s.label && (
+                <p class="uc-label">
+                  <span class="uc-label__title">{s.label.title}</span>
+                  {s.label.detail && <span class="uc-label__detail">{s.label.detail}</span>}
+                </p>
+              )}
+              {s.card && (
+                <a class="uc-card" href={href}>
+                  {s.card.kicker && <span class="pf-card__kicker">{s.card.kicker}</span>}
+                  {s.card.client && <span class="pf-card__client">For {s.card.client}</span>}
+                  {s.card.line && <span class="pf-card__line">{s.card.line}</span>}
+                  {s.card.result && <span class="pf-card__result">{s.card.result}</span>}
+                </a>
+              )}
+              {href && s.depth === 0 && (
+                <a class="uc-jump" href={href}>
+                  <span>{clean(s.it.parentTitle ?? s.it.title)}</span>
+                  {(count[href] ?? 0) > 1 && <span class="uc-jump__count">&middot; {count[href]} pieces</span>}
+                  <span aria-hidden="true">&rarr;</span>
+                </a>
+              )}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  </div>
+</Layout>
+
+<!-- Styles: global.css, UP CLOSE (PREVIEW). -->

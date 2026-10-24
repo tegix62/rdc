@@ -117,7 +117,16 @@ const filters: { value: string; label: string; href?: string }[] = [
   and the brand-only filter goes. The live site is unchanged.
 */
 if (import.meta.env.PUBLIC_IS_PREVIEW === 'true') {
-  filters.splice(0, filters.length, { value: 'world', label: 'All', href: '/next/world/home' }, { value: '*', label: 'Brand Identity' }, ...filters.slice(1).filter((f) => f.value !== '.brand-identity'));
+  // And Type/Lettering gives way to Up close ("woefully outdated and
+  // obsolete ... we just don't have enough type work presented yet").
+  filters.splice(
+    0,
+    filters.length,
+    { value: 'world', label: 'All', href: '/next/world/home' },
+    { value: '*', label: 'Brand Identity' },
+    ...filters.slice(1).filter((f) => f.value !== '.brand-identity' && f.value !== '.type-lettering'),
+    { value: 'close', label: 'Up close', href: '/next/close/home' },
+  );
 }
 
 /*

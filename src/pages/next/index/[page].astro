@@ -1,0 +1,119 @@
+---
+/*
+  INDEX - preview only, at /next/index/home. A look at the idea, not a view
+  in the toolbar yet.
+
+  Chris: "I'm also curious about seeing index." The work as a plain list -
+  its title, its project, what it is, the year - the quickest scan for
+  someone with a checklist, and instant to load: no picture until one is
+  asked for. On a wide screen the picture follows the pointer over a row;
+  a row opens that piece in Up close.
+
+  The same order as Up close: the case studies as dragged in Studio, each
+  with its project's pieces, then everything else.
+
+  Never built for production (getStaticPaths), and noindex.
+*/
+import Layout from '../../../layouts/Layout.astro';
+import {getAllGridItems} from '../../../lib/queries';
+import {tileImage, imageDimensions, imageUrl} from '../../../lib/image';
+import {tileHref, cleanKey} from '../../../lib/tiles';
+import {stripStegaKey} from '../../../lib/stega';
+import {museumLabel} from '../../../lib/museumLabel';
+
+export async function getStaticPaths() {
+  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
+  return [{params: {page: 'home'}}];
+}
+
+const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
+const items: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)));
+const isProject = (it: any) => cleanKey(it.pageType) === 'Case Study';
+const idOf = (it: any) => cleanKey(it._id).replace(/^drafts\./, '');
+const byTitle = (a: any, z: any) => clean(a.title).localeCompare(clean(z.title));
+const rank = (it: any) => (typeof it.orderRank === 'string' ? it.orderRank : null);
+
+const studies = items.filter(isProject).sort((a, z) => {
+  const ra = rank(a);
+  const rz = rank(z);
+  if (ra && rz) return ra < rz ? -1 : 1;
+  if (ra || rz) return ra ? -1 : 1;
+  return byTitle(a, z);
+});
+const used = new Set<string>();
+const rows: any[] = [];
+for (const s of studies) {
+  for (const it of [s, ...items.filter((x) => !isProject(x) && tileHref(x) && tileHref(x) === tileHref(s)).sort(byTitle)]) {
+    rows.push(it);
+    used.add(idOf(it));
+  }
+}
+for (const it of items.filter((x) => !used.has(idOf(x))).sort(byTitle)) rows.push(it);
+
+const projectName: Record<string, string> = {};
+for (const s of studies) if (tileHref(s)) projectName[tileHref(s)!] = clean(s.title);
+---
+
+<Layout title="Index - Rumeau Design Co" description="The portfolio as a list." noindex>
+  <div class="ix pf-section">
+    <div class="pf-controls">
+      <div class="pf-group pf-group--filters" role="group" aria-label="Views">
+        <a class="pf-btn" href="/next/world/home">All</a>
+        <a class="pf-btn" href="/portfolio">Brand Identity</a>
+        <a class="pf-btn" href="/portfolio?view=merch">Merch &amp; Apparel</a>
+        <a class="pf-btn" href="/next/close/home">Up close</a>
+      </div>
+    </div>
+    <table class="ix-table">
+      <thead>
+        <tr>
+          <th scope="col">Work</th>
+          <th scope="col">Project</th>
+          <th scope="col" class="ix-what">What</th>
+          <th scope="col" class="ix-year">Year</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((it) => {
+          const href = tileHref(it);
+          const label = museumLabel(it);
+          const key = it.slug?.current ? cleanKey(it.slug.current) : idOf(it);
+          const thumb = imageUrl(tileImage(it))?.width(480).auto('format').quality(80).url();
+          return (
+            <tr class:list={['ix-row', isProject(it) && 'ix-row--study']} data-thumb={thumb}>
+              <td>
+                <a class="ix-title" href={`/next/close/home#${key}`}>
+                  {label?.title ?? clean(it.title)}
+                </a>
+              </td>
+              <td>{href && projectName[href] ? <a href={href}>{projectName[href]}</a> : <span class="ix-none">&mdash;</span>}</td>
+              <td class="ix-what">{clean(it.medium) || clean(it.category) || ''}</td>
+              <td class="ix-year">{clean(it.year) || ''}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+    <img class="ix-peek" alt="" hidden />
+  </div>
+</Layout>
+
+<script>
+  // On a wide screen with a pointer, the row's picture follows the pointer.
+  const peek = document.querySelector<HTMLImageElement>('.ix-peek')!;
+  if (matchMedia('(hover: hover) and (min-width: 48rem)').matches) {
+    document.querySelectorAll<HTMLElement>('.ix-row').forEach((row) => {
+      row.addEventListener('pointerenter', () => {
+        if (row.dataset.thumb) peek.src = row.dataset.thumb;
+        peek.hidden = false;
+      });
+      row.addEventListener('pointerleave', () => (peek.hidden = true));
+      row.addEventListener('pointermove', (e) => {
+        peek.style.left = `${e.clientX + 24}px`;
+        peek.style.top = `${Math.min(e.clientY - 40, innerHeight - 340)}px`;
+      });
+    });
+  }
+</script>
+
+<!-- Styles: global.css, INDEX (PREVIEW). -->

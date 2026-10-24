@@ -8373,3 +8373,151 @@ a.pf-btn {
   text-decoration: none;
   box-sizing: border-box;
 }
+
+/* ==========================================================================
+   UP CLOSE, PREVIEW (/next/close/home). See src/pages/next/close/[page].astro.
+   ========================================================================== */
+.uc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.uc-stop {
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-2) var(--space-5);
+  scroll-margin-top: var(--space-3);
+}
+/* Deeper: smaller, and closer under the piece it belongs to. */
+.uc-stop--d1,
+.uc-stop--d2 {
+  max-width: min(36rem, 72vw);
+  padding-top: 0;
+}
+.uc-stop--d2 {
+  max-width: min(28rem, 60vw);
+}
+.uc-from {
+  margin: 0 0 var(--space-1);
+  text-align: center;
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-navy) 70%, transparent);
+}
+.uc-caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin: var(--space-2) auto 0;
+  max-width: 40rem;
+  text-align: center;
+}
+.uc-label {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.uc-label__title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--color-navy);
+}
+.uc-label__detail {
+  font-size: 0.875rem;
+  color: color-mix(in srgb, var(--color-ink) 70%, transparent);
+}
+.uc-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+.uc-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-navy);
+  color: var(--color-white, #fff);
+  text-decoration: none;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+}
+.uc-jump:hover,
+.uc-jump:focus-visible {
+  background: var(--color-navy-dark, #061a5a);
+}
+.uc-jump__count {
+  opacity: 0.7;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   INDEX, PREVIEW (/next/index/home). See src/pages/next/index/[page].astro.
+   ========================================================================== */
+.ix-table {
+  width: min(100%, 64rem);
+  margin: 0 auto;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+.ix-table th {
+  text-align: left;
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  color: var(--color-navy);
+  padding: 0.5rem 0.5rem;
+  border-bottom: 2px solid var(--color-navy);
+}
+.ix-table td {
+  padding: 0.55rem 0.5rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-navy) 18%, transparent);
+  vertical-align: baseline;
+}
+.ix-row:hover td {
+  background: color-mix(in srgb, var(--color-navy) 6%, transparent);
+}
+.ix-row--study .ix-title {
+  font-weight: 700;
+}
+.ix-table a {
+  color: var(--color-navy);
+  text-decoration: none;
+}
+.ix-table a:hover {
+  text-decoration: underline;
+}
+.ix-none {
+  opacity: 0.35;
+}
+.ix-year {
+  white-space: nowrap;
+  text-align: right;
+}
+.ix-peek {
+  position: fixed;
+  z-index: 20;
+  width: 280px;
+  height: auto;
+  max-height: 320px;
+  object-fit: contain;
+  pointer-events: none;
+  box-shadow: 0 12px 32px -12px rgb(0 0 0 / 0.35);
+  background: #fff;
+}
+/* On a phone: the work and its project; what and when go. */
+@media (max-width: 40rem) {
+  .ix-what,
+  .ix-year {
+    display: none;
+  }
+}

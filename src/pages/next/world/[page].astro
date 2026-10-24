@@ -154,11 +154,13 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
           here. Lands is All; Brand Identity is the portfolio's old All grid,
           everything in it ("Make OLD version of All now Brand Identity").
         */}
-        {FILTERS.map((f) => (
+        {FILTERS.filter((f) => f.name !== 'type').map((f) => (
           <a class="pf-btn" href={f.name === 'brand' ? '/portfolio' : `/portfolio?view=${f.name}`}>
             {f.label}
           </a>
         ))}
+        {/* In place of Type/Lettering: the view that looks closely. */}
+        <a class="pf-btn" href="/next/close/home">Up close</a>
       </div>
       <div class="pf-group pf-group--arrange" role="group" aria-label="Arrange">
         <button type="button" class="pf-btn pf-btn--span" data-roll>Shuffle</button>

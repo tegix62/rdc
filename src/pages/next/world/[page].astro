@@ -139,8 +139,9 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
 
 <Layout title="World - Rumeau Design Co" description="The portfolio as a generated world." noindex>
   <div class="wd">
-    <div class="wd-bar">
-      <div class="wd-group" role="group" aria-label="Filter by category">
+    {/* The portfolio's own toolbar markup, so it gets the same layout - its phone grid included. */}
+    <div class="pf-controls">
+      <div class="pf-group pf-group--filters" role="group" aria-label="Filter by category">
         <button type="button" class="pf-btn is-active" data-filter="*">All</button>
         {FILTERS.map((f) => (
           <button type="button" class="pf-btn" data-filter={f.value}>
@@ -148,10 +149,12 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
           </button>
         ))}
       </div>
-      <div class="wd-group" role="group" aria-label="Arrange">
-        <button type="button" class="pf-btn" data-roll>Shuffle</button>
-        <button type="button" class="pf-btn" data-zoom="-1" aria-label="Smaller tiles">&minus;</button>
-        <button type="button" class="pf-btn" data-zoom="1" aria-label="Larger tiles">+</button>
+      <div class="pf-group pf-group--arrange" role="group" aria-label="Arrange">
+        <button type="button" class="pf-btn pf-btn--span" data-roll>Shuffle</button>
+        <span class="pf-zoom">
+          <button type="button" class="pf-btn" data-zoom="-1" aria-label="Smaller tiles">&minus;</button>
+          <button type="button" class="pf-btn" data-zoom="1" aria-label="Larger tiles">+</button>
+        </span>
       </div>
     </div>
     <div class="wd-world">

@@ -162,7 +162,9 @@ const IS_PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
 // The real site's nav: only 4 links are shown, not every page in the
 // project (Merch/Collage/Blog still exist, just aren't nav-linked).
 const navLinks = [
-  { label: 'Portfolio', href: '/portfolio' },
+  // On the preview the portfolio opens on Lands, its trial All view (Chris:
+  // "Make OLD version of All now Brand Identity, Lands will be All").
+  { label: 'Portfolio', href: IS_PREVIEW ? '/next/world/home' : '/portfolio' },
   { label: 'About', href: '/about' },
   { label: 'Video', href: '/video' },
 ];

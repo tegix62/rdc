@@ -147,10 +147,11 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
           The other categories are the portfolio's own views, each its own
           design (the merch grid, the type cluster) - Chris: "this messed up
           all the other filters/categories" when they were smaller worlds
-          here. Lands is the All view; these go to the real ones.
+          here. Lands is All; Brand Identity is the portfolio's old All grid,
+          everything in it ("Make OLD version of All now Brand Identity").
         */}
         {FILTERS.map((f) => (
-          <a class="pf-btn" href={`/portfolio?view=${f.name}&from=world`}>
+          <a class="pf-btn" href={f.name === 'brand' ? '/portfolio' : `/portfolio?view=${f.name}`}>
             {f.label}
           </a>
         ))}
@@ -228,7 +229,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   let seed = Number(q.get('seed')) || 4187;
   // Lands is the All view; a link naming another view goes to the portfolio's own.
   const asked = data.filters.find((f) => f.name === q.get('view'));
-  if (asked) location.replace(`/portfolio?view=${asked.name}&from=world`);
+  if (asked) location.replace(asked.name === 'brand' ? '/portfolio' : `/portfolio?view=${asked.name}`);
   let focus: number | null = null;
   let focusRow = 0;
   let pushed = false;

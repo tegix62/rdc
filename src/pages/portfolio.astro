@@ -105,10 +105,20 @@ for (const item of items) {
   that. Buttons are hidden when empty and the gap is logged instead, so it stays
   visible as a content task rather than disappearing silently.
 */
-const filters = [
+const filters: { value: string; label: string; href?: string }[] = [
   { value: '*', label: 'All' },
   ...ALL_FILTERS.filter((f) => (counts.get(f.value.replace('.', '')) ?? 0) > 0),
 ];
+/*
+  ON THE PREVIEW, LANDS IS ALL. Chris: "Make OLD version of All now Brand
+  Identity, Lands will be All" - and Brand Identity shows everything, in
+  this grid, as All did. So All is a link to the world page (Lands), the
+  everything-view this page has always opened on is named Brand Identity,
+  and the brand-only filter goes. The live site is unchanged.
+*/
+if (import.meta.env.PUBLIC_IS_PREVIEW === 'true') {
+  filters.splice(0, filters.length, { value: 'world', label: 'All', href: '/next/world/home' }, { value: '*', label: 'Brand Identity' }, ...filters.slice(1).filter((f) => f.value !== '.brand-identity'));
+}
 
 /*
   Same gate as the constellation and the collage prototype, read here
@@ -224,11 +234,17 @@ if (emptyFilters.length > 0) {
     */}
     <div class="pf-controls" id="pf-controls">
       <div class="pf-group pf-group--filters" role="group" aria-label="Filter by category">
-        {filters.map((f, i) => (
-          <button type="button" class:list={['pf-btn', i === 0 && 'is-active']} data-filter={f.value}>
-            {f.label}
-          </button>
-        ))}
+        {filters.map((f) =>
+          f.href ? (
+            <a class="pf-btn" href={f.href}>
+              {f.label}
+            </a>
+          ) : (
+            <button type="button" class:list={['pf-btn', f.value === '*' && 'is-active']} data-filter={f.value}>
+              {f.label}
+            </button>
+          ),
+        )}
       </div>
 
       {/*
@@ -587,26 +603,6 @@ if (emptyFilters.length > 0) {
   {
     const g = document.getElementById('pf-grid');
     if (g?.hasAttribute('data-type-cluster')) startTypeCluster(g);
-  }
-  /*
-    ARRIVED FROM THE WORLD PAGE (preview only). The world page's Lands is
-    trialled as the All view - its other categories link here, to these
-    views, with ?from=world - and Chris: "it seems like All is still All
-    though". So, arrived that way, All goes back to Lands. Any other
-    visit, this page's All is untouched.
-  */
-  if (import.meta.env.PUBLIC_IS_PREVIEW === 'true' && new URLSearchParams(location.search).get('from') === 'world') {
-    document.addEventListener(
-      'click',
-      (e) => {
-        const all = (e.target as HTMLElement | null)?.closest?.('.pf-btn[data-filter="*"]');
-        if (!all) return;
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        location.href = '/next/world/home';
-      },
-      true,
-    );
   }
   declare const Isotope: any;
   declare const imagesLoaded: any;

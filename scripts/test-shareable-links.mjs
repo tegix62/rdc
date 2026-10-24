@@ -210,7 +210,13 @@ if (sharedNested) {
 {
   const {page} = await open('/portfolio?view=brand')
   await page.waitForTimeout(1500)
-  const s = await page.evaluate(() => document.querySelector('.pf-btn[data-filter=".brand-identity"]')?.classList.contains('is-active'))
+  // On the preview there is no brand-only filter: Brand Identity is the
+  // everything-view (Lands is All), and a brand link lands on it.
+  const s = await page.evaluate(() => {
+    const brand = document.querySelector('.pf-btn[data-filter=".brand-identity"]')
+    const all = document.querySelector('.pf-btn[data-filter="*"]')
+    return brand ? brand.classList.contains('is-active') : all?.textContent.trim() === 'Brand Identity' && all.classList.contains('is-active')
+  })
   check('a plain filter travels in a link too', !!s)
   await page.close()
 }

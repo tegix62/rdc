@@ -1,0 +1,65 @@
+/*
+  Why does a project come apart on the world page? Chris: "I'm noticing the
+  hug a mug stuff is all separated."
+
+  Loads /next/world/home (Lands) on the preview with blank pictures, at a
+  phone and a desktop, and prints: for every piece whose title or project
+  matches the term, its project, whether it is the project's own tile, what
+  it is parented to, and where it landed; then, for every project, how many
+  separate patches its pieces make (pieces touching within a few pixels
+  count as one patch).
+
+  Usage: node scripts/diagnose-world-sets.mjs [term] [base-url]
+*/
+import {chromium} from 'playwright'
+
+const TERM = (process.argv[2] ?? 'hug').toLowerCase()
+const BASE = (process.argv[3] ?? 'https://preview.rumeau-design-co.pages.dev').replace(/\/$/, '')
+const browser = await chromium.launch()
+for (const [name, w, h] of [
+  ['phone', 390, 844],
+  ['desktop', 1440, 900],
+]) {
+  const page = await browser.newPage({viewport: {width: w, height: h}})
+  await page.goto(`${BASE}/next/world/home?seed=4187`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.waitForTimeout(2500)
+  const out = await page.evaluate((term) => {
+    const data = JSON.parse(document.getElementById('wd-data').textContent)
+    const tiles = Array.from(document.querySelectorAll('.wd-piece'))
+    const box = (i) => {
+      const r = tiles[i].getBoundingClientRect()
+      return {l: r.left, t: r.top + scrollY, r: r.right, b: r.bottom + scrollY}
+    }
+    const near = (a, b) => a.l <= b.r + 6 && b.l <= a.r + 6 && a.t <= b.b + 6 && b.t <= a.b + 6
+    const rows = data.pieces
+      .map((p, i) => ({i, ...p}))
+      .filter((p) => `${p.title} ${p.project ?? ''}`.toLowerCase().includes(term))
+      .map((p) => {
+        const b = box(p.i)
+        return `${p.own ? 'OWN ' : '    '}${p.title.slice(0, 40).padEnd(40)} project=${p.project ?? '-'} parent=${p.parent ?? '-'} id=${p.id} at ${Math.round(b.l)},${Math.round(b.t)} ${Math.round(b.r - b.l)}px`
+      })
+    const byProject = new Map()
+    data.pieces.forEach((p, i) => p.project && byProject.set(p.project, [...(byProject.get(p.project) ?? []), i]))
+    const patches = [...byProject].map(([k, is]) => {
+      const left = new Set(is)
+      let n = 0
+      while (left.size) {
+        n++
+        const stack = [left.values().next().value]
+        left.delete(stack[0])
+        while (stack.length) {
+          const a = stack.pop()
+          for (const b of [...left]) if (near(box(a), box(b))) (left.delete(b), stack.push(b))
+        }
+      }
+      return `${String(n).padStart(2)} patch(es)  ${String(is.length).padStart(3)} pieces  ${k}`
+    })
+    return {rows, patches}
+  }, TERM)
+  console.log(`\n== ${name}: pieces matching "${TERM}"`)
+  out.rows.forEach((r) => console.log(r))
+  console.log(`\n== ${name}: patches per project`)
+  out.patches.forEach((r) => console.log(r))
+  await page.close()
+}
+await browser.close()

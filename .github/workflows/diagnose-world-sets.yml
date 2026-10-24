@@ -1,0 +1,33 @@
+# Why does a project come apart on the world page? See scripts/diagnose-world-sets.mjs.
+# By hand only; test browsers get blank pictures, so no pictures are downloaded.
+name: Diagnose world sets
+
+on:
+  workflow_dispatch:
+    inputs:
+      term:
+        description: 'Part of a title or project address'
+        default: 'hug'
+      base_url:
+        description: 'Site'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+
+jobs:
+  look:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "NODE_OPTIONS=--import=$GITHUB_WORKSPACE/scripts/lib/test-images-off.mjs" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          set -o pipefail
+          node scripts/diagnose-world-sets.mjs "$TERM_IN" "$BASE" 2>&1 | tee sets.txt
+          { echo '## World sets'; echo '```'; cat sets.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          TERM_IN: ${{ inputs.term }}
+          BASE: ${{ inputs.base_url }}

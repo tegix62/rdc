@@ -82,10 +82,11 @@ for (const [name, w, h] of [
     // A case study, so it has a project, a bar and (in the lands) a card.
     const k = await page.evaluate(() => Array.from(document.querySelectorAll('.wd-piece')).filter((t) => !t.hidden).findIndex((t) => t.classList.contains('wd-piece--study')))
     const before = rest.sizes[k]
-    await page.locator('.wd-piece:not([hidden]) .wd-pic').nth(k).click({position: {x: 4, y: 4}})
+    // By its own number: the pieces are re-ordered in the page as they are laid.
+    const i = await page.evaluate((k) => Array.from(document.querySelectorAll('.wd-piece')).filter((t) => !t.hidden)[k]?.dataset.i, k)
+    await page.locator(`.wd-piece[data-i="${i}"] .wd-pic`).click({position: {x: 4, y: 4}})
     await page.waitForTimeout(700)
     const open = await state(page)
-    const i = await page.evaluate((k) => Array.from(document.querySelectorAll('.wd-piece')).filter((t) => !t.hidden)[k]?.dataset.i, k)
     const after = await page.evaluate((i) => Math.round(document.querySelector(`.wd-piece[data-i="${i}"]`).getBoundingClientRect().width), i)
     check(`${tag}: a piece opens larger`, after > before, `${before}px to ${after}px`)
     check(`${tag}: the rest dims, its set does not`, open.dim > 0 && open.dim < open.shown, `${open.dim} of ${open.shown} dimmed`)

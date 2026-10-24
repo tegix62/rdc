@@ -18,4 +18,5 @@ jobs:
       - run: |
           set -o pipefail
           node scripts/diagnose-lqip.mjs 2>&1 | tee lqip.txt
+          node scripts/diagnose-trim.mjs 2>&1 | tee -a lqip.txt
           { echo '## Tiny previews'; echo '```'; cat lqip.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

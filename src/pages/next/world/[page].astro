@@ -283,8 +283,8 @@ const data = {pieces, names};
       : Math.min(world.parentElement!.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight), 1400);
     // Biomes on a finer grid, so the gap between them is a thin line.
     const [cols, maxSpan] =
-      // A finer grid on a phone than the height map's: "still looking clunky".
-      mode === 'lands' ? (phone ? [8, 4] : [20, 6]) : mode === 'biomes' ? (phone ? [15, 6] : [40, 12]) : phone ? [6, 3] : [20, 6];
+      // A finer grid on a phone than the height map's: "still looking clunky"; 7 not 8, so the smallest stay legible.
+      mode === 'lands' ? (phone ? [7, 4] : [20, 6]) : mode === 'biomes' ? (phone ? [15, 6] : [40, 12]) : phone ? [6, 3] : [20, 6];
     const cell = width / cols;
     const gap = phone ? 2 : 3;
     const sort = colour && mode !== 'biomes' ? 'colour' : 'seed';

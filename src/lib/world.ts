@@ -116,7 +116,7 @@ export interface WorldOptions {
   /** Lands: rows to a cell's width (2: half-height rows, so boxes follow their pictures' shapes). Rows, `r` and `ch` are then in these. */
   rowsPerCell?: number;
   /** Lands: weights for how a set's pieces gather (for tuning; the defaults are the chosen ones). */
-  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number};
+  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean};
   /** Lands: room for the opened project's card, beside the opened piece. */
   card?: {cw: number; ch: number} | null;
 }
@@ -648,7 +648,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
   // On a phone (10 columns or fewer) the strict rule costs nothing - the
   // projects still come first there - so above the lead is barred, unless
   // it is the only way a piece can touch its set at all.
-  const {leadBonus = 0, seenW = 1, tries = 16, early = 0.02, corner = 0.3, tail = 1.2, high = o.cols <= 10, caps = true, above = 30, top = 1} = o.tune ?? {};
+  const {leadBonus = 0, seenW = 1, tries = 16, early = 0.02, corner = 0.3, tail = 1.2, high = o.cols <= 10, caps = true, above = 30, top = 1, firstFixed = true, keepTop = true} = o.tune ?? {};
   /*
     Sizes by standing - Chris agreed: "THE HOUSE", the Midgard tee and the
     Horizon Kingdoms wordmark each took more ground than the case studies
@@ -751,6 +751,8 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     for (let k = cursor; k < seq.length && (seen < 48 || !best); k++) {
       const at = seq[k];
       if (grid.used[at] !== -1) continue;
+      // The page opens on the projects: no loose work in the first band.
+      if (keepTop && looseNow && at < side * kr * o.cols) continue;
       seen++;
       const c = at % o.cols;
       const r = Math.floor(at / o.cols);
@@ -849,7 +851,9 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
   */
   const leftArea = (from: number) =>
     keys.slice(from).reduce((n, k) => n + groups.get(k)!.reduce((m, i) => m + boxAt(pieces[i], Math.max(1, Math.round(cap / 2)), kr).cw * boxAt(pieces[i], Math.max(1, Math.round(cap / 2)), kr).ch, 0), 0);
+  let looseNow = false;
   for (const [n, key] of keys.entries()) {
+    looseNow = study(key) === 1;
     // Only ever for the end of the work: a small world would otherwise lay
     // every set row by row from the start, and the projects stop coming first.
     if (seq === cells && n >= keys.length / 2 && leftArea(n) <= o.cols * side * kr * tail) {
@@ -863,7 +867,8 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     const members = laidOrder(pieces, groups.get(key)!, null).filter((i) => !inFamily.has(i));
     if (!members.length) continue;
     let pickSkip = 0;
-    if (members.length > 1) {
+    // The first set opens the page at its top-left: it is not tried elsewhere.
+    if (members.length > 1 && (n > 0 || !firstFixed)) {
       let bestScore = Infinity;
       for (let t = 0; t < tries; t++) {
         const used = grid.used.slice();

@@ -116,7 +116,7 @@ export interface WorldOptions {
   /** Lands: rows to a cell's width (2: half-height rows, so boxes follow their pictures' shapes). Rows, `r` and `ch` are then in these. */
   rowsPerCell?: number;
   /** Lands: weights for how a set's pieces gather (for tuning; the defaults are the chosen ones). */
-  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean};
+  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean};
   /** Lands: room for the opened project's card, beside the opened piece. */
   card?: {cw: number; ch: number} | null;
 }
@@ -648,7 +648,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
   // On a phone (10 columns or fewer) the strict rule costs nothing - the
   // projects still come first there - so above the lead is barred, unless
   // it is the only way a piece can touch its set at all.
-  const {leadBonus = 0, seenW = 1, tries = 16, early = 0.02, corner = 0.3, tail = 1.2, high = o.cols <= 10, caps = true, above = 30, top = 1, firstFixed = true, keepTop = true} = o.tune ?? {};
+  const {leadBonus = 0, seenW = 1, tries = 16, early = 0.02, corner = 0.3, tail = 1.2, high = o.cols <= 10, caps = true, above = 30, top = 1, firstFixed = true, keepTop = true, grow = true} = o.tune ?? {};
   /*
     Sizes by standing - Chris agreed: "THE HOUSE", the Midgard tee and the
     Horizon Kingdoms wordmark each took more ground than the case studies
@@ -752,7 +752,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
       const at = seq[k];
       if (grid.used[at] !== -1) continue;
       // The page opens on the projects: no loose work in the first band.
-      if (keepTop && looseNow && at < side * kr * o.cols) continue;
+      if (keepTop && looseNow && o.sort !== 'colour' && at < side * kr * o.cols) continue;
       seen++;
       const c = at % o.cols;
       const r = Math.floor(at / o.cols);
@@ -896,6 +896,76 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
       if (pieces[q.i].id) whereId.set(pieces[q.i].id!, q);
     }
     while (cursor < seq.length && grid.used[seq[cursor]] !== -1) cursor++;
+  }
+  /*
+    A hole left in the top band - one no project piece could use, the loose
+    work being kept out of it - takes a loose piece from the very bottom of
+    the page, at whatever size of it fits: better a small piece than a gap
+    at the top, and the bottom comes out a little more even for it.
+  */
+  if (keepTop && o.sort !== 'colour') {
+    const bandEnd = side * kr;
+    const movable = () =>
+      placed
+        .map((q, n) => ({q, n}))
+        .filter(({q}) => q.i !== focus && study(sets[q.i]) === 1 && (setSize.get(sets[q.i]) ?? 1) === 1 && q.r >= bandEnd)
+        .sort((a, z) => z.q.r - a.q.r || z.q.c - a.q.c);
+    for (let at = 0; at < bandEnd * o.cols; at++) {
+      if (grid.used[at] !== -1) continue;
+      const c = at % o.cols;
+      const r = Math.floor(at / o.cols);
+      let moved = false;
+      for (const {q} of movable().slice(0, 12)) {
+        for (let cw = Math.min(q.cw, o.cols - c); cw >= 1 && !moved; cw--) {
+          const {ch} = boxAt(pieces[q.i], cw, kr);
+          if (r + ch > bandEnd + side * kr || !grid.fits(c, r, cw, ch)) continue;
+          for (let y = q.r; y < q.r + q.ch; y++) for (let x = q.c; x < q.c + q.cw; x++) grid.used[y * o.cols + x] = -1;
+          Object.assign(q, {c, r, cw, ch});
+          grid.take(c, r, cw, ch);
+          moved = true;
+        }
+        if (moved) break;
+      }
+    }
+    // The page ends where its pieces now do.
+    grid.rows = Math.max(0, ...placed.map((q) => q.r + q.ch), card ? card.r + card.ch : 0);
+  }
+
+  /*
+    What is left empty - a hole the projects could not use and the loose
+    work was kept out of (the top band), or any other - a piece beside it
+    grows into, keeping its shape: a cell wider, as much taller as that
+    makes it, from wherever round its corner it fits, never past the size
+    its standing allows. Over and over until nothing more grows. The opened
+    piece and the card keep their size.
+  */
+  if (grow) {
+    const own = new Int16Array(grid.used.length).fill(-1);
+    placed.forEach((q, n) => {
+      for (let y = q.r; y < q.r + q.ch; y++) for (let x = q.c; x < q.c + q.cw; x++) own[y * o.cols + x] = n;
+    });
+    if (card) for (let y = card.r; y < card.r + card.ch; y++) for (let x = card.c; x < card.c + card.cw; x++) own[y * o.cols + x] = -2;
+    const bottom = grid.rows;
+    for (let round = 0, grew = true; grew && round < 4; round++) {
+      grew = false;
+      placed.forEach((q, n) => {
+        if (q.i === focus || q.cw >= (pieces[q.i].big ? maxSpan : cap)) return;
+        const {ch} = boxAt(pieces[q.i], q.cw + 1, kr);
+        for (const [dc, dr] of [[0, 0], [-1, 0], [0, q.ch - ch], [-1, q.ch - ch]]) {
+          const c = q.c + dc;
+          const r = q.r + dr;
+          if (c < 0 || r < 0 || c + q.cw + 1 > o.cols || r + ch > bottom) continue;
+          let ok = true;
+          for (let y = r; y < r + ch && ok; y++) for (let x = c; x < c + q.cw + 1 && ok; x++) if (own[y * o.cols + x] !== -1 && own[y * o.cols + x] !== n) ok = false;
+          if (!ok) continue;
+          for (let y = q.r; y < q.r + q.ch; y++) for (let x = q.c; x < q.c + q.cw; x++) own[y * o.cols + x] = -1;
+          Object.assign(q, {c, r, cw: q.cw + 1, ch});
+          for (let y = r; y < r + ch; y++) for (let x = c; x < c + q.cw; x++) own[y * o.cols + x] = n;
+          grew = true;
+          return;
+        }
+      });
+    }
   }
   return {placed, cols: o.cols, rows: grid.rows, labels: [], family, card};
 }

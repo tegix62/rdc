@@ -339,6 +339,29 @@ export function generateWorld(pieces: WorldPiece[], o: WorldOptions): WorldResul
   return flow(pieces, o, maxSpan, sets, focus, family);
 }
 
+/*
+  The portfolio grid's dealt hand (lib/gridOrder.ts), Chris: "Make case
+  studies the first to appear, just like the 'dealt hand' system we have on
+  the portfolio grid". The case studies first, in the seed's order; then the
+  rest dealt a card at a time from each set in turn, so no set runs on.
+*/
+function dealt(pieces: WorldPiece[], sets: string[], seed: number) {
+  const ids = order(pieces.length, seed);
+  const lead = ids.filter((i) => pieces[i].own);
+  const hands = new Map<string, number[]>();
+  for (const i of ids) if (!pieces[i].own) hands.set(sets[i], [...(hands.get(sets[i]) ?? []), i]);
+  const out = [...lead];
+  for (let round = 0, more = true; more; round++) {
+    more = false;
+    for (const hand of hands.values())
+      if (round < hand.length) {
+        out.push(hand[round]);
+        more = true;
+      }
+  }
+  return out;
+}
+
 /* Heights (and the shelved heights2 and caves): pieces flow in reading order. */
 function flow(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: string[], focus: number | null, family: number[]): WorldResult {
   const area = pieces.reduce((n, p) => n + boxAt(p, 2).cw * boxAt(p, 2).ch, 0);
@@ -380,7 +403,7 @@ function flow(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: stri
 
   const inFamily = new Set(family);
   let cursor = 0;
-  const laid = order(pieces.length, o.seed);
+  const laid = dealt(pieces, sets, o.seed);
   if (o.sort === 'colour') laid.sort((a, b) => (pieces[a].tone ?? 1.5) - (pieces[b].tone ?? 1.5));
   for (const i of laid) {
     if (inFamily.has(i)) continue;
@@ -544,7 +567,10 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     const t = groups.get(k)!.map((i) => pieces[i].tone ?? 1.5).sort((a, z) => a - z);
     return t[Math.floor(t.length / 2)];
   };
-  keys.sort((a, z) => (o.sort === 'colour' ? toneOf(a) - toneOf(z) : 0) || rank.get(a)! - rank.get(z)!);
+  // As the portfolio grid deals: the case studies' sets first (Chris: "Make
+  // case studies the first to appear"); by colour, colour decides instead.
+  const study = (k: string) => (groups.get(k)!.some((i) => pieces[i].own) ? 0 : 1);
+  keys.sort((a, z) => (o.sort === 'colour' ? toneOf(a) - toneOf(z) : study(a) - study(z)) || rank.get(a)! - rank.get(z)!);
   const laid = keys.flatMap((k) => laidOrder(pieces, groups.get(k)!, null));
 
   const area = pieces.reduce((n, p) => n + boxAt(p, 2).cw * boxAt(p, 2).ch, 0);

@@ -164,9 +164,18 @@ for (const [name, grids] of [
         const far = close.filter((i) => !out.family.includes(i) && apart(boxOf(out, i), boxOf(out, pieces.findIndex((x) => x.id === pieces[i].parent))) > maxSpan)
         check(`${tag}: close-ups near their collage`, far.length === 0, far.map((i) => pieces[i].id).join(', '))
         if (focus === null) {
-          const widths = p.map((q) => q.cw)
-          check(`${tag}: sizes far apart, as on the height map`, Math.max(...widths) >= Math.min(...widths) * 3, `${Math.min(...widths)} to ${Math.max(...widths)} cells wide`)
           const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length
+          // The dealt hand: the projects' patches first.
+          const startOf = (k) => Math.min(...p.filter((q) => sets[q.i] === k).map((q) => q.r))
+          const studies = [...new Set(sets)].filter((k) => k.startsWith('/'))
+          // The first band of patches is all projects; a loose piece may fill a
+          // hole among them lower down, which is what keeps the fill tight.
+          const band = Math.max(3, Math.round(cols / 4))
+          const early = p.filter((q) => q.r < band && sets[q.i].startsWith('#solo')).length
+          const meanRow = (f) => mean(p.filter(f).map((q) => q.r))
+          check(`${tag}: case studies first, as the portfolio deals`, early === 0 && meanRow((q) => studies.includes(sets[q.i])) < meanRow((q) => sets[q.i].startsWith('#solo')), `${early} loose piece(s) in the first ${band} rows`)
+          const widths = p.map((q) => q.cw)
+          check(`${tag}: sizes far apart, as on the height map`, Math.max(...widths) >= Math.min(...widths) * Math.min(3, maxSpan - 1), `${Math.min(...widths)} to ${Math.max(...widths)} cells wide`)
           const col = generateWorld(pieces, {cols, mode, seed: 42, maxSpan, sort: 'colour'})
           const rowOf = (grey) => mean(col.placed.filter((q) => (pieces[q.i].tone < 1) === grey && sets[q.i].startsWith('#solo')).map((q) => q.r))
           check(`${tag}: by colour, black and white first`, rowOf(true) < rowOf(false), `rows ${rowOf(true).toFixed(1)} vs ${rowOf(false).toFixed(1)}`)
@@ -178,6 +187,11 @@ for (const [name, grids] of [
         check(`${tag}: the opened piece is the largest of its set`, fam.every((i) => i === focus || boxOf(out, i).cw <= f.cw), `${f.cw} cells wide`)
         const far = fam.filter((i) => apart(boxOf(out, i), f) > Math.max(6, maxSpan * 2))
         check(`${tag}: and its set sits together round it`, far.length === 0, `${far.length} far away`)
+      }
+      if (focus === null && mode === 'heights') {
+        const firstRest = p.filter((q) => !pieces[q.i].own).reduce((m, q) => Math.min(m, q.r * cols + q.c), Infinity)
+        const lastOwn = p.filter((q) => pieces[q.i].own).reduce((m, q) => Math.max(m, q.r * cols + q.c), -1)
+        check(`${tag}: case studies dealt first`, lastOwn < firstRest + cols * 2, `the last case study at cell ${lastOwn}, the first other piece at ${firstRest}`)
       }
       if (focus === null) {
         const again = generateWorld(pieces, {cols, mode, seed: 42, maxSpan})

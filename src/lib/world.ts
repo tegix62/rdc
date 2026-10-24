@@ -113,6 +113,8 @@ export interface WorldOptions {
   sort?: 'seed' | 'colour';
   /** Lands: rows to a cell's width (2: half-height rows, so boxes follow their pictures' shapes). Rows, `r` and `ch` are then in these. */
   rowsPerCell?: number;
+  /** Lands: weights for how a set's pieces gather (for tuning; the defaults are the chosen ones). */
+  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number};
   /** Lands: room for the opened project's card, beside the opened piece. */
   card?: {cw: number; ch: number} | null;
 }
@@ -613,6 +615,9 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
   const laid = keys.flatMap((k) => laidOrder(pieces, groups.get(k)!, null));
   // Rows to a cell's width: finer rows let a box follow its picture's shape.
   const kr = Math.max(1, Math.round(o.rowsPerCell ?? 1));
+  // How a set's pieces choose among spots touching it (tuned on the real pieces).
+  // Chosen on the real pieces (scripts/tune-lands.mjs): 16 starts, a slight lean to the earlier.
+  const {leadBonus = 0, seenW = 1, tries = 16, early = 0.02} = o.tune ?? {};
 
   const area = pieces.reduce((n, p) => n + boxAt(p, 2, kr).cw * boxAt(p, 2, kr).ch, 0);
   const grid = new Grid(o.cols, Math.max(60, Math.ceil((area * 8) / o.cols) + 60));
@@ -683,17 +688,21 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     return n;
   };
   let cursor = 0;
-  for (const i of laid) {
-    if (inFamily.has(i)) continue;
+  /*
+    Where piece i goes, given what its set already holds (kin) and where the
+    pieces are by id. A set's first piece: the `skip`-th spot with room round
+    it (so a set can be tried from several starts - see below).
+  */
+  const spotFor = (i: number, kin: WorldPlaced[], where: Map<string, WorldPlaced>, skip = 0): WorldPlaced | null => {
     const p = pieces[i];
-    const kin = mine.get(sets[i]) ?? [];
-    const up = p.parent ? whereId.get(p.parent) : undefined;
+    const up = p.parent ? where.get(p.parent) : undefined;
     const lo = Math.min(o.cols, Math.max(p.least ?? 1, p.big ? Math.ceil((maxSpan * 2) / 3) : 1));
     // Loose, and not a case study: the first free cell, as the height map.
     const plain = kin.length === 0 && (setSize.get(sets[i]) ?? 1) === 1 && lo === 1;
     let first: WorldPlaced | null = null;
     let best: WorldPlaced | null = null;
     let bestScore = Infinity;
+    let roomy = 0;
     let seen = 0;
     for (let k = cursor; k < cells.length && (seen < 48 || !best); k++) {
       const at = cells[k];
@@ -722,39 +731,83 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
         }
         if (fit >= 0.98) break;
       }
-      if (pick) {
-        const q = pick;
-        first ??= q;
-        // Beside its parent best, then beside any of its set; a set's first
-        // piece where its set has room to follow; earlier cells first.
-        /*
-          Touching its set is not enough - Chris, of a set strung through the
-          page touching only at corners: it is "separating some clusters".
-          Beside its parent best; else beside its set's lead tile, which
-          keeps a set gathered round it; else beside any of its set; and of
-          those, the earliest cell, so the fill stays as tight. (Weighing
-          nearness to the set's middle instead made tighter clumps but left
-          holes between them, which the loose pieces then filled - the
-          projects no longer came first.)
-        */
-        const lead = kin[0];
-        const score =
-          kin.length > 0
-            ? (up && touches(q, up) ? 0 : lead && touches(q, lead) ? 50 : kin.some((x) => touches(q, x)) ? 100 : Infinity) + seen
-            : (room(q) >= Math.min(q.cw + q.ch + 2, 2 * (setSize.get(sets[i]) ?? 1)) ? 0 : 1000) + seen;
+      if (!pick) continue;
+      const q = pick;
+      first ??= q;
+      if (plain) break;
+      if (kin.length === 0) {
+        // A set's first piece: the skip-th spot with room round it for the set.
+        if (room(q) >= Math.min(q.cw + q.ch + 2, 2 * (setSize.get(sets[i]) ?? 1))) {
+          if (roomy++ === skip) return q;
+        }
+        continue;
+      }
+      // Beside its parent best, then beside its set's lead, then beside any
+      // of its set; the earliest of those, so the fill stays tight.
+      const lead = kin[0];
+      const score = (up && touches(q, up) ? 0 : leadBonus && lead && touches(q, lead) ? 100 - leadBonus : kin.some((x) => touches(q, x)) ? 100 : Infinity) + seen * seenW;
+      if (score < bestScore) {
+        bestScore = score;
+        best = q;
+      }
+    }
+    return best ?? first;
+  };
+
+  /*
+    A SET IS TRIED FROM SEVERAL STARTS. Chris, after reordering the case
+    studies: "the grid is ... separating some clusters". Placing a set's
+    pieces one at a time, each beside the last, can string a set along the
+    page - every piece touching, the set still reading as a trail. So each
+    set with more than one piece is laid out from each of its first few
+    possible starts, and the start whose set comes out most compact (its
+    bounding box nearest the area its pieces cover) is kept, with a small
+    preference for the earlier start so the order still reads.
+  */
+  const spread = (qs: WorldPlaced[]) => {
+    const x0 = Math.min(...qs.map((q) => q.c));
+    const x1 = Math.max(...qs.map((q) => q.c + q.cw));
+    const y0 = Math.min(...qs.map((q) => q.r));
+    const y1 = Math.max(...qs.map((q) => q.r + q.ch));
+    return ((x1 - x0) * (y1 - y0)) / qs.reduce((n, q) => n + q.cw * q.ch, 0);
+  };
+  const laySet = (members: number[], skip: number) => {
+    const kin: WorldPlaced[] = [];
+    const where = new Map(whereId);
+    for (const i of members) {
+      const q = spotFor(i, kin, where, skip);
+      if (!q) continue;
+      grid.take(q.c, q.r, q.cw, q.ch);
+      kin.push(q);
+      if (pieces[i].id) where.set(pieces[i].id!, q);
+    }
+    return kin;
+  };
+  for (const key of keys) {
+    const members = laidOrder(pieces, groups.get(key)!, null).filter((i) => !inFamily.has(i));
+    if (!members.length) continue;
+    let pickSkip = 0;
+    if (members.length > 1) {
+      let bestScore = Infinity;
+      for (let t = 0; t < tries; t++) {
+        const used = grid.used.slice();
+        const rows = grid.rows;
+        const kin = laySet(members, t);
+        grid.used.set(used);
+        grid.rows = rows;
+        if (kin.length < members.length) continue;
+        const score = spread(kin) + t * early;
         if (score < bestScore) {
           bestScore = score;
-          best = q;
+          pickSkip = t;
         }
       }
-      if (plain && first) break;
     }
-    const q = best ?? first;
-    if (!q) continue;
-    grid.take(q.c, q.r, q.cw, q.ch);
-    placed.push(q);
-    mine.set(sets[i], [...kin, q]);
-    if (p.id) whereId.set(p.id, q);
+    for (const q of laySet(members, pickSkip)) {
+      placed.push(q);
+      mine.set(key, [...(mine.get(key) ?? []), q]);
+      if (pieces[q.i].id) whereId.set(pieces[q.i].id!, q);
+    }
     while (cursor < cells.length && grid.used[cells[cursor]] !== -1) cursor++;
   }
   return {placed, cols: o.cols, rows: grid.rows, labels: [], family, card};

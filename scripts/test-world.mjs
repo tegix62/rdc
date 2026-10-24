@@ -87,7 +87,7 @@ for (const [name, grids] of [
     for (const focus of [null, pieces.findIndex((p) => p.id === 'p1-3'), pieces.findIndex((p) => p.id === 'newform-close-1')]) {
       const tag = `${name}, ${mode}${focus === null ? '' : `, ${pieces[focus].id} opened`}`
       const t0 = performance.now()
-      const out = generateWorld(pieces, {cols, mode, seed: 42, maxSpan, focus, focusRow: 3})
+      const out = generateWorld(pieces, {cols, mode, seed: 42, maxSpan, focus, focusRow: 3, tune: {tries: 1}})
       const ms = performance.now() - t0
       const p = out.placed
       check(`${tag}: every piece placed`, p.length === pieces.length, `${p.length}/${pieces.length}`)
@@ -221,8 +221,8 @@ for (const [name, grids] of [
         check(`${tag}: case studies dealt first`, lastOwn < firstRest + cols * 2, `the last case study at cell ${lastOwn}, the first other piece at ${firstRest}`)
       }
       if (focus === null) {
-        const again = generateWorld(pieces, {cols, mode, seed: 42, maxSpan})
-        const other = generateWorld(pieces, {cols, mode, seed: 43, maxSpan})
+        const again = generateWorld(pieces, {cols, mode, seed: 42, maxSpan, tune: {tries: 1}})
+        const other = generateWorld(pieces, {cols, mode, seed: 43, maxSpan, tune: {tries: 1}})
         check(`${tag}: the same seed gives the same world, another another`, JSON.stringify(again.placed) === JSON.stringify(p) && JSON.stringify(other.placed) !== JSON.stringify(p))
       }
     }
@@ -268,6 +268,51 @@ for (const [name, cols, maxSpan] of [
   const start = (k) => o.placed.findIndex((q) => ordered[q.i].own && ordered[q.i].project === k)
   const firsts = order.map(start)
   check('lands: the case studies in the order dragged in Studio', firsts.every((v, k) => k === 0 || v > firsts[k - 1]), firsts.join(' < '))
+}
+
+/*
+  On the real pieces (scripts/fixtures/world-pieces.json - shapes, projects,
+  parents and the Studio order, no pictures), as the page lays them, at a
+  phone and a desktop over several shuffles. Chris, after reordering the
+  case studies: "separating some clusters". Each project compact - its
+  bounding box near the area its pieces cover - the fill tight, and the
+  projects before the loose work.
+*/
+{
+  const {readFileSync} = await import('node:fs')
+  const real = JSON.parse(readFileSync(new URL('./fixtures/world-pieces.json', import.meta.url), 'utf8')).pieces
+  const realSets = setsOf(real)
+  for (const [name, cols, maxSpan] of [
+    ['phone', 8, 4],
+    ['desktop', 20, 6],
+  ]) {
+    const ps = real.map((x) => ({...x, least: name === 'phone' && x.photo ? 2 : 1}))
+    let sum = 0
+    let worst = 0
+    let cover = 0
+    let order = 0
+    const seeds = [4187, 1, 2, 3, 42, 777]
+    for (const seed of seeds) {
+      const o = generateWorld(ps, {cols, mode: 'lands', seed, maxSpan, rowsPerCell: 2})
+      const sp = [...new Set(realSets)].filter((k) => k.startsWith('/')).map((k) => {
+        const qs = o.placed.filter((q) => realSets[q.i] === k)
+        const w = Math.max(...qs.map((q) => q.c + q.cw)) - Math.min(...qs.map((q) => q.c))
+        const h = Math.max(...qs.map((q) => q.r + q.ch)) - Math.min(...qs.map((q) => q.r))
+        return (w * h) / qs.reduce((n, q) => n + q.cw * q.ch, 0)
+      })
+      sum += sp.reduce((a, b) => a + b, 0) / sp.length
+      worst = Math.max(worst, ...sp)
+      const top = o.rows - 12
+      let n = 0
+      for (const q of o.placed) for (let r = q.r; r < Math.min(top, q.r + q.ch); r++) n += q.cw
+      cover += n / (cols * top)
+      const mr = (f) => o.placed.filter(f).reduce((a, q) => a + q.r, 0) / o.placed.filter(f).length
+      if (mr((q) => realSets[q.i].startsWith('/')) < mr((q) => !realSets[q.i].startsWith('/'))) order++
+    }
+    check(`real pieces, ${name}: each project a compact patch`, sum / seeds.length <= 1.4 && worst <= 2, `mean ${(sum / seeds.length).toFixed(2)}, worst ${worst.toFixed(1)} (1 = a solid block)`)
+    check(`real pieces, ${name}: the fill as tight as ever`, cover / seeds.length >= 0.93, `${Math.round((cover / seeds.length) * 100)}%`)
+    check(`real pieces, ${name}: the projects before the loose work`, order === seeds.length, `${order} of ${seeds.length} shuffles`)
+  }
 }
 
 console.log(failures ? `\n${failures} check(s) failed.` : '\nall checks passed')

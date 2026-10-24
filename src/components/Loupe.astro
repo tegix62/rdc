@@ -24,7 +24,7 @@
   The script and styles are hoisted once per page however many of these
   the page holds; the script loops over every [data-loupe] it finds.
 */
-import {imageUrl} from '../lib/image';
+import {imageUrl, sourceExtension, QUALITY_FLAT} from '../lib/image';
 
 interface Props {
   /** Shown in the alt text and the keyboard label. */
@@ -81,16 +81,22 @@ const sizes =
 // The web-sized copy: from the scan itself when there is one, so what the
 // glass magnifies is the same picture it then sharpens.
 const widths = [800, 1200, 1600, 2000, 2600];
-const webFrom = (base: string) => ({
-  src: `${base}?w=1600&fm=webp&q=82`,
-  srcset: widths.map((w) => `${base}?w=${w}&fm=webp&q=82 ${w}w`).join(', '),
-});
+// A PNG upload (a mockup, a cut-out) at the higher setting: lib/image.ts,
+// QUALITY_FLAT.
+const webFrom = (base: string) => {
+  const q = /\.png$/i.test(base) ? QUALITY_FLAT : 82;
+  return {
+    src: `${base}?w=1600&fm=webp&q=${q}`,
+    srcset: widths.map((w) => `${base}?w=${w}&fm=webp&q=${q} ${w}w`).join(', '),
+  };
+};
 const plainFrom = (img: any) => {
   const b = imageUrl(img);
   if (!b) return null;
+  const q = sourceExtension(img) === 'png' ? QUALITY_FLAT : 82;
   return {
-    src: b.width(1600).auto('format').quality(82).url(),
-    srcset: widths.map((w) => `${b.width(w).auto('format').quality(82).url()} ${w}w`).join(', '),
+    src: b.width(1600).auto('format').quality(q).url(),
+    srcset: widths.map((w) => `${b.width(w).auto('format').quality(q).url()} ${w}w`).join(', '),
   };
 };
 const web = hasScan ? webFrom(scan!.url!) : plainFrom(image);

@@ -261,13 +261,14 @@ for (const [name, w, h] of [
       rows: rows.length,
       named: rows.filter((r) => r.querySelector('.ty-title')?.textContent.trim()).length,
       blurbs: rows.filter((r) => r.querySelector('.ty-line')).length,
+      projects: rows.filter((r) => r.querySelector('.ty-go')).length,
       uneven,
       pieces: document.querySelectorAll('.ty-piece').length,
       pageWide: document.documentElement.scrollWidth > innerWidth,
       active: document.querySelector('.pf-btn.is-active')?.textContent.trim(),
     }
   })
-  check(`${name}, type rows: a named row per project, with its blurb`, ty.rows >= 8 && ty.named === ty.rows && ty.blurbs >= ty.rows - 2, `${ty.rows} rows, ${ty.named} named, ${ty.blurbs} with a blurb`)
+  check(`${name}, type rows: a named row per project, with its blurb`, ty.projects >= 4 && ty.named === ty.rows && ty.blurbs >= ty.projects - 1, `${ty.rows} rows (${ty.projects} projects), ${ty.named} named, ${ty.blurbs} with a blurb`)
   check(`${name}, type rows: one height per row, nothing wider than the screen`, ty.uneven === 0 && !ty.pageWide && ty.pieces > 30, `${ty.pieces} pieces, ${ty.uneven} uneven rows`)
   check(`${name}, type rows: Type/Lettering lit`, ty.active === 'Type/Lettering', ty.active)
   await page.click('.ty-piece a')

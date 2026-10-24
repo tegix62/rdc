@@ -78,7 +78,7 @@ for (const s of studies) if (tileHref(s)) projectName[tileHref(s)!] = clean(s.ti
           const href = tileHref(it);
           const label = museumLabel(it);
           const key = it.slug?.current ? cleanKey(it.slug.current) : idOf(it);
-          const thumb = imageUrl(tileImage(it))?.width(480).auto('format').quality(80).url();
+          const thumb = imageUrl(tileImage(it))?.width(480).url();
           return (
             <tr class:list={['ix-row', isProject(it) && 'ix-row--study']} data-thumb={thumb}>
               <td>

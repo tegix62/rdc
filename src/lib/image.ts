@@ -11,11 +11,22 @@ const builder = imageUrlBuilder(sanityClient);
   it prevents is not subtle: a single half-finished image field took down all 21
   pages for hours, and it did it twice.
 */
+export const QUALITY_FLAT = 92;
+
 function urlFor(source: unknown) {
   // `auto('format')` lets Sanity's CDN negotiate WebP/AVIF per browser
   // instead of always shipping the original JPEG/PNG. Quality 80 is
-  // visually indistinguishable here and materially smaller.
-  return builder.image(source as never).auto('format').quality(80);
+  // visually indistinguishable here and materially smaller - for photographs.
+  //
+  // Not for a PNG upload: those are the mockups, cut-outs and graphics, flat
+  // saturated colour on dark, which WebP at 80 breaks into blotches. Chris:
+  // the BalloonShop 19th Anniversary Tee "is low res wherever I see it even
+  // though I gave a hi res image" - a 3687px upload, served at the right
+  // width, its pink lettering smeared (scripts/diagnose-one-image.mjs, side
+  // by side at 80, 92 and lossless). 92 holds the edges, at about twice the
+  // bytes of 80, for those pictures only. The extension is only a hint here
+  // (see mayBeAnimated): a mislabelled file just gets the better setting.
+  return builder.image(source as never).auto('format').quality(sourceExtension(source) === 'png' ? QUALITY_FLAT : 80);
 }
 
 /*

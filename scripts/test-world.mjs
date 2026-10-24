@@ -142,7 +142,8 @@ for (const [name, grids] of [
           return {k, rows: Math.max(...rs) - Math.min(...rs), n: rs.length / 2}
         })
         const loosest = spread.sort((a, z) => z.rows / z.n - a.rows / a.n)[0]
-        check(`${tag}: each set lands together`, spread.every((x) => x.rows <= x.n * 1.5 + maxSpan * 2), `loosest ${loosest.k}: ${loosest.n} pieces over ${loosest.rows} rows`)
+        // Resting only, as with the connected patch below: an opened block can part a set.
+        if (focus === null) check(`${tag}: each set lands together`, spread.every((x) => x.rows <= x.n * 1.5 + maxSpan * 2), `loosest ${loosest.k}: ${loosest.n} pieces over ${loosest.rows} rows`)
         // "I'm not seeing the projects that are together actually being in
         // their adjacent clusters": a set's pieces fill most of the box round them.
         const touch = (a, b) => a.c <= b.c + b.cw && b.c <= a.c + a.cw && a.r <= b.r + b.ch && b.r <= a.r + a.ch

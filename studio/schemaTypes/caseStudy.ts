@@ -1,4 +1,5 @@
 import {defineField, defineType} from 'sanity'
+import {orderRankField, orderRankOrdering} from '@sanity/orderable-document-list'
 import {imageSpec} from './imageFields'
 import {VideoUpload} from '../components/VideoUpload'
 import {SearchLengthInput} from '../components/CharacterCount'
@@ -108,7 +109,17 @@ export default defineType({
       description: 'For NDA work. Leave alone for a public page.',
     },
   ],
+  /*
+    THE PROJECTS' ORDER, BY DRAGGING. Chris: "is it possible we could go
+    and make the case studies draggable so that I could order them according
+    to the way that I want them to be seen?" The Projects list in Studio is
+    a drag-to-order list (structure.ts); where each one sits is kept in this
+    hidden field, which the site reads to lay the case studies out in that
+    order. Nothing to fill in.
+  */
+  orderings: [orderRankOrdering],
   fields: [
+    orderRankField({type: 'caseStudy'}),
     // --- Tile: what every document is, in the order a tile is built -------
     /*
       ORDERED BY WHAT A TILE ACTUALLY USES, measured across the 68 published

@@ -105,6 +105,8 @@ for (const it of all) {
 }
 const cards = all.filter((it) => isProject(it) && tileHref(it)).map((it) => ({href: tileHref(it)!, card: clusterCard(it)})).filter((c) => c.card);
 const barOf = (it: any) => clean(it.parentTitle ?? it.title ?? 'View project');
+// Each case study's place in the order dragged in Studio (orderRank).
+const ranks = all.filter((it) => isProject(it) && typeof it.orderRank === 'string').map((it) => it.orderRank as string).sort();
 const pieces = all.map((it, i) => {
   const d = imageDimensions(tileImage(it))!;
   const t = box[i];
@@ -126,6 +128,7 @@ const pieces = all.map((it, i) => {
       less ground than the piece it supports.
     */
     big: isProject(it) || !!it.heroTile,
+    order: isProject(it) && typeof it.orderRank === 'string' ? ranks.indexOf(it.orderRank) : undefined,
     // A photograph, collage or anything else filling its frame - which on a
     // phone needs more than the smallest size to be told apart; a mark on
     // transparency reads at any size.

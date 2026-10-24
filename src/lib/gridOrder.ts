@@ -107,7 +107,15 @@ export function orderTiles<T extends Tile>(
   items: T[],
   rand: () => number = Math.random,
 ): OrderResult<T> {
-  const caseStudies = shuffled(items.filter(isCaseStudy), rand);
+  /*
+    In the order Chris dragged them into in Studio (the Projects list, kept
+    in orderRank), when he has; any he has not placed follow, shuffled.
+    "I could order them according to the way that I want them to be seen."
+  */
+  const rankOf = (i: T) => (typeof (i as any).orderRank === 'string' ? (i as any).orderRank as string : null);
+  const studies = items.filter(isCaseStudy);
+  const ranked = studies.filter((i) => rankOf(i) !== null).sort((a, z) => (rankOf(a)! < rankOf(z)! ? -1 : 1));
+  const caseStudies = [...ranked, ...shuffled(studies.filter((i) => rankOf(i) === null), rand)];
   const others = items.filter((i) => !isCaseStudy(i));
 
   const piles = new Map<string, T[]>();

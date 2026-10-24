@@ -242,7 +242,7 @@ const IN_PROJECT = (id: string) => `(parentBrand._ref == ${id} || parentBrand->p
 */
 const TILE = `
   _id,
-  title, slug, pageType, thumbnail, mainImage, category, archiveMark, heroTile,
+  title, slug, pageType, thumbnail, mainImage, category, archiveMark, heroTile, orderRank,
   tileTreatment, assetType, merchPlacement, medium, year,
   "projectCredits": coalesce(select(${VIA_PIECE} => parentBrand->parentBrand->creditsText, parentBrand->creditsText), creditsText),
   headline, subtitle, client, resultStat, "summaryText": pt::text(summary),

@@ -1,4 +1,5 @@
 import type {DefaultDocumentNodeResolver, StructureResolver} from 'sanity/structure'
+import {orderableDocumentListDeskItem} from '@sanity/orderable-document-list'
 import {PagePreview} from './components/PagePreview'
 
 /*
@@ -19,23 +20,24 @@ export const defaultDocumentNode: DefaultDocumentNodeResolver = (S, {schemaType}
   ])
 }
 
-const structure: StructureResolver = (S) =>
+const structure: StructureResolver = (S, context) =>
   S.list()
     .title('Content')
     .items([
-      S.listItem()
-        .title('Projects')
-        .schemaType('caseStudy')
-        .child(
-          S.documentList()
-            .title('Projects')
-            .schemaType('caseStudy')
-            .filter('_type == "caseStudy" && pageType == "Case Study"')
-            .defaultOrdering([{field: 'title', direction: 'asc'}])
-            // So "+" here makes a project rather than something that has to
-            // be corrected afterwards - see the templates in sanity.config.ts.
-            .initialValueTemplates([S.initialValueTemplateItem('caseStudy-project')]),
-        ),
+      /*
+        Drag to order: the order here is the order the site shows the case
+        studies in (the hidden orderRank field - see caseStudy.ts). Chris:
+        "make the case studies draggable so that I could order them
+        according to the way that I want them to be seen".
+      */
+      orderableDocumentListDeskItem({
+        type: 'caseStudy',
+        title: 'Projects',
+        id: 'projects-ordered',
+        filter: 'pageType == "Case Study"',
+        S,
+        context,
+      }),
       S.listItem()
         .title('Grid Items')
         .schemaType('caseStudy')

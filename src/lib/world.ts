@@ -95,6 +95,8 @@ export interface WorldPiece {
   big?: boolean;
   /** The fewest cells wide it may be, in lands (a photograph on a phone, so it can be told apart). */
   least?: number;
+  /** A case study's place in the order Chris dragged the projects into in Studio. */
+  order?: number;
 }
 
 export interface WorldOptions {
@@ -600,8 +602,14 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
   };
   // As the portfolio grid deals: the case studies' sets first (Chris: "Make
   // case studies the first to appear"); by colour, colour decides instead.
+  // Case studies in the order he dragged them into in Studio, any unplaced after.
   const study = (k: string) => (groups.get(k)!.some((i) => pieces[i].own) ? 0 : 1);
-  keys.sort((a, z) => (o.sort === 'colour' ? toneOf(a) - toneOf(z) : study(a) - study(z)) || rank.get(a)! - rank.get(z)!);
+  const placeOf = (k: string) => Math.min(...groups.get(k)!.map((i) => pieces[i].order ?? Infinity));
+  keys.sort(
+    (a, z) =>
+      (o.sort === 'colour' ? toneOf(a) - toneOf(z) : study(a) - study(z) || (placeOf(a) === placeOf(z) ? 0 : placeOf(a) < placeOf(z) ? -1 : 1)) ||
+      rank.get(a)! - rank.get(z)!,
+  );
   const laid = keys.flatMap((k) => laidOrder(pieces, groups.get(k)!, null));
   // Rows to a cell's width: finer rows let a box follow its picture's shape.
   const kr = Math.max(1, Math.round(o.rowsPerCell ?? 1));

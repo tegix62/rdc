@@ -256,5 +256,17 @@ for (const [name, cols, maxSpan] of [
   }
 }
 
+// The projects in the order dragged in Studio: given an order, the case
+// studies' patches start in it.
+{
+  const order = ['/work/p3', '/work/p0', '/work/p4', '/work/p1', '/work/p2']
+  const ordered = pieces.map((x) => ({...x, order: x.own ? order.indexOf(x.project) : undefined}))
+  const o = generateWorld(ordered, {cols: 20, mode: 'lands', seed: 42, maxSpan: 6})
+  // In the order laid - the patches snake, so this is not reading order.
+  const start = (k) => o.placed.findIndex((q) => ordered[q.i].own && ordered[q.i].project === k)
+  const firsts = order.map(start)
+  check('lands: the case studies in the order dragged in Studio', firsts.every((v, k) => k === 0 || v > firsts[k - 1]), firsts.join(' < '))
+}
+
 console.log(failures ? `\n${failures} check(s) failed.` : '\nall checks passed')
 process.exit(failures ? 1 : 0)

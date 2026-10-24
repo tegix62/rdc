@@ -80,6 +80,14 @@ export interface WorldPiece {
   tone?: number;
   /** A fixed height in cells, whatever its width (the project's card). */
   rows?: number;
+  /**
+    How much ground it may take, 0-1 (1 if unset): less for a piece that
+    supports another - a close-up, an alternate shot. Chris: "I feel like
+    less important tiles are getting more area".
+  */
+  weight?: number;
+  /** A piece that should stand out - a case study, a hero tile: never small. */
+  big?: boolean;
 }
 
 export interface WorldOptions {
@@ -209,6 +217,16 @@ class Grid {
 
 /* A piece's box at a width in cells: its own shape, at least one cell tall. */
 const boxAt = (p: WorldPiece, cw: number) => ({cw, ch: p.rows ?? Math.max(1, Math.min(8, Math.round(cw / (p.w / p.h || 1))))});
+
+/*
+  How wide a piece wants to be where it lands, on the height map and the
+  lands: as high as the ground there, scaled by its weight; a big piece at
+  least two thirds of the widest.
+*/
+const wantAt = (p: WorldPiece, seed: number, cols: number, maxSpan: number, c: number, r: number) => {
+  const want = 1 + Math.round(groundAt(seed, cols, c, r) ** 1.6 * (maxSpan - 1) * (p.weight ?? 1));
+  return p.big ? Math.max(want, Math.ceil((maxSpan * 2) / 3)) : want;
+};
 
 const order = (n: number, seed: number) =>
   Array.from({length: n}, (_, i) => i).sort((a, b) => hash2(seed, a, 7) - hash2(seed, b, 7));
@@ -418,7 +436,7 @@ function flow(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: stri
         want = 1 + Math.round(heightAt(o.seed, o.cols, c, r) * (maxSpan - 1));
         least = Math.max(1, want - 1);
       } else if (o.mode === 'heights') {
-        want = 1 + Math.round(groundAt(o.seed, o.cols, c, r) ** 1.6 * (maxSpan - 1));
+        want = wantAt(p, o.seed, o.cols, maxSpan, c, r);
       } else {
         want = Math.max(1, Math.round(2 + (terrain(o.seed, c * freq, r * freq) - 0.5) * 2));
       }
@@ -640,7 +658,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
       seen++;
       const c = at % o.cols;
       const r = Math.floor(at / o.cols);
-      const want = 1 + Math.round(groundAt(o.seed, o.cols, c, r) ** 1.6 * (maxSpan - 1));
+      const want = wantAt(p, o.seed, o.cols, maxSpan, c, r);
       for (let cw = Math.min(want, o.cols - c); cw >= 1; cw--) {
         const {ch} = boxAt(p, cw);
         if (!grid.fits(c, r, cw, ch)) continue;

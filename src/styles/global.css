@@ -8213,6 +8213,12 @@ html.realsize-open {
 .wd {
   padding: 1rem 1rem 3rem;
 }
+/* Wider margins on a phone: "a little clunky on mobile - can we widen the margins". */
+@media (max-width: 47.99rem) {
+  .wd {
+    padding: 1rem 1.5rem 3rem;
+  }
+}
 .wd-bar {
   display: flex;
   flex-wrap: wrap;

@@ -57,6 +57,12 @@ for (const c of ['red-kettle', 'newform']) {
 }
 // Loose pieces.
 for (let k = 0; k < 6; k++) pieces.push({...shapes[k % 4], project: null, id: `loose-${k}`, parent: null})
+// Importance, as the page sets it: a case study stands out; a close-up
+// takes less ground than the collage it supports.
+pieces.forEach((x) => {
+  x.big = !!x.own
+  x.weight = x.id.includes('-close-') ? 0.6 : 1
+})
 // Detail and colour, as the page measures them: made up, but repeatable.
 pieces.forEach((x, i) => {
   x.detail = ((i * 37) % 101) / 100
@@ -187,6 +193,14 @@ for (const [name, grids] of [
         check(`${tag}: the opened piece is the largest of its set`, fam.every((i) => i === focus || boxOf(out, i).cw <= f.cw), `${f.cw} cells wide`)
         const far = fam.filter((i) => apart(boxOf(out, i), f) > Math.max(6, maxSpan * 2))
         check(`${tag}: and its set sits together round it`, far.length === 0, `${far.length} far away`)
+      }
+      if (focus === null && mode !== 'biomes') {
+        const widthOf = (f) => {
+          const w = p.filter((q) => f(pieces[q.i])).map((q) => q.cw)
+          return w.reduce((x, y) => x + y, 0) / w.length
+        }
+        // "less important tiles are getting more area"
+        check(`${tag}: the case studies the larger, the close-ups the smaller`, widthOf((x) => x.big) > widthOf((x) => !x.big) && widthOf((x) => x.weight < 1) < widthOf((x) => x.big), `${widthOf((x) => x.big).toFixed(1)} vs ${widthOf((x) => !x.big).toFixed(1)} cells wide, close-ups ${widthOf((x) => x.weight < 1).toFixed(1)}`)
       }
       if (focus === null && mode === 'heights') {
         const firstRest = p.filter((q) => !pieces[q.i].own).reduce((m, q) => Math.min(m, q.r * cols + q.c), Infinity)

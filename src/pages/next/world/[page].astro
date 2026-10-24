@@ -51,7 +51,7 @@ import Layout from '../../../layouts/Layout.astro';
 import Img from '../../../components/Img.astro';
 import {getAllGridItems} from '../../../lib/queries';
 import {tileImage, imageDimensions} from '../../../lib/image';
-import {treatmentOf, tileHref, cleanKey} from '../../../lib/tiles';
+import {treatmentOf, tileHref, cleanKey, merchPlacement} from '../../../lib/tiles';
 import {stripStegaKey} from '../../../lib/stega';
 import {sanityClient} from '../../../lib/sanity';
 import {clusterCard} from '../../../lib/clusterCard';
@@ -100,6 +100,15 @@ const pieces = all.map((it) => {
     parent: it.pieceParent ? cleanKey(it.pieceParent) : null,
     title: clean(it.title),
     lqip: previews[refOf(it)] ?? null,
+    /*
+      Chris, on a phone: "I feel like less important tiles are getting more
+      area". The case studies and the hero tiles he marked stand out; an
+      alternate merch shot, or a piece hung off another (a close-up), takes
+      less ground than the piece it supports.
+    */
+    big: isProject(it) || !!it.heroTile,
+    weight:
+      cleanKey(it.category) === 'Merch & Apparel' && merchPlacement(it) === 'later' ? 0.45 : it.pieceParent ? 0.6 : 1,
   };
 });
 const data = {pieces, names};
@@ -261,12 +270,14 @@ const data = {pieces, names};
   const draw = () => {
     for (const e of extras.splice(0)) e.remove();
     const phone = innerWidth < 768;
-    const width = Math.min(world.parentElement!.clientWidth - 32, 1400);
+    const pad = getComputedStyle(world.parentElement!);
+    const width = Math.min(world.parentElement!.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight), 1400);
     // Biomes on a finer grid, so the gap between them is a thin line.
     const [cols, maxSpan] =
       mode === 'lands' ? (phone ? [6, 3] : [20, 6]) : mode === 'biomes' ? (phone ? [15, 6] : [40, 12]) : phone ? [6, 3] : [20, 6];
     const cell = width / cols;
-    const gap = phone ? 2 : 3;
+    // Air between tiles - on a phone more than it was ("a little clunky on mobile - can we widen the margins").
+    const gap = phone ? 8 : 4;
     const sort = colour && mode !== 'biomes' ? 'colour' : 'seed';
     /*
       The opened project's block of type, measured at the width it will

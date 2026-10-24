@@ -80,7 +80,7 @@ const apart = (a, b) => Math.max(0, Math.max(a.c - (b.c + b.cw), b.c - (a.c + a.
 // The page's grids: the biomes on a finer one, so the gap between them is a thin line.
 for (const [name, grids] of [
   ['desktop', {heights: [20, 6], biomes: [40, 12], lands: [20, 6]}],
-  ['phone', {heights: [6, 3], biomes: [15, 6], lands: [6, 3]}],
+  ['phone', {heights: [6, 3], biomes: [15, 6], lands: [8, 4]}],
 ]) {
   for (const mode of ['heights', 'biomes', 'lands']) {
     const [cols, maxSpan] = grids[mode]

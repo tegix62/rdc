@@ -3,9 +3,11 @@
   pictures. For the height map, the biomes and the lands (also sorted by
   colour), at a desktop and a phone:
   every piece shown, none overlapping; a piece opened is larger than it
-  was, its set lit round it and the rest dimmed, with the bar and the way
-  back; "All work", Escape and the browser's back each close it, staying
-  on the page; and no script errors.
+  was and opens as on the main grid - the navy hairline frame, its project
+  bar, its set lit round it and the rest dropped back; in the lands a
+  project's block of type beside it, clear of every piece; picking it
+  again, Escape and the browser's back each close it, staying on the page;
+  and no script errors.
 
   Usage: node scripts/test-world-page.mjs [base-url]
 */
@@ -32,8 +34,22 @@ const state = (page) =>
     return {
       total: document.querySelectorAll('.wd-piece').length,
       shown: ts.length,
-      dim: ts.filter((t) => t.style.opacity === '0.3').length,
-      bar: !document.querySelector('[data-open]').hidden,
+      dim: ts.filter((t) => Number(getComputedStyle(t).opacity) < 0.5).length,
+      framed: !!document.querySelector('.wd-piece.is-open') && getComputedStyle(document.querySelector('.wd-piece.is-open .wd-frame')).boxShadow.includes('inset'),
+      bar: (() => {
+        const b = document.querySelector('.wd-piece.is-open .wd-jump')
+        return b ? getComputedStyle(b).display !== 'none' : null
+      })(),
+      card: (() => {
+        const c = Array.from(document.querySelectorAll('.wd-card')).find((x) => !x.hidden)
+        if (!c) return null
+        const r = c.getBoundingClientRect()
+        const hit = ts.some((t) => {
+          const q = t.getBoundingClientRect()
+          return Math.min(q.right, r.right) - Math.max(q.left, r.left) > 1 && Math.min(q.bottom, r.bottom) - Math.max(q.top, r.top) > 1
+        })
+        return {hit, text: c.querySelector('.pf-card__title')?.textContent ?? ''}
+      })(),
       overlaps,
       sizes: ts.map((t) => Math.round(t.getBoundingClientRect().width)),
     }
@@ -57,33 +73,35 @@ for (const [name, w, h] of [
       check(`${tag}: pieces of many sizes`, sized >= 3, `${sized} sizes`)
     }
     check(`${tag}: every piece shown, none overlapping`, rest.shown === rest.total && rest.overlaps === 0, `${rest.shown}/${rest.total}, ${rest.overlaps} overlap(s)`)
-    const k = Math.floor(rest.shown / 3)
+    // A case study, so it has a project, a bar and (in the lands) a card.
+    const k = await page.evaluate(() => Array.from(document.querySelectorAll('.wd-piece')).filter((t) => !t.hidden).findIndex((t) => t.classList.contains('wd-piece--study')))
     const before = rest.sizes[k]
-    await page.locator('.wd-piece:not([hidden])').nth(k).click()
+    await page.locator('.wd-piece:not([hidden]) .wd-pic').nth(k).click()
     await page.waitForTimeout(700)
     const open = await state(page)
     const i = await page.evaluate((k) => Array.from(document.querySelectorAll('.wd-piece')).filter((t) => !t.hidden)[k]?.dataset.i, k)
     const after = await page.evaluate((i) => Math.round(document.querySelector(`.wd-piece[data-i="${i}"]`).getBoundingClientRect().width), i)
     check(`${tag}: a piece opens larger`, after > before, `${before}px to ${after}px`)
     check(`${tag}: the rest dims, its set does not`, open.dim > 0 && open.dim < open.shown, `${open.dim} of ${open.shown} dimmed`)
-    check(`${tag}: the bar shows the way back`, open.bar)
+    check(`${tag}: it opens as on the main grid - the navy frame and its project bar`, open.framed && open.bar === true)
+    if (mode.startsWith('lands')) check(`${tag}: the project's block of type beside it, on no piece`, open.card && !open.card.hit && open.card.text.length > 0, open.card ? `"${open.card.text}"` : 'no card')
     check(`${tag}: still nothing overlaps`, open.overlaps === 0, `${open.overlaps}`)
-    await page.click('[data-open] button')
+    await page.locator(`.wd-piece[data-i="${i}"] .wd-pic`).click()
     await page.waitForTimeout(600)
     let back = await state(page)
-    check(`${tag}: "All work" closes it`, !back.bar && back.dim === 0)
-    await page.locator('.wd-piece:not([hidden])').nth(2).click()
+    check(`${tag}: picking it again closes it`, !back.framed && back.dim === 0)
+    await page.locator('.wd-piece:not([hidden]) .wd-pic').nth(2).click()
     await page.waitForTimeout(500)
     await page.keyboard.press('Escape')
     await page.waitForTimeout(600)
     back = await state(page)
-    check(`${tag}: so does Escape`, !back.bar && back.dim === 0)
-    await page.locator('.wd-piece:not([hidden])').nth(4).click()
+    check(`${tag}: so does Escape`, !back.framed && back.dim === 0)
+    await page.locator('.wd-piece:not([hidden]) .wd-pic').nth(4).click()
     await page.waitForTimeout(500)
     await page.goBack()
     await page.waitForTimeout(700)
     back = await state(page)
-    check(`${tag}: so does the browser's back, staying on the page`, !back.bar && back.dim === 0 && page.url().includes('/next/world/'), page.url())
+    check(`${tag}: so does the browser's back, staying on the page`, !back.framed && back.dim === 0 && page.url().includes('/next/world/'), page.url())
     check(`${tag}: no script errors`, errors.length === 0, errors.join(' | '))
     await page.close()
   }

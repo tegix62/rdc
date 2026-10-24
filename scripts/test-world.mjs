@@ -129,6 +129,21 @@ for (const [name, grids] of [
         })
         const loosest = spread.sort((a, z) => z.rows / z.n - a.rows / a.n)[0]
         check(`${tag}: each set lands together`, spread.every((x) => x.rows <= x.n * 1.5 + maxSpan * 2), `loosest ${loosest.k}: ${loosest.n} pieces over ${loosest.rows} rows`)
+        // "I'm not seeing the projects that are together actually being in
+        // their adjacent clusters": a set's pieces fill most of the box round them.
+        const loosePatch = [...new Set(sets)].filter((k) => !k.startsWith('#solo')).map((k) => {
+          const qs = p.filter((q) => sets[q.i] === k)
+          const box = (Math.max(...qs.map((q) => q.c + q.cw)) - Math.min(...qs.map((q) => q.c))) * (Math.max(...qs.map((q) => q.r + q.ch)) - Math.min(...qs.map((q) => q.r)))
+          return {k, fill: qs.reduce((n, q) => n + q.cw * q.ch, 0) / box}
+        }).sort((a, z) => a.fill - z.fill)[0]
+        check(`${tag}: each set is one compact patch`, loosePatch.fill >= 0.55, `the loosest, ${loosePatch.k}, fills ${Math.round(loosePatch.fill * 100)}% of its box`)
+        if (focus !== null) {
+          const withCard = generateWorld(pieces, {cols, mode, seed: 42, maxSpan, focus, focusRow: 3, card: {cw: Math.min(cols, 6), ch: 4}})
+          const cd = withCard.card
+          const f = boxOf(withCard, focus)
+          const hit = cd && withCard.placed.some((q) => q.c < cd.c + cd.cw && cd.c < q.c + q.cw && q.r < cd.r + cd.ch && cd.r < q.r + q.ch)
+          check(`${tag}: the project's card sits beside the opened piece, on nothing`, cd && !hit && apart(cd, f) === 0, cd ? `${cd.cw}x${cd.ch} at ${cd.c},${cd.r}` : 'no card')
+        }
         const close = pieces.map((x, i) => (x.id.includes('-close-') ? i : -1)).filter((i) => i >= 0)
         const far = close.filter((i) => !out.family.includes(i) && apart(boxOf(out, i), boxOf(out, pieces.findIndex((x) => x.id === pieces[i].parent))) > maxSpan)
         check(`${tag}: close-ups near their collage`, far.length === 0, far.map((i) => pieces[i].id).join(', '))

@@ -20,6 +20,19 @@
   a ~20px blurred copy in the asset's metadata, sent inline), measured on a
   canvas - so nothing is downloaded to measure them.
 
+  Then: "when you click on something, it should look like the portfolio
+  grid with the blue box and all of that functionality. Not like the type
+  lettering functionality", and "include, just like in the merch and
+  apparel filter, the blurb for each according case study, and also the
+  subtext below". So an opened piece wears the main grid's navy hairline
+  frame and its project bar ("NAME · 9 pieces →", the link to the project),
+  the rest of the page drops back as it does there, and the project's block
+  of type - kicker, name, "For" client, its first line, the result, "See
+  the project" - is set beside it, from the same clusterCard() the merch
+  view uses. A case study wears its bar at rest, as on the main grid (a
+  corner mark when the tile is small). Picking the opened piece again,
+  Escape or the browser's back closes it.
+
   The first two modes: the height map (the original), and biomes (each project, or
   each piece with the pieces parented to it, a tight block; the blocks a
   cell apart). In both, a piece opens as on the main grid: large, its set
@@ -41,6 +54,7 @@ import {tileImage, imageDimensions} from '../../../lib/image';
 import {treatmentOf, tileHref, cleanKey} from '../../../lib/tiles';
 import {stripStegaKey} from '../../../lib/stega';
 import {sanityClient} from '../../../lib/sanity';
+import {clusterCard} from '../../../lib/clusterCard';
 
 export async function getStaticPaths() {
   if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
@@ -67,6 +81,14 @@ const previews: Record<string, string> = Object.fromEntries(
     .filter((a) => a.lqip)
     .map((a) => [a._id, a.lqip!]),
 );
+// Each project's piece count (for its bar) and its block of type.
+const count: Record<string, number> = {};
+for (const it of all) {
+  const href = tileHref(it);
+  if (href) count[href] = (count[href] ?? 0) + 1;
+}
+const cards = all.filter((it) => isProject(it) && tileHref(it)).map((it) => ({href: tileHref(it)!, card: clusterCard(it)})).filter((c) => c.card);
+const barOf = (it: any) => clean(it.parentTitle ?? it.title ?? 'View project');
 const pieces = all.map((it) => {
   const d = imageDimensions(tileImage(it))!;
   return {
@@ -93,109 +115,52 @@ const data = {pieces, names};
       <button type="button" class="wd-btn wd-btn--roll" data-roll>New world</button>
     </div>
     <p class="wd-about" data-about></p>
-    <div class="wd-open" data-open hidden></div>
     <div class="wd-world">
-      {all.map((it, i) => (
-        <button
-          type="button"
-          class:list={['wd-piece', treatmentOf(it) === 'mark' && 'wd-piece--mark']}
-          data-i={i}
-          hidden
-          aria-label={clean(it.title)}
-        >
-          <Img image={tileImage(it)} alt="" width={1400} sizes="25vw" loading="lazy" field="Grid Thumbnail (world)" />
-        </button>
+      {all.map((it, i) => {
+        const href = tileHref(it);
+        return (
+          <div class:list={['wd-piece', treatmentOf(it) === 'mark' && 'wd-piece--mark', isProject(it) && href && 'wd-piece--study']} data-i={i} hidden>
+            <div class="wd-frame">
+              <button type="button" class="wd-pic" aria-label={clean(it.title)}>
+                <Img image={tileImage(it)} alt="" width={1400} sizes="25vw" loading="lazy" field="Grid Thumbnail (world)" />
+              </button>
+              {href && (
+                <a class="wd-jump" href={href} aria-label={[barOf(it), (count[href] ?? 0) > 1 ? `${count[href]} pieces` : null].filter(Boolean).join(' - ')}>
+                  <span class="wd-jump__label">{barOf(it)}</span>
+                  {(count[href] ?? 0) > 1 && (
+                    <span class="wd-jump__count">
+                      &middot; {count[href]} pieces
+                    </span>
+                  )}
+                  <span class="wd-jump__arrow" aria-hidden="true">&rarr;</span>
+                </a>
+              )}
+            </div>
+          </div>
+        );
+      })}
+      {cards.map(({href, card}) => (
+        <a class="wd-card" href={href} data-card={href} hidden>
+          {card!.kicker && <span class="pf-card__kicker">{card!.kicker}</span>}
+          <span class="pf-card__title">{card!.title}</span>
+          {card!.client && <span class="pf-card__client">For {card!.client}</span>}
+          {card!.line && <span class="pf-card__line">{card!.line}</span>}
+          {card!.result && <span class="pf-card__result">{card!.result}</span>}
+          <span class="pf-card__go">
+            See the project <span aria-hidden="true">&rarr;</span>
+          </span>
+        </a>
       ))}
     </div>
   </div>
   <script type="application/json" id="wd-data" set:html={JSON.stringify(data)} />
 </Layout>
 
-<style>
-  .wd {
-    padding: 1rem 1rem 3rem;
-  }
-  .wd-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 0.5rem;
-  }
-  .wd-btn {
-    border: 1px solid currentColor;
-    background: none;
-    color: inherit;
-    padding: 0.35rem 0.7rem;
-    font: inherit;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    cursor: pointer;
-  }
-  .wd-btn[aria-pressed='true'] {
-    color: #fff;
-    background: #0a2a8a;
-    border-color: #0a2a8a;
-  }
-  .wd-about {
-    text-align: center;
-    font-size: 0.8rem;
-    opacity: 0.7;
-    margin: 0 auto 1rem;
-    max-width: 40rem;
-  }
-  /* The opened piece's bar: the way back, always in view. */
-  .wd-open {
-    position: sticky;
-    top: 0;
-    z-index: 3;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: center;
-    gap: 0.35rem 1.25rem;
-    padding: 0.6rem 0;
-    margin-bottom: 0.5rem;
-    background: #fff;
-    font-size: 0.85rem;
-  }
-  .wd-open[hidden] {
-    display: none;
-  }
-  .wd-world {
-    position: relative;
-    margin: 0 auto;
-  }
-  .wd-piece {
-    display: block;
-    position: absolute;
-    z-index: 1;
-    padding: 0;
-    border: 0;
-    background: none;
-    cursor: pointer;
-  }
-  .wd-piece[hidden] {
-    display: none;
-  }
-  .wd-piece:focus-visible {
-    outline: 2px solid #0a2a8a;
-    outline-offset: 2px;
-  }
-  /*
-    Whole, never cropped: a box is rounded to whole cells, so it is rarely
-    the picture's own shape. The picture sits inside it at its own shape.
-  */
-  .wd-piece :global(img) {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-  }
-</style>
+<!--
+  The page's styles are in global.css (WORLD, PREVIEW): most of them are for
+  classes the script adds - the opened piece, the drop back - and the
+  critical-CSS step prunes those from a page's own inline styles.
+-->
 
 <script>
   import {generateWorld, type WorldMode, type WorldResult} from '../../../lib/world';
@@ -204,9 +169,9 @@ const data = {pieces, names};
   type P = {w: number; h: number; project: string | null; own: boolean; id: string; parent: string | null; title: string; lqip: string | null; detail?: number; tone?: number};
   const data: {pieces: P[]; names: Record<string, string>} = JSON.parse(document.getElementById('wd-data')!.textContent!);
   const world = document.querySelector<HTMLElement>('.wd-world')!;
-  const tiles = Array.from(world.querySelectorAll<HTMLButtonElement>('.wd-piece'));
+  const tiles = Array.from(world.querySelectorAll<HTMLElement>('.wd-piece'));
+  const cards = new Map(Array.from(world.querySelectorAll<HTMLElement>('[data-card]')).map((el) => [el.dataset.card!, el]));
   const about = document.querySelector<HTMLElement>('[data-about]')!;
-  const openBar = document.querySelector<HTMLElement>('[data-open]')!;
   const ABOUT: Record<string, string> = {
     heights: 'Under the page is an invisible landscape of hills and valleys; each piece is drawn as big as the ground is high where it lands.',
     biomes: 'Each project - or a piece with the pieces parented to it - is its own patch of land, a small gap between them.',
@@ -303,9 +268,28 @@ const data = {pieces, names};
     const cell = width / cols;
     const gap = phone ? 2 : 3;
     const sort = colour && mode !== 'biomes' ? 'colour' : 'seed';
-    const out = generateWorld(data.pieces, {cols, mode, seed, maxSpan, focus, focusRow, sort});
+    /*
+      The opened project's block of type, measured at the width it will
+      have - beside the piece on a wide screen, the width of the page on a
+      phone - so the world leaves it exactly the rows it needs.
+    */
+    cards.forEach((el) => (el.hidden = true));
+    const cardEl = focus !== null && mode === 'lands' ? cards.get(data.pieces[focus].project ?? '') : undefined;
+    let card: {cw: number; ch: number} | null = null;
+    if (cardEl) {
+      const cw = phone ? cols : Math.min(cols, 6);
+      Object.assign(cardEl.style, {left: '0', top: '0', width: `${cw * cell - gap}px`, height: '', visibility: 'hidden'});
+      cardEl.hidden = false;
+      card = {cw, ch: Math.max(1, Math.ceil((cardEl.offsetHeight + gap) / cell))};
+      cardEl.style.visibility = '';
+    }
+    const out = generateWorld(data.pieces, {cols, mode, seed, maxSpan, focus, focusRow, sort, card});
     last = out;
     const fam = new Set(out.family);
+    if (cardEl && out.card) {
+      Object.assign(cardEl.style, {left: `${out.card.c * cell + gap / 2}px`, top: `${out.card.r * cell + gap / 2}px`, width: `${out.card.cw * cell - gap}px`, height: `${out.card.ch * cell - gap}px`});
+    } else if (cardEl) cardEl.hidden = true;
+    world.classList.toggle('has-focus', focus !== null);
     world.style.width = `${width}px`;
     world.style.height = `${Math.ceil(out.rows * cell)}px`;
     tiles.forEach((t) => (t.hidden = true));
@@ -316,7 +300,9 @@ const data = {pieces, names};
       t.style.top = `${p.r * cell + gap / 2}px`;
       t.style.width = `${p.cw * cell - gap}px`;
       t.style.height = `${p.ch * cell - gap}px`;
-      t.style.opacity = focus !== null && !fam.has(p.i) ? '0.3' : '';
+      t.classList.toggle('is-open', p.i === focus);
+      t.classList.toggle('is-sibling', fam.has(p.i));
+      t.classList.toggle('is-small', p.cw * cell < 150);
       const img = t.querySelector('img');
       if (img) img.sizes = `${Math.ceil(p.cw * cell)}px`;
     }
@@ -354,27 +340,6 @@ const data = {pieces, names};
       world.append(el);
       extras.push(el);
     }
-    // The bar for the opened piece.
-    openBar.replaceChildren();
-    openBar.hidden = focus === null;
-    if (focus !== null) {
-      const p = data.pieces[focus];
-      const back = document.createElement('button');
-      back.type = 'button';
-      back.textContent = '← All work';
-      Object.assign(back.style, {border: '0', background: 'none', padding: '0', font: 'inherit', color: 'inherit', textDecoration: 'underline', cursor: 'pointer'});
-      back.addEventListener('click', close);
-      const name = document.createElement('span');
-      name.textContent = p.title;
-      name.style.fontWeight = '700';
-      openBar.append(back, name);
-      if (p.project?.startsWith('/')) {
-        const go = document.createElement('a');
-        go.href = p.project;
-        go.textContent = `${data.names[p.project] ?? 'The project'} →`;
-        openBar.append(go);
-      }
-    }
     document.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
     colourBtn.setAttribute('aria-pressed', String(colour));
     colourBtn.hidden = mode === 'biomes';
@@ -382,11 +347,10 @@ const data = {pieces, names};
     history.replaceState(history.state, '', `?mode=${mode}&seed=${seed}${colour ? '&sort=colour' : ''}`);
   };
 
+  // As on the main grid: a piece opens; picked again, it closes. Its bar is the way to the project.
   const open = (i: number, push = true) => {
-    const p = data.pieces[i];
     if (i === focus) {
-      if (p.project?.startsWith('/')) location.href = p.project;
-      else close();
+      close();
       return;
     }
     focusRow = last?.placed.find((x) => x.i === i)?.r ?? 0;
@@ -407,7 +371,7 @@ const data = {pieces, names};
     draw();
   }
 
-  tiles.forEach((t, i) => t.addEventListener('click', () => open(i)));
+  tiles.forEach((t, i) => t.querySelector('.wd-pic')!.addEventListener('click', () => open(i)));
   addEventListener('popstate', (e) => {
     const i = (e.state as {wd?: number} | null)?.wd;
     pushed = typeof i === 'number';

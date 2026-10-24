@@ -8752,18 +8752,20 @@ a.pf-btn {
   justify-content: center;
   padding: var(--space-4) 4.5rem var(--space-2);
 }
+.ty-view__stage {
+  position: relative;
+}
+/* The stage's whole box, the picture contained in it, whatever its shape. */
 .ty-view__img {
-  display: block;
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: auto;
+  position: absolute;
+  inset: var(--space-4) 4.5rem var(--space-2);
+  width: calc(100% - 9rem);
+  height: calc(100% - var(--space-4) - var(--space-2));
   object-fit: contain;
 }
 .ty-view.is-air .ty-view__img {
-  padding: 6%;
+  padding: 4%;
   box-sizing: border-box;
-  background: color-mix(in srgb, var(--color-navy) 4%, #fff);
 }
 .ty-view__bar {
   display: flex;
@@ -8838,8 +8840,10 @@ a.pf-btn {
   font-size: 1.6rem;
 }
 @media (max-width: 47.99rem) {
-  .ty-view__stage {
-    padding: 3.75rem var(--space-1) var(--space-1);
+  .ty-view__img {
+    inset: 3.75rem var(--space-1) var(--space-1);
+    width: calc(100% - 2 * var(--space-1));
+    height: calc(100% - 3.75rem - var(--space-1));
   }
   /* On a phone the arrows sit low, by the thumb, clear of the picture. */
   .ty-view__step {

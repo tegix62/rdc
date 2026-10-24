@@ -457,6 +457,9 @@ const live = at >= 0 && (prev || next);
         addEventListener('keydown', (e) => {
           if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
           if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+          // Taken already - a viewer stepping through its pieces - or
+          // anything open over the page: the key is not the deck's.
+          if (e.defaultPrevented || document.querySelector('dialog[open]')) return;
           const el = document.activeElement;
           const tag = el?.tagName;
           if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'IFRAME') return;

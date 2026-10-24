@@ -95,6 +95,11 @@ if (KEEP) {
   const side = Math.min(1000, w, h)
   const looks = {
     'upload-whole.png': `https://cdn.sanity.io/${file}?w=1200&fm=png`,
+    // The grid's size at the site's quality and above, to tell the
+    // compression from the size.
+    'w800-q80.webp': `https://cdn.sanity.io/${file}?w=800&q=80&fm=webp`,
+    'w800-q92.webp': `https://cdn.sanity.io/${file}?w=800&q=92&fm=webp`,
+    'w800-lossless.png': `https://cdn.sanity.io/${file}?w=800&fm=png`,
     'upload-middle-full-size.png': `https://cdn.sanity.io/${file}?rect=${Math.round((w - side) / 2)},${Math.round((h - side) / 2)},${side},${side}&fm=png`,
   }
   for (const [name, u] of Object.entries(looks)) {

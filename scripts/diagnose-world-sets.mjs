@@ -53,7 +53,11 @@ for (const [name, w, h] of [
           for (const b of [...left]) if (near(box(a), box(b))) (left.delete(b), stack.push(b))
         }
       }
-      return `${String(n).padStart(2)} patch(es)  ${String(is.length).padStart(3)} pieces  ${k}`
+      // How spread out: its bounding box over the area its pieces cover (1 = a solid block).
+      const bs = is.map(box)
+      const bb = (Math.max(...bs.map((b) => b.r)) - Math.min(...bs.map((b) => b.l))) * (Math.max(...bs.map((b) => b.b)) - Math.min(...bs.map((b) => b.t)))
+      const area = bs.reduce((n, b) => n + (b.r - b.l) * (b.b - b.t), 0)
+      return `${String(n).padStart(2)} patch(es)  ${String(is.length).padStart(3)} pieces  spread ${(bb / area).toFixed(1)}  ${k}`
     })
     return {rows, patches}
   }, TERM)

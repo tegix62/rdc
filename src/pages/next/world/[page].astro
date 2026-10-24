@@ -107,6 +107,10 @@ const pieces = all.map((it) => {
       less ground than the piece it supports.
     */
     big: isProject(it) || !!it.heroTile,
+    // A photograph, collage or anything else filling its frame - which on a
+    // phone needs more than the smallest size to be told apart; a mark on
+    // transparency reads at any size.
+    photo: it.tileOpaque !== false && treatmentOf(it) !== 'mark',
     weight:
       cleanKey(it.category) === 'Merch & Apparel' && merchPlacement(it) === 'later' ? 0.45 : it.pieceParent ? 0.6 : 1,
   };
@@ -175,7 +179,7 @@ const data = {pieces, names};
   import {generateWorld, type WorldMode, type WorldResult} from '../../../lib/world';
   import {seedOf} from '../../../lib/cluster';
 
-  type P = {w: number; h: number; project: string | null; own: boolean; id: string; parent: string | null; title: string; lqip: string | null; detail?: number; tone?: number};
+  type P = {photo: boolean; least?: number; w: number; h: number; project: string | null; own: boolean; id: string; parent: string | null; title: string; lqip: string | null; detail?: number; tone?: number};
   const data: {pieces: P[]; names: Record<string, string>} = JSON.parse(document.getElementById('wd-data')!.textContent!);
   const world = document.querySelector<HTMLElement>('.wd-world')!;
   const tiles = Array.from(world.querySelectorAll<HTMLElement>('.wd-piece'));
@@ -283,8 +287,8 @@ const data = {pieces, names};
       : Math.min(world.parentElement!.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight), 1400);
     // Biomes on a finer grid, so the gap between them is a thin line.
     const [cols, maxSpan] =
-      // A finer grid on a phone than the height map's: "still looking clunky"; 7 not 8, so the smallest stay legible.
-      mode === 'lands' ? (phone ? [7, 4] : [20, 6]) : mode === 'biomes' ? (phone ? [15, 6] : [40, 12]) : phone ? [6, 3] : [20, 6];
+      // A finer grid on a phone than the height map's: "still looking clunky"; 8, with the pictures that need it never at the smallest (below) - 7 was "noticeably less compact and more clunky".
+      mode === 'lands' ? (phone ? [8, 4] : [20, 6]) : mode === 'biomes' ? (phone ? [15, 6] : [40, 12]) : phone ? [6, 3] : [20, 6];
     const cell = width / cols;
     const gap = phone ? 2 : 3;
     const sort = colour && mode !== 'biomes' ? 'colour' : 'seed';
@@ -303,6 +307,8 @@ const data = {pieces, names};
       card = {cw, ch: Math.max(1, Math.ceil((cardEl.offsetHeight + gap) / cell))};
       cardEl.style.visibility = '';
     }
+    // On a phone, Chris: "it might mean too small to tell what some tiles are".
+    for (const p of data.pieces) p.least = phone && mode === 'lands' && p.photo ? 2 : 1;
     const out = generateWorld(data.pieces, {cols, mode, seed, maxSpan, focus, focusRow, sort, card});
     last = out;
     const fam = new Set(out.family);

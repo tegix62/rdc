@@ -80,7 +80,7 @@ const apart = (a, b) => Math.max(0, Math.max(a.c - (b.c + b.cw), b.c - (a.c + a.
 // The page's grids: the biomes on a finer one, so the gap between them is a thin line.
 for (const [name, grids] of [
   ['desktop', {heights: [20, 6], biomes: [40, 12], lands: [20, 6]}],
-  ['phone', {heights: [6, 3], biomes: [15, 6], lands: [7, 4]}],
+  ['phone', {heights: [6, 3], biomes: [15, 6], lands: [8, 4]}],
 ]) {
   for (const mode of ['heights', 'biomes', 'lands']) {
     const [cols, maxSpan] = grids[mode]
@@ -194,6 +194,14 @@ for (const [name, grids] of [
         check(`${tag}: the opened piece is the largest of its set`, fam.every((i) => i === focus || boxOf(out, i).cw <= f.cw), `${f.cw} cells wide`)
         const far = fam.filter((i) => apart(boxOf(out, i), f) > Math.max(6, maxSpan * 2))
         check(`${tag}: and its set sits together round it`, far.length === 0, `${far.length} far away`)
+      }
+      if (focus === null && mode === 'lands') {
+        // A photograph on a phone never at the smallest size.
+        const photos = pieces.map((x, i) => (i % 4 === 1 ? i : -1)).filter((i) => i >= 0)
+        const tagged = pieces.map((x, i) => ({...x, least: photos.includes(i) ? 2 : 1}))
+        const w = generateWorld(tagged, {cols, mode, seed: 42, maxSpan})
+        const tiny = w.placed.filter((q) => photos.includes(q.i) && q.cw < 2)
+        check(`${tag}: a piece given a least size is never smaller`, tiny.length === 0 && w.placed.length === pieces.length, `${tiny.length} too small`)
       }
       if (focus === null && mode !== 'biomes') {
         const widthOf = (f) => {

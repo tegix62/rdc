@@ -88,6 +88,8 @@ export interface WorldPiece {
   weight?: number;
   /** A piece that should stand out - a case study, a hero tile: never small. */
   big?: boolean;
+  /** The fewest cells wide it may be, in lands (a photograph on a phone, so it can be told apart). */
+  least?: number;
 }
 
 export interface WorldOptions {
@@ -659,7 +661,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
       const c = at % o.cols;
       const r = Math.floor(at / o.cols);
       const want = wantAt(p, o.seed, o.cols, maxSpan, c, r);
-      for (let cw = Math.min(want, o.cols - c); cw >= 1; cw--) {
+      for (let cw = Math.min(Math.max(want, p.least ?? 1), o.cols - c); cw >= Math.min(p.least ?? 1, o.cols); cw--) {
         const {ch} = boxAt(p, cw);
         if (!grid.fits(c, r, cw, ch)) continue;
         const q = {i, c, r, cw, ch};

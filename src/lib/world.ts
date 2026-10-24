@@ -99,6 +99,8 @@ export interface WorldPiece {
   order?: number;
   /** Its category (the portfolio's), so the loose work can be dealt across them. */
   kind?: string;
+  /** A mark set as one by hand: drawn with air round it, so it needs less ground. */
+  mark?: boolean;
 }
 
 export interface WorldOptions {
@@ -657,7 +659,25 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     never smaller than one step above that.
   */
   const cap = caps ? Math.max(2, maxSpan - Math.max(1, Math.round(maxSpan / 3))) : maxSpan;
-  const bigMin = caps ? Math.min(maxSpan, cap + 1) : Math.ceil((maxSpan * 2) / 3);
+  /*
+    And the case studies a step smaller than they were - Chris: "the case
+    study tiles are dominating a little too much, it makes it look clunky.
+    Especially the Adelante logomark". From the supporting work's largest
+    to one step above it, no more; a hand-set mark, which brings its own
+    air, a step below that.
+  */
+  const bigMin = caps ? cap : Math.ceil((maxSpan * 2) / 3);
+  const bigMax = (p: WorldPiece) => (caps ? Math.min(maxSpan, p.mark ? cap : cap + 1) : maxSpan);
+  /*
+    A wide piece is sized by its area, not its width - Chris: "some things
+    are actually too small, like the DumpStat wordmark". A 3:1 wordmark two
+    cells wide is a strip a third of a cell tall; it grows by the square
+    root of how wide it is, and a very wide one is never under two cells.
+  */
+  const widen = (p: WorldPiece, w: number) => {
+    const ratio = (p.w / p.h) || 1;
+    return ratio > 1.3 ? Math.round(w * Math.sqrt(ratio)) : w;
+  };
 
   const area = pieces.reduce((n, p) => n + boxAt(p, 2, kr).cw * boxAt(p, 2, kr).ch, 0);
   const grid = new Grid(o.cols, Math.max(60, Math.ceil((area * 8) / o.cols) + 60));
@@ -738,7 +758,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
   const spotFor = (i: number, kin: WorldPlaced[], where: Map<string, WorldPlaced>, skip = 0): WorldPlaced | null => {
     const p = pieces[i];
     const up = p.parent ? where.get(p.parent) : undefined;
-    const lo = Math.min(o.cols, Math.max(p.least ?? 1, p.big ? bigMin : 1));
+    const lo = Math.min(o.cols, Math.max(p.least ?? 1, p.big ? Math.min(bigMin, bigMax(p)) : 1, (p.w / p.h || 1) >= 2.5 ? 2 : 1));
     // Loose, and not a case study: the first free cell, as the height map.
     const plain = kin.length === 0 && (setSize.get(sets[i]) ?? 1) === 1 && lo === 1;
     let first: WorldPlaced | null = null;
@@ -756,7 +776,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
       seen++;
       const c = at % o.cols;
       const r = Math.floor(at / o.cols);
-      const want = p.big ? wantAt(p, o.seed, o.cols, maxSpan, c, r / kr) : Math.min(cap, wantAt(p, o.seed, o.cols, maxSpan, c, r / kr));
+      const want = Math.min(p.big ? bigMax(p) : cap, widen(p, wantAt(p, o.seed, o.cols, maxSpan, c, r / kr)));
       /*
         Of the widths that fit here, the widest whose box - rounded to whole
         cells - is close to the picture's own shape; else the closest. A
@@ -916,7 +936,8 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
       const r = Math.floor(at / o.cols);
       let moved = false;
       for (const {q} of movable().slice(0, 12)) {
-        for (let cw = Math.min(q.cw, o.cols - c); cw >= 1 && !moved; cw--) {
+        const least = Math.max(pieces[q.i].least ?? 1, (pieces[q.i].w / pieces[q.i].h || 1) >= 2.5 ? 2 : 1);
+        for (let cw = Math.min(q.cw, o.cols - c); cw >= least && !moved; cw--) {
           const {ch} = boxAt(pieces[q.i], cw, kr);
           if (r + ch > bandEnd + side * kr || !grid.fits(c, r, cw, ch)) continue;
           for (let y = q.r; y < q.r + q.ch; y++) for (let x = q.c; x < q.c + q.cw; x++) grid.used[y * o.cols + x] = -1;
@@ -949,7 +970,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     for (let round = 0, grew = true; grew && round < 4; round++) {
       grew = false;
       placed.forEach((q, n) => {
-        if (q.i === focus || q.cw >= (pieces[q.i].big ? maxSpan : cap)) return;
+        if (q.i === focus || q.cw >= (pieces[q.i].big ? bigMax(pieces[q.i]) : cap)) return;
         const {ch} = boxAt(pieces[q.i], q.cw + 1, kr);
         for (const [dc, dr] of [[0, 0], [-1, 0], [0, q.ch - ch], [-1, q.ch - ch]]) {
           const c = q.c + dc;

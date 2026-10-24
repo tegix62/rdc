@@ -271,13 +271,54 @@ for (const [name, w, h] of [
   check(`${name}, type rows: a named row per project, with its blurb`, ty.projects >= 4 && ty.named === ty.rows && ty.blurbs >= ty.projects - 1, `${ty.rows} rows (${ty.projects} projects), ${ty.named} named, ${ty.blurbs} with a blurb`)
   check(`${name}, type rows: one height per row, nothing wider than the screen`, ty.uneven === 0 && !ty.pageWide && ty.pieces > 30, `${ty.pieces} pieces, ${ty.uneven} uneven rows`)
   check(`${name}, type rows: Type/Lettering lit`, ty.active === 'Type/Lettering', ty.active)
-  await page.click('.ty-piece a')
+  // The rows start at the toolbar's left edge.
+  const edges = await page.evaluate(() => ({
+    bar: Math.round(document.querySelector('.pf-controls .pf-btn').getBoundingClientRect().left),
+    row: Math.round(document.querySelector('.ty-head').getBoundingClientRect().left),
+  }))
+  check(`${name}, type rows: lined up with the toolbar`, Math.abs(edges.bar - edges.row) <= 1, `toolbar ${edges.bar}px, rows ${edges.row}px`)
+  // A piece opens here, over the rows, and every way of closing it leaves
+  // the page where it was.
+  const here = page.url()
+  const viewer = () => page.evaluate(() => {
+    const d = document.querySelector('.ty-view')
+    const i = d.querySelector('.ty-view__img').getBoundingClientRect()
+    return {open: d.open, title: d.querySelector('.ty-view__title').textContent.trim(), count: d.querySelector('.ty-view__count').textContent, img: Math.round(i.width) > 100 && i.left >= 0 && i.right <= innerWidth + 1 && i.bottom <= innerHeight + 1}
+  })
+  await page.locator('.ty-piece a').nth(1).click()
+  await page.waitForTimeout(800)
+  let v = await viewer()
+  check(`${name}, type rows: a piece opens here, large and named`, v.open && v.title && v.img && page.url() === here, `${JSON.stringify(v)} ${page.url()}`)
+  await page.keyboard.press('ArrowRight')
+  await page.waitForTimeout(400)
+  const stepped = await viewer()
+  check(`${name}, type rows: the arrow keys step along the row`, stepped.open && stepped.count !== v.count, `${v.count} then ${stepped.count}`)
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(500)
+  v = await viewer()
+  check(`${name}, type rows: Escape closes it, still on the rows`, !v.open && page.url() === here, page.url())
+  await page.locator('.ty-piece a').first().click()
+  await page.waitForTimeout(600)
+  await page.click('.ty-view__x')
+  await page.waitForTimeout(500)
+  check(`${name}, type rows: so does the cross`, !(await viewer()).open && page.url() === here, page.url())
+  await page.locator('.ty-piece a').first().click()
+  await page.waitForTimeout(600)
+  await page.goBack()
+  await page.waitForTimeout(800)
+  check(`${name}, type rows: so does the browser's back, staying on the page`, !(await viewer()).open && page.url() === here, page.url())
+  await page.locator('.ty-piece a').first().click()
+  await page.waitForTimeout(600)
+  await page.click('.ty-view__closer')
   await page.waitForTimeout(1200)
   const tyLanded = await page.evaluate(() => {
     const el = document.getElementById(decodeURIComponent(location.hash.slice(1)))
     return el ? Math.round(el.getBoundingClientRect().top) : null
   })
-  check(`${name}, type rows: a piece opens in Up close`, /\/next\/close\/home\/?#/.test(page.url()) && tyLanded !== null && tyLanded < 200, `${page.url()} at ${tyLanded}px`)
+  check(`${name}, type rows: Look closer goes on to Up close`, /\/next\/close\/home\/?#/.test(page.url()) && tyLanded !== null && tyLanded < 200, `${page.url()} at ${tyLanded}px`)
+  await page.goBack()
+  await page.waitForTimeout(1200)
+  check(`${name}, type rows: and back again returns to the rows`, page.url().includes('/next/type/home'), page.url())
   check(`${name}, the views: no script errors`, errors.length === 0, errors.join(' | '))
   await page.close()
 }

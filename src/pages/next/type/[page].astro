@@ -11,17 +11,25 @@
   its pieces at one height, its lettering first (Typography and
   Illustration pieces, and the hand-set marks), then the rest. After the
   projects, the loose lettering in a row of its own. A row swipes sideways
-  on a phone; a piece opens in Up close.
+  on a phone, and has arrows on a wide screen.
+
+  A piece opens here, over the rows, large and captioned, with arrows
+  through its row - not by leaving for Up close. Chris: "when you go to
+  click something, it does a sort of close-up view, but then you can't
+  return back to this page." Closing (the cross, Escape, outside it, or the
+  browser's back) leaves the rows as they were. "Look closer" still goes on
+  to Up close, and without the script every piece is a plain link there.
 
   Never built for production (getStaticPaths), and noindex.
 */
 import Layout from '../../../layouts/Layout.astro';
 import Img from '../../../components/Img.astro';
 import {getAllGridItems} from '../../../lib/queries';
-import {tileImage, imageDimensions} from '../../../lib/image';
+import {tileImage, imageDimensions, imageUrl, buildSrcSet} from '../../../lib/image';
 import {tileHref, cleanKey, explicitTreatment} from '../../../lib/tiles';
 import {stripStegaKey} from '../../../lib/stega';
 import {clusterCard} from '../../../lib/clusterCard';
+import {museumLabel} from '../../../lib/museumLabel';
 
 export async function getStaticPaths() {
   if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
@@ -66,6 +74,17 @@ const aspectOf = (it: any) => {
   const d = imageDimensions(tileImage(it))!;
   return d.width / d.height;
 };
+// The viewer's copy: as wide as a large screen shows it.
+const viewOf = (it: any) => {
+  const img = tileImage(it);
+  const label = museumLabel(it);
+  return {
+    'data-src': imageUrl(img)?.width(1600).url(),
+    'data-srcset': buildSrcSet(img, 2400),
+    'data-title': clean(label?.title ?? it.title),
+    'data-detail': label?.detail ?? '',
+  };
+};
 // The row's height, in CSS pixels (global.css, --ty-h): for the sizes hint.
 const H = {desktop: 300, phone: 200};
 ---
@@ -83,7 +102,7 @@ const H = {desktop: 300, phone: 200};
 
     <ol class="ty-rows">
       {rows.map((row) => (
-        <li class="ty-row">
+        <li class="ty-row" data-title={row.title} data-href={row.href ?? undefined}>
           <div class="ty-head">
             <h2 class="ty-title">{row.href ? <a href={row.href}>{row.title}</a> : row.title}</h2>
             {row.card?.kicker && <p class="ty-kicker">{row.card.kicker}</p>}
@@ -94,13 +113,14 @@ const H = {desktop: 300, phone: 200};
               </a>
             )}
           </div>
+          <div class="ty-track">
           <ul class="ty-strip" aria-label={row.title}>
             {row.pieces.map((it) => {
               const a = aspectOf(it);
               const mark = explicitTreatment(it) === 'mark';
               return (
                 <li class:list={['ty-piece', mark && 'ty-piece--air']} style={`--a:${a.toFixed(3)}`}>
-                  <a href={`/next/close/home#${keyOf(it)}`} aria-label={clean(it.title)}>
+                  <a href={`/next/close/home#${keyOf(it)}`} aria-label={clean(it.title)} {...viewOf(it)}>
                     <Img
                       image={tileImage(it)}
                       alt=""
@@ -114,10 +134,136 @@ const H = {desktop: 300, phone: 200};
               );
             })}
           </ul>
+          <button type="button" class="ty-more ty-more--back" aria-label="Back along the row" hidden>&larr;</button>
+          <button type="button" class="ty-more ty-more--on" aria-label="On along the row" hidden>&rarr;</button>
+          </div>
         </li>
       ))}
     </ol>
+
+    <dialog class="ty-view" aria-label="The piece">
+      <figure class="ty-view__fig">
+        <div class="ty-view__stage"><img class="ty-view__img" alt="" /></div>
+        <figcaption class="ty-view__bar">
+          <span class="ty-view__label">
+            <span class="ty-view__title"></span>
+            <span class="ty-view__detail"></span>
+          </span>
+          <span class="ty-view__count"></span>
+          <span class="ty-view__links">
+            <a class="ty-view__closer" href="/next/close/home">Look closer <span aria-hidden="true">&rarr;</span></a>
+            <a class="ty-view__project" href="/">The project <span aria-hidden="true">&rarr;</span></a>
+          </span>
+        </figcaption>
+      </figure>
+      <button type="button" class="ty-view__step ty-view__step--back" aria-label="Previous piece">&larr;</button>
+      <button type="button" class="ty-view__step ty-view__step--on" aria-label="Next piece">&rarr;</button>
+      <button type="button" class="ty-view__x" aria-label="Close">&times;</button>
+    </dialog>
   </div>
 </Layout>
+
+<script>
+  /*
+    The viewer: a piece opens over the rows, with the row's others a step
+    away. Opening adds an entry to the history, so the browser's back
+    closes it rather than leaving the page.
+  */
+  const view = document.querySelector<HTMLDialogElement>('.ty-view')!;
+  const img = view.querySelector<HTMLImageElement>('.ty-view__img')!;
+  const q = <T extends Element>(s: string) => view.querySelector<T>(s)!;
+  let row: HTMLElement | null = null;
+  let at = 0;
+  let pushed = false;
+
+  const linksOf = (r: HTMLElement) => Array.from(r.querySelectorAll<HTMLAnchorElement>('.ty-piece a'));
+
+  function show(r: HTMLElement, i: number) {
+    const links = linksOf(r);
+    at = (i + links.length) % links.length;
+    row = r;
+    const a = links[at];
+    img.removeAttribute('src');
+    img.srcset = a.dataset.srcset ?? '';
+    img.sizes = '90vw';
+    img.src = a.dataset.src ?? '';
+    img.alt = a.dataset.title ?? '';
+    view.classList.toggle('is-air', !!a.closest('.ty-piece--air'));
+    q('.ty-view__title').textContent = a.dataset.title ?? '';
+    q('.ty-view__detail').textContent = [r.dataset.href ? r.dataset.title : null, a.dataset.detail].filter(Boolean).join(' \u00b7 ');
+    q('.ty-view__count').textContent = links.length > 1 ? `${at + 1} / ${links.length}` : '';
+    q<HTMLAnchorElement>('.ty-view__closer').href = a.getAttribute('href')!;
+    const project = q<HTMLAnchorElement>('.ty-view__project');
+    project.hidden = !r.dataset.href;
+    if (r.dataset.href) project.href = r.dataset.href;
+    view.querySelectorAll<HTMLElement>('.ty-view__step').forEach((b) => (b.hidden = links.length < 2));
+    // Keep the row under the viewer at the piece shown.
+    a.closest('.ty-piece')!.scrollIntoView({block: 'nearest', inline: 'nearest'});
+  }
+
+  function open(a: HTMLAnchorElement) {
+    const r = a.closest<HTMLElement>('.ty-row')!;
+    show(r, linksOf(r).indexOf(a));
+    if (!view.open) {
+      view.showModal();
+      history.pushState({tyView: true}, '');
+      pushed = true;
+    }
+  }
+
+  // Closing goes back through the history entry opening added.
+  function close() {
+    if (pushed) history.back();
+    else view.close();
+  }
+  addEventListener('popstate', () => {
+    pushed = false;
+    if (view.open) view.close();
+  });
+  view.addEventListener('close', () => {
+    if (row) linksOf(row)[at]?.focus({preventScroll: true});
+  });
+
+  document.querySelectorAll<HTMLAnchorElement>('.ty-piece a').forEach((a) =>
+    a.addEventListener('click', (e) => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+      e.preventDefault();
+      open(a);
+    }),
+  );
+  view.addEventListener('cancel', (e) => {
+    e.preventDefault();
+    close();
+  });
+  q('.ty-view__x').addEventListener('click', close);
+  q('.ty-view__step--back').addEventListener('click', () => row && show(row, at - 1));
+  q('.ty-view__step--on').addEventListener('click', () => row && show(row, at + 1));
+  // Outside the picture and its caption closes it.
+  view.addEventListener('click', (e) => {
+    if (e.target === view || (e.target as HTMLElement).classList.contains('ty-view__stage')) close();
+  });
+  view.addEventListener('keydown', (e) => {
+    if (!row) return;
+    if (e.key === 'ArrowLeft') show(row, at - 1);
+    else if (e.key === 'ArrowRight') show(row, at + 1);
+  });
+
+  // A row's arrows, on a wide screen, when it runs past the edge.
+  document.querySelectorAll<HTMLElement>('.ty-track').forEach((track) => {
+    const strip = track.querySelector<HTMLElement>('.ty-strip')!;
+    const back = track.querySelector<HTMLButtonElement>('.ty-more--back')!;
+    const on = track.querySelector<HTMLButtonElement>('.ty-more--on')!;
+    const update = () => {
+      back.hidden = strip.scrollLeft < 4;
+      on.hidden = strip.scrollLeft + strip.clientWidth > strip.scrollWidth - 4;
+    };
+    const by = (d: number) => strip.scrollBy({left: d * strip.clientWidth * 0.8, behavior: 'smooth'});
+    back.addEventListener('click', () => by(-1));
+    on.addEventListener('click', () => by(1));
+    strip.addEventListener('scroll', update, {passive: true});
+    addEventListener('resize', update);
+    update();
+  });
+</script>
 
 <!-- Styles: global.css, TYPE ROWS (PREVIEW). -->

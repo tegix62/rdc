@@ -8567,8 +8567,11 @@ a.pf-btn {
 }
 .ty-rows {
   list-style: none;
-  margin: 0;
   padding: 0;
+  /* The toolbar's left edge (.pf-controls); the rows run on to the
+     screen's right edge, so a row that goes on looks it. Chris: "there's
+     basically no padding on the left side". */
+  margin: 0 calc(-1 * var(--space-1)) 0 var(--space-2);
 }
 .ty-row {
   display: grid;
@@ -8576,6 +8579,42 @@ a.pf-btn {
   gap: var(--space-3);
   padding: var(--space-3) 0;
   border-top: 1px solid color-mix(in srgb, var(--color-navy) 18%, transparent);
+}
+.ty-track {
+  position: relative;
+  min-width: 0;
+}
+/* A row's arrows: only with a pointer that hovers, only while it runs on. */
+.ty-more {
+  position: absolute;
+  top: calc(var(--ty-h) / 2 - 1.25rem);
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  background: var(--color-navy);
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.ty-more--back {
+  left: 0.5rem;
+}
+.ty-more--on {
+  right: 0.5rem;
+}
+.ty-more[hidden] {
+  display: none;
+}
+.ty-track:hover .ty-more,
+.ty-more:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .ty-more {
+    display: none;
+  }
 }
 .ty-head {
   display: flex;
@@ -8668,6 +8707,9 @@ a.pf-btn {
   .ty {
     --ty-h: 12.5rem;
   }
+  .ty-rows {
+    margin-left: var(--space-1);
+  }
   .ty-row {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-2);
@@ -8677,5 +8719,138 @@ a.pf-btn {
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+}
+
+/* The viewer: a piece over the rows, large, captioned, a step from the
+   rest of its row. */
+.ty-view {
+  width: 100vw;
+  height: 100svh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: rgb(255 255 255 / 0.97);
+  overscroll-behavior: contain;
+}
+.ty-view::backdrop {
+  background: rgb(255 255 255 / 0.6);
+}
+.ty-view__fig {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  margin: 0;
+}
+.ty-view__stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4) 4.5rem var(--space-2);
+}
+.ty-view__img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+.ty-view.is-air .ty-view__img {
+  padding: 6%;
+  box-sizing: border-box;
+  background: color-mix(in srgb, var(--color-navy) 4%, #fff);
+}
+.ty-view__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  border-top: 1px solid color-mix(in srgb, var(--color-navy) 18%, transparent);
+}
+.ty-view__label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-right: auto;
+}
+.ty-view__title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--color-navy);
+}
+.ty-view__detail,
+.ty-view__count {
+  font-size: 0.875rem;
+  color: color-mix(in srgb, var(--color-ink) 70%, transparent);
+}
+.ty-view__links {
+  display: flex;
+  gap: var(--space-3);
+}
+.ty-view__links a {
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  color: var(--color-navy);
+  text-decoration: none;
+}
+.ty-view__links a:hover,
+.ty-view__links a:focus-visible {
+  text-decoration: underline;
+}
+.ty-view__links a[hidden] {
+  display: none;
+}
+.ty-view__step,
+.ty-view__x {
+  position: absolute;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  background: var(--color-navy);
+  color: #fff;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.ty-view__step {
+  top: calc(50% - 4rem);
+}
+.ty-view__step[hidden] {
+  display: none;
+}
+.ty-view__step--back {
+  left: var(--space-2);
+}
+.ty-view__step--on {
+  right: var(--space-2);
+}
+.ty-view__x {
+  top: var(--space-2);
+  right: var(--space-2);
+  font-size: 1.6rem;
+}
+@media (max-width: 47.99rem) {
+  .ty-view__stage {
+    padding: 3.75rem var(--space-1) var(--space-1);
+  }
+  /* On a phone the arrows sit low, by the thumb, clear of the picture. */
+  .ty-view__step {
+    top: auto;
+    bottom: calc(var(--space-3) + 4.5rem);
+  }
+  .ty-view__step--back {
+    left: auto;
+    right: calc(var(--space-2) + 3.25rem);
+  }
+  .ty-view__bar {
+    padding: var(--space-2);
   }
 }

@@ -68,6 +68,13 @@ for (const [name, w, h] of [
     await page.waitForTimeout(1500)
     const tag = `${name}, ${mode.replace('&sort=', ' by ')}`
     const rest = await state(page)
+    if (name === 'phone') {
+      const edge = await page.evaluate(() => {
+        const r = document.querySelector('.wd-world').getBoundingClientRect()
+        return {left: Math.round(r.left), right: Math.round(innerWidth - r.right), scroll: document.documentElement.scrollWidth > innerWidth}
+      })
+      check(`${tag}: to 4px from the screen's edges, no sideways scroll`, Math.abs(edge.left - 4) <= 1 && Math.abs(edge.right - 4) <= 1 && !edge.scroll, `${edge.left}px / ${edge.right}px`)
+    }
     if (mode.startsWith('lands')) {
       const sized = await page.evaluate(() => new Set(Array.from(document.querySelectorAll('.wd-piece:not([hidden])')).map((t) => Math.round(t.getBoundingClientRect().width))).size)
       check(`${tag}: pieces of many sizes`, sized >= 3, `${sized} sizes`)

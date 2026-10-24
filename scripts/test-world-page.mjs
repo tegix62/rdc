@@ -144,7 +144,15 @@ for (const [name, w, h] of [
   check(`${name}: the Tab key meets them in the order they are seen`, order === 0, `${order} out of order`)
   // The other categories are the portfolio's own views.
   const merch = await page.locator('.pf-group--filters a', {hasText: 'Merch'}).getAttribute('href')
-  check(`${name}: Merch & Apparel goes to the portfolio's own merch view`, merch === '/portfolio?view=merch', merch ?? 'none')
+  check(`${name}: Merch & Apparel goes to the portfolio's own merch view`, merch === '/portfolio?view=merch&from=world', merch ?? 'none')
+  // And arrived that way, the portfolio's All comes back here.
+  const there = await browser.newPage({viewport: {width: w, height: h}})
+  await there.goto(`${BASE}${merch}`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await there.waitForTimeout(1500)
+  await there.click('.pf-btn[data-filter="*"]')
+  await there.waitForURL(/\/next\/world\//, {timeout: 15_000}).catch(() => {})
+  check(`${name}: from there, All comes back to Lands`, there.url().includes('/next/world/'), there.url())
+  await there.close()
   const before = await shown()
   const mean = (a) => a.reduce((x, t) => x + t.w, 0) / a.length
   await page.click('[data-zoom="1"]')

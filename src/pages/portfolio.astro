@@ -588,6 +588,26 @@ if (emptyFilters.length > 0) {
     const g = document.getElementById('pf-grid');
     if (g?.hasAttribute('data-type-cluster')) startTypeCluster(g);
   }
+  /*
+    ARRIVED FROM THE WORLD PAGE (preview only). The world page's Lands is
+    trialled as the All view - its other categories link here, to these
+    views, with ?from=world - and Chris: "it seems like All is still All
+    though". So, arrived that way, All goes back to Lands. Any other
+    visit, this page's All is untouched.
+  */
+  if (import.meta.env.PUBLIC_IS_PREVIEW === 'true' && new URLSearchParams(location.search).get('from') === 'world') {
+    document.addEventListener(
+      'click',
+      (e) => {
+        const all = (e.target as HTMLElement | null)?.closest?.('.pf-btn[data-filter="*"]');
+        if (!all) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        location.href = '/next/world/home';
+      },
+      true,
+    );
+  }
   declare const Isotope: any;
   declare const imagesLoaded: any;
 

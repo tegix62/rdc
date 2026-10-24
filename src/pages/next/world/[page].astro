@@ -150,7 +150,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
           here. Lands is the All view; these go to the real ones.
         */}
         {FILTERS.map((f) => (
-          <a class="pf-btn" href={`/portfolio?view=${f.name}`}>
+          <a class="pf-btn" href={`/portfolio?view=${f.name}&from=world`}>
             {f.label}
           </a>
         ))}
@@ -228,7 +228,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   let seed = Number(q.get('seed')) || 4187;
   // Lands is the All view; a link naming another view goes to the portfolio's own.
   const asked = data.filters.find((f) => f.name === q.get('view'));
-  if (asked) location.replace(`/portfolio?view=${asked.name}`);
+  if (asked) location.replace(`/portfolio?view=${asked.name}&from=world`);
   let focus: number | null = null;
   let focusRow = 0;
   let pushed = false;

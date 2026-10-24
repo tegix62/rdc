@@ -42,6 +42,11 @@ const stubSanity = {
             defineField: identity,
             defineArrayMember: identity,
             definePlugin: identity,
+            // @sanity/orderable-document-list: the drag-to-order projects
+            // (caseStudy.ts). What the real ones return, near enough to
+            // check: a hidden string field, and an ordering by it.
+            orderRankField: () => ({name: 'orderRank', type: 'string', title: 'Order rank', hidden: true, readOnly: true}),
+            orderRankOrdering: {title: 'Manual order', name: 'manualOrder', by: [{field: 'orderRank', direction: 'asc'}]},
           },
           {get: (target, key) => (key in target ? target[key] : identity)},
         )

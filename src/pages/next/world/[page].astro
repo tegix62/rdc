@@ -121,9 +121,6 @@ const data = {pieces, names};
 <Layout title="World - Rumeau Design Co" description="The portfolio as a generated world." noindex>
   <div class="wd">
     <div class="wd-bar">
-      <button type="button" class="wd-btn" data-mode="heights">Height map</button>
-      <button type="button" class="wd-btn" data-mode="biomes">Biomes</button>
-      <button type="button" class="wd-btn" data-mode="lands">Lands</button>
       <button type="button" class="wd-btn" data-colour aria-pressed="false">By colour</button>
       <button type="button" class="wd-btn wd-btn--roll" data-roll>New world</button>
     </div>
@@ -193,7 +190,13 @@ const data = {pieces, names};
   const byId = new Map(data.pieces.map((p, i) => [p.id, i]));
 
   const q = new URLSearchParams(location.search);
-  let mode = (['biomes', 'lands'].includes(q.get('mode') ?? '') ? q.get('mode') : 'heights') as WorldMode;
+  /*
+    Lands only. Chris: "I think it's safe to say the height and biome
+    settings can go, given that this is the best of both worlds." They
+    stay in lib/world.ts, shelved, and ?mode=heights or ?mode=biomes still
+    draws them for a look back.
+  */
+  let mode = (['heights', 'biomes'].includes(q.get('mode') ?? '') ? q.get('mode') : 'lands') as WorldMode;
   let colour = q.get('sort') === 'colour';
   const colourBtn = document.querySelector<HTMLButtonElement>('[data-colour]')!;
 
@@ -372,7 +375,7 @@ const data = {pieces, names};
     colourBtn.setAttribute('aria-pressed', String(colour));
     colourBtn.hidden = mode === 'biomes';
     about.textContent = ABOUT[mode] + (sort === 'colour' ? ' Sorted by colour: black and white first, then round the colour wheel.' : '');
-    history.replaceState(history.state, '', `?mode=${mode}&seed=${seed}${colour ? '&sort=colour' : ''}`);
+    history.replaceState(history.state, '', `?${mode === 'lands' ? '' : `mode=${mode}&`}seed=${seed}${colour ? '&sort=colour' : ''}`);
   };
 
   // As on the main grid: a piece opens; picked again, it closes. Its bar is the way to the project.

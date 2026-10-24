@@ -54,6 +54,11 @@
   drawn large, its set packed tight around it, at about where it was; the
   rest of the world flows on as before.
 
+  The page offers LANDS alone now (Chris: "the height and biome settings
+  can go, given that this is the best of both worlds"); HEIGHTS and BIOMES
+  stay here, reachable by ?mode= for a look back, since lands is built on
+  the first and borrows the second's blocks.
+
   Shelved, kept for reference and not offered on the page: 'heights2'
   (broad mountains, wide plains - "makes more sense", but the first was
   "more visually pleasing") and 'caves' (spaghetti tunnels - "isn't making

@@ -1,7 +1,6 @@
 /*
   The world page (/next/world/home, preview) in a browser, with blank
-  pictures. For the height map, the biomes and the lands (also sorted by
-  colour), at a desktop and a phone:
+  pictures. For the lands, the page's one mode now (also sorted by colour), at a desktop and a phone:
   every piece shown, none overlapping; a piece opened is larger than it
   was and opens as on the main grid - the navy hairline frame, its project
   bar, its set lit round it and the rest dropped back; in the lands a
@@ -60,7 +59,7 @@ for (const [name, w, h] of [
   ['desktop', 1440, 900],
   ['phone', 390, 844],
 ]) {
-  for (const mode of ['heights', 'biomes', 'lands', 'lands&sort=colour']) {
+  for (const mode of ['lands', 'lands&sort=colour']) {
     const page = await browser.newPage({viewport: {width: w, height: h}})
     const errors = []
     page.on('pageerror', (e) => errors.push(e.message))

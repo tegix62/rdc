@@ -64,7 +64,9 @@ for (const [name, w, h] of [
   if (name === 'phone' && process.env.DUMP_DATA) {
     // The page's own piece data, for tuning the layout on the real pieces offline.
     const json = await page.evaluate(() => document.getElementById('wd-data').textContent)
-    console.log(`\n== data\n${Buffer.from(json).toString('base64')}\n== end data`)
+    const {writeFileSync} = await import('node:fs')
+    writeFileSync(process.env.DUMP_DATA, json)
+    console.log(`\n(page data written to ${process.env.DUMP_DATA})`)
   }
   console.log(`\n== ${name}: pieces matching "${TERM}"`)
   out.rows.forEach((r) => console.log(r))

@@ -672,8 +672,11 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     A wide piece is sized by its area, not its width - Chris: "some things
     are actually too small, like the DumpStat wordmark". A 3:1 wordmark two
     cells wide is a strip a third of a cell tall; it grows by the square
-    root of how wide it is, and a very wide one is never under two cells.
+    root of how wide it is, and a wordmark is never under three cells on a
+    wide screen (two on a phone).
   */
+  // A wordmark (2:1 or wider) never under three cells on a wide screen, two on a phone.
+  const wideLeast = (p: WorldPiece) => ((p.w / p.h || 1) >= 2 ? Math.min(cap, o.cols >= 16 ? 3 : 2) : 1);
   const widen = (p: WorldPiece, w: number) => {
     const ratio = (p.w / p.h) || 1;
     return ratio > 1.3 ? Math.round(w * Math.sqrt(ratio)) : w;
@@ -758,7 +761,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
   const spotFor = (i: number, kin: WorldPlaced[], where: Map<string, WorldPlaced>, skip = 0): WorldPlaced | null => {
     const p = pieces[i];
     const up = p.parent ? where.get(p.parent) : undefined;
-    const lo = Math.min(o.cols, Math.max(p.least ?? 1, p.big ? Math.min(bigMin, bigMax(p)) : 1, (p.w / p.h || 1) >= 2.5 ? 2 : 1));
+    const lo = Math.min(o.cols, Math.max(p.least ?? 1, p.big ? Math.min(bigMin, bigMax(p)) : 1, wideLeast(p)));
     // Loose, and not a case study: the first free cell, as the height map.
     const plain = kin.length === 0 && (setSize.get(sets[i]) ?? 1) === 1 && lo === 1;
     let first: WorldPlaced | null = null;
@@ -936,7 +939,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
       const r = Math.floor(at / o.cols);
       let moved = false;
       for (const {q} of movable().slice(0, 12)) {
-        const least = Math.max(pieces[q.i].least ?? 1, (pieces[q.i].w / pieces[q.i].h || 1) >= 2.5 ? 2 : 1);
+        const least = Math.max(pieces[q.i].least ?? 1, wideLeast(pieces[q.i]));
         for (let cw = Math.min(q.cw, o.cols - c); cw >= least && !moved; cw--) {
           const {ch} = boxAt(pieces[q.i], cw, kr);
           if (r + ch > bandEnd + side * kr || !grid.fits(c, r, cw, ch)) continue;

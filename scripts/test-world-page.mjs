@@ -226,7 +226,7 @@ for (const [name, w, h] of [
     const el = document.getElementById(location.hash.slice(1))
     return el ? Math.round(el.getBoundingClientRect().top) : null
   })
-  check(`${name}, index: a row opens its piece in Up close`, page.url().includes('/next/close/home#') && landed !== null && landed < 200, `${page.url()} at ${landed}px`)
+  check(`${name}, index: a row opens its piece in Up close`, /\/next\/close\/home\/?#/.test(page.url()) && landed !== null && landed < 200, `${page.url()} at ${landed}px`)
   for (const path of ['/next/world/home', '/portfolio']) {
     await page.goto(`${BASE}${path}`, {waitUntil: 'domcontentloaded', timeout: 60_000})
     const bar = await page.evaluate(() => Array.from(document.querySelectorAll('.pf-group--filters .pf-btn')).map((b) => b.textContent.trim()))

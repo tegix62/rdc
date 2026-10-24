@@ -50,7 +50,7 @@
 */
 export interface Props {
   /** The deck, in order. Internal paths only. */
-  pages: {href: string; label: string}[];
+  pages: {href: string; label: string; also?: string[]}[];
   /** The path of the page this is rendering on. */
   here: string;
 }
@@ -63,7 +63,8 @@ const {pages, here} = Astro.props;
   page at index -1, which disables the deck everywhere while looking fine.
 */
 const norm = (p: string) => (p === '/' ? '/' : p.replace(/\/+$/, ''));
-const at = pages.findIndex((p) => norm(p.href) === norm(here));
+// `also`: other paths that are this page - the preview's views of the portfolio.
+const at = pages.findIndex((p) => [p.href, ...(p.also ?? [])].some((h) => norm(h) === norm(here)));
 
 const prev = at > 0 ? pages[at - 1] : null;
 const next = at >= 0 && at < pages.length - 1 ? pages[at + 1] : null;

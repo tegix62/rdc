@@ -164,9 +164,14 @@ const IS_PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
 const navLinks = [
   // On the preview the portfolio opens on Lands, its trial All view (Chris:
   // "Make OLD version of All now Brand Identity, Lands will be All").
-  { label: 'Portfolio', href: IS_PREVIEW ? '/next/world/home' : '/portfolio' },
-  { label: 'About', href: '/about' },
-  { label: 'Video', href: '/video' },
+  {
+    label: 'Portfolio',
+    href: IS_PREVIEW ? '/next/world/home' : '/portfolio',
+    // Every view of the portfolio is the Portfolio page, for the marker.
+    also: IS_PREVIEW ? ['/portfolio', '/next/world/home', '/next/close/home', '/next/index/home'] : [],
+  },
+  { label: 'About', href: '/about', also: [] as string[] },
+  { label: 'Video', href: '/video', also: [] as string[] },
 ];
 /*
   Every "Contact" / "Get in Touch" button on the site, in one place.
@@ -432,7 +437,7 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
         */}
         <div class="site-nav__links" id="site-nav-links">
           {navLinks.map((link) => {
-            const current = norm(link.href) === norm(herePath);
+            const current = [link.href, ...link.also].some((h) => norm(h) === norm(herePath));
             return (
               <a href={link.href} aria-current={current ? 'page' : undefined}>
                 {link.label}

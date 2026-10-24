@@ -303,6 +303,7 @@ const data = {pieces, names};
       t.classList.toggle('is-open', p.i === focus);
       t.classList.toggle('is-sibling', fam.has(p.i));
       t.classList.toggle('is-small', p.cw * cell < 150);
+      t.classList.toggle('is-tiny', p.cw * cell < 90);
       const img = t.querySelector('img');
       if (img) img.sizes = `${Math.ceil(p.cw * cell)}px`;
     }

@@ -8376,3 +8376,7 @@ html.realsize-open {
   align-self: flex-start;
   margin: 0.35rem 0 0;
 }
+/* A tile too small for a corner mark to leave room to tap the picture: none. */
+.wd-piece--study.is-tiny:not(.is-open) .wd-jump {
+  display: none;
+}

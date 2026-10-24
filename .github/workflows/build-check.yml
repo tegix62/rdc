@@ -220,7 +220,6 @@ jobs:
       - run: node scripts/test-cluster-layout.mjs
       - run: node scripts/test-spiral-cluster.mjs
       - run: node scripts/test-world.mjs
-      - run: node scripts/test-trim.mjs
       - run: node scripts/test-workflows-no-pictures.mjs
       - run: node scripts/test-hide-emails.mjs
 

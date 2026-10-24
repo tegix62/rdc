@@ -727,9 +727,20 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
         first ??= q;
         // Beside its parent best, then beside any of its set; a set's first
         // piece where its set has room to follow; earlier cells first.
+        /*
+          Touching its set is not enough - Chris, of a set strung through the
+          page touching only at corners: it is "separating some clusters".
+          Beside its parent best; else beside its set's lead tile, which
+          keeps a set gathered round it; else beside any of its set; and of
+          those, the earliest cell, so the fill stays as tight. (Weighing
+          nearness to the set's middle instead made tighter clumps but left
+          holes between them, which the loose pieces then filled - the
+          projects no longer came first.)
+        */
+        const lead = kin[0];
         const score =
           kin.length > 0
-            ? (up && touches(q, up) ? 0 : kin.some((x) => touches(q, x)) ? 100 : Infinity) + seen
+            ? (up && touches(q, up) ? 0 : lead && touches(q, lead) ? 50 : kin.some((x) => touches(q, x)) ? 100 : Infinity) + seen
             : (room(q) >= Math.min(q.cw + q.ch + 2, 2 * (setSize.get(sets[i]) ?? 1)) ? 0 : 1000) + seen;
         if (score < bestScore) {
           bestScore = score;

@@ -23,8 +23,8 @@
 
   BOXES THAT FIT THEIR PICTURES. Chris asked for the blank space round
   cut-outs to be trimmed; measured, the pictures are already cropped to
-  their art (3 of 98 have a margin worth trimming, which lib/trim.ts does
-  at build time from Sanity's tiny previews). What made evenly spaced boxes
+  their art (and a trim measured from the tiny previews cut one piece to
+  a single word, so there is none). What made evenly spaced boxes
   look unevenly spaced was the boxes' shapes: rounded to whole square
   cells, a box was rarely its picture's shape, leaving white strips down
   two sides. So Lands is laid on half-height rows, and a piece takes the
@@ -50,7 +50,6 @@ import {treatmentOf, tileHref, cleanKey, merchPlacement} from '../../../lib/tile
 import {stripStegaKey} from '../../../lib/stega';
 import {sanityClient} from '../../../lib/sanity';
 import {clusterCard} from '../../../lib/clusterCard';
-import {trimOf} from '../../../lib/trim';
 
 export async function getStaticPaths() {
   if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
@@ -92,10 +91,14 @@ const previews: Record<string, string> = Object.fromEntries(
     .filter((a) => a.lqip)
     .map((a) => [a._id, a.lqip!]),
 );
-// A crop set in Studio changes the picture the tile shows; the preview is of the whole, so those are left untrimmed.
-const cropped = (img: any) => img?.crop && ['top', 'bottom', 'left', 'right'].some((k) => Number(img.crop[k]) > 0);
-const trims = await Promise.all(all.map((it) => (cropped(tileImage(it)) ? null : trimOf(previews[refOf(it)]))));
-const box = trims.map((t) => t ?? {x0: 0, y0: 0, x1: 1, y1: 1});
+/*
+  Trimming is gone. It cut to the artwork measured from each picture's tiny
+  preview, and the preview is too coarse to trust: it cut Two Point Oh's
+  "The Sun" down to the word THE (Chris: "the grid is now cutting off").
+  The pictures are already cropped to their art anyway; the boxes' shapes
+  were the real unevenness, and the half-height rows fix that.
+*/
+const box = all.map(() => ({x0: 0, y0: 0, x1: 1, y1: 1}));
 
 // Each project's piece count (for its bar) and its block of type.
 const count: Record<string, number> = {};

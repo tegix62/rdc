@@ -8255,10 +8255,9 @@ html.realsize-open {
   outline-offset: 2px;
 }
 /*
-  The artwork's box - the picture trimmed to its artwork (lib/trim.ts) -
-  as large as fits the tile, whole, never cut: --a is its shape. The
-  picture inside is drawn at the size and offset that put its artwork
-  exactly in the box, and the box clips the blank margin round it.
+  The picture's box, as large as fits the tile, whole, never cut: --a is
+  its shape. (Built for a trim to the artwork, since removed; with no trim
+  the picture simply fills it.)
 */
 .wd-crop {
   position: relative;

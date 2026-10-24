@@ -180,7 +180,9 @@ for (const [name, grids] of [
           const band = Math.max(3, Math.round(cols / 4))
           const early = p.filter((q) => q.r < band && sets[q.i].startsWith('#solo')).length
           const meanRow = (f) => mean(p.filter(f).map((q) => q.r))
-          check(`${tag}: case studies first, as the portfolio deals`, early === 0 && meanRow((q) => studies.includes(sets[q.i])) < meanRow((q) => sets[q.i].startsWith('#solo')), `${early} loose piece(s) in the first ${band} rows`)
+          const pm = meanRow((q) => studies.includes(sets[q.i]))
+          const lm = meanRow((q) => sets[q.i].startsWith('#solo'))
+          check(`${tag}: case studies first, as the portfolio deals`, early === 0 && pm < lm, `${early} loose piece(s) in the first ${band} rows; mean row: projects ${pm.toFixed(1)}, loose ${lm.toFixed(1)}`)
           const widths = p.map((q) => q.cw)
           check(`${tag}: sizes far apart, as on the height map`, Math.max(...widths) >= Math.min(...widths) * Math.min(3, maxSpan - 1), `${Math.min(...widths)} to ${Math.max(...widths)} cells wide`)
           const col = generateWorld(pieces, {cols, mode, seed: 42, maxSpan, sort: 'colour'})

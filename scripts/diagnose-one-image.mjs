@@ -7,8 +7,16 @@
 
   Downloads a handful of copies of ONE picture, not the site's pictures.
 
+  With KEEP=<dir>, also saves what it fetched there, and two looks at the
+  upload itself: whole at 1200px, and a 1000px square from its middle at
+  full size - to tell a soft upload from a softened delivery.
+
   Usage: node scripts/diagnose-one-image.mjs <hash> <base> [paths...]
 */
+import {writeFileSync, mkdirSync} from 'node:fs'
+const KEEP = process.env.KEEP
+if (KEEP) mkdirSync(KEEP, {recursive: true})
+let kept = 0
 const [HASH, BASE = 'https://rumeaudesign.co', ...rest] = process.argv.slice(2)
 const PATHS = rest.length ? rest : ['/', '/portfolio', '/merchfolio']
 if (!HASH) {
@@ -70,6 +78,7 @@ for (const path of PATHS) {
       const px = r.ok ? sizeOf(buf) : null
       console.log(`    ${r.status} ${r.headers.get('content-type')} ${(buf.length / 1024).toFixed(0)} KB ${px ? `${px.w}x${px.h}` : '?'}  ${full}`)
       if (!r.ok) console.log(`      ${buf.toString('utf8').slice(0, 200)}`)
+      if (KEEP && r.ok) writeFileSync(`${KEEP}/served-${++kept}.webp`, buf)
     }
   }
 }
@@ -79,3 +88,18 @@ const direct = `https://cdn.sanity.io/${file}?w=1600&fm=webp`
 const r = await fetch(direct)
 const buf = Buffer.from(await r.arrayBuffer())
 console.log(`\nSanity directly: ${r.status} ${r.headers.get('content-type')} ${(buf.length / 1024).toFixed(0)} KB ${JSON.stringify(r.ok ? sizeOf(buf) : buf.toString('utf8').slice(0, 200))}`)
+
+if (KEEP) {
+  const m = file.match(/-(\d+)x(\d+)\.\w+$/)
+  const [w, h] = [Number(m[1]), Number(m[2])]
+  const side = Math.min(1000, w, h)
+  const looks = {
+    'upload-whole.png': `https://cdn.sanity.io/${file}?w=1200&fm=png`,
+    'upload-middle-full-size.png': `https://cdn.sanity.io/${file}?rect=${Math.round((w - side) / 2)},${Math.round((h - side) / 2)},${side},${side}&fm=png`,
+  }
+  for (const [name, u] of Object.entries(looks)) {
+    const r = await fetch(u)
+    writeFileSync(`${KEEP}/${name}`, Buffer.from(await r.arrayBuffer()))
+    console.log(`kept ${name} (${r.status})`)
+  }
+}

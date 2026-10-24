@@ -14,6 +14,13 @@ on:
       paths:
         description: 'Space-separated pages'
         default: '/ /portfolio /merchfolio'
+      keep:
+        description: 'Push the copies to the pictures branch, to look at'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
 
 jobs:
   look:
@@ -29,7 +36,21 @@ jobs:
           HASH_IN: ${{ inputs.hash }}
           BASE_IN: ${{ inputs.base_url }}
           PATHS_IN: ${{ inputs.paths }}
+          KEEP: ${{ inputs.keep && '/tmp/pics' || '' }}
         run: |
           set -o pipefail
           node scripts/diagnose-one-image.mjs "$HASH_IN" "$BASE_IN" $PATHS_IN 2>&1 | tee one.txt
           { echo '## One image'; echo '```'; cat one.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Push the copies to the pictures branch
+        if: inputs.keep
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git checkout --orphan pictures
+          git rm -rfq .
+          cp /tmp/pics/* .
+          git add -- *.png *.webp
+          git commit -qm "Copies of ${HASH_IN}"
+          git push -f origin pictures
+        env:
+          HASH_IN: ${{ inputs.hash }}

@@ -8210,15 +8210,7 @@ html.realsize-open {
    these are for classes the script adds.
    ========================================================================== */
 
-.wd {
-  padding: 1rem 1rem 3rem;
-}
-/* Slim margins on a phone: "much slimmer on the edges of the screen". */
-@media (max-width: 47.99rem) {
-  .wd {
-    padding: 1rem 0.375rem 3rem;
-  }
-}
+/* .wd also wears .pf-section, so its edges and toolbar match the portfolio's. */
 .wd-world {
   position: relative;
   margin: 0 auto;

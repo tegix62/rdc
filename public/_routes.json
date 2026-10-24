@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "include": ["/*"],
+  "exclude": ["/_astro/*", "/vendor/*", "/parallax-demo/*", "/sw.js", "/favicon.svg", "/favicon.ico", "/robots.txt", "/sitemap-index.xml", "/sitemap-0.xml"]
+}

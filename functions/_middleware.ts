@@ -29,8 +29,15 @@
   rewrites THAT response with HTMLRewriter, removing anything marked
   data-meta-pixel - see src/components/MetaPixel.astro, the only place that
   attribute is written. Only HTML responses are touched; every other asset
-  a page load makes (CSS, JS, images) passes through unread, so this costs
-  nothing on the majority of requests.
+  a page load makes (CSS, JS, images) passes through unread.
+
+  BUT EVERY REQUEST IT SEES IS A FUNCTIONS REQUEST. Passing an asset
+  through unread is not free: the free plan counts 100,000 Functions
+  requests a day, and with this file at the root and no route list, every
+  script, stylesheet and font of every page load counted - Cloudflare
+  warned at 76% on 24 October 2026. public/_routes.json now keeps the
+  static files (/_astro/*, /vendor/* and the rest) out of Functions
+  altogether; pages, /img/* and /api/* still come through.
 
   WHAT THIS DOES NOT PROVE
 

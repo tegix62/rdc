@@ -268,7 +268,8 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     world.style.marginLeft = '';
     const width = phone
       ? document.documentElement.clientWidth - EDGE * 2
-      : Math.min(world.parentElement!.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight), 1400);
+      : // Full-bleed on a wide screen too, as the portfolio grid is (Chris: "on desktop, can we make the view full-bleed?").
+        world.parentElement!.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
     const steps = phone ? STEPS.phone : STEPS.desktop;
     let cols = steps[zoom];
     let maxSpan = phone ? Math.round(cols / 2) : Math.round(cols * 0.3);

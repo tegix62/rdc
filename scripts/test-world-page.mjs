@@ -59,7 +59,7 @@ for (const [name, w, h] of [
   ['desktop', 1440, 900],
   ['phone', 390, 844],
 ]) {
-  for (const mode of ['lands', 'lands&sort=colour']) {
+  for (const mode of ['lands']) {
     const page = await browser.newPage({viewport: {width: w, height: h}})
     const errors = []
     page.on('pageerror', (e) => errors.push(e.message))
@@ -112,6 +112,76 @@ for (const [name, w, h] of [
     await page.close()
   }
 }
+
+/*
+  The portfolio's controls and links, at a desktop and a phone: a filter
+  shows a smaller world of that category and names it in the address; an
+  opened piece is named there too, and that address, opened afresh,
+  arrives with the piece open; + makes the tiles larger and - smaller;
+  Shuffle deals a new world; the Tab key meets the pieces in the order they
+  are seen; the tiles are trimmed to their artwork.
+*/
+for (const [name, w, h] of [
+  ['desktop', 1440, 900],
+  ['phone', 390, 844],
+]) {
+  const page = await browser.newPage({viewport: {width: w, height: h}})
+  const errors = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  await page.goto(`${BASE}/next/world/home`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.waitForTimeout(1500)
+  const shown = () => page.evaluate(() => Array.from(document.querySelectorAll('.wd-piece')).filter((t) => !t.hidden).map((t) => ({i: Number(t.dataset.i), w: t.getBoundingClientRect().width})))
+  const cats = await page.evaluate(() => JSON.parse(document.getElementById('wd-data').textContent).pieces.map((p) => p.cat))
+  const allShown = await shown()
+  const trimmed = await page.evaluate(() => Array.from(document.querySelectorAll('.wd-crop')).filter((c) => parseFloat(c.style.getPropertyValue('--iw')) > 100.5).length)
+  check(`${name}: tiles trimmed to their artwork`, trimmed > 0, `${trimmed} of ${allShown.length} trimmed`)
+  const order = await page.evaluate(() => {
+    const ts = Array.from(document.querySelectorAll('.wd-piece')).filter((t) => !t.hidden).map((t) => t.getBoundingClientRect())
+    let wrong = 0
+    for (let k = 1; k < ts.length; k++) if (ts[k].top < ts[k - 1].top - 1 || (Math.abs(ts[k].top - ts[k - 1].top) <= 1 && ts[k].left < ts[k - 1].left)) wrong++
+    return wrong
+  })
+  check(`${name}: the Tab key meets them in the order they are seen`, order === 0, `${order} out of order`)
+  const merch = await page.locator('[data-filter="merch-apparel"]')
+  if (await merch.count()) {
+    await merch.click()
+    await page.waitForTimeout(500)
+    const m = await shown()
+    check(`${name}: Merch & Apparel shows that world alone, named in the address`, m.length > 0 && m.length < allShown.length && m.every((t) => cats[t.i] === 'merch-apparel') && page.url().includes('view=merch'), `${m.length} pieces, ${page.url()}`)
+    await page.click('[data-filter="*"]')
+    await page.waitForTimeout(500)
+  }
+  const before = await shown()
+  const mean = (a) => a.reduce((x, t) => x + t.w, 0) / a.length
+  await page.click('[data-zoom="1"]')
+  await page.waitForTimeout(400)
+  const bigger = await shown()
+  await page.click('[data-zoom="-1"]')
+  await page.click('[data-zoom="-1"]')
+  await page.waitForTimeout(400)
+  const smaller = await shown()
+  check(`${name}: + larger tiles, - smaller, every piece still shown`, mean(bigger) > mean(before) && mean(smaller) < mean(before) && bigger.length === before.length && smaller.length === before.length, `${mean(smaller).toFixed(0)} / ${mean(before).toFixed(0)} / ${mean(bigger).toFixed(0)}px`)
+  await page.click('[data-zoom="1"]')
+  const seed0 = new URL(page.url()).searchParams.get('seed')
+  await page.click('[data-roll]')
+  await page.waitForTimeout(400)
+  check(`${name}: Shuffle deals a new world`, new URL(page.url()).searchParams.get('seed') !== seed0, page.url())
+  const k = await page.evaluate(() => Array.from(document.querySelectorAll('.wd-piece')).filter((t) => !t.hidden).findIndex((t) => t.classList.contains('wd-piece--study')))
+  await page.locator('.wd-piece:not([hidden]) .wd-pic').nth(k).click({position: {x: 4, y: 4}})
+  await page.waitForTimeout(600)
+  const link = page.url()
+  const openId = await page.evaluate(() => document.querySelector('.wd-piece.is-open')?.dataset.i)
+  check(`${name}: an opened piece is named in the address`, new URL(link).searchParams.has('open'), link)
+  const again = await browser.newPage({viewport: {width: w, height: h}})
+  await again.goto(link, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await again.waitForTimeout(1500)
+  const arrived = await again.evaluate(() => document.querySelector('.wd-piece.is-open')?.dataset.i)
+  check(`${name}: that address, opened afresh, arrives with it open`, arrived !== undefined && arrived === openId, `piece ${arrived} (was ${openId})`)
+  await again.close()
+  check(`${name}: no script errors with the controls`, errors.length === 0, errors.join(' | '))
+  await page.close()
+}
+
 await browser.close()
 console.log(failures ? `\n${failures} check(s) failed.` : '\nall checks passed')
 process.exit(failures ? 1 : 0)

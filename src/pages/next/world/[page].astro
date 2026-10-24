@@ -1,51 +1,42 @@
 ---
 /*
-  A WORLD OF WORK - preview only, at /next/world/home.
+  A WORLD OF WORK - preview only, at /next/world/home. See src/lib/world.ts
+  for the rules of the layout.
 
-  Chris, of the first round: "original Height Map and Biome were the
-  exceptional ones. Let's shelve Height Map v2 and Caves", "if this could
-  operate like the main grid now, with full functionality of expansion",
-  "on Biome ... stuff that's parented to a grid item to hug it, even though
-  they don't have a case study", "only leave small noticeable gaps between
-  Biomes". See src/lib/world.ts for the rules.
+  LANDS, the page's one mode: the height map's tight fill and sizes, with
+  each project landing together in a patch of its own (Chris: "the best of
+  both worlds"), case studies first as the portfolio deals them. Sizes come
+  from the ground and from what the data says a piece is - a case study or
+  a hero tile stands out, an alternate merch shot or a close-up takes less
+  - not from a field to fill in (Chris: "I'd rather rely on data
+  interpretations. The less fields, the better.").
 
-  Then: "the height map and the biome idea should just be combined", so
-  LANDS - first as tinted territories ("too clunky - think like how tight
-  Height Map is, but we're grouping things together"), now the height
-  map's own tight fill with each project's pieces landing together, each
-  piece as large as its picture is detailed. And a COLOUR switch
-  (heights and lands): "black and white things might appear first".
+  OPENING, as on the main grid: the navy hairline frame and the project bar
+  ("NAME · 9 pieces →"), the rest dropped back, and the project's block of
+  type (clusterCard, as in the merch view) set beside the piece. Picking it
+  again, Escape or the browser's back closes it.
 
-  Detail and colour come from each picture's tiny preview (Sanity's LQIP,
-  a ~20px blurred copy in the asset's metadata, sent inline), measured on a
-  canvas - so nothing is downloaded to measure them.
+  THE PORTFOLIO'S CONTROLS: the category filters (a smaller world of that
+  category alone), Shuffle (a new world), and - / + (a finer or coarser
+  grid). And its SHAREABLE LINKS: ?view=merch&open=<slug> arrives on that
+  view with that piece open, as /portfolio does.
 
-  Then: "when you click on something, it should look like the portfolio
-  grid with the blue box and all of that functionality. Not like the type
-  lettering functionality", and "include, just like in the merch and
-  apparel filter, the blurb for each according case study, and also the
-  subtext below". So an opened piece wears the main grid's navy hairline
-  frame and its project bar ("NAME · 9 pieces →", the link to the project),
-  the rest of the page drops back as it does there, and the project's block
-  of type - kicker, name, "For" client, its first line, the result, "See
-  the project" - is set beside it, from the same clusterCard() the merch
-  view uses. A case study wears its bar at rest, as on the main grid (a
-  corner mark when the tile is small). Picking the opened piece again,
-  Escape or the browser's back closes it.
+  TRIMMED TILES: each tile is cut to its artwork - a tee, a hoodie or a
+  mark on transparency, or a mockup shot on white, otherwise carries its
+  own blank margin, and evenly spaced boxes look unevenly spaced. Measured
+  at build time from Sanity's tiny preview of each picture (lib/trim.ts);
+  nothing is downloaded to do it.
 
-  The first two modes: the height map (the original), and biomes (each project, or
-  each piece with the pieces parented to it, a tight block; the blocks a
-  cell apart). In both, a piece opens as on the main grid: large, its set
-  gathered round it, the rest dimmed; a bar above names it, links its
-  project and has the way back - as do Escape and the browser's back. The
-  opened piece, picked again, goes to its project.
+  The Tab key and screen readers meet the pieces in the order they are seen
+  (top to bottom, left to right), not the order the page lists them.
 
-  Pictures are lazy and their tiles hidden until placed. Labels, the
-  biomes' tint and the bar's contents are drawn by the script and styled
-  inline - the critical-CSS step drops scoped rules for elements that only
-  exist once the script runs.
+  Shelved, reachable by ?mode=heights or ?mode=biomes for a look back (the
+  biomes without their tint): the height map and the biomes themselves;
+  and By colour ("feels like a gimmick right now").
 
-  Never built for production (getStaticPaths), and noindex.
+  Never built for production (getStaticPaths), and noindex. Most styles
+  are in global.css (WORLD, PREVIEW): they are for classes the script adds,
+  which the critical-CSS step prunes from a page's own styles.
 */
 import Layout from '../../../layouts/Layout.astro';
 import Img from '../../../components/Img.astro';
@@ -55,6 +46,7 @@ import {treatmentOf, tileHref, cleanKey, merchPlacement} from '../../../lib/tile
 import {stripStegaKey} from '../../../lib/stega';
 import {sanityClient} from '../../../lib/sanity';
 import {clusterCard} from '../../../lib/clusterCard';
+import {trimOf} from '../../../lib/trim';
 
 export async function getStaticPaths() {
   if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
@@ -65,12 +57,27 @@ const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
 const all: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)));
 const isProject = (it: any) => cleanKey(it.pageType) === 'Case Study';
 
+// The portfolio's categories and filters (portfolio.astro, CATEGORY_FILTER).
+const CATEGORY_FILTER: Record<string, string> = {
+  'Brand Identity': 'brand-identity',
+  'Merch & Apparel': 'merch-apparel',
+  Typography: 'type-lettering',
+  Illustration: 'type-lettering',
+  Photography: 'photography',
+};
+const FILTERS = [
+  {value: 'brand-identity', label: 'Brand Identity', name: 'brand'},
+  {value: 'merch-apparel', label: 'Merch & Apparel', name: 'merch'},
+  {value: 'type-lettering', label: 'Type/Lettering', name: 'type'},
+  {value: 'photography', label: 'Photography', name: 'photography'},
+].filter((f) => all.some((it) => CATEGORY_FILTER[cleanKey(it.category)] === f.value));
+
 const names: Record<string, string> = {};
 for (const it of all) {
   const href = tileHref(it);
   if (href && isProject(it)) names[href] = clean(it.title);
 }
-// Each picture's tiny preview, for its detail and colour.
+// Each picture's tiny preview, for its trim.
 const refOf = (it: any) => tileImage(it)?.asset?._ref ?? tileImage(it)?.asset?._id ?? null;
 const previews: Record<string, string> = Object.fromEntries(
   (
@@ -81,6 +88,11 @@ const previews: Record<string, string> = Object.fromEntries(
     .filter((a) => a.lqip)
     .map((a) => [a._id, a.lqip!]),
 );
+// A crop set in Studio changes the picture the tile shows; the preview is of the whole, so those are left untrimmed.
+const cropped = (img: any) => img?.crop && ['top', 'bottom', 'left', 'right'].some((k) => Number(img.crop[k]) > 0);
+const trims = await Promise.all(all.map((it) => (cropped(tileImage(it)) ? null : trimOf(previews[refOf(it)]))));
+const box = trims.map((t) => t ?? {x0: 0, y0: 0, x1: 1, y1: 1});
+
 // Each project's piece count (for its bar) and its block of type.
 const count: Record<string, number> = {};
 for (const it of all) {
@@ -89,17 +101,20 @@ for (const it of all) {
 }
 const cards = all.filter((it) => isProject(it) && tileHref(it)).map((it) => ({href: tileHref(it)!, card: clusterCard(it)})).filter((c) => c.card);
 const barOf = (it: any) => clean(it.parentTitle ?? it.title ?? 'View project');
-const pieces = all.map((it) => {
+const pieces = all.map((it, i) => {
   const d = imageDimensions(tileImage(it))!;
+  const t = box[i];
   return {
-    w: d.width,
-    h: d.height,
+    // The artwork's own shape, once trimmed.
+    w: d.width * (t.x1 - t.x0),
+    h: d.height * (t.y1 - t.y0),
     project: tileHref(it),
     own: isProject(it),
     id: cleanKey(it._id).replace(/^drafts\./, ''),
+    slug: it.slug?.current ? cleanKey(it.slug.current) : null,
     parent: it.pieceParent ? cleanKey(it.pieceParent) : null,
     title: clean(it.title),
-    lqip: previews[refOf(it)] ?? null,
+    cat: CATEGORY_FILTER[cleanKey(it.category)] ?? '',
     /*
       Chris, on a phone: "I feel like less important tiles are getting more
       area". The case studies and the hero tiles he marked stand out; an
@@ -115,24 +130,41 @@ const pieces = all.map((it) => {
       cleanKey(it.category) === 'Merch & Apparel' && merchPlacement(it) === 'later' ? 0.45 : it.pieceParent ? 0.6 : 1,
   };
 });
-const data = {pieces, names};
+const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name}))};
 ---
 
 <Layout title="World - Rumeau Design Co" description="The portfolio as a generated world." noindex>
   <div class="wd">
     <div class="wd-bar">
-      <button type="button" class="wd-btn" data-colour aria-pressed="false">By colour</button>
-      <button type="button" class="wd-btn wd-btn--roll" data-roll>New world</button>
+      <div class="wd-group" role="group" aria-label="Filter by category">
+        <button type="button" class="pf-btn is-active" data-filter="*">All</button>
+        {FILTERS.map((f) => (
+          <button type="button" class="pf-btn" data-filter={f.value}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+      <div class="wd-group" role="group" aria-label="Arrange">
+        <button type="button" class="pf-btn" data-roll>Shuffle</button>
+        <button type="button" class="pf-btn" data-zoom="-1" aria-label="Smaller tiles">&minus;</button>
+        <button type="button" class="pf-btn" data-zoom="1" aria-label="Larger tiles">+</button>
+      </div>
     </div>
-    <p class="wd-about" data-about></p>
     <div class="wd-world">
       {all.map((it, i) => {
         const href = tileHref(it);
+        const t = box[i];
+        const tw = t.x1 - t.x0;
+        const th = t.y1 - t.y0;
+        // The trim, as the picture's size and offset inside the artwork's box.
+        const crop = `--a:${(pieces[i].w / pieces[i].h).toFixed(4)};--iw:${(100 / tw).toFixed(2)}%;--ih:${(100 / th).toFixed(2)}%;--il:${((-t.x0 / tw) * 100).toFixed(2)}%;--it:${((-t.y0 / th) * 100).toFixed(2)}%`;
         return (
           <div class:list={['wd-piece', treatmentOf(it) === 'mark' && 'wd-piece--mark', isProject(it) && href && 'wd-piece--study']} data-i={i} hidden>
             <div class="wd-frame">
               <button type="button" class="wd-pic" aria-label={clean(it.title)}>
-                <Img image={tileImage(it)} alt="" width={1400} sizes="25vw" loading="lazy" field="Grid Thumbnail (world)" />
+                <span class="wd-crop" style={crop}>
+                  <Img image={tileImage(it)} alt="" width={1400} sizes="25vw" loading="lazy" field="Grid Thumbnail (world)" />
+                </span>
               </button>
               {href && (
                 <a class="wd-jump" href={href} aria-label={[barOf(it), (count[href] ?? 0) > 1 ? `${count[href]} pieces` : null].filter(Boolean).join(' - ')}>
@@ -166,117 +198,42 @@ const data = {pieces, names};
   <script type="application/json" id="wd-data" set:html={JSON.stringify(data)} />
 </Layout>
 
-<!--
-  The page's styles are in global.css (WORLD, PREVIEW): most of them are for
-  classes the script adds - the opened piece, the drop back - and the
-  critical-CSS step prunes those from a page's own inline styles.
--->
-
 <script>
-  import {generateWorld, type WorldMode, type WorldResult} from '../../../lib/world';
+  import {generateWorld, type WorldMode, type WorldPiece, type WorldResult} from '../../../lib/world';
   import {seedOf} from '../../../lib/cluster';
 
-  type P = {photo: boolean; least?: number; w: number; h: number; project: string | null; own: boolean; id: string; parent: string | null; title: string; lqip: string | null; detail?: number; tone?: number};
-  const data: {pieces: P[]; names: Record<string, string>} = JSON.parse(document.getElementById('wd-data')!.textContent!);
+  type P = WorldPiece & {id: string; slug: string | null; title: string; cat: string; photo: boolean};
+  const data: {pieces: P[]; names: Record<string, string>; filters: {value: string; name: string}[]} = JSON.parse(
+    document.getElementById('wd-data')!.textContent!,
+  );
   const world = document.querySelector<HTMLElement>('.wd-world')!;
   const tiles = Array.from(world.querySelectorAll<HTMLElement>('.wd-piece'));
   const cards = new Map(Array.from(world.querySelectorAll<HTMLElement>('[data-card]')).map((el) => [el.dataset.card!, el]));
-  const about = document.querySelector<HTMLElement>('[data-about]')!;
-  const ABOUT: Record<string, string> = {
-    heights: 'Under the page is an invisible landscape of hills and valleys; each piece is drawn as big as the ground is high where it lands.',
-    biomes: 'Each project - or a piece with the pieces parented to it - is its own patch of land, a small gap between them.',
-    lands: 'The height map, but each project lands together in its own patch of ground.',
-  };
-  const byId = new Map(data.pieces.map((p, i) => [p.id, i]));
+  const filterBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-filter]'));
 
   const q = new URLSearchParams(location.search);
-  /*
-    Lands only. Chris: "I think it's safe to say the height and biome
-    settings can go, given that this is the best of both worlds." They
-    stay in lib/world.ts, shelved, and ?mode=heights or ?mode=biomes still
-    draws them for a look back.
-  */
-  let mode = (['heights', 'biomes'].includes(q.get('mode') ?? '') ? q.get('mode') : 'lands') as WorldMode;
-  let colour = q.get('sort') === 'colour';
-  const colourBtn = document.querySelector<HTMLButtonElement>('[data-colour]')!;
-
-  /*
-    Each picture's detail and colour, from its tiny preview: detail the mean
-    tone change between neighbouring pixels (ranked, 0 plainest to 1
-    busiest); colour a sort key - black and white (little colour in it)
-    below 1, by lightness, dark first; else 1 + its hue round the wheel.
-  */
-  const measure = (src: string) =>
-    new Promise<{detail: number; tone: number} | null>((done) => {
-      const img = new Image();
-      img.onerror = () => done(null);
-      img.onload = () => {
-        try {
-          const w = img.naturalWidth;
-          const h = img.naturalHeight;
-          const c = document.createElement('canvas');
-          c.width = w;
-          c.height = h;
-          const ctx = c.getContext('2d', {willReadFrequently: true})!;
-          ctx.drawImage(img, 0, 0);
-          const d = ctx.getImageData(0, 0, w, h).data;
-          const lum = (k: number) => 0.299 * d[k] + 0.587 * d[k + 1] + 0.114 * d[k + 2];
-          let grad = 0;
-          let light = 0;
-          let chroma = 0;
-          let hx = 0;
-          let hy = 0;
-          for (let y = 0; y < h; y++)
-            for (let x = 0; x < w; x++) {
-              const k = (y * w + x) * 4;
-              if (x < w - 1) grad += Math.abs(lum(k + 4) - lum(k));
-              if (y < h - 1) grad += Math.abs(lum(k + w * 4) - lum(k));
-              light += lum(k) / 255;
-              const r = d[k] / 255, g = d[k + 1] / 255, b = d[k + 2] / 255;
-              const mx = Math.max(r, g, b), mn = Math.min(r, g, b), ch = mx - mn;
-              chroma += ch;
-              if (ch > 0.04) {
-                const hue = mx === r ? ((g - b) / ch + 6) % 6 : mx === g ? (b - r) / ch + 2 : (r - g) / ch + 4;
-                hx += ch * Math.cos((hue / 6) * 2 * Math.PI);
-                hy += ch * Math.sin((hue / 6) * 2 * Math.PI);
-              }
-            }
-          const n = w * h;
-          const hue = ((Math.atan2(hy, hx) / (2 * Math.PI)) + 1) % 1;
-          done({detail: grad / (n * 2), tone: chroma / n < 0.08 ? (light / n) * 0.99 : 1 + hue});
-        } catch {
-          done(null);
-        }
-      };
-      img.src = src;
-    });
-  const measured = Promise.all(data.pieces.map((p) => (p.lqip ? measure(p.lqip) : Promise.resolve(null)))).then((m) => {
-    const ranked = data.pieces.map((_, i) => i).filter((i) => m[i]).sort((a, z) => m[a]!.detail - m[z]!.detail);
-    ranked.forEach((i, r) => {
-      data.pieces[i].detail = ranked.length > 1 ? r / (ranked.length - 1) : 0.5;
-      data.pieces[i].tone = m[i]!.tone;
-    });
-  });
+  const mode = (['heights', 'biomes'].includes(q.get('mode') ?? '') ? q.get('mode') : 'lands') as WorldMode;
   let seed = Number(q.get('seed')) || 4187;
+  let filter = data.filters.find((f) => f.name === q.get('view'))?.value ?? '*';
   let focus: number | null = null;
   let focusRow = 0;
   let pushed = false;
-  let last: WorldResult | null = null;
-  const extras: HTMLElement[] = [];
+  let last: {out: WorldResult; subset: number[]} | null = null;
 
-  // A set's name: its project's, or the title of the piece the others hang off.
-  const setName = (key: string) => {
-    if (data.names[key]) return data.names[key];
-    if (key.startsWith('#set-')) {
-      const i = byId.get(key.slice(5));
-      return i === undefined ? '' : data.pieces[i].title;
-    }
-    return '';
-  };
+  /*
+    - / +: the grid's columns. More columns, smaller tiles. The middle step
+    is the one Chris settled on (20 on a wide screen; 8 on a phone - "7 was
+    noticeably less compact and more clunky", 8 "might mean too small to
+    tell what some tiles are", hence the photographs' floor below).
+  */
+  const STEPS = {desktop: [28, 24, 20, 16, 13], phone: [10, 9, 8, 7, 6]};
+  let zoom = 2;
+
+  const phoneNow = () => innerWidth < 768;
+  const keyOf = (i: number) => data.pieces[i].slug ?? data.pieces[i].id;
 
   const draw = () => {
-    for (const e of extras.splice(0)) e.remove();
-    const phone = innerWidth < 768;
+    const phone = phoneNow();
     const pad = getComputedStyle(world.parentElement!);
     /*
       On a phone the world runs to 4px from the screen's edges, past the
@@ -288,13 +245,20 @@ const data = {pieces, names};
     const width = phone
       ? document.documentElement.clientWidth - EDGE * 2
       : Math.min(world.parentElement!.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight), 1400);
-    // Biomes on a finer grid, so the gap between them is a thin line.
-    const [cols, maxSpan] =
-      // A finer grid on a phone than the height map's: "still looking clunky"; 8, with the pictures that need it never at the smallest (below) - 7 was "noticeably less compact and more clunky".
-      mode === 'lands' ? (phone ? [8, 4] : [20, 6]) : mode === 'biomes' ? (phone ? [15, 6] : [40, 12]) : phone ? [6, 3] : [20, 6];
+    const steps = phone ? STEPS.phone : STEPS.desktop;
+    let cols = steps[zoom];
+    let maxSpan = phone ? Math.round(cols / 2) : Math.round(cols * 0.3);
+    if (mode === 'biomes') [cols, maxSpan] = phone ? [15, 6] : [40, 12];
+    if (mode === 'heights' && phone) [cols, maxSpan] = [6, 3];
     const cell = width / cols;
-    const gap = phone ? 2 : 3;
-    const sort = colour && mode !== 'biomes' ? 'colour' : 'seed';
+    // A little air between trimmed tiles, whose artwork now runs to the box's edge.
+    const gap = phone ? 4 : 6;
+
+    // The world of this filter alone.
+    const subset = data.pieces.map((_, i) => i).filter((i) => filter === '*' || data.pieces[i].cat === filter);
+    if (focus !== null && !subset.includes(focus)) focus = null;
+    const sub = subset.map((i) => ({...data.pieces[i], least: phone && mode === 'lands' && data.pieces[i].photo ? 2 : 1}));
+
     /*
       The opened project's block of type, measured at the width it will
       have - beside the piece on a wide screen, the width of the page on a
@@ -304,78 +268,63 @@ const data = {pieces, names};
     const cardEl = focus !== null && mode === 'lands' ? cards.get(data.pieces[focus].project ?? '') : undefined;
     let card: {cw: number; ch: number} | null = null;
     if (cardEl) {
-      const cw = phone ? cols : Math.min(cols, 6);
+      const cw = phone ? cols : Math.min(cols, Math.round(cols * 0.3));
       Object.assign(cardEl.style, {left: '0', top: '0', width: `${cw * cell - gap}px`, height: '', visibility: 'hidden'});
       cardEl.hidden = false;
       card = {cw, ch: Math.max(1, Math.ceil((cardEl.offsetHeight + gap) / cell))};
       cardEl.style.visibility = '';
     }
-    // On a phone, Chris: "it might mean too small to tell what some tiles are".
-    for (const p of data.pieces) p.least = phone && mode === 'lands' && p.photo ? 2 : 1;
-    const out = generateWorld(data.pieces, {cols, mode, seed, maxSpan, focus, focusRow, sort, card});
-    last = out;
-    const fam = new Set(out.family);
+    const out = generateWorld(sub, {cols, mode, seed, maxSpan, focus: focus === null ? null : subset.indexOf(focus), focusRow, card});
+    last = {out, subset};
+    const fam = new Set(out.family.map((k) => subset[k]));
     if (cardEl && out.card) {
       Object.assign(cardEl.style, {left: `${out.card.c * cell + gap / 2}px`, top: `${out.card.r * cell + gap / 2}px`, width: `${out.card.cw * cell - gap}px`, height: `${out.card.ch * cell - gap}px`});
     } else if (cardEl) cardEl.hidden = true;
+
     world.classList.toggle('has-focus', focus !== null);
     world.style.width = `${width}px`;
     if (phone) world.style.marginLeft = `${EDGE - (world.parentElement!.getBoundingClientRect().left + parseFloat(pad.paddingLeft))}px`;
     world.style.height = `${Math.ceil(out.rows * cell)}px`;
     tiles.forEach((t) => (t.hidden = true));
     for (const p of out.placed) {
-      const t = tiles[p.i];
+      const i = subset[p.i];
+      const t = tiles[i];
       t.hidden = false;
       t.style.left = `${p.c * cell + gap / 2}px`;
       t.style.top = `${p.r * cell + gap / 2}px`;
       t.style.width = `${p.cw * cell - gap}px`;
       t.style.height = `${p.ch * cell - gap}px`;
-      t.classList.toggle('is-open', p.i === focus);
-      t.classList.toggle('is-sibling', fam.has(p.i));
+      t.classList.toggle('is-open', i === focus);
+      t.classList.toggle('is-sibling', fam.has(i));
       t.classList.toggle('is-small', p.cw * cell < 150);
       t.classList.toggle('is-tiny', p.cw * cell < 90);
       const img = t.querySelector('img');
       if (img) img.sizes = `${Math.ceil(p.cw * cell)}px`;
     }
-    // The biomes' land: a faint tint per biome, a cell at a time.
-    if (out.biome && out.regions) {
-      const canvas = document.createElement('canvas');
-      canvas.width = cols;
-      canvas.height = out.rows;
-      Object.assign(canvas.style, {position: 'absolute', left: '0', top: '0', width: `${width}px`, height: `${out.rows * cell}px`, imageRendering: 'pixelated', zIndex: '0', pointerEvents: 'none', opacity: focus !== null ? '0.5' : '1'});
-      const ctx = canvas.getContext('2d')!;
-      for (let r = 0; r < out.rows; r++)
-        for (let c = 0; c < cols; c++) {
-          const k = out.biome[r * cols + c];
-          if (k < 0) continue;
-          ctx.fillStyle = `hsl(${(k * 137.5 + (seed % 360)) % 360} 45% 94%)`;
-          ctx.fillRect(c, r, 1, 1);
-        }
-      world.prepend(canvas);
-      extras.push(canvas);
-    }
-    const focusSet = focus === null ? null : (data.pieces[focus].project ?? null);
-    for (const l of out.labels) {
-      const name = setName(l.set);
-      if (!name) continue;
-      const el = document.createElement(l.set.startsWith('/') ? 'a' : 'span');
-      el.textContent = name;
-      if (el instanceof HTMLAnchorElement) el.href = l.set;
-      Object.assign(el.style, {
-        position: 'absolute', left: `${l.c * cell}px`, top: `${l.r * cell}px`, width: `${l.cw * cell}px`, height: `${cell}px`,
-        display: 'flex', alignItems: 'center', padding: '0 0.35rem', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
-        fontSize: phone ? '0.6rem' : '0.7rem', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase',
-        color: '#0a2a8a', textDecoration: 'none', zIndex: '1',
-        opacity: focus !== null && l.set !== focusSet && !out.family.some((i) => `#set-${data.pieces[i].id}` === l.set || (data.pieces[i].parent && `#set-${data.pieces[i].parent}` === l.set)) ? '0.4' : '',
-      });
-      world.append(el);
-      extras.push(el);
-    }
-    document.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
-    colourBtn.setAttribute('aria-pressed', String(colour));
-    colourBtn.hidden = mode === 'biomes';
-    about.textContent = ABOUT[mode] + (sort === 'colour' ? ' Sorted by colour: black and white first, then round the colour wheel.' : '');
-    history.replaceState(history.state, '', `?${mode === 'lands' ? '' : `mode=${mode}&`}seed=${seed}${colour ? '&sort=colour' : ''}`);
+    // The order they are seen in, for the Tab key and screen readers.
+    const seen = [...out.placed].sort((a, z) => a.r - z.r || a.c - z.c);
+    for (const p of seen) world.append(tiles[subset[p.i]]);
+    if (cardEl && out.card) world.append(cardEl);
+
+    filterBtns.forEach((b) => b.classList.toggle('is-active', b.dataset.filter === filter));
+    document.querySelector<HTMLButtonElement>('[data-zoom="-1"]')!.disabled = zoom === 0;
+    document.querySelector<HTMLButtonElement>('[data-zoom="1"]')!.disabled = zoom === steps.length - 1;
+    writeLink();
+  };
+
+  /*
+    SHAREABLE LINKS, as /portfolio: ?view=<filter>&open=<slug>, plus the
+    world's seed so the same world comes back. In place (replaceState): the
+    one history entry is the one opening adds, so Back closes a piece.
+  */
+  const writeLink = () => {
+    const url = new URL(location.href);
+    const set = (k: string, v: string | null) => (v ? url.searchParams.set(k, v) : url.searchParams.delete(k));
+    set('view', data.filters.find((f) => f.value === filter)?.name ?? null);
+    set('open', focus === null ? null : keyOf(focus));
+    set('seed', String(seed));
+    set('mode', mode === 'lands' ? null : mode);
+    if (url.href !== location.href) history.replaceState(history.state, '', url);
   };
 
   // As on the main grid: a piece opens; picked again, it closes. Its bar is the way to the project.
@@ -384,12 +333,13 @@ const data = {pieces, names};
       close();
       return;
     }
-    focusRow = last?.placed.find((x) => x.i === i)?.r ?? 0;
-    focus = i;
-    if (push) {
+    const at = last?.out.placed.find((x) => last!.subset[x.i] === i);
+    focusRow = at?.r ?? 0;
+    if (push && focus === null) {
       history.pushState({wd: i}, '');
       pushed = true;
     }
+    focus = i;
     draw();
     tiles[i].scrollIntoView({block: 'center'});
   };
@@ -402,7 +352,7 @@ const data = {pieces, names};
     draw();
   }
 
-  tiles.forEach((t, i) => t.querySelector('.wd-pic')!.addEventListener('click', () => open(i)));
+  tiles.forEach((t) => t.querySelector('.wd-pic')!.addEventListener('click', () => open(Number(t.dataset.i))));
   addEventListener('popstate', (e) => {
     const i = (e.state as {wd?: number} | null)?.wd;
     pushed = typeof i === 'number';
@@ -412,22 +362,31 @@ const data = {pieces, names};
   addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && focus !== null) close();
   });
-  document.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) =>
+  filterBtns.forEach((b) =>
     b.addEventListener('click', () => {
-      mode = b.dataset.mode as WorldMode;
+      filter = b.dataset.filter!;
+      focus = null;
       draw();
     }),
   );
-  colourBtn.addEventListener('click', () => {
-    colour = !colour;
-    draw();
-  });
-  // Once the previews are measured, the sizes and colours they decide.
-  measured.then(() => requestAnimationFrame(draw));
   document.querySelector('[data-roll]')!.addEventListener('click', () => {
     seed = (seedOf(`${seed}:${Date.now()}`) % 9000) + 1000;
     draw();
   });
+  document.querySelectorAll<HTMLButtonElement>('[data-zoom]').forEach((b) =>
+    b.addEventListener('click', () => {
+      const steps = phoneNow() ? STEPS.phone : STEPS.desktop;
+      zoom = Math.max(0, Math.min(steps.length - 1, zoom + Number(b.dataset.zoom)));
+      draw();
+    }),
+  );
+
+  // Arriving on a shared link: the view at once, the piece opened in it.
+  const arrive = q.get('open');
+  const arriving = arrive ? data.pieces.findIndex((p) => p.slug === arrive || p.id === arrive) : -1;
+  draw();
+  if (arriving >= 0) open(arriving, false);
+
   let lastWidth = 0;
   new ResizeObserver(([e]) => {
     if (Math.abs(e.contentRect.width - lastWidth) < 1) return;

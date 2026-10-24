@@ -1,0 +1,35 @@
+# Why does one picture look low-res? See scripts/diagnose-one-image.mjs.
+# By hand only; downloads a few copies of one picture.
+name: Diagnose one image
+
+on:
+  workflow_dispatch:
+    inputs:
+      hash:
+        description: 'The Sanity file hash'
+        required: true
+      base_url:
+        description: 'Site'
+        default: 'https://rumeaudesign.co'
+      paths:
+        description: 'Space-separated pages'
+        default: '/ /portfolio /merchfolio'
+
+jobs:
+  look:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Look
+        env:
+          HASH_IN: ${{ inputs.hash }}
+          BASE_IN: ${{ inputs.base_url }}
+          PATHS_IN: ${{ inputs.paths }}
+        run: |
+          set -o pipefail
+          node scripts/diagnose-one-image.mjs "$HASH_IN" "$BASE_IN" $PATHS_IN 2>&1 | tee one.txt
+          { echo '## One image'; echo '```'; cat one.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

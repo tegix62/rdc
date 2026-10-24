@@ -116,8 +116,7 @@ for (const [name, w, h] of [
 
 /*
   The portfolio's controls and links, at a desktop and a phone: a filter
-  shows a smaller world of that category and names it in the address; an
-  opened piece is named there too, and that address, opened afresh,
+  other than All goes to the portfolio's own view of it; an opened piece is named there too, and that address, opened afresh,
   arrives with the piece open; + makes the tiles larger and - smaller;
   Shuffle deals a new world; the Tab key meets the pieces in the order they
   are seen; the tiles are trimmed to their artwork.
@@ -143,15 +142,9 @@ for (const [name, w, h] of [
     return wrong
   })
   check(`${name}: the Tab key meets them in the order they are seen`, order === 0, `${order} out of order`)
-  const merch = await page.locator('[data-filter="merch-apparel"]')
-  if (await merch.count()) {
-    await merch.click()
-    await page.waitForTimeout(500)
-    const m = await shown()
-    check(`${name}: Merch & Apparel shows that world alone, named in the address`, m.length > 0 && m.length < allShown.length && m.every((t) => cats[t.i] === 'merch-apparel') && page.url().includes('view=merch'), `${m.length} pieces, ${page.url()}`)
-    await page.click('[data-filter="*"]')
-    await page.waitForTimeout(500)
-  }
+  // The other categories are the portfolio's own views.
+  const merch = await page.locator('.pf-group--filters a', {hasText: 'Merch'}).getAttribute('href')
+  check(`${name}: Merch & Apparel goes to the portfolio's own merch view`, merch === '/portfolio?view=merch', merch ?? 'none')
   const before = await shown()
   const mean = (a) => a.reduce((x, t) => x + t.w, 0) / a.length
   await page.click('[data-zoom="1"]')

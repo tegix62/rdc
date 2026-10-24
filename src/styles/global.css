@@ -8373,3 +8373,11 @@ html.realsize-open {
 .wd-piece--study.is-tiny:not(.is-open) .wd-jump {
   display: none;
 }
+/* The world page's other categories are links to the portfolio's views, drawn as its buttons. */
+a.pf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-sizing: border-box;
+}

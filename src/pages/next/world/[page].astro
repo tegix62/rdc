@@ -16,10 +16,10 @@
   type (clusterCard, as in the merch view) set beside the piece. Picking it
   again, Escape or the browser's back closes it.
 
-  THE PORTFOLIO'S CONTROLS: the category filters (a smaller world of that
-  category alone), Shuffle (a new world), and - / + (a finer or coarser
-  grid). And its SHAREABLE LINKS: ?view=merch&open=<slug> arrives on that
-  view with that piece open, as /portfolio does.
+  THE PORTFOLIO'S CONTROLS: its toolbar, with Lands as All - the other
+  categories go to the portfolio's own views, each of which is its own
+  design - Shuffle (a new world), and - / + (a finer or coarser grid). And
+  its SHAREABLE LINKS: ?open=<slug> arrives with that piece open.
 
   BOXES THAT FIT THEIR PICTURES. Chris asked for the blank space round
   cut-outs to be trimmed; measured, the pictures are already cropped to
@@ -143,10 +143,16 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     <div class="pf-controls">
       <div class="pf-group pf-group--filters" role="group" aria-label="Filter by category">
         <button type="button" class="pf-btn is-active" data-filter="*">All</button>
+        {/*
+          The other categories are the portfolio's own views, each its own
+          design (the merch grid, the type cluster) - Chris: "this messed up
+          all the other filters/categories" when they were smaller worlds
+          here. Lands is the All view; these go to the real ones.
+        */}
         {FILTERS.map((f) => (
-          <button type="button" class="pf-btn" data-filter={f.value}>
+          <a class="pf-btn" href={`/portfolio?view=${f.name}`}>
             {f.label}
-          </button>
+          </a>
         ))}
       </div>
       <div class="pf-group pf-group--arrange" role="group" aria-label="Arrange">
@@ -216,12 +222,13 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   const world = document.querySelector<HTMLElement>('.wd-world')!;
   const tiles = Array.from(world.querySelectorAll<HTMLElement>('.wd-piece'));
   const cards = new Map(Array.from(world.querySelectorAll<HTMLElement>('[data-card]')).map((el) => [el.dataset.card!, el]));
-  const filterBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-filter]'));
 
   const q = new URLSearchParams(location.search);
   const mode = (['heights', 'biomes'].includes(q.get('mode') ?? '') ? q.get('mode') : 'lands') as WorldMode;
   let seed = Number(q.get('seed')) || 4187;
-  let filter = data.filters.find((f) => f.name === q.get('view'))?.value ?? '*';
+  // Lands is the All view; a link naming another view goes to the portfolio's own.
+  const asked = data.filters.find((f) => f.name === q.get('view'));
+  if (asked) location.replace(`/portfolio?view=${asked.name}`);
   let focus: number | null = null;
   let focusRow = 0;
   let pushed = false;
@@ -263,8 +270,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     const rowH = cell / kr;
     const gap = phone ? 2 : 3;
 
-    // The world of this filter alone.
-    const subset = data.pieces.map((_, i) => i).filter((i) => filter === '*' || data.pieces[i].cat === filter);
+    const subset = data.pieces.map((_, i) => i);
     if (focus !== null && !subset.includes(focus)) focus = null;
     const sub = subset.map((i) => ({...data.pieces[i], least: phone && mode === 'lands' && data.pieces[i].photo ? 2 : 1}));
 
@@ -315,21 +321,19 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     for (const p of seen) world.append(tiles[subset[p.i]]);
     if (cardEl && out.card) world.append(cardEl);
 
-    filterBtns.forEach((b) => b.classList.toggle('is-active', b.dataset.filter === filter));
     document.querySelector<HTMLButtonElement>('[data-zoom="-1"]')!.disabled = zoom === 0;
     document.querySelector<HTMLButtonElement>('[data-zoom="1"]')!.disabled = zoom === steps.length - 1;
     writeLink();
   };
 
   /*
-    SHAREABLE LINKS, as /portfolio: ?view=<filter>&open=<slug>, plus the
+    SHAREABLE LINKS, as /portfolio: ?open=<slug>, plus the
     world's seed so the same world comes back. In place (replaceState): the
     one history entry is the one opening adds, so Back closes a piece.
   */
   const writeLink = () => {
     const url = new URL(location.href);
     const set = (k: string, v: string | null) => (v ? url.searchParams.set(k, v) : url.searchParams.delete(k));
-    set('view', data.filters.find((f) => f.value === filter)?.name ?? null);
     set('open', focus === null ? null : keyOf(focus));
     set('seed', String(seed));
     set('mode', mode === 'lands' ? null : mode);
@@ -371,13 +375,6 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && focus !== null) close();
   });
-  filterBtns.forEach((b) =>
-    b.addEventListener('click', () => {
-      filter = b.dataset.filter!;
-      focus = null;
-      draw();
-    }),
-  );
   document.querySelector('[data-roll]')!.addEventListener('click', () => {
     seed = (seedOf(`${seed}:${Date.now()}`) % 9000) + 1000;
     draw();

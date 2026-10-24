@@ -97,6 +97,8 @@ export interface WorldPiece {
   least?: number;
   /** A case study's place in the order Chris dragged the projects into in Studio. */
   order?: number;
+  /** Its category (the portfolio's), so the loose work can be dealt across them. */
+  kind?: string;
 }
 
 export interface WorldOptions {
@@ -114,7 +116,7 @@ export interface WorldOptions {
   /** Lands: rows to a cell's width (2: half-height rows, so boxes follow their pictures' shapes). Rows, `r` and `ch` are then in these. */
   rowsPerCell?: number;
   /** Lands: weights for how a set's pieces gather (for tuning; the defaults are the chosen ones). */
-  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number};
+  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number};
   /** Lands: room for the opened project's card, beside the opened piece. */
   card?: {cw: number; ch: number} | null;
 }
@@ -612,12 +614,50 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
       (o.sort === 'colour' ? toneOf(a) - toneOf(z) : study(a) - study(z) || (placeOf(a) === placeOf(z) ? 0 : placeOf(a) < placeOf(z) ? -1 : 1)) ||
       rank.get(a)! - rank.get(z)!,
   );
-  const laid = keys.flatMap((k) => laidOrder(pieces, groups.get(k)!, null));
+  /*
+    The loose work dealt a category at a time - Chris agreed: the loose
+    pieces came last as a block, so every collage piled into the tail. Now
+    the sets with no case study take turns by category (as the portfolio
+    deals its projects), in the seed's order within each.
+  */
+  if (o.sort !== 'colour' && (o.tune?.deal ?? true)) {
+    const firstLoose = keys.findIndex((k) => study(k) === 1);
+    if (firstLoose >= 0) {
+      const loose = keys.slice(firstLoose);
+      const byKind = new Map<string, string[]>();
+      for (const k of loose) {
+        const kind = pieces[groups.get(k)![0]].kind ?? '';
+        byKind.set(kind, [...(byKind.get(kind) ?? []), k]);
+      }
+      const dealt: string[] = [];
+      for (let round = 0; dealt.length < loose.length; round++) for (const list of byKind.values()) if (round < list.length) dealt.push(list[round]);
+      keys.splice(firstLoose, loose.length, ...dealt);
+    }
+  }
   // Rows to a cell's width: finer rows let a box follow its picture's shape.
   const kr = Math.max(1, Math.round(o.rowsPerCell ?? 1));
-  // How a set's pieces choose among spots touching it (tuned on the real pieces).
-  // Chosen on the real pieces (scripts/tune-lands.mjs): 16 starts, a slight lean to the earlier.
-  const {leadBonus = 0, seenW = 1, tries = 16, early = 0.02} = o.tune ?? {};
+  /*
+    Chosen on the real pieces (scripts/tune-lands.mjs). 16 starts per set,
+    leaning slightly to the earlier. The project's own tile at its patch's
+    top corner (Chris: "Corners and high points"), asked for softly - a
+    spot above it is a last resort (`above`) and each start is judged by
+    how near the top its lead sits (`top`) - because forbidding anything
+    above the lead (`high`) left holes the loose work then filled, and the
+    projects stopped coming first.
+  */
+  // On a phone (10 columns or fewer) the strict rule costs nothing - the
+  // projects still come first there - so above the lead is barred, unless
+  // it is the only way a piece can touch its set at all.
+  const {leadBonus = 0, seenW = 1, tries = 16, early = 0.02, corner = 0.3, tail = 1.2, high = o.cols <= 10, caps = true, above = 30, top = 1} = o.tune ?? {};
+  /*
+    Sizes by standing - Chris agreed: "THE HOUSE", the Midgard tee and the
+    Horizon Kingdoms wordmark each took more ground than the case studies
+    beside them. Only a case study or a hero tile may reach the largest
+    sizes; everything else stops a step or two below, and a case study is
+    never smaller than one step above that.
+  */
+  const cap = caps ? Math.max(2, maxSpan - Math.max(1, Math.round(maxSpan / 3))) : maxSpan;
+  const bigMin = caps ? Math.min(maxSpan, cap + 1) : Math.ceil((maxSpan * 2) / 3);
 
   const area = pieces.reduce((n, p) => n + boxAt(p, 2, kr).cw * boxAt(p, 2, kr).ch, 0);
   const grid = new Grid(o.cols, Math.max(60, Math.ceil((area * 8) / o.cols) + 60));
@@ -676,10 +716,11 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
   const setSize = new Map<string, number>();
   for (const k of sets) setSize.set(k, (setSize.get(k) ?? 0) + 1);
   const touches = (a: WorldPlaced, b: WorldPlaced) => a.c <= b.c + b.cw && b.c <= a.c + a.cw && a.r <= b.r + b.ch && b.r <= a.r + a.ch;
-  // Free cells in the ring one cell round a box.
+  // Free cells in the ring one cell round a box - only those level with it
+  // or below when its set may not go above it (on a phone).
   const room = (q: WorldPlaced) => {
     let n = 0;
-    for (let y = q.r - 1; y <= q.r + q.ch; y++)
+    for (let y = high ? q.r : q.r - 1; y <= q.r + q.ch; y++)
       for (let x = q.c - 1; x <= q.c + q.cw; x++) {
         if (x < 0 || x >= o.cols || y < 0 || y >= grid.maxRows) continue;
         if (y >= q.r && y < q.r + q.ch && x >= q.c && x < q.c + q.cw) continue;
@@ -688,6 +729,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     return n;
   };
   let cursor = 0;
+  let seq = cells;
   /*
     Where piece i goes, given what its set already holds (kin) and where the
     pieces are by id. A set's first piece: the `skip`-th spot with room round
@@ -696,7 +738,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
   const spotFor = (i: number, kin: WorldPlaced[], where: Map<string, WorldPlaced>, skip = 0): WorldPlaced | null => {
     const p = pieces[i];
     const up = p.parent ? where.get(p.parent) : undefined;
-    const lo = Math.min(o.cols, Math.max(p.least ?? 1, p.big ? Math.ceil((maxSpan * 2) / 3) : 1));
+    const lo = Math.min(o.cols, Math.max(p.least ?? 1, p.big ? bigMin : 1));
     // Loose, and not a case study: the first free cell, as the height map.
     const plain = kin.length === 0 && (setSize.get(sets[i]) ?? 1) === 1 && lo === 1;
     let first: WorldPlaced | null = null;
@@ -704,13 +746,15 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     let bestScore = Infinity;
     let roomy = 0;
     let seen = 0;
-    for (let k = cursor; k < cells.length && (seen < 48 || !best); k++) {
-      const at = cells[k];
+    let fallback: WorldPlaced | null = null;
+    let fallbackScore = Infinity;
+    for (let k = cursor; k < seq.length && (seen < 48 || !best); k++) {
+      const at = seq[k];
       if (grid.used[at] !== -1) continue;
       seen++;
       const c = at % o.cols;
       const r = Math.floor(at / o.cols);
-      const want = wantAt(p, o.seed, o.cols, maxSpan, c, r / kr);
+      const want = p.big ? wantAt(p, o.seed, o.cols, maxSpan, c, r / kr) : Math.min(cap, wantAt(p, o.seed, o.cols, maxSpan, c, r / kr));
       /*
         Of the widths that fit here, the widest whose box - rounded to whole
         cells - is close to the picture's own shape; else the closest. A
@@ -745,13 +789,25 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
       // Beside its parent best, then beside its set's lead, then beside any
       // of its set; the earliest of those, so the fill stays tight.
       const lead = kin[0];
-      const score = (up && touches(q, up) ? 0 : leadBonus && lead && touches(q, lead) ? 100 - leadBonus : kin.some((x) => touches(q, x)) ? 100 : Infinity) + seen * seenW;
+      // Nothing of a set above its lead: the project's own tile is its high point.
+      const score =
+        (up && touches(q, up) ? 0 : leadBonus && lead && touches(q, lead) ? 100 - leadBonus : kin.some((x) => touches(q, x)) ? 100 : Infinity) +
+        seen * seenW +
+        (q.r < lead.r && !high ? above : 0);
+      // Strict: above the lead only if nothing below can touch the set at all.
+      if (high && q.r < lead.r) {
+        if (score < fallbackScore) {
+          fallbackScore = score;
+          fallback = q;
+        }
+        continue;
+      }
       if (score < bestScore) {
         bestScore = score;
         best = q;
       }
     }
-    return best ?? first;
+    return best ?? fallback ?? first;
   };
 
   /*
@@ -783,7 +839,27 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     }
     return kin;
   };
-  for (const key of keys) {
+  /*
+    THE END OF THE PAGE, LEVEL - Chris agreed: the fill ran out raggedly, a
+    tail of collages two screens below the rest. Patch by patch, the last
+    band of patches ends wherever its last patch does. So once what is left
+    would fill about one band, the fill goes back to the height map's own
+    order - the first free cell, row by row across the whole page - and the
+    bottom comes out nearly flat.
+  */
+  const leftArea = (from: number) =>
+    keys.slice(from).reduce((n, k) => n + groups.get(k)!.reduce((m, i) => m + boxAt(pieces[i], Math.max(1, Math.round(cap / 2)), kr).cw * boxAt(pieces[i], Math.max(1, Math.round(cap / 2)), kr).ch, 0), 0);
+  for (const [n, key] of keys.entries()) {
+    // Only ever for the end of the work: a small world would otherwise lay
+    // every set row by row from the start, and the projects stop coming first.
+    if (seq === cells && n >= keys.length / 2 && leftArea(n) <= o.cols * side * kr * tail) {
+      // From the band the fill has reached, not the top: a hole left higher up
+      // among the projects is not the loose work's to fill.
+      const band = Math.floor(Math.floor((cells[cursor] ?? 0) / o.cols) / (side * kr)) * side * kr;
+      seq = Array.from({length: grid.used.length - band * o.cols}, (_, k) => band * o.cols + k);
+      cursor = 0;
+      while (cursor < seq.length && grid.used[seq[cursor]] !== -1) cursor++;
+    }
     const members = laidOrder(pieces, groups.get(key)!, null).filter((i) => !inFamily.has(i));
     if (!members.length) continue;
     let pickSkip = 0;
@@ -796,7 +872,13 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
         grid.used.set(used);
         grid.rows = rows;
         if (kin.length < members.length) continue;
-        const score = spread(kin) + t * early;
+        // ... and at a top corner of its patch, where reading starts.
+        const x0 = Math.min(...kin.map((q) => q.c));
+        const x1 = Math.max(...kin.map((q) => q.c + q.cw));
+        const off = Math.min(kin[0].c - x0, x1 - (kin[0].c + kin[0].cw)) / Math.max(1, x1 - x0);
+        const y0 = Math.min(...kin.map((q) => q.r));
+        const y1 = Math.max(...kin.map((q) => q.r + q.ch));
+        const score = spread(kin) + t * early + off * corner + ((kin[0].r - y0) / Math.max(1, y1 - y0)) * top;
         if (score < bestScore) {
           bestScore = score;
           pickSkip = t;
@@ -808,7 +890,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
       mine.set(key, [...(mine.get(key) ?? []), q]);
       if (pieces[q.i].id) whereId.set(pieces[q.i].id!, q);
     }
-    while (cursor < cells.length && grid.used[cells[cursor]] !== -1) cursor++;
+    while (cursor < seq.length && grid.used[seq[cursor]] !== -1) cursor++;
   }
   return {placed, cols: o.cols, rows: grid.rows, labels: [], family, card};
 }

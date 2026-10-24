@@ -8520,3 +8520,12 @@ a.pf-btn {
     display: none;
   }
 }
+/*
+  A mark set as one by hand gets the main grid's air round it (.pf-item--air,
+  --pf-air-inset). Chris: "the adelante mark is set as a logomark, so it
+  should have extra padding". On the picture area, so the bar is untouched.
+*/
+.wd-piece--air .wd-pic {
+  padding: var(--pf-air-inset, 10%);
+  box-sizing: border-box;
+}

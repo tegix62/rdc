@@ -46,7 +46,7 @@ import Layout from '../../../layouts/Layout.astro';
 import Img from '../../../components/Img.astro';
 import {getAllGridItems} from '../../../lib/queries';
 import {tileImage, imageDimensions} from '../../../lib/image';
-import {treatmentOf, tileHref, cleanKey, merchPlacement} from '../../../lib/tiles';
+import {treatmentOf, explicitTreatment, tileHref, cleanKey, merchPlacement} from '../../../lib/tiles';
 import {stripStegaKey} from '../../../lib/stega';
 import {sanityClient} from '../../../lib/sanity';
 import {clusterCard} from '../../../lib/clusterCard';
@@ -124,6 +124,8 @@ const pieces = all.map((it, i) => {
     parent: it.pieceParent ? cleanKey(it.pieceParent) : null,
     title: clean(it.title),
     cat: CATEGORY_FILTER[cleanKey(it.category)] ?? '',
+    // For the engine to deal the loose work across categories.
+    kind: CATEGORY_FILTER[cleanKey(it.category)] ?? '',
     /*
       Chris, on a phone: "I feel like less important tiles are getting more
       area". The case studies and the hero tiles he marked stand out; an
@@ -182,7 +184,17 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
         // The trim, as the picture's size and offset inside the artwork's box.
         const crop = `--a:${(pieces[i].w / pieces[i].h).toFixed(4)};--iw:${(100 / tw).toFixed(2)}%;--ih:${(100 / th).toFixed(2)}%;--il:${((-t.x0 / tw) * 100).toFixed(2)}%;--it:${((-t.y0 / th) * 100).toFixed(2)}%`;
         return (
-          <div class:list={['wd-piece', treatmentOf(it) === 'mark' && 'wd-piece--mark', isProject(it) && href && 'wd-piece--study']} data-i={i} hidden>
+          <div
+            class:list={[
+              'wd-piece',
+              treatmentOf(it) === 'mark' && 'wd-piece--mark',
+              // Air round a mark Chris set as one by hand, as on the main grid (.pf-item--air).
+              explicitTreatment(it) === 'mark' && 'wd-piece--air',
+              isProject(it) && href && 'wd-piece--study',
+            ]}
+            data-i={i}
+            hidden
+          >
             <div class="wd-frame">
               <button type="button" class="wd-pic" aria-label={clean(it.title)}>
                 <span class="wd-crop" style={crop}>

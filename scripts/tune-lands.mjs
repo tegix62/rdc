@@ -16,7 +16,7 @@ const variants = JSON.parse(process.argv[2] ?? '[{}]')
 const seeds = [4187, 1, 2, 3, 42, 777, 2024, 5150]
 for (const tune of variants) for (const [name, cols, ms] of [['phone', 8, 4], ['desktop', 20, 6]]) {
   const pieces = base.map((p) => ({...p, least: name === 'phone' && p.photo ? 2 : 1}))
-  let spreadSum = 0, spreadMax = 0, coverSum = 0, earlyLoose = 0, n = 0, pRow = 0, lRow = 0, openCover = 0
+  let spreadSum = 0, spreadMax = 0, coverSum = 0, earlyLoose = 0, n = 0, pRow = 0, lRow = 0, openCover = 0, ragged = 0, leadTop = 0, leads = 0, bigOver = 0
   for (const seed of seeds) {
     const o = generateWorld(pieces, {cols, mode: 'lands', seed, maxSpan: ms, rowsPerCell: 2, tune})
     const sp = []
@@ -36,6 +36,21 @@ for (const tune of variants) for (const [name, cols, ms] of [['phone', 8, 4], ['
     // Loose pieces placed before the last project piece starts, in reading order of rows.
     const lastProjectRow = Math.max(...o.placed.filter((q) => sets[q.i].startsWith('/')).map((q) => q.r))
     earlyLoose += o.placed.filter((q) => !sets[q.i].startsWith('/') && q.r < lastProjectRow * 0.5).length
+    // How ragged the bottom: how far, in cell widths, the columns' ends spread.
+    const ends = Array.from({length: cols}, (_, c) => Math.max(0, ...o.placed.filter((q) => q.c <= c && c < q.c + q.cw).map((q) => q.r + q.ch)))
+    ragged += (Math.max(...ends) - Math.min(...ends)) / 2
+    // Each project's own tile at the top of its patch.
+    for (const k of new Set(sets)) {
+      if (!k.startsWith('/')) continue
+      const qs = o.placed.filter((q) => sets[q.i] === k)
+      const own = qs.find((q) => pieces[q.i].own)
+      if (!own) continue
+      leads++
+      if (own.r === Math.min(...qs.map((q) => q.r))) leadTop++
+    }
+    // Pieces that are not case studies or hero tiles but outsize the smallest case study.
+    const minBig = Math.min(...o.placed.filter((q) => pieces[q.i].big).map((q) => q.cw))
+    bigOver += o.placed.filter((q) => !pieces[q.i].big && q.cw > minBig).length
     const mr = (f) => { const a = o.placed.filter(f).map((q) => q.r); return a.reduce((x, y) => x + y, 0) / a.length / o.rows }
     pRow += mr((q) => sets[q.i].startsWith('/'))
     lRow += mr((q) => !sets[q.i].startsWith('/'))
@@ -47,5 +62,5 @@ for (const tune of variants) for (const [name, cols, ms] of [['phone', 8, 4], ['
     openCover += c2 / (cols * top2)
     n++
   }
-  console.log(JSON.stringify(tune).padEnd(40), name.padEnd(8), 'spread mean', (spreadSum / n).toFixed(2), 'worst', spreadMax.toFixed(1), 'cover', ((coverSum / n) * 100).toFixed(0) + '%', 'loose early', (earlyLoose / n).toFixed(1), 'mean row proj/loose', (pRow / n).toFixed(2), (lRow / n).toFixed(2), 'opened cover', ((openCover / n) * 100).toFixed(0) + '%')
+  console.log(JSON.stringify(tune).padEnd(40), name.padEnd(8), 'spread mean', (spreadSum / n).toFixed(2), 'worst', spreadMax.toFixed(1), 'cover', ((coverSum / n) * 100).toFixed(0) + '%', 'loose early', (earlyLoose / n).toFixed(1), 'mean row proj/loose', (pRow / n).toFixed(2), (lRow / n).toFixed(2), 'opened cover', ((openCover / n) * 100).toFixed(0) + '%', 'ragged', (ragged / n).toFixed(1), 'lead on top', `${leadTop}/${leads}`, 'outsize', (bigOver / n).toFixed(1))
 }

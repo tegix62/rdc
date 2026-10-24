@@ -1,0 +1,1098 @@
+{
+  "/next/world/home": {
+    "desktop": {
+      "title": "World - Rumeau Design Co",
+      "description": "The portfolio as a generated world.",
+      "h1": "",
+      "headings": [],
+      "ctas": [
+        {
+          "text": "All",
+          "href": null,
+          "screens": 0.12
+        },
+        {
+          "text": "Shuffle",
+          "href": null,
+          "screens": 0.12
+        },
+        {
+          "text": "−",
+          "href": null,
+          "screens": 0.12
+        },
+        {
+          "text": "+",
+          "href": null,
+          "screens": 0.12
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.18
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.18
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.18
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.18
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.18
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.18
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.18
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.18
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.22
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.26
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.3
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.3
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.38
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.38
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.38
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.38
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.42
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.42
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.5
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.5
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.5
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.5
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.54
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.62
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.62
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.62
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.62
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.62
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.62
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.7
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.7
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.7
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.74
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.74
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.74
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.78
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.78
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.78
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.78
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.78
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.78
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.78
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.81
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.81
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.85
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.85
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.89
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.89
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.89
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.93
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.93
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.97
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.97
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.01
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.01
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.01
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.01
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.01
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.01
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.01
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.05
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.09
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.09
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.13
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.13
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.13
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.13
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.13
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.17
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.17
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.17
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.17
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.21
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.21
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.21
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.21
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.21
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.25
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.25
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.25
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.25
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.25
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.29
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.29
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.29
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.29
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.29
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.33
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.33
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.37
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.37
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.41
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.41
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.41
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.41
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.45
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.45
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.45
+        }
+      ],
+      "nav": [
+        " → /",
+        "Portfolio → /next/world/home",
+        "About → /about",
+        "Video → /video",
+        "Contact → https://tally.so/r/mZ8LXz"
+      ],
+      "images": 98,
+      "imagesNoAlt": 98,
+      "imagesBroken": [],
+      "imageHosts": [
+        [
+          "preview.rumeau-design-co.pages.dev/img/",
+          98
+        ]
+      ],
+      "words": 942,
+      "pageHeight": 2056,
+      "screens": 2.3,
+      "sections": [
+        {
+          "tag": "div",
+          "class": "wd",
+          "top": 74,
+          "height": 1434,
+          "screens": 0.08,
+          "text": "All Brand Identity Merch & Apparel Up close Shuffle − + Adelante Barbell Club For Sed auctor augue id tellus lacinia, ne"
+        }
+      ]
+    },
+    "phone": {
+      "title": "World - Rumeau Design Co",
+      "description": "The portfolio as a generated world.",
+      "h1": "",
+      "headings": [],
+      "ctas": [
+        {
+          "text": "All",
+          "href": null,
+          "screens": 0.11
+        },
+        {
+          "text": "Shuffle",
+          "href": null,
+          "screens": 0.23
+        },
+        {
+          "text": "−",
+          "href": null,
+          "screens": 0.23
+        },
+        {
+          "text": "+",
+          "href": null,
+          "screens": 0.23
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.3
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.3
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.3
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.3
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.3
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.33
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.45
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.45
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.45
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.47
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.47
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.5
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.53
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.56
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.59
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.59
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.59
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.59
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.64
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.7
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.7
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.7
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.7
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.73
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.76
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.78
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.78
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.78
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.78
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.84
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.84
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.84
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.84
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.87
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.87
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.93
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.93
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.93
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.95
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.95
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.95
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 0.98
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.04
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.04
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.07
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.07
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.07
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.07
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.12
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.12
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.18
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.18
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.24
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.24
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.27
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.29
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.35
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.35
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.41
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.46
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.55
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.55
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.55
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.66
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.69
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.69
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.72
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.72
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.77
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.77
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.77
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.8
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.89
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.94
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.94
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 1.94
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.06
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.09
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.11
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.17
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.2
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.2
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.2
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.26
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.26
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.28
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.28
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.28
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.31
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.4
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.45
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.45
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.57
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.57
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.57
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.59
+        },
+        {
+          "text": "",
+          "href": null,
+          "screens": 2.68
+        }
+      ],
+      "nav": [
+        " → /",
+        "Portfolio → /next/world/home",
+        "About → /about",
+        "Video → /video",
+        "Contact → https://tally.so/r/mZ8LXz"
+      ],
+      "images": 98,
+      "imagesNoAlt": 98,
+      "imagesBroken": [],
+      "imageHosts": [
+        [
+          "preview.rumeau-design-co.pages.dev/img/",
+          98
+        ]
+      ],
+      "words": 942,
+      "pageHeight": 3247,
+      "screens": 3.8,
+      "sections": [
+        {
+          "tag": "div",
+          "class": "wd",
+          "top": 60,
+          "height": 2361,
+          "screens": 0.07,
+          "text": "All Brand Identity Merch & Apparel Up close Shuffle − + Adelante Barbell Club For Sed auctor augue id tellus lacinia, ne"
+        }
+      ]
+    }
+  }
+}

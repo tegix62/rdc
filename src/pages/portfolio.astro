@@ -117,15 +117,14 @@ const filters: { value: string; label: string; href?: string }[] = [
   and the brand-only filter goes. The live site is unchanged.
 */
 if (import.meta.env.PUBLIC_IS_PREVIEW === 'true') {
-  // And Type/Lettering gives way to Up close ("woefully outdated and
-  // obsolete ... we just don't have enough type work presented yet").
+  // And Type/Lettering is its own page: a row per project (next/type).
   filters.splice(
     0,
     filters.length,
     { value: 'world', label: 'All', href: '/next/world/home' },
     { value: '*', label: 'Brand Identity' },
     ...filters.slice(1).filter((f) => f.value !== '.brand-identity' && f.value !== '.type-lettering'),
-    { value: 'close', label: 'Up close', href: '/next/close/home' },
+    { value: 'type', label: 'Type/Lettering', href: '/next/type/home' },
   );
 }
 

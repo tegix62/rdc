@@ -166,8 +166,8 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
             {f.label}
           </a>
         ))}
-        {/* In place of Type/Lettering: the view that looks closely. */}
-        <a class="pf-btn" href="/next/close/home">Up close</a>
+        {/* Type/Lettering: a row per project (next/type). */}
+        <a class="pf-btn" href="/next/type/home">Type/Lettering</a>
       </div>
       <div class="pf-group pf-group--arrange" role="group" aria-label="Arrange">
         <button type="button" class="pf-btn pf-btn--span" data-roll>Shuffle</button>
@@ -254,7 +254,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   const simple = q.get('v') !== 'rules';
   // Lands is the All view; a link naming another view goes to the portfolio's own.
   const asked = data.filters.find((f) => f.name === q.get('view'));
-  if (asked) location.replace(asked.name === 'brand' ? '/portfolio' : `/portfolio?view=${asked.name}`);
+  if (asked) location.replace(asked.name === 'brand' ? '/portfolio' : asked.name === 'type' ? '/next/type/home' : `/portfolio?view=${asked.name}`);
   let focus: number | null = null;
   let focusRow = 0;
   let pushed = false;

@@ -8556,3 +8556,126 @@ a.pf-btn {
     width: auto;
   }
 }
+
+/* ==========================================================================
+   TYPE ROWS, PREVIEW (/next/type/home). See src/pages/next/type/[page].astro.
+   A row per project: its name and block of type, then its pieces at one
+   height, sideways. Chris: "a clean, sober take".
+   ========================================================================== */
+.ty {
+  --ty-h: 18.75rem;
+}
+.ty-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ty-row {
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-navy) 18%, transparent);
+}
+.ty-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+.ty-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.125rem;
+  line-height: 1.2;
+  color: var(--color-navy);
+}
+.ty-title a {
+  color: inherit;
+  text-decoration: none;
+}
+.ty-kicker {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-navy) 70%, transparent);
+}
+.ty-line {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--color-ink) 80%, transparent);
+}
+.ty-go {
+  margin-top: auto;
+  align-self: flex-start;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  color: var(--color-navy);
+  text-decoration: none;
+}
+.ty-go:hover,
+.ty-go:focus-visible {
+  text-decoration: underline;
+}
+.ty-strip {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+.ty-piece {
+  flex: 0 0 auto;
+  width: calc(var(--ty-h) * var(--a));
+  height: var(--ty-h);
+  scroll-snap-align: start;
+}
+.ty-piece a {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.ty-piece img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* A hand-set mark: air round it, on a faint ground, as in the grid. */
+.ty-piece--air {
+  width: calc(var(--ty-h) * max(var(--a), 1));
+  background: color-mix(in srgb, var(--color-navy) 4%, #fff);
+}
+.ty-piece--air img {
+  padding: calc(var(--ty-h) * 0.14);
+  box-sizing: border-box;
+  object-fit: contain;
+}
+.ty-piece a:focus-visible {
+  outline: 2px solid var(--color-navy);
+  outline-offset: -2px;
+}
+@media (max-width: 47.99rem) {
+  .ty {
+    --ty-h: 12.5rem;
+  }
+  .ty-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+  .ty-line {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}

@@ -203,7 +203,7 @@ for (const [name, w, h] of [
 /*
   Up close and Index (preview): every piece has its place, the pieces
   parented to one sit just under it, a row of the Index opens its piece in
-  Up close, and the toolbars offer Up close in place of Type/Lettering.
+  Up close; the toolbars offer Type/Lettering, a row per project.
 */
 for (const [name, w, h] of [
   ['desktop', 1440, 900],
@@ -240,11 +240,43 @@ for (const [name, w, h] of [
     return el ? Math.round(el.getBoundingClientRect().top) : null
   })
   check(`${name}, index: a row opens its piece in Up close`, /\/next\/close\/home\/?#/.test(page.url()) && landed !== null && landed < 200, `${page.url()} at ${landed}px`)
-  for (const path of ['/next/world/home', '/portfolio']) {
+  for (const path of ['/next/world/home', '/portfolio', '/next/close/home', '/next/index/home']) {
     await page.goto(`${BASE}${path}`, {waitUntil: 'domcontentloaded', timeout: 60_000})
-    const bar = await page.evaluate(() => Array.from(document.querySelectorAll('.pf-group--filters .pf-btn')).map((b) => b.textContent.trim()))
-    check(`${name}, ${path}: Up close in the toolbar, not Type/Lettering`, bar.includes('Up close') && !bar.some((t) => /type/i.test(t)), bar.join(' | '))
+    const bar = await page.evaluate(() => Array.from(document.querySelectorAll('.pf-group--filters .pf-btn')).map((b) => [b.textContent.trim(), b.getAttribute('href')]))
+    check(`${name}, ${path}: Type/Lettering in the toolbar, to the rows`, bar.some(([t, h]) => t === 'Type/Lettering' && h === '/next/type/home') && !bar.some(([t]) => t === 'Up close'), bar.map(([t]) => t).join(' | '))
   }
+
+  // Type/Lettering: a row per project, each named, its pieces at one
+  // height, sideways inside the row and never the page; a piece opens in
+  // Up close.
+  await page.goto(`${BASE}/next/type/home`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.waitForTimeout(1200)
+  const ty = await page.evaluate(() => {
+    const rows = Array.from(document.querySelectorAll('.ty-row'))
+    const uneven = rows.filter((r) => {
+      const hs = Array.from(r.querySelectorAll('.ty-piece')).map((p) => Math.round(p.getBoundingClientRect().height))
+      return !hs.length || Math.max(...hs) - Math.min(...hs) > 1
+    }).length
+    return {
+      rows: rows.length,
+      named: rows.filter((r) => r.querySelector('.ty-title')?.textContent.trim()).length,
+      blurbs: rows.filter((r) => r.querySelector('.ty-line')).length,
+      uneven,
+      pieces: document.querySelectorAll('.ty-piece').length,
+      pageWide: document.documentElement.scrollWidth > innerWidth,
+      active: document.querySelector('.pf-btn.is-active')?.textContent.trim(),
+    }
+  })
+  check(`${name}, type rows: a named row per project, with its blurb`, ty.rows >= 8 && ty.named === ty.rows && ty.blurbs >= ty.rows - 2, `${ty.rows} rows, ${ty.named} named, ${ty.blurbs} with a blurb`)
+  check(`${name}, type rows: one height per row, nothing wider than the screen`, ty.uneven === 0 && !ty.pageWide && ty.pieces > 30, `${ty.pieces} pieces, ${ty.uneven} uneven rows`)
+  check(`${name}, type rows: Type/Lettering lit`, ty.active === 'Type/Lettering', ty.active)
+  await page.click('.ty-piece a')
+  await page.waitForTimeout(1200)
+  const tyLanded = await page.evaluate(() => {
+    const el = document.getElementById(decodeURIComponent(location.hash.slice(1)))
+    return el ? Math.round(el.getBoundingClientRect().top) : null
+  })
+  check(`${name}, type rows: a piece opens in Up close`, /\/next\/close\/home\/?#/.test(page.url()) && tyLanded !== null && tyLanded < 200, `${page.url()} at ${tyLanded}px`)
   check(`${name}, the views: no script errors`, errors.length === 0, errors.join(' | '))
   await page.close()
 }

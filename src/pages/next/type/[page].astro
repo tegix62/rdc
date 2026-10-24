@@ -1,0 +1,123 @@
+---
+/*
+  TYPE/LETTERING - preview only, at /next/type/home: the portfolio's fourth
+  view, back under its own name.
+
+  Chris: keep the label - "pretend, okay, the person clicking on this is
+  looking for this, but I'm actually showing them more" - and make it "the
+  cleanest filter of all, where it's like a horizontal row per case study
+  ... a clean, sober take". So: one row per project, in the order dragged in
+  Studio, each opening with the project's name and its block of type, then
+  its pieces at one height, its lettering first (Typography and
+  Illustration pieces, and the hand-set marks), then the rest. After the
+  projects, the loose lettering in a row of its own. A row swipes sideways
+  on a phone; a piece opens in Up close.
+
+  Never built for production (getStaticPaths), and noindex.
+*/
+import Layout from '../../../layouts/Layout.astro';
+import Img from '../../../components/Img.astro';
+import {getAllGridItems} from '../../../lib/queries';
+import {tileImage, imageDimensions} from '../../../lib/image';
+import {tileHref, cleanKey, explicitTreatment} from '../../../lib/tiles';
+import {stripStegaKey} from '../../../lib/stega';
+import {clusterCard} from '../../../lib/clusterCard';
+
+export async function getStaticPaths() {
+  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
+  return [{params: {page: 'home'}}];
+}
+
+const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
+const items: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)));
+const isProject = (it: any) => cleanKey(it.pageType) === 'Case Study';
+const idOf = (it: any) => cleanKey(it._id).replace(/^drafts\./, '');
+const byTitle = (a: any, z: any) => clean(a.title).localeCompare(clean(z.title));
+const rank = (it: any) => (typeof it.orderRank === 'string' ? it.orderRank : null);
+// Lettering: the categories the portfolio files under Type/Lettering, and
+// the marks Chris set by hand.
+const isType = (it: any) => ['Typography', 'Illustration'].includes(cleanKey(it.category)) || explicitTreatment(it) === 'mark';
+
+const studies = items
+  .filter(isProject)
+  .sort((a, z) => {
+    const ra = rank(a);
+    const rz = rank(z);
+    if (ra && rz) return ra < rz ? -1 : 1;
+    if (ra || rz) return ra ? -1 : 1;
+    return byTitle(a, z);
+  });
+
+type Row = {title: string; href: string | null; card: ReturnType<typeof clusterCard> | null; pieces: any[]};
+const used = new Set<string>();
+const rows: Row[] = [];
+for (const s of studies) {
+  const href = tileHref(s);
+  const own = [s, ...items.filter((x) => !isProject(x) && href && tileHref(x) === href)];
+  own.sort((a, z) => Number(isType(z)) - Number(isType(a)) || Number(z === s) - Number(a === s) || byTitle(a, z));
+  for (const it of own) used.add(idOf(it));
+  rows.push({title: clean(s.parentTitle ?? s.title), href, card: clusterCard(s), pieces: own});
+}
+const loose = items.filter((x) => !used.has(idOf(x)) && isType(x)).sort(byTitle);
+if (loose.length) rows.push({title: 'More lettering', href: null, card: null, pieces: loose});
+
+const keyOf = (it: any) => (it.slug?.current ? cleanKey(it.slug.current) : idOf(it));
+const aspectOf = (it: any) => {
+  const d = imageDimensions(tileImage(it))!;
+  return d.width / d.height;
+};
+// The row's height, in CSS pixels (global.css, --ty-h): for the sizes hint.
+const H = {desktop: 300, phone: 200};
+---
+
+<Layout title="Type/Lettering - Rumeau Design Co" description="The portfolio, a row per project." noindex>
+  <div class="ty pf-section">
+    <div class="pf-controls">
+      <div class="pf-group pf-group--filters" role="group" aria-label="Views">
+        <a class="pf-btn" href="/next/world/home">All</a>
+        <a class="pf-btn" href="/portfolio">Brand Identity</a>
+        <a class="pf-btn" href="/portfolio?view=merch">Merch &amp; Apparel</a>
+        <a class="pf-btn is-active" href="/next/type/home" aria-current="page">Type/Lettering</a>
+      </div>
+    </div>
+
+    <ol class="ty-rows">
+      {rows.map((row) => (
+        <li class="ty-row">
+          <div class="ty-head">
+            <h2 class="ty-title">{row.href ? <a href={row.href}>{row.title}</a> : row.title}</h2>
+            {row.card?.kicker && <p class="ty-kicker">{row.card.kicker}</p>}
+            {row.card?.line && <p class="ty-line">{row.card.line}</p>}
+            {row.href && (
+              <a class="ty-go" href={row.href}>
+                The project <span aria-hidden="true">&rarr;</span>
+              </a>
+            )}
+          </div>
+          <ul class="ty-strip" aria-label={row.title}>
+            {row.pieces.map((it) => {
+              const a = aspectOf(it);
+              const mark = explicitTreatment(it) === 'mark';
+              return (
+                <li class:list={['ty-piece', mark && 'ty-piece--air']} style={`--a:${a.toFixed(3)}`}>
+                  <a href={`/next/close/home#${keyOf(it)}`} aria-label={clean(it.title)}>
+                    <Img
+                      image={tileImage(it)}
+                      alt=""
+                      width={1400}
+                      sizes={`(min-width: 48rem) ${Math.round(H.desktop * a)}px, ${Math.round(H.phone * a)}px`}
+                      loading="lazy"
+                      field="Grid Thumbnail (type rows)"
+                    />
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </li>
+      ))}
+    </ol>
+  </div>
+</Layout>
+
+<!-- Styles: global.css, TYPE ROWS (PREVIEW). -->

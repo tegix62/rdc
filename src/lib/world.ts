@@ -118,7 +118,7 @@ export interface WorldOptions {
   /** Lands: rows to a cell's width (2: half-height rows, so boxes follow their pictures' shapes). Rows, `r` and `ch` are then in these. */
   rowsPerCell?: number;
   /** Lands: weights for how a set's pieces gather (for tuning; the defaults are the chosen ones). */
-  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean};
+  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean; simple?: boolean};
   /** Lands: room for the opened project's card, beside the opened piece. */
   card?: {cw: number; ch: number} | null;
 }
@@ -650,7 +650,34 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
   // On a phone (10 columns or fewer) the strict rule costs nothing - the
   // projects still come first there - so above the lead is barred, unless
   // it is the only way a piece can touch its set at all.
-  const {leadBonus = 0, seenW = 1, tries = 16, early = 0.02, corner = 0.3, tail = 1.2, high = o.cols <= 10, caps = true, above = 30, top = 1, firstFixed = true, keepTop = true, grow = true} = o.tune ?? {};
+  /*
+    SIMPLE (?v=simple on the page), to compare. Chris, of the layout after
+    a round of rules: "we're still struggling here, it's still pretty
+    clunky looking". Each rule answered a note, and together they made it
+    stiff - too much forced to a middling size. Simple keeps what answered
+    a real complaint gently (each set laid from several starts; the loose
+    work dealt across categories; the level bottom; a case study a step
+    under the largest size, a lead logomark a step under that, so nothing
+    towers; a wide piece a little larger by its area) and drops the rest:
+    no lead pinned to the top, no hard least sizes for wordmarks, no holes
+    filled from the bottom, nothing grown.
+  */
+  const simple = o.tune?.simple ?? false;
+  const {
+    leadBonus = 0,
+    seenW = 1,
+    tries = 16,
+    early = 0.02,
+    corner = simple ? 0 : 0.3,
+    tail = 1.2,
+    high = simple ? false : o.cols <= 10,
+    caps = true,
+    above = simple ? 0 : 30,
+    top = simple ? 0 : 1,
+    firstFixed = !simple,
+    keepTop = !simple,
+    grow = !simple,
+  } = o.tune ?? {};
   /*
     Sizes by standing - Chris agreed: "THE HOUSE", the Midgard tee and the
     Horizon Kingdoms wordmark each took more ground than the case studies
@@ -658,7 +685,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     sizes; everything else stops a step or two below, and a case study is
     never smaller than one step above that.
   */
-  const cap = caps ? Math.max(2, maxSpan - Math.max(1, Math.round(maxSpan / 3))) : maxSpan;
+  const cap = simple ? maxSpan - 1 : caps ? Math.max(2, maxSpan - Math.max(1, Math.round(maxSpan / 3))) : maxSpan;
   /*
     And the case studies a step smaller than they were - Chris: "the case
     study tiles are dominating a little too much, it makes it look clunky.
@@ -666,8 +693,8 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     to one step above it, no more; a hand-set mark, which brings its own
     air, a step below that.
   */
-  const bigMin = caps ? cap : Math.ceil((maxSpan * 2) / 3);
-  const bigMax = (p: WorldPiece) => (caps ? Math.min(maxSpan, p.mark ? cap : cap + 1) : maxSpan);
+  const bigMin = simple ? Math.ceil((maxSpan * 2) / 3) : caps ? cap : Math.ceil((maxSpan * 2) / 3);
+  const bigMax = (p: WorldPiece) => (simple ? maxSpan - (p.mark ? 2 : 1) : caps ? Math.min(maxSpan, p.mark ? cap : cap + 1) : maxSpan);
   /*
     A wide piece is sized by its area, not its width - Chris: "some things
     are actually too small, like the DumpStat wordmark". A 3:1 wordmark two
@@ -676,10 +703,11 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     wide screen (two on a phone).
   */
   // A wordmark (2:1 or wider) never under three cells on a wide screen, two on a phone.
-  const wideLeast = (p: WorldPiece) => ((p.w / p.h || 1) >= 2 ? Math.min(cap, o.cols >= 16 ? 3 : 2) : 1);
+  const wideLeast = (p: WorldPiece) => (simple ? 1 : (p.w / p.h || 1) >= 2 ? Math.min(cap, o.cols >= 16 ? 3 : 2) : 1);
   const widen = (p: WorldPiece, w: number) => {
     const ratio = (p.w / p.h) || 1;
-    return ratio > 1.3 ? Math.round(w * Math.sqrt(ratio)) : w;
+    // Simple: gently - by the fourth root, not the square root.
+    return ratio > 1.3 ? Math.round(w * ratio ** (simple ? 0.25 : 0.5)) : w;
   };
 
   const area = pieces.reduce((n, p) => n + boxAt(p, 2, kr).cw * boxAt(p, 2, kr).ch, 0);

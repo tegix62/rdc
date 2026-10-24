@@ -109,6 +109,8 @@ export interface WorldOptions {
   focusRow?: number;
   /** Lay pieces by colour (`tone`) rather than the seed's order. */
   sort?: 'seed' | 'colour';
+  /** Lands: rows to a cell's width (2: half-height rows, so boxes follow their pictures' shapes). Rows, `r` and `ch` are then in these. */
+  rowsPerCell?: number;
   /** Lands: room for the opened project's card, beside the opened piece. */
   card?: {cw: number; ch: number} | null;
 }
@@ -222,8 +224,12 @@ class Grid {
   }
 }
 
-/* A piece's box at a width in cells: its own shape, at least one cell tall. */
-const boxAt = (p: WorldPiece, cw: number) => ({cw, ch: p.rows ?? Math.max(1, Math.min(8, Math.round(cw / (p.w / p.h || 1))))});
+/*
+  A piece's box at a width in cells: its own shape, at least one row tall.
+  `k` rows to a cell's width (lands: 2, so a box can follow a picture's
+  shape twice as closely; elsewhere 1, square cells).
+*/
+const boxAt = (p: WorldPiece, cw: number, k = 1) => ({cw, ch: p.rows ?? Math.max(1, Math.min(8 * k, Math.round((cw * k) / (p.w / p.h || 1))))});
 
 /*
   How wide a piece wants to be where it lands, on the height map and the
@@ -307,7 +313,7 @@ function laidOrder(pieces: WorldPiece[], members: number[], lead: number | null)
   collage rather than wherever reading order next has room. Ties go to the
   higher, then the further-left spot, which keeps the block compact.
 */
-function block(pieces: WorldPiece[], list: number[], spanOf: (i: number) => number, width: number) {
+function block(pieces: WorldPiece[], list: number[], spanOf: (i: number) => number, width: number, k = 1) {
   const g = new Grid(width, Math.max(8, list.length * 10));
   const placed: WorldPlaced[] = [];
   const where = new Map<string, WorldPlaced>();
@@ -318,7 +324,7 @@ function block(pieces: WorldPiece[], list: number[], spanOf: (i: number) => numb
     let bestScore = Infinity;
     const limit = Math.min(g.maxRows, (g.rows || 0) + 12);
     for (let cw = want; cw >= 1 && !best; cw--) {
-      const {ch} = boxAt(pieces[i], cw);
+      const {ch} = boxAt(pieces[i], cw, k);
       for (let r = 0; r < limit; r++)
         for (let c = 0; c + cw <= width; c++) {
           if (!g.fits(c, r, cw, ch)) continue;
@@ -337,7 +343,7 @@ function block(pieces: WorldPiece[], list: number[], spanOf: (i: number) => numb
     }
     if (!best) {
       // Never expected: the first free spot, at the smallest size.
-      const {ch} = boxAt(pieces[i], 1);
+      const {ch} = boxAt(pieces[i], 1, k);
       for (let r = 0; r < g.maxRows && !best; r++) for (let c = 0; c < width && !best; c++) if (g.fits(c, r, 1, ch)) best = {i, c, r, cw: 1, ch};
     }
     g.take(best!.c, best!.r, best!.cw, best!.ch);
@@ -347,8 +353,8 @@ function block(pieces: WorldPiece[], list: number[], spanOf: (i: number) => numb
   return {placed, rows: g.rows, width};
 }
 
-const blockWidth = (pieces: WorldPiece[], list: number[], spanOf: (i: number) => number, cols: number) => {
-  const cells = list.reduce((n, i) => n + boxAt(pieces[i], spanOf(i)).cw * boxAt(pieces[i], spanOf(i)).ch, 0);
+const blockWidth = (pieces: WorldPiece[], list: number[], spanOf: (i: number) => number, cols: number, k = 1) => {
+  const cells = list.reduce((n, i) => n + (boxAt(pieces[i], spanOf(i), k).cw * boxAt(pieces[i], spanOf(i), k).ch) / k, 0);
   const widest = Math.max(...list.map(spanOf));
   return Math.min(cols, Math.max(widest, Math.ceil(Math.sqrt(cells * 1.25))));
 };
@@ -597,8 +603,10 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
   const study = (k: string) => (groups.get(k)!.some((i) => pieces[i].own) ? 0 : 1);
   keys.sort((a, z) => (o.sort === 'colour' ? toneOf(a) - toneOf(z) : study(a) - study(z)) || rank.get(a)! - rank.get(z)!);
   const laid = keys.flatMap((k) => laidOrder(pieces, groups.get(k)!, null));
+  // Rows to a cell's width: finer rows let a box follow its picture's shape.
+  const kr = Math.max(1, Math.round(o.rowsPerCell ?? 1));
 
-  const area = pieces.reduce((n, p) => n + boxAt(p, 2).cw * boxAt(p, 2).ch, 0);
+  const area = pieces.reduce((n, p) => n + boxAt(p, 2, kr).cw * boxAt(p, 2, kr).ch, 0);
   const grid = new Grid(o.cols, Math.max(60, Math.ceil((area * 8) / o.cols) + 60));
   const placed: WorldPlaced[] = [];
   let card: WorldPlaced | undefined;
@@ -610,10 +618,10 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
   const side = Math.max(3, Math.round(o.cols / 4));
   const across = Math.ceil(o.cols / side);
   const cells: number[] = [];
-  for (let band = 0; band * side < grid.maxRows; band++)
+  for (let band = 0; band * side * kr < grid.maxRows; band++)
     for (let k = 0; k < across; k++) {
       const pc = band % 2 === 0 ? k : across - 1 - k;
-      for (let r = band * side; r < Math.min(grid.maxRows, (band + 1) * side); r++)
+      for (let r = band * side * kr; r < Math.min(grid.maxRows, (band + 1) * side * kr); r++)
         for (let c = pc * side; c < Math.min(o.cols, (pc + 1) * side); c++) cells.push(r * o.cols + c);
     }
 
@@ -625,7 +633,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     const list = laidOrder(all, all.length > pieces.length ? [...family, CARD] : family, focus);
     const opened = Math.min(o.cols, maxSpan + Math.ceil(maxSpan / 2));
     const spanOf = (i: number) => (i === CARD ? Math.min(o.cols, all[CARD].w) : i === focus ? opened : Math.max(2, Math.round(maxSpan / 2)));
-    const b = block(all, list, spanOf, blockWidth(all, list, spanOf, o.cols));
+    const b = block(all, list, spanOf, blockWidth(all, list, spanOf, o.cols, kr), kr);
     const left = Math.max(0, Math.floor((o.cols - b.width) / 2));
     for (let r = Math.max(0, o.focusRow ?? 0); r < grid.maxRows; r++) {
       if (!b.placed.every((q) => grid.fits(left + q.c, r + q.r, q.cw, q.ch))) continue;
@@ -685,23 +693,40 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
       seen++;
       const c = at % o.cols;
       const r = Math.floor(at / o.cols);
-      const want = wantAt(p, o.seed, o.cols, maxSpan, c, r);
+      const want = wantAt(p, o.seed, o.cols, maxSpan, c, r / kr);
+      /*
+        Of the widths that fit here, the widest whose box - rounded to whole
+        cells - is close to the picture's own shape; else the closest. A
+        box of the wrong shape leaves a strip of white down two sides of
+        the picture, which is what made evenly spaced boxes look unevenly
+        spaced (the pictures themselves are already cropped to their art).
+      */
+      let pick: WorldPlaced | null = null;
+      let pickFit = 0;
       for (let cw = Math.min(Math.max(want, lo), o.cols - c); cw >= lo; cw--) {
-        const {ch} = boxAt(p, cw);
+        const {ch} = boxAt(p, cw, kr);
         if (!grid.fits(c, r, cw, ch)) continue;
-        const q = {i, c, r, cw, ch};
+        const ratio = p.w / p.h || 1;
+        const fit = Math.min(ratio / ((cw * kr) / ch), (cw * kr) / ch / ratio);
+        if (fit > pickFit + 0.001) {
+          pick = {i, c, r, cw, ch};
+          pickFit = fit;
+        }
+        if (fit >= 0.98) break;
+      }
+      if (pick) {
+        const q = pick;
         first ??= q;
         // Beside its parent best, then beside any of its set; a set's first
         // piece where its set has room to follow; earlier cells first.
         const score =
           kin.length > 0
             ? (up && touches(q, up) ? 0 : kin.some((x) => touches(q, x)) ? 100 : Infinity) + seen
-            : (room(q) >= Math.min(cw + ch + 2, 2 * (setSize.get(sets[i]) ?? 1)) ? 0 : 1000) + seen;
+            : (room(q) >= Math.min(q.cw + q.ch + 2, 2 * (setSize.get(sets[i]) ?? 1)) ? 0 : 1000) + seen;
         if (score < bestScore) {
           bestScore = score;
           best = q;
         }
-        break;
       }
       if (plain && first) break;
     }

@@ -21,11 +21,15 @@
   grid). And its SHAREABLE LINKS: ?view=merch&open=<slug> arrives on that
   view with that piece open, as /portfolio does.
 
-  TRIMMED TILES: each tile is cut to its artwork - a tee, a hoodie or a
-  mark on transparency, or a mockup shot on white, otherwise carries its
-  own blank margin, and evenly spaced boxes look unevenly spaced. Measured
-  at build time from Sanity's tiny preview of each picture (lib/trim.ts);
-  nothing is downloaded to do it.
+  BOXES THAT FIT THEIR PICTURES. Chris asked for the blank space round
+  cut-outs to be trimmed; measured, the pictures are already cropped to
+  their art (3 of 98 have a margin worth trimming, which lib/trim.ts does
+  at build time from Sanity's tiny previews). What made evenly spaced boxes
+  look unevenly spaced was the boxes' shapes: rounded to whole square
+  cells, a box was rarely its picture's shape, leaving white strips down
+  two sides. So Lands is laid on half-height rows, and a piece takes the
+  width whose box best matches its picture - the pictures now fill about
+  95% of their boxes, up from 89%.
 
   The Tab key and screen readers meet the pieces in the order they are seen
   (top to bottom, left to right), not the order the page lists them.
@@ -251,8 +255,10 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     if (mode === 'biomes') [cols, maxSpan] = phone ? [15, 6] : [40, 12];
     if (mode === 'heights' && phone) [cols, maxSpan] = [6, 3];
     const cell = width / cols;
-    // A little air between trimmed tiles, whose artwork now runs to the box's edge.
-    const gap = phone ? 4 : 6;
+    // Lands on half-height rows, so each box can follow its picture's shape.
+    const kr = mode === 'lands' ? 2 : 1;
+    const rowH = cell / kr;
+    const gap = phone ? 2 : 3;
 
     // The world of this filter alone.
     const subset = data.pieces.map((_, i) => i).filter((i) => filter === '*' || data.pieces[i].cat === filter);
@@ -271,29 +277,29 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       const cw = phone ? cols : Math.min(cols, Math.round(cols * 0.3));
       Object.assign(cardEl.style, {left: '0', top: '0', width: `${cw * cell - gap}px`, height: '', visibility: 'hidden'});
       cardEl.hidden = false;
-      card = {cw, ch: Math.max(1, Math.ceil((cardEl.offsetHeight + gap) / cell))};
+      card = {cw, ch: Math.max(1, Math.ceil((cardEl.offsetHeight + gap) / rowH))};
       cardEl.style.visibility = '';
     }
-    const out = generateWorld(sub, {cols, mode, seed, maxSpan, focus: focus === null ? null : subset.indexOf(focus), focusRow, card});
+    const out = generateWorld(sub, {cols, mode, seed, maxSpan, rowsPerCell: kr, focus: focus === null ? null : subset.indexOf(focus), focusRow, card});
     last = {out, subset};
     const fam = new Set(out.family.map((k) => subset[k]));
     if (cardEl && out.card) {
-      Object.assign(cardEl.style, {left: `${out.card.c * cell + gap / 2}px`, top: `${out.card.r * cell + gap / 2}px`, width: `${out.card.cw * cell - gap}px`, height: `${out.card.ch * cell - gap}px`});
+      Object.assign(cardEl.style, {left: `${out.card.c * cell + gap / 2}px`, top: `${out.card.r * rowH + gap / 2}px`, width: `${out.card.cw * cell - gap}px`, height: `${out.card.ch * rowH - gap}px`});
     } else if (cardEl) cardEl.hidden = true;
 
     world.classList.toggle('has-focus', focus !== null);
     world.style.width = `${width}px`;
     if (phone) world.style.marginLeft = `${EDGE - (world.parentElement!.getBoundingClientRect().left + parseFloat(pad.paddingLeft))}px`;
-    world.style.height = `${Math.ceil(out.rows * cell)}px`;
+    world.style.height = `${Math.ceil(out.rows * rowH)}px`;
     tiles.forEach((t) => (t.hidden = true));
     for (const p of out.placed) {
       const i = subset[p.i];
       const t = tiles[i];
       t.hidden = false;
       t.style.left = `${p.c * cell + gap / 2}px`;
-      t.style.top = `${p.r * cell + gap / 2}px`;
+      t.style.top = `${p.r * rowH + gap / 2}px`;
       t.style.width = `${p.cw * cell - gap}px`;
-      t.style.height = `${p.ch * cell - gap}px`;
+      t.style.height = `${p.ch * rowH - gap}px`;
       t.classList.toggle('is-open', i === focus);
       t.classList.toggle('is-sibling', fam.has(i));
       t.classList.toggle('is-small', p.cw * cell < 150);

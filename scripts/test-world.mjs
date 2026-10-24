@@ -227,5 +227,34 @@ for (const [name, grids] of [
   }
 }
 
+/*
+  Lands on half-height rows, as the page draws it - so a box can follow its
+  picture's shape twice as closely (the pictures are already cropped to
+  their art; a box of the wrong shape was leaving strips of white).
+*/
+for (const [name, cols, maxSpan] of [
+  ['desktop', 20, 6],
+  ['phone', 8, 4],
+]) {
+  for (const focus of [null, pieces.findIndex((x) => x.id === 'p1-3')]) {
+    const tag = `${name}, lands on half rows${focus === null ? '' : ', opened'}`
+    const o = generateWorld(pieces, {cols, mode: 'lands', seed: 42, maxSpan, rowsPerCell: 2, focus, focusRow: 6, card: focus === null ? null : {cw: 6, ch: 7}})
+    const cellsOf = new Map()
+    let shared = 0
+    for (const q of o.placed) for (let r = q.r; r < q.r + q.ch; r++) for (let c = q.c; c < q.c + q.cw; c++) (cellsOf.has(`${c},${r}`) && shared++, cellsOf.set(`${c},${r}`, q.i))
+    check(`${tag}: every piece placed, no cell shared`, o.placed.length === pieces.length && shared === 0, `${o.placed.length}, ${shared} shared`)
+    let box = 0
+    let art = 0
+    for (const q of o.placed) {
+      const ratio = pieces[q.i].w / pieces[q.i].h
+      const br = (q.cw * 2) / q.ch
+      box += q.cw * q.ch
+      art += q.cw * q.ch * Math.min(ratio / br, br / ratio)
+    }
+    check(`${tag}: the pictures fill their boxes`, art / box >= 0.92, `${Math.round((art / box) * 100)}%`)
+    if (focus !== null) check(`${tag}: the card beside the opened piece`, !!o.card && apart(o.card, boxOf(o, focus)) === 0)
+  }
+}
+
 console.log(failures ? `\n${failures} check(s) failed.` : '\nall checks passed')
 process.exit(failures ? 1 : 0)

@@ -119,7 +119,7 @@ for (const [name, w, h] of [
   other than All goes to the portfolio's own view of it; an opened piece is named there too, and that address, opened afresh,
   arrives with the piece open; + makes the tiles larger and - smaller;
   Shuffle deals a new world; the Tab key meets the pieces in the order they
-  are seen; the tiles are trimmed to their artwork.
+  are seen; no picture is cut down.
 */
 for (const [name, w, h] of [
   ['desktop', 1440, 900],
@@ -134,7 +134,8 @@ for (const [name, w, h] of [
   const cats = await page.evaluate(() => JSON.parse(document.getElementById('wd-data').textContent).pieces.map((p) => p.cat))
   const allShown = await shown()
   const trimmed = await page.evaluate(() => Array.from(document.querySelectorAll('.wd-crop')).filter((c) => parseFloat(c.style.getPropertyValue('--iw')) > 100.5).length)
-  check(`${name}: tiles trimmed to their artwork`, trimmed > 0, `${trimmed} of ${allShown.length} trimmed`)
+  // Never trimmed: a trim from the tiny previews cut "The Sun" to the word THE.
+  check(`${name}: no picture cut down - each shown whole`, trimmed === 0, `${trimmed} of ${allShown.length} cut`)
   const order = await page.evaluate(() => {
     const ts = Array.from(document.querySelectorAll('.wd-piece')).filter((t) => !t.hidden).map((t) => t.getBoundingClientRect())
     let wrong = 0

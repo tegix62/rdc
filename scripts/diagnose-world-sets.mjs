@@ -25,9 +25,10 @@ for (const [name, w, h] of [
   await page.waitForTimeout(2500)
   const out = await page.evaluate((term) => {
     const data = JSON.parse(document.getElementById('wd-data').textContent)
-    const tiles = Array.from(document.querySelectorAll('.wd-piece'))
+    // By each piece's own number: the page re-orders them as they are laid.
+    const tileOf = (i) => document.querySelector(`.wd-piece[data-i="${i}"]`)
     const box = (i) => {
-      const r = tiles[i].getBoundingClientRect()
+      const r = tileOf(i).getBoundingClientRect()
       return {l: r.left, t: r.top + scrollY, r: r.right, b: r.bottom + scrollY}
     }
     const near = (a, b) => a.l <= b.r + 6 && b.l <= a.r + 6 && a.t <= b.b + 6 && b.t <= a.b + 6

@@ -323,6 +323,55 @@ for (const [name, w, h] of [
   await page.close()
 }
 
+/*
+  The homepage, next (preview): the field of work first, every tile a door
+  into the portfolio; the results as numbered rows; one cut-out at the end.
+*/
+for (const [name, w, h] of [
+  ['desktop', 1440, 900],
+  ['phone', 390, 844],
+]) {
+  const page = await browser.newPage({viewport: {width: w, height: h}})
+  const errors = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  await page.goto(`${BASE}/next/home`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.waitForTimeout(1200)
+  const hx = await page.evaluate(() => {
+    const tiles = Array.from(document.querySelectorAll('.hx-world .wd-piece')).filter((t) => !t.hidden)
+    const boxes = tiles.map((t) => t.getBoundingClientRect())
+    let overlap = 0
+    for (let a = 0; a < boxes.length; a++)
+      for (let z = a + 1; z < boxes.length; z++) {
+        const A = boxes[a], Z = boxes[z]
+        if (A.left < Z.right - 1 && Z.left < A.right - 1 && A.top < Z.bottom - 1 && Z.top < A.bottom - 1) overlap++
+      }
+    const field = document.querySelector('.hx-world').getBoundingClientRect()
+    return {
+      tiles: tiles.length,
+      all: document.querySelectorAll('.hx-world .wd-piece').length,
+      overlap,
+      doors: tiles.filter((t) => /\/next\/world\/home\?open=/.test(t.querySelector('a.wd-pic')?.getAttribute('href') ?? '')).length,
+      fieldTop: Math.round(field.top),
+      rows: document.querySelectorAll('.hx-row').length,
+      numbered: Array.from(document.querySelectorAll('.hx-row__number')).filter((n) => /\d/.test(n.textContent)).length,
+      finale: Array.from(document.querySelectorAll('.hx-finale__piece')).filter((f) => !f.hidden).length,
+      wide: document.documentElement.scrollWidth > innerWidth,
+    }
+  })
+  check(`${name}, homepage: the field of work, every piece shown, none overlapping`, hx.tiles > 10 && hx.tiles === hx.all && hx.overlap === 0, `${hx.tiles}/${hx.all}, ${hx.overlap} overlap(s)`)
+  check(`${name}, homepage: the work starts in the first screen`, hx.fieldTop < h * 0.5, `${hx.fieldTop}px down`)
+  check(`${name}, homepage: every piece a door into the portfolio, opened at it`, hx.doors === hx.tiles, `${hx.doors} of ${hx.tiles}`)
+  check(`${name}, homepage: the results as numbered rows`, hx.rows > 0 && hx.numbered === hx.rows, `${hx.numbered} of ${hx.rows}`)
+  check(`${name}, homepage: one cut-out at the end`, hx.finale === 1, `${hx.finale}`)
+  check(`${name}, homepage: nothing wider than the screen`, !hx.wide, '')
+  await page.locator('.hx-world a.wd-pic').first().click()
+  await page.waitForTimeout(1500)
+  const opened = await page.evaluate(() => ({url: location.href, open: !!document.querySelector('.wd-piece.is-open')}))
+  check(`${name}, homepage: a piece opens the portfolio at it`, /\/next\/world\/home\/?\?open=/.test(opened.url) && opened.open, opened.url)
+  check(`${name}, homepage: no script errors`, errors.length === 0, errors.join(' | '))
+  await page.close()
+}
+
 await browser.close()
 console.log(failures ? `\n${failures} check(s) failed.` : '\nall checks passed')
 process.exit(failures ? 1 : 0)

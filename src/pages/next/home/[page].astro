@@ -1,0 +1,316 @@
+---
+/*
+  THE HOMEPAGE, NEXT - preview only, at /next/home. The live homepage
+  (pages/index.astro) is untouched until Chris says.
+
+  Chris: "the homepage is looking outdated in comparison to the rest of
+  this stuff"; it is "UX-wise leading away from where I want people to go".
+  The portfolio grid has "become the beating heart of the website", and
+  the collage cut-outs are "a mysterious, oh my God, what is that" - each
+  could stand on its own. He likes "numbers and results", speaks to two
+  audiences (art directors and agencies; owners who want "I fix X for Y by
+  doing Z"), and wants all of it "while also not asking for too much
+  attention".
+
+  The order, from Kahneman - fast thinking first, slow thinking for those
+  who stay, and a good end:
+
+  1. The work, at once (System 1). Not the name in large type over a
+     video: the nav already carries the name. The first screen is the
+     portfolio itself - a field of the Lands grid, the case studies and the
+     cut-outs - and every tile is a door into it (/next/world/home, opened
+     at that piece). One sober line above it says who and what.
+  2. The results, as a ledger (System 2, anchored on the number). One row
+     per result: the number, what it was, for whom, how. Set plainly - the
+     restraint is what makes the numbers believable.
+  3. Two doors, one line each: for a business, for a studio. No more than
+     a sentence asked of either.
+  4. The end (peak-end): one cut-out alone, large and unexplained, then
+     the portrait and the one call to action.
+
+  Sobriety and audacity: the type, rules and numbers are sober; the work
+  is the audacity. Neither is asked to do the other's job.
+
+  Gone from the old page: the five stars with no words, the checklist, the
+  name hero. Kept: everything Studio already holds (bio, results, logos,
+  portrait) - no new fields.
+
+  Never built for production (getStaticPaths), and noindex.
+*/
+import Layout from '../../../layouts/Layout.astro';
+import Img from '../../../components/Img.astro';
+import {getAllGridItems, getSiteSettings} from '../../../lib/queries';
+import {tileImage, imageDimensions} from '../../../lib/image';
+import {tileHref, cleanKey, explicitTreatment, treatmentOf} from '../../../lib/tiles';
+import {stripStegaKey} from '../../../lib/stega';
+import {clusterCard} from '../../../lib/clusterCard';
+
+export async function getStaticPaths() {
+  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
+  return [{params: {page: 'home'}}];
+}
+
+const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
+const settings = await getSiteSettings();
+const CONTACT_URL = settings?.contactUrl || '/contact';
+const all: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)));
+const isProject = (it: any) => cleanKey(it.pageType) === 'Case Study';
+const idOf = (it: any) => cleanKey(it._id).replace(/^drafts\./, '');
+const byId = new Map(all.map((it) => [idOf(it), it]));
+const parentOf = (it: any) => (it.pieceParent ? byId.get(cleanKey(it.pieceParent)) : undefined);
+const byTitle = (a: any, z: any) => clean(a.title).localeCompare(clean(z.title));
+const rank = (it: any) => (typeof it.orderRank === 'string' ? it.orderRank : null);
+const studies = all
+  .filter(isProject)
+  .sort((a, z) => {
+    const ra = rank(a);
+    const rz = rank(z);
+    if (ra && rz) return ra < rz ? -1 : 1;
+    if (ra || rz) return ra ? -1 : 1;
+    return byTitle(a, z);
+  });
+
+/*
+  The cut-outs: a see-through piece hung off another piece that is not a
+  project - the pieces Chris cut out of a collage in Photoshop (Red Kettle
+  first). Read from the data, so each new collage he cuts up joins in.
+*/
+const isCutout = (it: any) => it.tileOpaque === false && !isProject(it) && !!parentOf(it) && !isProject(parentOf(it));
+const cutouts = all.filter(isCutout).sort(byTitle);
+
+// 1. THE FIELD: the case studies in Studio order, the cut-outs, the marks
+// and the hero tiles he chose - the grid's most striking, not all of it.
+const FIELD_MAX = 40;
+const fieldItems = [
+  ...new Map(
+    [...studies, ...cutouts, ...all.filter((it) => explicitTreatment(it) === 'mark' || it.heroTile).sort(byTitle)].map((it) => [idOf(it), it]),
+  ).values(),
+].slice(0, FIELD_MAX);
+const ranks = studies.map(rank).filter(Boolean).sort() as string[];
+const keyOf = (it: any) => (it.slug?.current ? cleanKey(it.slug.current) : idOf(it));
+const pieces = fieldItems.map((it) => {
+  const d = imageDimensions(tileImage(it))!;
+  return {
+    w: d.width,
+    h: d.height,
+    project: tileHref(it),
+    own: isProject(it),
+    id: idOf(it),
+    parent: it.pieceParent ? cleanKey(it.pieceParent) : null,
+    mark: explicitTreatment(it) === 'mark',
+    big: isProject(it) || !!it.heroTile,
+    order: isProject(it) && rank(it) ? ranks.indexOf(rank(it)!) : undefined,
+    photo: it.tileOpaque !== false && treatmentOf(it) !== 'mark',
+    weight: it.pieceParent && !isCutout(it) ? 0.6 : 1,
+  };
+});
+
+/*
+  2. THE LEDGER. Each result as Chris wrote it in Site Settings (the
+  testimonial cards): "22% Increase" + " in yearly revenue using RDC
+  Branding." The number is taken off the front to stand on its own; the
+  words follow as written. The "how" is the project's own subtitle, so the
+  row reads number - what - for whom - how without a new field.
+*/
+const studyByHref = new Map(studies.filter((s) => tileHref(s)).map((s) => [tileHref(s)!, s]));
+const proofStats: any[] = settings?.proofStats ?? [];
+const ledger = proofStats
+  .map((p) => {
+    const stat = clean(p.stat);
+    const m = stat.match(/^([$€£]?[\d.,]+\s*(?:%|k|K|x)?)\s*(.*)$/);
+    if (!m) return null;
+    const study = p.href ? studyByHref.get(clean(p.href)) : undefined;
+    const what = `${m[2]}${clean(p.rest) ? ` ${clean(p.rest)}` : ''}`.replace(/\s+/g, ' ').trim().replace(/^./, (c) => c.toLowerCase());
+    return {
+      number: m[1].trim(),
+      what,
+      who: clean(p.org) || clean(p.name),
+      how: study ? clusterCard(study)?.kicker : undefined,
+      href: clean(p.href) || null,
+    };
+  })
+  .filter(Boolean) as {number: string; what: string; who: string; how?: string; href: string | null}[];
+// A case study with a result of its own (Result Stat) and no card above.
+for (const s of studies) {
+  const card = clusterCard(s);
+  const href = tileHref(s);
+  if (!card?.result || !href || ledger.some((l) => l.href === href)) continue;
+  const m = card.result.match(/^([$€£]?[\d.,]+\s*(?:%|k|K|x)?)\s*(.*)$/);
+  ledger.push({number: m ? m[1] : card.result, what: m ? m[2] : '', who: card.client ?? card.title, how: card.kicker, href});
+}
+
+const clientLogos: any[] = settings?.clientLogos ?? [];
+
+// 4. THE END: one cut-out, alone. A few are written out and one is kept at
+// random on arrival; the rest are removed before they load.
+const finale = cutouts.slice(0, 8).map((it) => ({it, from: clean(parentOf(it)?.title), href: `/next/world/home?open=${keyOf(it)}`}));
+
+const bioText =
+  settings?.bioText ||
+  'Chris Rumeau is a brand designer, illustrator, and typographer building visual identities rooted in heritage craft and hand-drawn precision.';
+const counts = {projects: studies.length, pieces: all.length};
+---
+
+<Layout title="Rumeau Design Co" description="Hand-drawn brand identity, lettering and merch design." noindex>
+  <section class="hx-intro">
+    <p class="hx-intro__line">{bioText}</p>
+    <a class="hx-intro__go" href="/next/world/home">
+      All the work <span class="hx-intro__count">&middot; {counts.projects} projects, {counts.pieces} pieces</span>
+      <span aria-hidden="true">&rarr;</span>
+    </a>
+  </section>
+
+  <div class="hx-field pf-section">
+    <div class="hx-world wd-world">
+      {fieldItems.map((it, i) => {
+        const href = tileHref(it);
+        const d = imageDimensions(tileImage(it))!;
+        return (
+          <div
+            class:list={['wd-piece', explicitTreatment(it) === 'mark' && 'wd-piece--air', isProject(it) && href && 'wd-piece--study']}
+            data-i={i}
+            hidden
+          >
+            <div class="wd-frame">
+              <a class="wd-pic" href={`/next/world/home?open=${keyOf(it)}`} aria-label={clean(it.title)}>
+                <span class="wd-crop" style={`--a:${(d.width / d.height).toFixed(4)};--iw:100%;--ih:100%;--il:0%;--it:0%`}>
+                  <Img image={tileImage(it)} alt="" width={1400} sizes="25vw" loading={i < 12 ? 'eager' : 'lazy'} field="Grid Thumbnail (homepage field)" />
+                </span>
+              </a>
+              {isProject(it) && href && (
+                <a class="wd-jump" href={href}>
+                  <span class="wd-jump__label">{clean(it.title)}</span>
+                  <span class="wd-jump__arrow" aria-hidden="true">&rarr;</span>
+                </a>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+
+  {ledger.length > 0 && (
+    <section class="hx-ledger" aria-labelledby="hx-ledger-h">
+      <h2 class="hx-label" id="hx-ledger-h">Results</h2>
+      <ol class="hx-rows">
+        {ledger.map((l) => (
+          <li class="hx-row">
+            <a class="hx-row__link" href={l.href ?? undefined}>
+              <span class="hx-row__number">{l.number}</span>
+              <span class="hx-row__what">{l.what}</span>
+              <span class="hx-row__who">{l.who}</span>
+              {l.how && <span class="hx-row__how">{l.how}</span>}
+              {l.href && <span class="hx-row__go" aria-hidden="true">&rarr;</span>}
+            </a>
+          </li>
+        ))}
+      </ol>
+      {clientLogos.some((c) => c.logo) && (
+        <div class="hx-logos">
+          {clientLogos.filter((c) => c.logo).map((c) =>
+            c.href ? (
+              <a class="hx-logos__item" href={c.href}><Img image={c.logo} alt={c.alt || ''} width={220} sizes="120px" field="clientLogos[].logo" /></a>
+            ) : (
+              <span class="hx-logos__item"><Img image={c.logo} alt={c.alt || ''} width={220} sizes="120px" field="clientLogos[].logo" /></span>
+            ),
+          )}
+        </div>
+      )}
+    </section>
+  )}
+
+  {/*
+    Two doors. DRAFT WORDS, Chris's to rewrite - the only copy on this page
+    not already his.
+  */}
+  <section class="hx-doors" aria-label="Who this is for">
+    <div class="hx-door">
+      <h2 class="hx-label">For a business</h2>
+      <p class="hx-door__line">A brand people remember, and merch they buy. Drawn by hand, built to sell.</p>
+      <a class="hx-door__go" href={CONTACT_URL}>Let's work <span aria-hidden="true">&rarr;</span></a>
+    </div>
+    <div class="hx-door">
+      <h2 class="hx-label">For a studio or an art director</h2>
+      <p class="hx-door__line">Lettering, illustration and type for your projects, drawn by hand.</p>
+      <a class="hx-door__go" href="/next/type/home">See the type <span aria-hidden="true">&rarr;</span></a>
+    </div>
+  </section>
+
+  {finale.length > 0 && (
+    <section class="hx-finale" aria-label="One piece">
+      {finale.map((f) => (
+        <figure class="hx-finale__piece" hidden>
+          <a href={f.href} aria-label={clean(f.it.title)}>
+            <Img image={tileImage(f.it)} alt="" width={1600} sizes="(min-width: 48rem) 50vw, 90vw" loading="lazy" field="Grid Thumbnail (homepage finale)" />
+          </a>
+          {f.from && <figcaption class="hx-finale__from">Cut from {f.from}</figcaption>}
+        </figure>
+      ))}
+    </section>
+  )}
+
+  <section class="final-cta">
+    {settings?.portrait && (
+      <Img class="final-cta__portrait" image={settings.portrait} field="portrait (Portrait of you)" alt="Chris Rumeau, founder of Rumeau Design Co" width={700} sizes="(max-width: 40rem) 100vw, 40vw" />
+    )}
+    <div class="final-cta__card">
+      <h3>{settings?.finalCtaHeading ? clean(settings.finalCtaHeading).replace(/:$/, '') : "Let's work"}</h3>
+      {settings?.finalCtaLine && <p class="final-cta__line">{settings.finalCtaLine}</p>}
+      <a class="button button--white" href={CONTACT_URL}>Let's Work</a>
+    </div>
+  </section>
+
+  <script type="application/json" id="hx-data" set:html={JSON.stringify({pieces})} />
+</Layout>
+
+<script>
+  import {generateWorld, type WorldPiece} from '../../../lib/world';
+
+  // The field: the Lands engine, as on the portfolio's All view, at its sizes.
+  const {pieces}: {pieces: WorldPiece[]} = JSON.parse(document.getElementById('hx-data')!.textContent!);
+  const world = document.querySelector<HTMLElement>('.hx-world')!;
+  const tiles = Array.from(world.querySelectorAll<HTMLElement>('.wd-piece'));
+  const draw = () => {
+    const phone = innerWidth < 768;
+    const pad = getComputedStyle(world.parentElement!);
+    const width = world.parentElement!.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
+    const cols = phone ? 8 : 14;
+    const maxSpan = phone ? 4 : Math.round(cols * 0.3);
+    const cell = width / cols;
+    const rowH = cell / 2;
+    const gap = phone ? 2 : 3;
+    const sub = pieces.map((p) => ({...p, least: phone && (p as any).photo ? 2 : 1}));
+    const out = generateWorld(sub, {cols, mode: 'lands', seed: 4187, maxSpan, rowsPerCell: 2, tune: {simple: true}});
+    world.style.width = `${width}px`;
+    world.style.height = `${Math.ceil(out.rows * rowH)}px`;
+    tiles.forEach((t) => (t.hidden = true));
+    for (const p of out.placed) {
+      const t = tiles[p.i];
+      t.hidden = false;
+      Object.assign(t.style, {left: `${p.c * cell + gap / 2}px`, top: `${p.r * rowH + gap / 2}px`, width: `${p.cw * cell - gap}px`, height: `${p.ch * rowH - gap}px`});
+      t.classList.toggle('is-small', p.cw * cell < 150);
+      t.classList.toggle('is-tiny', p.cw * cell < 90);
+      const img = t.querySelector('img');
+      if (img) img.sizes = `${Math.ceil(p.cw * cell)}px`;
+    }
+    // The order they are seen in, for the Tab key.
+    for (const p of [...out.placed].sort((a, z) => a.r - z.r || a.c - z.c)) world.append(tiles[p.i]);
+  };
+  draw();
+  let lastWidth = 0;
+  new ResizeObserver(([e]) => {
+    if (Math.abs(e.contentRect.width - lastWidth) < 1) return;
+    lastWidth = e.contentRect.width;
+    requestAnimationFrame(draw);
+  }).observe(world.parentElement!);
+
+  // The end: one cut-out, a different one each visit.
+  const finale = Array.from(document.querySelectorAll<HTMLElement>('.hx-finale__piece'));
+  if (finale.length) {
+    const keep = finale[Math.floor(Math.random() * finale.length)];
+    finale.forEach((f) => (f === keep ? (f.hidden = false) : f.remove()));
+  }
+</script>
+
+<!-- Styles: global.css, HOMEPAGE NEXT (PREVIEW). -->

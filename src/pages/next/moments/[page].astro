@@ -118,18 +118,25 @@ const sketchSpans = (it: any): Spans => {
 };
 
 type Pic = {kind: 'pic'; it: any; set: string; s: Spans; sketch: boolean; of?: string};
-type Cluster = {kind: 'cluster'; set: string; pics: Pic[]; col: number; row: number; rows: number; prows: number};
+type Cluster = {kind: 'cluster'; set: string; pics: Pic[]; col: number; row: number; cols: number; rows: number; prows: number};
 type Words = {kind: 'words'; id: string; set: string; s: Spans; col: number; row: number; ocol?: number};
 type Tile = Pic | Cluster | Words;
 type Moment = {id: string; label: string; tiles: Tile[]};
 
 const pic = (it: any, set: string, s: Spans, sketch = false, of?: string): Pic => ({kind: 'pic', it, set, s, sketch, of});
-const cluster = (list: any[], set: string, of: string, col: number, row: number): Cluster => {
+/*
+  A cluster about as tall as it is wide - so it sits level with what is
+  beside it rather than running on below it - on the right of the
+  moment, with room for one sketch opened and little more.
+*/
+const cluster = (list: any[], set: string, of: string, row: number): Cluster => {
   const pics = list.map((s) => pic(s, set, sketchSpans(s), true, of));
   const cells = (k: 'd' | 'p') => pics.reduce((t, p) => t + p.s[k].c * p.s[k].r, 0);
-  // Room for what is there, and slack for one opened.
-  return {kind: 'cluster', set, pics, col, row, rows: Math.ceil(cells('d') / 8) + 3, prows: Math.ceil(cells('p') / 8) + 6};
+  const cols = Math.max(6, Math.min(10, Math.round(Math.sqrt(cells('d') * 1.3))));
+  return {kind: 'cluster', set, pics, col: 17 - cols, row, cols, rows: Math.ceil(cells('d') / cols) + 2, prows: Math.ceil(cells('p') / 8) + 4};
 };
+// A block of words beside a cluster opens only as wide as the room left of it.
+const beside = (c: Cluster, w: Words): Words => ({...w, s: {...w.s, od: {c: Math.min(w.s.od.c, 16 - c.cols), r: w.s.od.r + Math.max(0, w.s.od.c - (16 - c.cols))}}});
 const words = (id: string, set: string, d: Span, od: Span, p: Span, op: Span, col: number, row: number, ocol?: number): Words => ({
   kind: 'words',
   id,
@@ -158,8 +165,10 @@ moments.push({
   id: 'who',
   label: 'Who',
   tiles: [
-    words('intro', 'intro', {c: 6, r: 3}, {c: 7, r: 5}, {c: 8, r: 4}, {c: 8, r: 7}, 1, 1),
-    cluster(opening, chateauSet, chateauName, 9, 1),
+    ...(() => {
+      const c = cluster(opening, chateauSet, chateauName, 1);
+      return [beside(c, words('intro', 'intro', {c: 6, r: 3}, {c: 7, r: 5}, {c: 8, r: 4}, {c: 8, r: 7}, 1, 1)), c];
+    })(),
     ...studies.map((s) => pic(s, idOf(s), pieceSpans(s))),
   ],
 });
@@ -170,8 +179,10 @@ if (chateau) {
     id: 'chateau',
     label: chateauName,
     tiles: [
-      words('chateau-card', chateauSet, {c: 5, r: 5}, {c: 8, r: 8}, {c: 8, r: 6}, {c: 8, r: 11}, 1, 1),
-      cluster(own, chateauSet, chateauName, 9, 1),
+      ...(() => {
+        const c = cluster(own, chateauSet, chateauName, 1);
+        return [beside(c, words('chateau-card', chateauSet, {c: 5, r: 5}, {c: 8, r: 8}, {c: 8, r: 6}, {c: 8, r: 11}, 1, 1)), c];
+      })(),
       pic(chateau, chateauSet, pieceSpans(chateau, true)),
       ...scatter(piecesOf(chateau), (it) => idOf(it)).map((it) => pic(it, chateauSet, pieceSpans(it))),
     ],
@@ -217,8 +228,10 @@ moments.push({
   id: 'end',
   label: 'Contact',
   tiles: [
-    words('contact', 'contact', {c: 6, r: 3}, {c: 7, r: 5}, {c: 8, r: 4}, {c: 8, r: 7}, 1, 1),
-    cluster(closing, chateauSet, chateauName, 9, 1),
+    ...(() => {
+      const c = cluster(closing, chateauSet, chateauName, 1);
+      return [beside(c, words('contact', 'contact', {c: 6, r: 3}, {c: 7, r: 5}, {c: 8, r: 4}, {c: 8, r: 7}, 1, 1)), c];
+    })(),
   ],
 });
 
@@ -241,7 +254,7 @@ const vars = (s: Spans) =>
         {m.tiles.map((t) => {
           if (t.kind === 'cluster')
             return (
-              <div class="mo-cluster" style={`--col:${t.col};--row:${t.row};--rows:${t.rows};--prows:${t.prows}`} data-set={t.set} role="group" aria-label={`Sketches for ${t.pics[0]?.of ?? ''}`}>
+              <div class="mo-cluster" style={`--col:${t.col};--row:${t.row};--cols:${t.cols};--rows:${t.rows};--prows:${t.prows}`} data-set={t.set} role="group" aria-label={`Sketches for ${t.pics[0]?.of ?? ''}`}>
                 {t.pics.map((p) => (
                   <Picture p={p} />
                 ))}

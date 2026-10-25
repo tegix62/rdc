@@ -9141,9 +9141,9 @@ a.wd-pic {
   opacity: 0.15;
 }
 
-/* The sketches' cluster: half the width, on the page's own lines. */
+/* The sketches' cluster: about square, on the page's own lines. */
 .mo-cluster {
-  grid-column: var(--col) / span 8;
+  grid-column: var(--col) / span var(--cols);
   grid-row: var(--row) / span var(--rows);
   display: grid;
   grid-template-columns: subgrid;

@@ -458,7 +458,7 @@ for (const [name, w, h] of [
   check(`${name}, moments: bands of the grid, no tile over another`, mo.bands >= 3 && mo.tiles > 50 && mo.overlap === 0, `${mo.bands} moments, ${mo.tiles} tiles, ${mo.overlap} overlap(s)`)
   check(`${name}, moments: words as tiles, among the sketches`, mo.words >= 3 && mo.sketches > 50, `${mo.words} word tiles, ${mo.sketches} sketches`)
   // Chris: "you don't need to spread such small sketches across the width of the screen, I'd be okay with a cluster".
-  check(`${name}, moments: the sketches gathered in clusters, half the width on a wide screen`, mo.clustered === mo.sketches && (name === 'phone' || mo.clusterWide < 0.55), `${mo.clustered} of ${mo.sketches} clustered, widest ${(mo.clusterWide * 100).toFixed(0)}% of the screen`)
+  check(`${name}, moments: the sketches gathered in clusters, not across the screen`, mo.clustered === mo.sketches && (name === 'phone' || mo.clusterWide < 0.66), `${mo.clustered} of ${mo.sketches} clustered, widest ${(mo.clusterWide * 100).toFixed(0)}% of the screen`)
   check(`${name}, moments: nothing wider than the screen`, !mo.wide, '')
   const sketch = page.locator('.mo-band[data-band="chateau"] .mo-pic--sketch').first()
   const small = await sketch.evaluate((el) => el.getBoundingClientRect().width)

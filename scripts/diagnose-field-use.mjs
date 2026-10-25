@@ -19,9 +19,17 @@ const ask = async (q) => {
 // The field names as the schema declares them, top level only.
 const names = (file, type) => {
   const s = readFileSync(file, 'utf8')
-  return [...new Set([...s.matchAll(/defineField\(\{\s*name:\s*'([A-Za-z0-9_]+)'/g)].map((m) => m[1]))]
+  return [...new Set([...s.matchAll(/(?:defineField|imageSpec|videoSpec)\(\{\s*name:\s*'([A-Za-z0-9_]+)'/g)].map((m) => m[1]))]
 }
-const filled = (v) => v !== undefined && v !== null && v !== '' && !(Array.isArray(v) && v.length === 0) && !(typeof v === 'object' && !Array.isArray(v) && Object.keys(v).filter((k) => !k.startsWith('_')).length === 0)
+// A reference ({_ref}) is filled; an image is filled when it has a file
+// (an image field can be saved as a shell with no asset).
+const filled = (v) => {
+  if (v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)) return false
+  if (typeof v !== 'object' || Array.isArray(v)) return true
+  if (v._ref) return true
+  if ('asset' in v || v._type === 'image' || v._type === 'file') return !!v.asset?._ref
+  return Object.keys(v).some((k) => !k.startsWith('_'))
+}
 
 const fields = names('studio/schemaTypes/caseStudy.ts')
 const docs = await ask(`*[_type == "caseStudy"]`)

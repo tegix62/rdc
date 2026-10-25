@@ -9,37 +9,44 @@
   other, say, if I uploaded a bunch of those sketches around it ... a
   scroll of moments like that, then I think we would have unified this
   grid idea" - "the typographic grid is something that I've wanted on this
-  site for the longest time". And: "mock something out of them".
+  site for the longest time".
 
   Each moment is a band of one real CSS grid - square cells, 16 across on a
   wide screen, 8 on a phone - laid out by the browser from spans worked out
-  here at build time. No script places anything, so it paints at once and
-  nothing moves. Words are tiles like the pictures: they take whole cells,
-  sit on the same lines, and their type scales with the tile they are in.
+  here at build time. No script places anything, so it paints at once.
+
+  SKETCHES IN A CLUSTER. Chris, of the first mock: "you don't need to
+  spread such small sketches across the width of the screen, I'd be okay
+  with a cluster. That way we can manage these size better." So a moment's
+  sketches gather in one tile half the width, a grid inside the grid that
+  keeps its lines (subgrid) - every sketch still sits on the page's own
+  columns, at the size the scans can carry.
+
+  EVERY TILE OPENS. Chris: "those blocks should be clickable, expandable
+  parts just as much as anything else. That should sort of be the running
+  working theory." A click on anything - a piece, a sketch, a block of
+  words - opens it a size up in place and shows what it was holding back
+  (a piece's way into the portfolio; a block's longer words, its credits,
+  its quote); its set stays lit and the rest of the moment drops back. The
+  same click again, or Escape, closes it.
 
   The moments, in order:
-    1  who and what, in a field of the projects and the sketches
+    1  who and what, with the projects, and the first of the sketches
     2  Chateau Seven: its block of type and credits, its finished pieces,
        and the sketches that came before them - fragment, whole, origin
     3  each result, in a field of the work that earned it
-    4  a way to get in touch, among the last of the sketches
+    4  a way to get in touch, with the last of the sketches
 
-  A click on a picture freezes its moment: the rest drops back and its set
-  - the project's pieces, its sketches, its block of type - stays lit. The
-  block's links go on to the project and the portfolio. Escape, or the
-  same click again, lets it go. (Chris, of the All view: "freeze the rest
-  of the grid and pop that menu in as almost its own tile".)
-
-  The 109 Chateau Seven sketches are the only ones in Sanity so far, so the
-  sea is theirs. Draft words are marked DRAFT.
+  The 109 Chateau Seven sketches are the only ones in Sanity so far. Draft
+  words are marked DRAFT.
 
   Never built for production (getStaticPaths), and noindex.
 */
 import Layout from '../../../layouts/Layout.astro';
-import Img from '../../../components/Img.astro';
+import Picture from '../../../components/next/MomentPic.astro';
 import {getAllGridItems, getSiteSettings, getSketches} from '../../../lib/queries';
 import {tileImage, imageDimensions} from '../../../lib/image';
-import {tileHref, cleanKey, explicitTreatment} from '../../../lib/tiles';
+import {tileHref, cleanKey} from '../../../lib/tiles';
 import {stripStegaKey} from '../../../lib/stega';
 import {clusterCard} from '../../../lib/clusterCard';
 import {parseCreditLines} from '../../../lib/credits';
@@ -67,16 +74,17 @@ const studies = all.filter(isProject).sort((a, z) => {
 const studyOfHref = new Map(studies.filter((s) => tileHref(s)).map((s) => [tileHref(s)!, s]));
 const piecesOf = (s: any) => all.filter((it) => !isProject(it) && tileHref(it) && tileHref(it) === tileHref(s));
 
-// A steady shuffle: the same scatter on every build, no two neighbours alike.
-const hash = (s: string) => [...s].reduce((h, c) => (Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0), 2166136261);
+// A steady shuffle: the same scatter on every build.
+const hash = (s: string) => [...s].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0, 2166136261);
 const scatter = <T,>(list: T[], key: (t: T) => string) => [...list].sort((a, z) => hash(key(a)) - hash(key(z)));
 
 /*
-  A TILE'S CELLS. Square cells, so a tile's shape is columns over rows. Its
-  picture's shape picks the pair nearest it for the ground it is given;
-  [desktop, phone], the phone's cells being about half the width.
+  A TILE'S CELLS: columns by rows, closed and open, on a wide screen and on
+  a phone (whose cells are about half the width). A picture's shape picks
+  the pair nearest it for the ground it is given.
 */
 type Span = {c: number; r: number};
+type Spans = {d: Span; od: Span; p: Span; op: Span};
 const spanFor = (aspect: number, area: number, maxC: number): Span => {
   let best: Span = {c: 1, r: 1};
   let err = Infinity;
@@ -91,29 +99,54 @@ const aspectOf = (it: any) => {
   const d = imageDimensions(tileImage(it))!;
   return d.width / d.height;
 };
-// The sketches are small scans (most about 330px across), so they stay small.
-const sketchSpan = (it: any): [Span, Span] => {
-  const d = imageDimensions(tileImage(it))!;
-  const big = Math.max(d.width, d.height) >= 600;
-  return [spanFor(aspectOf(it), big ? 4 : 1.4, 3), spanFor(aspectOf(it), big ? 6 : 3, 3)];
+const grow = (s: Span, k: number, maxC: number): Span => ({c: Math.min(maxC, Math.round(s.c * k)), r: Math.round(s.r * k)});
+const pieceSpans = (it: any, lead = false): Spans => {
+  const a = aspectOf(it);
+  const d = spanFor(a, lead ? 12 : 5, lead ? 5 : 4);
+  const p = spanFor(a, lead ? 16 : 6, lead ? 8 : 4);
+  return {d, od: spanFor(a, (d.c * d.r) * 2.6, 8), p, op: spanFor(a, (p.c * p.r) * 2.2, 8)};
 };
-const pieceSpan = (it: any, lead = false): [Span, Span] =>
-  lead ? [spanFor(aspectOf(it), 12, 5), spanFor(aspectOf(it), 16, 6)] : [spanFor(aspectOf(it), 5, 4), spanFor(aspectOf(it), 6, 4)];
+// Sketches, in their cluster: a cell or two each - the scans are small
+// (most about 330px across) - and twice that open.
+const sketchSpans = (it: any): Spans => {
+  const a = aspectOf(it);
+  const dim = imageDimensions(tileImage(it))!;
+  const big = Math.max(dim.width, dim.height) >= 600;
+  const d: Span = big ? {c: 2, r: 2} : a > 1.7 ? {c: 2, r: 1} : a < 0.6 ? {c: 1, r: 2} : {c: 1, r: 1};
+  const p: Span = {c: d.c * 2, r: d.r * 2};
+  return {d, od: grow(d, 2, 4), p, op: grow(p, 2, 8)};
+};
 
-type Tile =
-  | {kind: 'pic'; it: any; set: string; d: Span; p: Span; sketch: boolean}
-  | {kind: 'text'; id: string; set?: string; d: Span & {col: number; row: number}; p: Span & {row: number}};
+type Pic = {kind: 'pic'; it: any; set: string; s: Spans; sketch: boolean; of?: string};
+type Cluster = {kind: 'cluster'; set: string; pics: Pic[]; col: number; row: number; rows: number; prows: number};
+type Words = {kind: 'words'; id: string; set: string; s: Spans; col: number; row: number; ocol?: number};
+type Tile = Pic | Cluster | Words;
 type Moment = {id: string; label: string; tiles: Tile[]};
 
-const pic = (it: any, set: string, span: [Span, Span], sketch = false): Tile => ({kind: 'pic', it, set, d: span[0], p: span[1], sketch});
+const pic = (it: any, set: string, s: Spans, sketch = false, of?: string): Pic => ({kind: 'pic', it, set, s, sketch, of});
+const cluster = (list: any[], set: string, of: string, col: number, row: number): Cluster => {
+  const pics = list.map((s) => pic(s, set, sketchSpans(s), true, of));
+  const cells = (k: 'd' | 'p') => pics.reduce((t, p) => t + p.s[k].c * p.s[k].r, 0);
+  // Room for what is there, and slack for one opened.
+  return {kind: 'cluster', set, pics, col, row, rows: Math.ceil(cells('d') / 8) + 3, prows: Math.ceil(cells('p') / 8) + 6};
+};
+const words = (id: string, set: string, d: Span, od: Span, p: Span, op: Span, col: number, row: number, ocol?: number): Words => ({
+  kind: 'words',
+  id,
+  set,
+  s: {d, od, p, op},
+  col,
+  row,
+  ocol,
+});
 
 const chateau = studies.find((s) => /chateau/i.test(clean(s.title)));
+const chateauSet = chateau ? idOf(chateau) : 'sketches';
+const chateauName = chateau ? clean(chateau.title) : '';
 const chateauSketches = scatter(
   sketches.filter((s) => chateau && cleanKey(s.project ?? '') === idOf(chateau)),
   (s) => idOf(s),
 );
-// The sea, shared out: some to open the page, most to Chateau Seven's own
-// moment, the rest to close.
 const opening = chateauSketches.slice(0, 26);
 const own = chateauSketches.slice(26, 86);
 const closing = chateauSketches.slice(86);
@@ -125,33 +158,28 @@ moments.push({
   id: 'who',
   label: 'Who',
   tiles: [
-    {kind: 'text', id: 'intro', d: {c: 6, r: 3, col: 2, row: 2}, p: {c: 8, r: 4, row: 1}},
-    ...scatter(
-      [...studies.map((s) => pic(s, idOf(s), pieceSpan(s))), ...opening.map((s) => pic(s, chateau ? idOf(chateau) : 'sketch', sketchSpan(s), true))],
-      (t: any) => idOf(t.it),
-    ),
+    words('intro', 'intro', {c: 6, r: 3}, {c: 7, r: 5}, {c: 8, r: 4}, {c: 8, r: 7}, 1, 1),
+    cluster(opening, chateauSet, chateauName, 9, 1),
+    ...studies.map((s) => pic(s, idOf(s), pieceSpans(s))),
   ],
 });
 
 // 2. Chateau Seven: fragment, whole, origin.
 if (chateau) {
-  const set = idOf(chateau);
   moments.push({
     id: 'chateau',
-    label: clean(chateau.title),
+    label: chateauName,
     tiles: [
-      {kind: 'text', id: 'chateau-card', set, d: {c: 5, r: 5, col: 11, row: 2}, p: {c: 8, r: 6, row: 5}},
-      pic(chateau, set, pieceSpan(chateau, true)),
-      ...scatter(
-        [...piecesOf(chateau).map((it) => pic(it, set, pieceSpan(it))), ...own.map((s) => pic(s, set, sketchSpan(s), true))],
-        (t: any) => idOf(t.it),
-      ),
+      words('chateau-card', chateauSet, {c: 5, r: 5}, {c: 8, r: 8}, {c: 8, r: 6}, {c: 8, r: 11}, 1, 1),
+      cluster(own, chateauSet, chateauName, 9, 1),
+      pic(chateau, chateauSet, pieceSpans(chateau, true)),
+      ...scatter(piecesOf(chateau), (it) => idOf(it)).map((it) => pic(it, chateauSet, pieceSpans(it))),
     ],
   });
 }
 
 // 3. Each result, in a field of the work that earned it.
-type Result = {number: string; what: string; who: string; href: string; study: any};
+type Result = {number: string; what: string; who: string; href: string; study: any; quote?: string; by?: string};
 const results: Result[] = ((settings?.proofStats ?? []) as any[])
   .map((p) => {
     const m = clean(p.stat).match(/^([$€£]?\d[\d.,]*\s*(?:%|k|K|x)?)\s*(.*)$/);
@@ -163,6 +191,8 @@ const results: Result[] = ((settings?.proofStats ?? []) as any[])
       who: clean(study.title),
       href: tileHref(study)!,
       study,
+      quote: clean(p.quote) || undefined,
+      by: [clean(p.name), clean(p.org)].filter(Boolean).join(', ') || undefined,
     };
   })
   .filter(Boolean) as Result[];
@@ -173,11 +203,11 @@ results.forEach((res, k) => {
     id: `result-${k}`,
     label: res.who,
     tiles: [
-      {kind: 'text', id: `result-${k}`, set, d: {c: 5, r: 3, col: left ? 2 : 10, row: 2}, p: {c: 8, r: 4, row: 1}},
-      pic(res.study, set, pieceSpan(res.study, true)),
+      words(`result-${k}`, set, {c: 5, r: 3}, {c: 6, r: 5}, {c: 8, r: 4}, {c: 8, r: 7}, left ? 1 : 12, 1, left ? 1 : 11),
+      pic(res.study, set, pieceSpans(res.study, true)),
       ...scatter(piecesOf(res.study), (it) => idOf(it))
         .slice(0, 10)
-        .map((it) => pic(it, set, pieceSpan(it))),
+        .map((it) => pic(it, set, pieceSpans(it))),
     ],
   });
 });
@@ -187,20 +217,20 @@ moments.push({
   id: 'end',
   label: 'Contact',
   tiles: [
-    {kind: 'text', id: 'contact', d: {c: 6, r: 3, col: 6, row: 2}, p: {c: 8, r: 4, row: 2}},
-    ...closing.map((s) => pic(s, chateau ? idOf(chateau) : 'sketch', sketchSpan(s), true)),
+    words('contact', 'contact', {c: 6, r: 3}, {c: 7, r: 5}, {c: 8, r: 4}, {c: 8, r: 7}, 1, 1),
+    cluster(closing, chateauSet, chateauName, 9, 1),
   ],
 });
 
 const chateauCard = chateau ? clusterCard(chateau) : null;
-const chateauCredits = chateau ? parseCreditLines(chateau.projectCredits).slice(0, 8) : [];
+const chateauCredits = chateau ? parseCreditLines(chateau.projectCredits) : [];
 const bioText =
   settings?.bioText ||
   'Chris Rumeau is a brand designer, illustrator, and typographer building visual identities rooted in heritage craft and hand-drawn precision.';
-const placed = (t: Tile) =>
-  t.kind === 'text'
-    ? `--c:${t.d.c};--r:${t.d.r};--col:${t.d.col};--row:${t.d.row};--pc:${t.p.c};--pr:${t.p.r};--prow:${t.p.row}`
-    : `--c:${t.d.c};--r:${t.d.r};--pc:${t.p.c};--pr:${t.p.r}`;
+const socials: {platform?: string; url?: string}[] = (settings?.socialLinks ?? []).filter((s: any) => s?.url);
+
+const vars = (s: Spans) =>
+  `--c0:${s.d.c};--r0:${s.d.r};--oc:${s.od.c};--or:${s.od.r};--pc0:${s.p.c};--pr0:${s.p.r};--opc:${s.op.c};--opr:${s.op.r}`;
 ---
 
 <Layout title="Moments - Rumeau Design Co" description="The homepage as moments on one grid." noindex>
@@ -208,33 +238,38 @@ const placed = (t: Tile) =>
   <div class="mo">
     {moments.map((m) => (
       <section class="mo-band" aria-label={m.label} data-band={m.id}>
-        {m.tiles.map((t) =>
-          t.kind === 'pic' ? (
-            <button
-              type="button"
-              class:list={['mo-tile', 'mo-pic', t.sketch && 'mo-pic--sketch', explicitTreatment(t.it) === 'mark' && 'mo-pic--air']}
-              style={placed(t)}
+        {m.tiles.map((t) => {
+          if (t.kind === 'cluster')
+            return (
+              <div class="mo-cluster" style={`--col:${t.col};--row:${t.row};--rows:${t.rows};--prows:${t.prows}`} data-set={t.set} role="group" aria-label={`Sketches for ${t.pics[0]?.of ?? ''}`}>
+                {t.pics.map((p) => (
+                  <Picture p={p} />
+                ))}
+              </div>
+            );
+          if (t.kind === 'pic') return <Picture p={t} />;
+          return (
+            <div
+              class:list={['mo-tile', 'mo-words', `mo-words--${t.id.replace(/-\d+$/, '')}`]}
+              style={`${vars(t.s)};--col:${t.col};--row:${t.row};--ocol:${t.ocol ?? t.col}`}
               data-set={t.set}
-              data-href={t.sketch ? undefined : `/portfolio?view=all&open=${keyOf(t.it)}`}
-              aria-label={clean(t.it.title)}
+              tabindex="0"
+              role="button"
+              aria-expanded="false"
             >
-              <Img
-                image={tileImage(t.it)}
-                alt=""
-                width={t.sketch ? 700 : 1200}
-                sizes={`(min-width: 48rem) ${t.d.c * 90}px, ${t.p.c * 48}px`}
-                loading="lazy"
-                field={t.sketch ? 'Sketch (moments)' : 'Grid Thumbnail (moments)'}
-              />
-            </button>
-          ) : (
-            <div class:list={['mo-tile', 'mo-text', `mo-text--${t.id.replace(/-\d+$/, '')}`]} style={placed(t)} data-set={t.set}>
               {t.id === 'intro' && (
                 <>
-                  <p class="mo-text__big">{bioText}</p>
-                  <a class="mo-go" href="/portfolio?view=all">
-                    All the work <span aria-hidden="true">&rarr;</span>
-                  </a>
+                  <p class="mo-big">{bioText}</p>
+                  <div class="mo-more">
+                    {(settings?.locality || settings?.areaServed) && (
+                      <p class="mo-line">{[clean(settings?.locality), clean(settings?.areaServed)].filter(Boolean).join(' · ')}</p>
+                    )}
+                    <span class="mo-links">
+                      <a class="mo-go" href="/about">About <span aria-hidden="true">&rarr;</span></a>
+                      <a class="mo-go" href={CONTACT_URL}>Contact <span aria-hidden="true">&rarr;</span></a>
+                    </span>
+                  </div>
+                  <a class="mo-go" href="/portfolio?view=all">All the work <span aria-hidden="true">&rarr;</span></a>
                 </>
               )}
               {t.id === 'chateau-card' && chateauCard && (
@@ -242,54 +277,65 @@ const placed = (t: Tile) =>
                   {chateauCard.kicker && <p class="mo-kicker">{chateauCard.kicker}</p>}
                   <h2 class="mo-title">{chateauCard.title}</h2>
                   {chateauCard.client && <p class="mo-small">For {chateauCard.client}</p>}
-                  {chateauCard.line && <p class="mo-line">{chateauCard.line}</p>}
+                  {chateauCard.line && <p class="mo-line mo-less">{chateauCard.line}</p>}
                   <p class="mo-small">{chateauSketches.length} sketches, then the marks they became.</p>
-                  {chateauCredits.length > 0 && (
-                    <ul class="mo-credits">
-                      {chateauCredits.map((c) => (
-                        <li>
-                          {c.role && <span class="mo-credits__role">{c.role}</span>} {c.url ? <a href={c.url}>{c.name}</a> : c.name}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <div class="mo-more">
+                    {chateau.summaryText && <p class="mo-line">{clean(chateau.summaryText)}</p>}
+                    {chateauCredits.length > 0 && (
+                      <ul class="mo-credits">
+                        {chateauCredits.map((c) => (
+                          <li>
+                            {c.role && <span class="mo-credits__role">{c.role}</span>} {c.url ? <a href={c.url}>{c.name}</a> : c.name}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                   <span class="mo-links">
                     {tileHref(chateau) && (
-                      <a class="mo-go" href={tileHref(chateau)!}>
-                        The project <span aria-hidden="true">&rarr;</span>
-                      </a>
+                      <a class="mo-go" href={tileHref(chateau)!}>The project <span aria-hidden="true">&rarr;</span></a>
                     )}
-                    <a class="mo-go" href={`/portfolio?view=all&open=${keyOf(chateau)}`}>
-                      In the portfolio <span aria-hidden="true">&rarr;</span>
-                    </a>
+                    <a class="mo-go" href={`/portfolio?view=all&open=${keyOf(chateau)}`}>In the portfolio <span aria-hidden="true">&rarr;</span></a>
                   </span>
                 </>
               )}
               {t.id.startsWith('result-') &&
                 (() => {
                   const res = results[Number(t.id.split('-')[1])];
+                  const card = clusterCard(res.study);
                   return (
-                    <a class="mo-result" href={res.href}>
-                      <span class="mo-result__number">{res.number}</span>
-                      <span class="mo-result__what">{res.what}</span>
-                      <span class="mo-result__who">
-                        {res.who} <span aria-hidden="true">&rarr;</span>
-                      </span>
-                    </a>
+                    <>
+                      <span class="mo-number">{res.number}</span>
+                      <span class="mo-what">{res.what}</span>
+                      <div class="mo-more">
+                        {res.quote && <p class="mo-line">&ldquo;{res.quote}&rdquo;</p>}
+                        {res.by && <p class="mo-small">{res.by}</p>}
+                        {card?.line && <p class="mo-line">{card.line}</p>}
+                      </div>
+                      <a class="mo-go" href={res.href}>{res.who} <span aria-hidden="true">&rarr;</span></a>
+                    </>
                   );
                 })()}
               {t.id === 'contact' && (
                 <>
                   {/* DRAFT words, Chris's to rewrite. */}
-                  <p class="mo-text__big">Something that needs drawing?</p>
-                  <a class="button" href={CONTACT_URL}>
-                    Let's work
-                  </a>
+                  <p class="mo-big">Something that needs drawing?</p>
+                  <div class="mo-more">
+                    <p class="mo-line">Brand identities, lettering and merch, drawn by hand.</p>
+                    {socials.length > 0 && (
+                      <span class="mo-links">
+                        {socials.map((s) => (
+                          <a class="mo-go" href={s.url}>{clean(s.platform) || 'Link'} <span aria-hidden="true">&rarr;</span></a>
+                        ))}
+                      </span>
+                    )}
+                  </div>
+                  <a class="button mo-button" href={CONTACT_URL}>Let's work</a>
                 </>
               )}
             </div>
-          ),
-        )}
+          );
+        })}
       </section>
     ))}
   </div>
@@ -297,37 +343,51 @@ const placed = (t: Tile) =>
 
 <script>
   /*
-    A click freezes the moment: its set stays lit, the rest drops back.
-    The same click again, a click on a dropped-back tile's empty ground, or
-    Escape lets it go. A lit piece's second click opens it in the portfolio.
+    EVERY TILE OPENS. A click opens it a size up in place - the grid makes
+    room around it - and its set stays lit while the rest of the moment
+    drops back. The same click again, or Escape, closes it. A link inside
+    an opened tile (into the portfolio, the project, a credit) is followed
+    as a link.
   */
-  const bands = Array.from(document.querySelectorAll<HTMLElement>('.mo-band'));
-  let lit: {band: HTMLElement; set: string; tile: HTMLElement} | null = null;
-  const release = () => {
-    if (!lit) return;
-    lit.band.classList.remove('has-focus');
-    lit.band.querySelectorAll('.is-lit, .is-picked').forEach((el) => el.classList.remove('is-lit', 'is-picked'));
-    lit = null;
+  let open: HTMLElement | null = null;
+  const close = () => {
+    if (!open) return;
+    const band = open.closest('.mo-band')!;
+    band.classList.remove('has-focus');
+    band.querySelectorAll('.is-lit').forEach((el) => el.classList.remove('is-lit'));
+    open.classList.remove('is-open');
+    open.setAttribute('aria-expanded', 'false');
+    open = null;
   };
-  for (const band of bands) {
+  const openTile = (tile: HTMLElement) => {
+    if (open === tile) return close();
+    close();
+    const band = tile.closest('.mo-band')!;
+    const set = tile.dataset.set!;
+    band.classList.add('has-focus');
+    band.querySelectorAll<HTMLElement>(`[data-set="${CSS.escape(set)}"]`).forEach((el) => el.classList.add('is-lit'));
+    tile.classList.add('is-open', 'is-lit');
+    tile.setAttribute('aria-expanded', 'true');
+    open = tile;
+  };
+  document.querySelectorAll<HTMLElement>('.mo-band').forEach((band) =>
     band.addEventListener('click', (e) => {
-      const tile = (e.target as HTMLElement).closest<HTMLElement>('.mo-pic');
-      if (!tile) return;
-      if (lit?.tile === tile) {
-        if (tile.dataset.href) location.href = tile.dataset.href;
-        else release();
-        return;
+      const target = e.target as HTMLElement;
+      if (target.closest('a')) return;
+      const tile = target.closest<HTMLElement>('.mo-tile');
+      if (tile) openTile(tile);
+    }),
+  );
+  document.querySelectorAll<HTMLElement>('.mo-words').forEach((t) =>
+    t.addEventListener('keydown', (e) => {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target === t) {
+        e.preventDefault();
+        openTile(t);
       }
-      release();
-      const set = tile.dataset.set!;
-      band.classList.add('has-focus');
-      band.querySelectorAll<HTMLElement>(`[data-set="${CSS.escape(set)}"]`).forEach((el) => el.classList.add('is-lit'));
-      tile.classList.add('is-picked');
-      lit = {band, set, tile};
-    });
-  }
+    }),
+  );
   addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') release();
+    if (e.key === 'Escape') close();
   });
 </script>
 

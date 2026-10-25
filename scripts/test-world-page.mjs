@@ -448,23 +448,46 @@ for (const [name, w, h] of [
       bands: bands.length,
       tiles,
       overlap,
-      words: document.querySelectorAll('.mo-text').length,
+      words: document.querySelectorAll('.mo-words').length,
+      clustered: document.querySelectorAll('.mo-cluster .mo-pic--sketch').length,
+      clusterWide: Math.max(0, ...Array.from(document.querySelectorAll('.mo-cluster')).map((c) => c.getBoundingClientRect().width / innerWidth)),
       sketches: document.querySelectorAll('.mo-pic--sketch').length,
       wide: document.documentElement.scrollWidth > innerWidth,
     }
   })
   check(`${name}, moments: bands of the grid, no tile over another`, mo.bands >= 3 && mo.tiles > 50 && mo.overlap === 0, `${mo.bands} moments, ${mo.tiles} tiles, ${mo.overlap} overlap(s)`)
   check(`${name}, moments: words as tiles, among the sketches`, mo.words >= 3 && mo.sketches > 50, `${mo.words} word tiles, ${mo.sketches} sketches`)
+  // Chris: "you don't need to spread such small sketches across the width of the screen, I'd be okay with a cluster".
+  check(`${name}, moments: the sketches gathered in clusters, half the width on a wide screen`, mo.clustered === mo.sketches && (name === 'phone' || mo.clusterWide < 0.55), `${mo.clustered} of ${mo.sketches} clustered, widest ${(mo.clusterWide * 100).toFixed(0)}% of the screen`)
   check(`${name}, moments: nothing wider than the screen`, !mo.wide, '')
-  const before = await page.evaluate(() => document.querySelector('.mo-band[data-band="chateau"] .mo-pic--sketch')?.getBoundingClientRect().top)
-  await page.locator('.mo-band[data-band="chateau"] .mo-pic--sketch').first().click()
+  const sketch = page.locator('.mo-band[data-band="chateau"] .mo-pic--sketch').first()
+  const small = await sketch.evaluate((el) => el.getBoundingClientRect().width)
+  await sketch.click()
   await page.waitForTimeout(300)
   const frozen = await page.evaluate(() => {
     const b = document.querySelector('.mo-band[data-band="chateau"]')
-    const lit = b.querySelectorAll('.is-lit').length
-    return {focus: b.classList.contains('has-focus'), lit, card: !!b.querySelector('.mo-text.is-lit'), top: b.querySelector('.mo-pic--sketch')?.getBoundingClientRect().top}
+    const open = b.querySelector('.mo-tile.is-open')
+    return {focus: b.classList.contains('has-focus'), lit: b.querySelectorAll('.is-lit').length, card: !!b.querySelector('.mo-words.is-lit'), w: open ? open.getBoundingClientRect().width : 0}
   })
-  check(`${name}, moments: a click freezes its moment, its set and its card lit`, frozen.focus && frozen.lit > 10 && frozen.card, JSON.stringify(frozen))
+  check(`${name}, moments: a sketch opens a size up, its set and its card lit`, frozen.focus && frozen.lit > 10 && frozen.card && frozen.w > small * 1.5, `${JSON.stringify(frozen)} (was ${Math.round(small)}px)`)
+  // Chris: "those blocks should be clickable, expandable parts just as much as anything else".
+  const card = page.locator('.mo-band[data-band="chateau"] .mo-words').first()
+  const shut = await card.evaluate((el) => el.getBoundingClientRect().height)
+  await card.click({position: {x: 10, y: 10}})
+  await page.waitForTimeout(300)
+  const opened = await card.evaluate((el) => ({open: el.classList.contains('is-open'), h: el.getBoundingClientRect().height, more: getComputedStyle(el.querySelector('.mo-more')).display !== 'none'}))
+  check(`${name}, moments: a block of words opens too, larger, with more in it`, opened.open && opened.more && opened.h > shut, `${JSON.stringify(opened)} (was ${Math.round(shut)}px)`)
+  const overlapOpen = await page.evaluate(() => {
+    const rs = Array.from(document.querySelectorAll('.mo-band[data-band="chateau"] .mo-tile')).map((t) => t.getBoundingClientRect())
+    let n = 0
+    for (let a = 0; a < rs.length; a++)
+      for (let z = a + 1; z < rs.length; z++) {
+        const A = rs[a], Z = rs[z]
+        if (Math.min(A.right, Z.right) - Math.max(A.left, Z.left) > 1 && Math.min(A.bottom, Z.bottom) - Math.max(A.top, Z.top) > 1) n++
+      }
+    return n
+  })
+  check(`${name}, moments: open, still no tile over another`, overlapOpen === 0, `${overlapOpen}`)
   await page.keyboard.press('Escape')
   await page.waitForTimeout(200)
   check(`${name}, moments: Escape lets it go`, !(await page.evaluate(() => !!document.querySelector('.mo-band.has-focus'))), '')

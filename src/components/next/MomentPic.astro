@@ -1,0 +1,47 @@
+---
+/*
+  One picture tile in the moments mock (pages/next/moments): a piece, or a
+  sketch in its cluster. Closed, the picture; open, a size up, with what it
+  is and, for a piece, the way into the portfolio.
+*/
+import Img from '../Img.astro';
+import {tileImage} from '../../lib/image';
+import {cleanKey, explicitTreatment} from '../../lib/tiles';
+import {stripStegaKey} from '../../lib/stega';
+
+interface Props {
+  p: {it: any; set: string; s: {d: {c: number; r: number}; od: {c: number; r: number}; p: {c: number; r: number}; op: {c: number; r: number}}; sketch: boolean; of?: string};
+}
+const {p} = Astro.props;
+const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
+const key = p.it.slug?.current ? cleanKey(p.it.slug.current) : cleanKey(p.it._id).replace(/^drafts\./, '');
+const s = p.s;
+---
+
+<div
+  class:list={['mo-tile', 'mo-pic', p.sketch && 'mo-pic--sketch', explicitTreatment(p.it) === 'mark' && 'mo-pic--air']}
+  style={`--c0:${s.d.c};--r0:${s.d.r};--oc:${s.od.c};--or:${s.od.r};--pc0:${s.p.c};--pr0:${s.p.r};--opc:${s.op.c};--opr:${s.op.r}`}
+  data-set={p.set}
+  tabindex="0"
+  role="button"
+  aria-expanded="false"
+  aria-label={clean(p.it.title)}
+>
+  <span class="mo-pic__img">
+    <Img
+      image={tileImage(p.it)}
+      alt=""
+      width={p.sketch ? 700 : 1400}
+      sizes={`(min-width: 48rem) ${s.od.c * 90}px, ${s.op.c * 48}px`}
+      loading="lazy"
+      field={p.sketch ? 'Sketch (moments)' : 'Grid Thumbnail (moments)'}
+    />
+  </span>
+  {p.sketch ? (
+    <span class="mo-pic__bar">Sketch{p.of ? ` · ${p.of}` : ''}</span>
+  ) : (
+    <a class="mo-pic__bar" href={`/portfolio?view=all&open=${key}`}>
+      {clean(p.it.parentTitle ?? p.it.title)} <span aria-hidden="true">&rarr;</span>
+    </a>
+  )}
+</div>

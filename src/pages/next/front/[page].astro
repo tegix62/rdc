@@ -83,10 +83,16 @@ const cutouts = all.filter(isCutout).sort(byTitle);
 
 // 1. THE FIELD: the case studies in Studio order, the cut-outs, the marks
 // and the hero tiles he chose - the grid's most striking, not all of it.
-const FIELD_MAX = 40;
+// Then, to fill it out, each project's own pieces, a few apiece, so its
+// land is a land.
+const FIELD_MAX = 36;
+const PER_PROJECT = 3;
+const projectPieces = studies.flatMap((s) =>
+  all.filter((it) => !isProject(it) && tileHref(it) && tileHref(it) === tileHref(s) && !isCutout(it)).sort(byTitle).slice(0, PER_PROJECT),
+);
 const fieldItems = [
   ...new Map(
-    [...studies, ...cutouts, ...all.filter((it) => explicitTreatment(it) === 'mark' || it.heroTile).sort(byTitle)].map((it) => [idOf(it), it]),
+    [...studies, ...cutouts, ...all.filter((it) => explicitTreatment(it) === 'mark' || it.heroTile).sort(byTitle), ...projectPieces].map((it) => [idOf(it), it]),
   ).values(),
 ].slice(0, FIELD_MAX);
 const ranks = studies.map(rank).filter(Boolean).sort() as string[];
@@ -120,14 +126,15 @@ const proofStats: any[] = settings?.proofStats ?? [];
 const ledger = proofStats
   .map((p) => {
     const stat = clean(p.stat);
-    const m = stat.match(/^([$€£]?[\d.,]+\s*(?:%|k|K|x)?)\s*(.*)$/);
+    const m = stat.match(/^([$€£]?\d[\d.,]*\s*(?:%|k|K|x)?)\s*(.*)$/);
     if (!m) return null;
     const study = p.href ? studyByHref.get(clean(p.href)) : undefined;
     const what = `${m[2]}${clean(p.rest) ? ` ${clean(p.rest)}` : ''}`.replace(/\s+/g, ' ').trim().replace(/^./, (c) => c.toLowerCase());
     return {
       number: m[1].trim(),
       what,
-      who: clean(p.org) || clean(p.name),
+      // The project's name when the card links one; else the card's own.
+      who: (study && clean(study.title)) || clean(p.org) || clean(p.name),
       how: study ? clusterCard(study)?.kicker : undefined,
       href: clean(p.href) || null,
     };
@@ -138,11 +145,11 @@ for (const s of studies) {
   const card = clusterCard(s);
   const href = tileHref(s);
   if (!card?.result || !href || ledger.some((l) => l.href === href)) continue;
-  const m = card.result.match(/^([$€£]?[\d.,]+\s*(?:%|k|K|x)?)\s*(.*)$/);
-  ledger.push({number: m ? m[1] : card.result, what: m ? m[2] : '', who: card.client ?? card.title, how: card.kicker, href});
+  // A number, or it is not a result yet (a placeholder in Studio).
+  const m = card.result.match(/^([$€£]?\d[\d.,]*\s*(?:%|k|K|x)?)\s*(.*)$/);
+  if (!m) continue;
+  ledger.push({number: m[1], what: m[2], who: clean(s.title), how: card.kicker, href});
 }
-
-const clientLogos: any[] = settings?.clientLogos ?? [];
 
 // 4. THE END: one cut-out, alone. A few are written out and one is kept at
 // random on arrival; the rest are removed before they load.
@@ -209,15 +216,6 @@ const counts = {projects: studies.length, pieces: all.length};
           </li>
         ))}
       </ol>
-      {clientLogos.some((c) => c.logo) && (
-        <div class="hx-logos">
-          {clientLogos.filter((c) => c.logo).map((c) =>
-            c.href ? (
-              <a class="hx-logos__item" href={c.href}><Img image={c.logo} alt={c.alt || ''} width={220} sizes="120px" field="clientLogos[].logo" /></a>
-            ) : (
-              <span class="hx-logos__item"><Img image={c.logo} alt={c.alt || ''} width={220} sizes="120px" field="clientLogos[].logo" /></span>
-            ),
-          )}
         </div>
       )}
     </section>

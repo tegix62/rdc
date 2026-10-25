@@ -365,8 +365,11 @@ for (const [name, w, h] of [
   check(`${name}, homepage: one cut-out at the end`, hx.finale === 1, `${hx.finale}`)
   check(`${name}, homepage: nothing wider than the screen`, !hx.wide, '')
   await page.locator('.hx-world a.wd-pic').first().click()
-  await page.waitForURL(/\/next\/world\/home/, {timeout: 15_000})
-  await page.waitForSelector('.wd-piece.is-open', {timeout: 10_000}).catch(() => {})
+  // The address gains its trailing slash on the way (a redirect), so wait
+  // for the page that stays, then for it to open.
+  await page.waitForURL(/\/next\/world\/home\/\?/, {timeout: 15_000})
+  await page.waitForLoadState('load')
+  await page.waitForFunction(() => document.querySelector('.wd-piece.is-open'), null, {timeout: 10_000}).catch(() => {})
   const opened = await page.evaluate(() => ({url: location.href, open: !!document.querySelector('.wd-piece.is-open')}))
   check(`${name}, homepage: a piece opens the portfolio at it`, /\/next\/world\/home\/?\?open=/.test(opened.url) && opened.open, opened.url)
   check(`${name}, homepage: no script errors`, errors.length === 0, errors.join(' | '))

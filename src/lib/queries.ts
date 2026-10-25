@@ -64,7 +64,7 @@ export function getOtherCaseStudies(excludeId: string) {
 
 export function getGridItems(caseStudyId: string) {
   return sanityClient.fetch(
-    `*[_type == "caseStudy" && pageType == "Grid Item" && ${IN_PROJECT('$id')}] | order(title asc)`,
+    `*[_type == "caseStudy" && pageType == "Grid Item" && ${NOT_SKETCH} && ${IN_PROJECT('$id')}] | order(title asc)`,
     { id: caseStudyId },
   );
 }
@@ -267,9 +267,20 @@ const TILE = `
   but the first screenful is what most people see, and it should be the work
   rather than its offcuts.
 */
+/*
+  SKETCHES ARE KEPT OFF THE SITE FOR NOW. Chris: "we probably don't want
+  these to show up on the portfolio grids just yet, especially considering
+  how much extra tileage they are". A sketch is a Grid Item filed under the
+  Sketch category (studio/schemaTypes/caseStudy.ts), and every query that
+  lists pieces leaves them out with this. Written as a negated match, not
+  `category != "Sketch"`, so a piece with no category is never caught by
+  how GROQ compares a missing value.
+*/
+export const NOT_SKETCH = '!(category == "Sketch")';
+
 export function getAllGridItems() {
   return sanityClient.fetch(
-    `*[_type == "caseStudy" && pageType in ["Case Study", "Grid Item"]
+    `*[_type == "caseStudy" && pageType in ["Case Study", "Grid Item"] && ${NOT_SKETCH}
        && (defined(thumbnail) || defined(mainImage))]{${TILE}}
      | order(pageType asc, title asc)`,
   );
@@ -446,7 +457,7 @@ export async function getFeaturedWork(limit = 8) {
   if (shortfall === 0) return studies;
 
   const pool: any[] = await sanityClient.fetch(
-    `*[_type == "caseStudy" && pageType == "Grid Item"
+    `*[_type == "caseStudy" && pageType == "Grid Item" && ${NOT_SKETCH}
        && (defined(thumbnail) || defined(mainImage))
        && !(parentBrand._ref in $shown) && !(parentBrand->parentBrand._ref in $shown)]
       | order(title asc)[0...24]{${TILE}}`,

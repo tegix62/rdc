@@ -36,8 +36,11 @@ export function collagePath(slug: string): string {
 }
 
 /** Every collage in the dataset, however it was filed. */
+// Never a sketch, even one whose title (and so slug) names its collage -
+// "Collage - Red Kettle, sketch" would otherwise match collage-* (see
+// NOT_SKETCH in queries.ts).
 export const COLLAGE_FILTER =
-  '(category == "Collage" || slug.current match "collage-*" || slug.current match "*-collage")';
+  '((category == "Collage" || slug.current match "collage-*" || slug.current match "*-collage") && !(category == "Sketch"))';
 
 /** Oldest first, by the year in the title, then by name. */
 export function bySeriesOrder<T extends {title?: unknown}>(a: T, b: T): number {

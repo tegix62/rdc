@@ -79,6 +79,13 @@ export default defineConfig({
         schemaType: 'caseStudy',
         value: {pageType: 'Grid Item'},
       },
+      // A sketch: a piece, filed as one, so the site keeps it out for now.
+      {
+        id: 'caseStudy-sketch',
+        title: 'Sketch',
+        schemaType: 'caseStudy',
+        value: {pageType: 'Grid Item', category: 'Sketch'},
+      },
     ],
   },
 

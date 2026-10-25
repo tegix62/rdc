@@ -45,9 +45,26 @@ const structure: StructureResolver = (S, context) =>
           S.documentList()
             .title('Grid Items')
             .schemaType('caseStudy')
-            .filter('_type == "caseStudy" && pageType != "Case Study"')
+            .filter('_type == "caseStudy" && pageType != "Case Study" && !(category == "Sketch")')
             .defaultOrdering([{field: 'title', direction: 'asc'}])
             .initialValueTemplates([S.initialValueTemplateItem('caseStudy-grid-item')]),
+        ),
+      /*
+        The sketches, on their own: kept off the site for now (see the
+        Category field in caseStudy.ts). New ones are filed as sketches
+        already - drop the picture in, give it a title, and pick what it is
+        a sketch of under Parent Brand.
+      */
+      S.listItem()
+        .title('Sketches')
+        .schemaType('caseStudy')
+        .child(
+          S.documentList()
+            .title('Sketches')
+            .schemaType('caseStudy')
+            .filter('_type == "caseStudy" && category == "Sketch"')
+            .defaultOrdering([{field: 'title', direction: 'asc'}])
+            .initialValueTemplates([S.initialValueTemplateItem('caseStudy-sketch')]),
         ),
       S.divider(),
       ...S.documentTypeListItems().filter(

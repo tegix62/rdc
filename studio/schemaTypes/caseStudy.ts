@@ -159,7 +159,11 @@ export default defineType({
       type: 'slug',
       group: 'tile',
       options: {source: 'title'},
-      validation: (Rule) => Rule.required(),
+      // Not asked of a sketch: there are many, and none has an address yet.
+      validation: (Rule) =>
+        Rule.custom((value, context) =>
+          value?.current || (context.document as {category?: string} | undefined)?.category === 'Sketch' ? true : 'Required',
+        ),
     }),
     imageSpec({
       name: 'thumbnail',
@@ -210,7 +214,17 @@ export default defineType({
       title: 'Category - drives the Portfolio filters',
       type: 'string',
       group: 'tile',
-      options: {list: CATEGORIES},
+      /*
+        SKETCH is a category, not a field. Chris: "I'm gonna upload the
+        sketches ... we probably don't want these to show up on the
+        portfolio grids just yet ... but they will be incorporated into the
+        site somehow". So a sketch is a piece like any other - its picture,
+        a title, a year, and Parent Brand for what it is a sketch OF (a
+        case study, a shirt, or a piece that is neither, like the Red
+        Kettle collage) - and the site leaves every Sketch out until it has
+        a place for them (NOT_SKETCH in src/lib/queries.ts). No new fields.
+      */
+      options: {list: [...CATEGORIES, {title: 'Sketch - kept off the site for now', value: 'Sketch'}]},
     }),
     defineField({
       name: 'parentBrand',

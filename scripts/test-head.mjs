@@ -325,6 +325,10 @@ check('every page has the skip target', noSkipTarget.length === 0, report(noSkip
 */
 const IS_PREVIEW = process.env.PUBLIC_IS_PREVIEW === 'true'
 const INTERNAL = new Set(['/style-guide'])
+// The portfolio's other views: the same work as /portfolio, arranged
+// differently, so deliberately noindex - /portfolio is the page that should
+// rank (as /catalog was; scripts/check-production-build.mjs, NOINDEX_ALLOWED).
+const VIEWS = new Set(['/portfolio/all', '/portfolio/type', '/portfolio/up-close'])
 const indexable = docs.filter((d) => !/noindex/i.test(d.robots ?? ''))
 
 if (IS_PREVIEW) {
@@ -332,7 +336,7 @@ if (IS_PREVIEW) {
 } else {
   const leaked = docs.filter((d) => INTERNAL.has(d.route) && !/noindex/i.test(d.robots ?? ''))
   check('internal pages are noindexed', leaked.length === 0, report(leaked))
-  const hidden = docs.filter((d) => !INTERNAL.has(d.route) && d.route !== '/404' && /noindex/i.test(d.robots ?? ''))
+  const hidden = docs.filter((d) => !INTERNAL.has(d.route) && !VIEWS.has(d.route) && d.route !== '/404' && /noindex/i.test(d.robots ?? ''))
   check('no real page is accidentally noindexed', hidden.length === 0, report(hidden))
 }
 

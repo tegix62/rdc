@@ -147,6 +147,8 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
 
 <Layout title="World - Rumeau Design Co" description="The portfolio as a generated world." noindex>
   {/* The portfolio's own section, so the toolbar and the page's edges match it exactly. */}
+  {/* The page's heading, for screen readers and search, as on /portfolio. */}
+  <h1 class="visually-hidden">Portfolio</h1>
   <div class="wd pf-section">
     {/* The portfolio's own toolbar markup, so it gets the same layout - its phone grid included. */}
     <div class="pf-controls">

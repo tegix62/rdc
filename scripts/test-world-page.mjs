@@ -229,7 +229,10 @@ for (const [name, w, h] of [
   check(`${name}, up close: the pieces parented to one sit under it`, uc.deep > 0 && uc.orphan === 0, `${uc.deep} deeper`)
   check(`${name}, up close: nothing wider than the screen`, uc.wide === 0 && !(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)), `${uc.wide}`)
   check(`${name}, up close: no script errors`, errors.length === 0, errors.join(' | '))
-  await page.goto(`${BASE}/next/index/home`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  // Index and the front page are preview-only; on the live site they are
+  // not there, and are skipped rather than failed.
+  const indexHere = (await page.goto(`${BASE}/next/index/home`, {waitUntil: 'domcontentloaded', timeout: 60_000}))?.ok()
+  if (indexHere) {
   await page.waitForTimeout(800)
   const first = await page.evaluate(() => ({rows: document.querySelectorAll('.ix-row').length, href: document.querySelector('.ix-title')?.getAttribute('href')}))
   check(`${name}, index: a row for every piece`, first.rows === uc.stops, `${first.rows} rows, ${uc.stops} pieces`)
@@ -240,7 +243,8 @@ for (const [name, w, h] of [
     return el ? Math.round(el.getBoundingClientRect().top) : null
   })
   check(`${name}, index: a row opens its piece in Up close`, /\/portfolio\/up-close\/?#/.test(page.url()) && landed !== null && landed < 200, `${page.url()} at ${landed}px`)
-  for (const path of ['/portfolio/all', '/portfolio', '/portfolio/up-close', '/next/index/home']) {
+  } else console.log(`skip  ${name}, index: not on this site (preview only)`)
+  for (const path of ['/portfolio/all', '/portfolio', '/portfolio/up-close', ...(indexHere ? ['/next/index/home'] : [])]) {
     await page.goto(`${BASE}${path}`, {waitUntil: 'domcontentloaded', timeout: 60_000})
     const bar = await page.evaluate(() => Array.from(document.querySelectorAll('.pf-group--filters .pf-btn')).map((b) => [b.textContent.trim(), b.getAttribute('href')]))
     check(`${name}, ${path}: Type/Lettering in the toolbar, to the rows`, bar.some(([t, h]) => t === 'Type/Lettering' && h === '/portfolio/type') && !bar.some(([t]) => t === 'Up close'), bar.map(([t]) => t).join(' | '))
@@ -334,7 +338,11 @@ for (const [name, w, h] of [
   const page = await browser.newPage({viewport: {width: w, height: h}})
   const errors = []
   page.on('pageerror', (e) => errors.push(e.message))
-  await page.goto(`${BASE}/next/front/home`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  if (!(await page.goto(`${BASE}/next/front/home`, {waitUntil: 'domcontentloaded', timeout: 60_000}))?.ok()) {
+    console.log(`skip  ${name}, homepage: not on this site (preview only)`)
+    await page.close()
+    continue
+  }
   await page.waitForTimeout(1200)
   const hx = await page.evaluate(() => {
     const tiles = Array.from(document.querySelectorAll('.hx-world .wd-piece')).filter((t) => !t.hidden)

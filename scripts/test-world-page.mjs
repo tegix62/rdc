@@ -324,7 +324,7 @@ for (const [name, w, h] of [
 }
 
 /*
-  The homepage, next (preview): the field of work first, every tile a door
+  The front page, next (preview, /next/front/home): the field of work first, every tile a door
   into the portfolio; the results as numbered rows; one cut-out at the end.
 */
 for (const [name, w, h] of [
@@ -334,7 +334,7 @@ for (const [name, w, h] of [
   const page = await browser.newPage({viewport: {width: w, height: h}})
   const errors = []
   page.on('pageerror', (e) => errors.push(e.message))
-  await page.goto(`${BASE}/next/home`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.goto(`${BASE}/next/front/home`, {waitUntil: 'domcontentloaded', timeout: 60_000})
   await page.waitForTimeout(1200)
   const hx = await page.evaluate(() => {
     const tiles = Array.from(document.querySelectorAll('.hx-world .wd-piece')).filter((t) => !t.hidden)

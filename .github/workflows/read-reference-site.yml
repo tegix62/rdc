@@ -1,0 +1,50 @@
+# Another designer's site, read for reference: pictures to the `reference`
+# branch, text to the log. See scripts/read-reference-site.mjs.
+name: Read a reference site
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Start page'
+        required: true
+      max_pages:
+        description: 'Pages to read'
+        default: '8'
+      hint:
+        description: 'Read pages whose address matches this first (a regex)'
+        default: 'merch|work|project|portfolio|shirt|apparel'
+
+permissions:
+  contents: write
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - name: Read
+        env:
+          URL_IN: ${{ inputs.url }}
+          MAX_IN: ${{ inputs.max_pages }}
+          HINT_IN: ${{ inputs.hint }}
+        run: node scripts/read-reference-site.mjs "$URL_IN" /tmp/reference "$MAX_IN" "$HINT_IN" 2>&1 | tee /tmp/reference.txt
+      - name: Push the pictures to the reference branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git checkout --orphan reference
+          git rm -rfq .
+          cp /tmp/reference/* .
+          cp /tmp/reference.txt reference.txt
+          git add -- *.png pages.json reference.txt
+          git commit -qm "Reference: ${URL_IN}"
+          git push -f origin reference
+        env:
+          URL_IN: ${{ inputs.url }}

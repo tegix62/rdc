@@ -1,6 +1,6 @@
 ---
 /*
-  UP CLOSE - preview only, at /next/close/home: the portfolio's fourth view,
+  UP CLOSE - at /portfolio/up-close: the portfolio's fourth view,
   in place of Type/Lettering.
 
   Chris: the type cluster is "woefully outdated and obsolete. We just don't
@@ -22,21 +22,18 @@
   everything else. A piece's address is #<its slug>, so a link can open
   this view at it.
 
-  Never built for production (getStaticPaths), and noindex.
+  Live since Chris: "take the portfolio changes and push those live",
+  reached from Type/Lettering's "Look closer". noindex, as /catalog.
 */
-import Layout from '../../../layouts/Layout.astro';
-import Loupe from '../../../components/Loupe.astro';
-import {getAllGridItems} from '../../../lib/queries';
-import {tileImage, imageDimensions} from '../../../lib/image';
-import {tileHref, cleanKey, treatmentOf} from '../../../lib/tiles';
-import {stripStegaKey} from '../../../lib/stega';
-import {clusterCard} from '../../../lib/clusterCard';
-import {museumLabel} from '../../../lib/museumLabel';
+import Layout from '../../layouts/Layout.astro';
+import Loupe from '../../components/Loupe.astro';
+import {getAllGridItems} from '../../lib/queries';
+import {tileImage, imageDimensions} from '../../lib/image';
+import {tileHref, cleanKey, treatmentOf} from '../../lib/tiles';
+import {stripStegaKey} from '../../lib/stega';
+import {clusterCard} from '../../lib/clusterCard';
+import {museumLabel} from '../../lib/museumLabel';
 
-export async function getStaticPaths() {
-  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
-  return [{params: {page: 'home'}}];
-}
 
 const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
 const items: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)));
@@ -119,10 +116,10 @@ for (const it of order) add(it, 0, null);
   <div class="uc pf-section">
     <div class="pf-controls">
       <div class="pf-group pf-group--filters" role="group" aria-label="Views">
-        <a class="pf-btn" href="/next/world/home">All</a>
+        <a class="pf-btn" href="/portfolio/all">All</a>
         <a class="pf-btn" href="/portfolio">Brand Identity</a>
         <a class="pf-btn" href="/portfolio?view=merch">Merch &amp; Apparel</a>
-        <a class="pf-btn" href="/next/type/home">Type/Lettering</a>
+        <a class="pf-btn" href="/portfolio/type">Type/Lettering</a>
       </div>
     </div>
 

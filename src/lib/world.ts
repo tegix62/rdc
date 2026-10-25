@@ -1,6 +1,6 @@
 /*
   A WORLD OF WORK - the portfolio laid out the way Minecraft generates its
-  world. Preview only (see /next/world/home).
+  world. Preview only (see /portfolio/all).
 
   Chris: "I'd love to see your Biomes, Caves, or Height map ideas played
   out." Then, having seen them: "original Height Map and Biome were the

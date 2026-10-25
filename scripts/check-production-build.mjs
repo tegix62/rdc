@@ -50,7 +50,9 @@ const JSON_OUT = arg('json', '')
   of identical content, which is the situation a canonical exists to prevent,
   and the grid is the one that should rank.
 */
-const NOT_IN_SITEMAP = new Set(['/404', '/style-guide', '/image-license-info', '/catalog'])
+// The portfolio's other views (/portfolio/all, /type, /up-close) are the same
+// work again, arranged differently: out for the same reason as /catalog.
+const NOT_IN_SITEMAP = new Set(['/404', '/style-guide', '/image-license-info', '/catalog', '/portfolio/all', '/portfolio/type', '/portfolio/up-close'])
 
 /*
   Every route that must be in a production sitemap. If a build quietly reverts
@@ -202,7 +204,7 @@ for (const file of htmlFiles) {
     the count check below still catches the flags-left-on case, because that
     would noindex all 21 pages rather than these two.
   */
-  const NOINDEX_ALLOWED = new Set(['/style-guide', '/catalog'])
+  const NOINDEX_ALLOWED = new Set(['/style-guide', '/catalog', '/portfolio/all', '/portfolio/type', '/portfolio/up-close'])
   if (/<meta[^>]+name=["']robots["'][^>]*noindex/i.test(html) && !NOINDEX_ALLOWED.has(route)) {
     fail('noindex', `${route} tells crawlers not to index it`)
   }

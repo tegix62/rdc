@@ -110,21 +110,23 @@ const filters: { value: string; label: string; href?: string }[] = [
   ...ALL_FILTERS.filter((f) => (counts.get(f.value.replace('.', '')) ?? 0) > 0),
 ];
 /*
-  ON THE PREVIEW, LANDS IS ALL. Chris: "Make OLD version of All now Brand
-  Identity, Lands will be All" - and Brand Identity shows everything, in
-  this grid, as All did. So All is a link to the world page (Lands), the
+  LANDS IS ALL. Chris: "Make OLD version of All now Brand Identity, Lands
+  will be All" - and Brand Identity shows everything, in this grid, as All
+  did. So All is a link to the world page (Lands, portfolio/all.astro), the
   everything-view this page has always opened on is named Brand Identity,
-  and the brand-only filter goes. The live site is unchanged.
+  and the brand-only filter goes. Shipped from the preview (Chris: "take
+  the portfolio changes and push those live"); this page keeps its address,
+  so every link to /portfolio still arrives.
 */
-if (import.meta.env.PUBLIC_IS_PREVIEW === 'true') {
-  // And Type/Lettering is its own page: a row per project (next/type).
+{
+  // And Type/Lettering is its own page: a row per project (portfolio/type.astro).
   filters.splice(
     0,
     filters.length,
-    { value: 'world', label: 'All', href: '/next/world/home' },
+    { value: 'world', label: 'All', href: '/portfolio/all' },
     { value: '*', label: 'Brand Identity' },
     ...filters.slice(1).filter((f) => f.value !== '.brand-identity' && f.value !== '.type-lettering'),
-    { value: 'type', label: 'Type/Lettering', href: '/next/type/home' },
+    { value: 'type', label: 'Type/Lettering', href: '/portfolio/type' },
   );
 }
 
@@ -176,8 +178,8 @@ const emptyFilters = ALL_FILTERS.filter(
                    down - a small turn and a press - and then sit flat in
                    the same clean grid. See pasteUp() in the script.
 */
-const PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
-const MUSEUM_LABELS = PREVIEW;
+// SHIPPED with the views (Chris: "push those live", all of it).
+const MUSEUM_LABELS = true;
 /*
   ROLLED BACK, both. Chris, on seeing them: "the animations are interesting,
   but they look a little cheesy currently ... roll back the animations for
@@ -737,7 +739,8 @@ if (emptyFilters.length > 0) {
       PREVIEW ONLY while it is a trial, on PUBLIC_IS_PREVIEW like the rows.
       Shipping it is making CLUSTER_ALL `true`; rolling it back, `false`.
     */
-    const CLUSTER_ALL = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+    // SHIPPED (Chris: the portfolio changes "live", all of it).
+    const CLUSTER_ALL = true;
     let clusterScale = 1;
     // How many underlying columns an ordinary tile spans in the current view.
     const unit = () => (view ? VIEWS[view].unit : 1) * clusterScale;
@@ -863,7 +866,8 @@ if (emptyFilters.length > 0) {
       production gate refuses a build where it appears). Shipping it is
       making this `true`.
     */
-    const JUSTIFY_REST = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+    // SHIPPED (Chris: the portfolio changes "live", all of it).
+    const JUSTIFY_REST = true;
     let justifyRest: HTMLElement[] = [];
     /*
       A WORDMARK'S BOX IS CAPPED. Chris, on DumpStat: "the wordmarks on this
@@ -1659,7 +1663,8 @@ if (emptyFilters.length > 0) {
       LINES stays true, because it gates the gather itself. Production is
       unchanged until Chris says; rolling back is setting this to false.
     */
-    const QUIET = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+    // SHIPPED (Chris: the portfolio changes "live", all of it).
+    const QUIET = true;
     if (QUIET) grid.classList.add('is-quiet');
     /*
       ARRIVING FROM THE HOMEPAGE, WITH A PROJECT ALREADY IN MIND.

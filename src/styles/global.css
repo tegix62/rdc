@@ -8204,7 +8204,7 @@ html.realsize-open {
 }
 
 /* ==========================================================================
-   WORLD, PREVIEW (/next/world/home). See src/pages/next/world/[page].astro.
+   WORLD - LANDS, THE ALL VIEW (/portfolio/all). See src/pages/portfolio/all.astro.
    Here rather than in the page because the critical-CSS step prunes a
    page's inline styles to what the HTML holds at build time, and most of
    these are for classes the script adds.
@@ -8374,7 +8374,7 @@ a.pf-btn {
 }
 
 /* ==========================================================================
-   UP CLOSE, PREVIEW (/next/close/home). See src/pages/next/close/[page].astro.
+   UP CLOSE (/portfolio/up-close). See src/pages/portfolio/up-close.astro.
    ========================================================================== */
 .uc-list {
   list-style: none;
@@ -8558,7 +8558,7 @@ a.pf-btn {
 }
 
 /* ==========================================================================
-   TYPE ROWS, PREVIEW (/next/type/home). See src/pages/next/type/[page].astro.
+   TYPE ROWS (/portfolio/type). See src/pages/portfolio/type.astro.
    A row per project: its name and block of type, then its pieces at one
    height, sideways. Chris: "a clean, sober take".
    ========================================================================== */

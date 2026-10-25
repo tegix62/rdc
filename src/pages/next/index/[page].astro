@@ -58,10 +58,10 @@ for (const s of studies) if (tileHref(s)) projectName[tileHref(s)!] = clean(s.ti
   <div class="ix pf-section">
     <div class="pf-controls">
       <div class="pf-group pf-group--filters" role="group" aria-label="Views">
-        <a class="pf-btn" href="/next/world/home">All</a>
+        <a class="pf-btn" href="/portfolio/all">All</a>
         <a class="pf-btn" href="/portfolio">Brand Identity</a>
         <a class="pf-btn" href="/portfolio?view=merch">Merch &amp; Apparel</a>
-        <a class="pf-btn" href="/next/type/home">Type/Lettering</a>
+        <a class="pf-btn" href="/portfolio/type">Type/Lettering</a>
       </div>
     </div>
     <table class="ix-table">
@@ -82,7 +82,7 @@ for (const s of studies) if (tileHref(s)) projectName[tileHref(s)!] = clean(s.ti
           return (
             <tr class:list={['ix-row', isProject(it) && 'ix-row--study']} data-thumb={thumb}>
               <td>
-                <a class="ix-title" href={`/next/close/home#${key}`}>
+                <a class="ix-title" href={`/portfolio/up-close#${key}`}>
                   {label?.title ?? clean(it.title)}
                 </a>
               </td>

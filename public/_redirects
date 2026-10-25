@@ -37,3 +37,13 @@
 # should point at it, but anyone holding the link lands on the page it was an
 # alternate view of rather than on a 404.
 /catalog                             /portfolio     301
+
+# The portfolio's views, from their preview addresses to the ones they went
+# live at (Chris: "take the portfolio changes and push those live"), so a
+# link saved on the preview still arrives.
+/next/world/home    /portfolio/all        301
+/next/world/home/   /portfolio/all        301
+/next/type/home     /portfolio/type       301
+/next/type/home/    /portfolio/type       301
+/next/close/home    /portfolio/up-close   301
+/next/close/home/   /portfolio/up-close   301

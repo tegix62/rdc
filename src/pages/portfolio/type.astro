@@ -1,6 +1,6 @@
 ---
 /*
-  TYPE/LETTERING - preview only, at /next/type/home: the portfolio's fourth
+  TYPE/LETTERING - at /portfolio/type: the portfolio's fourth
   view, back under its own name.
 
   Chris: keep the label - "pretend, okay, the person clicking on this is
@@ -20,21 +20,18 @@
   browser's back) leaves the rows as they were. "Look closer" still goes on
   to Up close, and without the script every piece is a plain link there.
 
-  Never built for production (getStaticPaths), and noindex.
+  Live since Chris: "take the portfolio changes and push those live".
+  noindex, as /catalog: the same work as /portfolio, which should rank.
 */
-import Layout from '../../../layouts/Layout.astro';
-import Img from '../../../components/Img.astro';
-import {getAllGridItems} from '../../../lib/queries';
-import {tileImage, imageDimensions, imageUrl, buildSrcSet} from '../../../lib/image';
-import {tileHref, cleanKey, explicitTreatment} from '../../../lib/tiles';
-import {stripStegaKey} from '../../../lib/stega';
-import {clusterCard} from '../../../lib/clusterCard';
-import {museumLabel} from '../../../lib/museumLabel';
+import Layout from '../../layouts/Layout.astro';
+import Img from '../../components/Img.astro';
+import {getAllGridItems} from '../../lib/queries';
+import {tileImage, imageDimensions, imageUrl, buildSrcSet} from '../../lib/image';
+import {tileHref, cleanKey, explicitTreatment} from '../../lib/tiles';
+import {stripStegaKey} from '../../lib/stega';
+import {clusterCard} from '../../lib/clusterCard';
+import {museumLabel} from '../../lib/museumLabel';
 
-export async function getStaticPaths() {
-  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
-  return [{params: {page: 'home'}}];
-}
 
 const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
 const items: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)));
@@ -93,10 +90,10 @@ const H = {desktop: 300, phone: 200};
   <div class="ty pf-section">
     <div class="pf-controls">
       <div class="pf-group pf-group--filters" role="group" aria-label="Views">
-        <a class="pf-btn" href="/next/world/home">All</a>
+        <a class="pf-btn" href="/portfolio/all">All</a>
         <a class="pf-btn" href="/portfolio">Brand Identity</a>
         <a class="pf-btn" href="/portfolio?view=merch">Merch &amp; Apparel</a>
-        <a class="pf-btn is-active" href="/next/type/home" aria-current="page">Type/Lettering</a>
+        <a class="pf-btn is-active" href="/portfolio/type" aria-current="page">Type/Lettering</a>
       </div>
     </div>
 
@@ -120,7 +117,7 @@ const H = {desktop: 300, phone: 200};
               const mark = explicitTreatment(it) === 'mark';
               return (
                 <li class:list={['ty-piece', mark && 'ty-piece--air']} style={`--a:${a.toFixed(3)}`}>
-                  <a href={`/next/close/home#${keyOf(it)}`} aria-label={clean(it.title)} {...viewOf(it)}>
+                  <a href={`/portfolio/up-close#${keyOf(it)}`} aria-label={clean(it.title)} {...viewOf(it)}>
                     <Img
                       image={tileImage(it)}
                       alt=""
@@ -151,7 +148,7 @@ const H = {desktop: 300, phone: 200};
           </span>
           <span class="ty-view__count"></span>
           <span class="ty-view__links">
-            <a class="ty-view__closer" href="/next/close/home">Look closer <span aria-hidden="true">&rarr;</span></a>
+            <a class="ty-view__closer" href="/portfolio/up-close">Look closer <span aria-hidden="true">&rarr;</span></a>
             <a class="ty-view__project" href="/">The project <span aria-hidden="true">&rarr;</span></a>
           </span>
         </figcaption>

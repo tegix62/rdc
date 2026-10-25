@@ -21,7 +21,7 @@
   1. The work, at once (System 1). Not the name in large type over a
      video: the nav already carries the name. The first screen is the
      portfolio itself - a field of the Lands grid, the case studies and the
-     cut-outs - and every tile is a door into it (/next/world/home, opened
+     cut-outs - and every tile is a door into it (/portfolio/all, opened
      at that piece). One sober line above it says who and what.
   2. The results, as a ledger (System 2, anchored on the number). One row
      per result: the number, what it was, for whom, how. Set plainly - the
@@ -153,7 +153,7 @@ for (const s of studies) {
 
 // 4. THE END: one cut-out, alone. A few are written out and one is kept at
 // random on arrival; the rest are removed before they load.
-const finale = cutouts.slice(0, 8).map((it) => ({it, from: clean(parentOf(it)?.title), href: `/next/world/home?open=${keyOf(it)}`}));
+const finale = cutouts.slice(0, 8).map((it) => ({it, from: clean(parentOf(it)?.title), href: `/portfolio/all?open=${keyOf(it)}`}));
 
 const bioText =
   settings?.bioText ||
@@ -164,7 +164,7 @@ const counts = {projects: studies.length, pieces: all.length};
 <Layout title="Rumeau Design Co" description="Hand-drawn brand identity, lettering and merch design." noindex>
   <section class="hx-intro">
     <p class="hx-intro__line">{bioText}</p>
-    <a class="hx-intro__go" href="/next/world/home">
+    <a class="hx-intro__go" href="/portfolio/all">
       All the work <span class="hx-intro__count">&middot; {counts.projects} projects, {counts.pieces} pieces</span>
       <span aria-hidden="true">&rarr;</span>
     </a>
@@ -182,7 +182,7 @@ const counts = {projects: studies.length, pieces: all.length};
             hidden
           >
             <div class="wd-frame">
-              <a class="wd-pic" href={`/next/world/home?open=${keyOf(it)}`} aria-label={clean(it.title)}>
+              <a class="wd-pic" href={`/portfolio/all?open=${keyOf(it)}`} aria-label={clean(it.title)}>
                 <span class="wd-crop" style={`--a:${(d.width / d.height).toFixed(4)};--iw:100%;--ih:100%;--il:0%;--it:0%`}>
                   <Img image={tileImage(it)} alt="" width={1400} sizes="25vw" loading={i < 12 ? 'eager' : 'lazy'} field="Grid Thumbnail (homepage field)" />
                 </span>
@@ -232,7 +232,7 @@ const counts = {projects: studies.length, pieces: all.length};
     <div class="hx-door">
       <h2 class="hx-label">For a studio or an art director</h2>
       <p class="hx-door__line">Lettering, illustration and type for your projects, drawn by hand.</p>
-      <a class="hx-door__go" href="/next/type/home">See the type <span aria-hidden="true">&rarr;</span></a>
+      <a class="hx-door__go" href="/portfolio/type">See the type <span aria-hidden="true">&rarr;</span></a>
     </div>
   </section>
 

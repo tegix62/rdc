@@ -1,6 +1,6 @@
 ---
 /*
-  A WORLD OF WORK - preview only, at /next/world/home. See src/lib/world.ts
+  A WORLD OF WORK - the portfolio's All view, at /portfolio/all. See src/lib/world.ts
   for the rules of the layout.
 
   LANDS, the page's one mode: the height map's tight fill and sizes, with
@@ -38,23 +38,21 @@
   biomes without their tint): the height map and the biomes themselves;
   and By colour ("feels like a gimmick right now").
 
-  Never built for production (getStaticPaths), and noindex. Most styles
+  Live since Chris: "take the portfolio changes and push those live".
+  noindex, as /catalog: the same work as /portfolio, which is the page
+  that should rank (scripts/check-production-build.mjs). Most styles
   are in global.css (WORLD, PREVIEW): they are for classes the script adds,
   which the critical-CSS step prunes from a page's own styles.
 */
-import Layout from '../../../layouts/Layout.astro';
-import Img from '../../../components/Img.astro';
-import {getAllGridItems} from '../../../lib/queries';
-import {tileImage, imageDimensions} from '../../../lib/image';
-import {treatmentOf, explicitTreatment, tileHref, cleanKey, merchPlacement} from '../../../lib/tiles';
-import {stripStegaKey} from '../../../lib/stega';
-import {sanityClient} from '../../../lib/sanity';
-import {clusterCard} from '../../../lib/clusterCard';
+import Layout from '../../layouts/Layout.astro';
+import Img from '../../components/Img.astro';
+import {getAllGridItems} from '../../lib/queries';
+import {tileImage, imageDimensions} from '../../lib/image';
+import {treatmentOf, explicitTreatment, tileHref, cleanKey, merchPlacement} from '../../lib/tiles';
+import {stripStegaKey} from '../../lib/stega';
+import {sanityClient} from '../../lib/sanity';
+import {clusterCard} from '../../lib/clusterCard';
 
-export async function getStaticPaths() {
-  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
-  return [{params: {page: 'home'}}];
-}
 
 const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
 const all: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)));
@@ -166,8 +164,8 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
             {f.label}
           </a>
         ))}
-        {/* Type/Lettering: a row per project (next/type). */}
-        <a class="pf-btn" href="/next/type/home">Type/Lettering</a>
+        {/* Type/Lettering: a row per project (portfolio/type.astro). */}
+        <a class="pf-btn" href="/portfolio/type">Type/Lettering</a>
       </div>
       <div class="pf-group pf-group--arrange" role="group" aria-label="Arrange">
         <button type="button" class="pf-btn pf-btn--span" data-roll>Shuffle</button>
@@ -236,8 +234,8 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
 </Layout>
 
 <script>
-  import {generateWorld, setsOf, type WorldMode, type WorldPiece, type WorldResult} from '../../../lib/world';
-  import {seedOf} from '../../../lib/cluster';
+  import {generateWorld, setsOf, type WorldMode, type WorldPiece, type WorldResult} from '../../lib/world';
+  import {seedOf} from '../../lib/cluster';
 
   type P = WorldPiece & {id: string; slug: string | null; title: string; cat: string; photo: boolean};
   const data: {pieces: P[]; names: Record<string, string>; filters: {value: string; name: string}[]} = JSON.parse(
@@ -254,7 +252,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   const simple = q.get('v') !== 'rules';
   // Lands is the All view; a link naming another view goes to the portfolio's own.
   const asked = data.filters.find((f) => f.name === q.get('view'));
-  if (asked) location.replace(asked.name === 'brand' ? '/portfolio' : asked.name === 'type' ? '/next/type/home' : `/portfolio?view=${asked.name}`);
+  if (asked) location.replace(asked.name === 'brand' ? '/portfolio' : asked.name === 'type' ? '/portfolio/type' : `/portfolio?view=${asked.name}`);
   let focus: number | null = null;
   let focusRow = 0;
   let pushed = false;

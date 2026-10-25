@@ -1,5 +1,5 @@
 /*
-  The world page (/next/world/home, preview) in a browser, with blank
+  The world page (/portfolio/all, preview) in a browser, with blank
   pictures. For the lands, the page's one mode now (also sorted by colour), at a desktop and a phone:
   every piece shown, none overlapping; a piece opened is larger than it
   was and opens as on the main grid - the navy hairline frame, its project
@@ -63,7 +63,7 @@ for (const [name, w, h] of [
     const page = await browser.newPage({viewport: {width: w, height: h}})
     const errors = []
     page.on('pageerror', (e) => errors.push(e.message))
-    await page.goto(`${BASE}/next/world/home?mode=${mode}&seed=4187`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+    await page.goto(`${BASE}/portfolio/all?mode=${mode}&seed=4187`, {waitUntil: 'domcontentloaded', timeout: 60_000})
     await page.waitForTimeout(1500)
     const tag = `${name}, ${mode.replace('&sort=', ' by ')}`
     const rest = await state(page)
@@ -120,7 +120,7 @@ for (const [name, w, h] of [
     await page.goBack()
     await page.waitForTimeout(700)
     back = await state(page)
-    check(`${tag}: so does the browser's back, staying on the page`, !back.framed && back.dim === 0 && page.url().includes('/next/world/'), page.url())
+    check(`${tag}: so does the browser's back, staying on the page`, !back.framed && back.dim === 0 && page.url().includes('/portfolio/all'), page.url())
     check(`${tag}: no script errors`, errors.length === 0, errors.join(' | '))
     await page.close()
   }
@@ -140,7 +140,7 @@ for (const [name, w, h] of [
   const page = await browser.newPage({viewport: {width: w, height: h}})
   const errors = []
   page.on('pageerror', (e) => errors.push(e.message))
-  await page.goto(`${BASE}/next/world/home`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.goto(`${BASE}/portfolio/all`, {waitUntil: 'domcontentloaded', timeout: 60_000})
   await page.waitForTimeout(1500)
   const shown = () => page.evaluate(() => Array.from(document.querySelectorAll('.wd-piece')).filter((t) => !t.hidden).map((t) => ({i: Number(t.dataset.i), w: t.getBoundingClientRect().width})))
   const cats = await page.evaluate(() => JSON.parse(document.getElementById('wd-data').textContent).pieces.map((p) => p.cat))
@@ -166,7 +166,7 @@ for (const [name, w, h] of [
   await there.waitForTimeout(1500)
   await there.locator('.pf-group--filters a.pf-btn', {hasText: /^\s*All\s*$/}).click()
   await there.waitForURL(/\/next\/world\//, {timeout: 15_000}).catch(() => {})
-  check(`${name}: from there, All comes back to Lands`, there.url().includes('/next/world/'), there.url())
+  check(`${name}: from there, All comes back to Lands`, there.url().includes('/portfolio/all'), there.url())
   await there.close()
   const before = await shown()
   const mean = (a) => a.reduce((x, t) => x + t.w, 0) / a.length
@@ -212,7 +212,7 @@ for (const [name, w, h] of [
   const page = await browser.newPage({viewport: {width: w, height: h}})
   const errors = []
   page.on('pageerror', (e) => errors.push(e.message))
-  await page.goto(`${BASE}/next/close/home`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.goto(`${BASE}/portfolio/up-close`, {waitUntil: 'domcontentloaded', timeout: 60_000})
   await page.waitForTimeout(1200)
   const uc = await page.evaluate(() => {
     const stops = Array.from(document.querySelectorAll('.uc-stop'))
@@ -239,17 +239,17 @@ for (const [name, w, h] of [
     const el = document.getElementById(location.hash.slice(1))
     return el ? Math.round(el.getBoundingClientRect().top) : null
   })
-  check(`${name}, index: a row opens its piece in Up close`, /\/next\/close\/home\/?#/.test(page.url()) && landed !== null && landed < 200, `${page.url()} at ${landed}px`)
-  for (const path of ['/next/world/home', '/portfolio', '/next/close/home', '/next/index/home']) {
+  check(`${name}, index: a row opens its piece in Up close`, /\/portfolio\/up-close\/?#/.test(page.url()) && landed !== null && landed < 200, `${page.url()} at ${landed}px`)
+  for (const path of ['/portfolio/all', '/portfolio', '/portfolio/up-close', '/next/index/home']) {
     await page.goto(`${BASE}${path}`, {waitUntil: 'domcontentloaded', timeout: 60_000})
     const bar = await page.evaluate(() => Array.from(document.querySelectorAll('.pf-group--filters .pf-btn')).map((b) => [b.textContent.trim(), b.getAttribute('href')]))
-    check(`${name}, ${path}: Type/Lettering in the toolbar, to the rows`, bar.some(([t, h]) => t === 'Type/Lettering' && h === '/next/type/home') && !bar.some(([t]) => t === 'Up close'), bar.map(([t]) => t).join(' | '))
+    check(`${name}, ${path}: Type/Lettering in the toolbar, to the rows`, bar.some(([t, h]) => t === 'Type/Lettering' && h === '/portfolio/type') && !bar.some(([t]) => t === 'Up close'), bar.map(([t]) => t).join(' | '))
   }
 
   // Type/Lettering: a row per project, each named, its pieces at one
   // height, sideways inside the row and never the page; a piece opens in
   // Up close.
-  await page.goto(`${BASE}/next/type/home`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.goto(`${BASE}/portfolio/type`, {waitUntil: 'domcontentloaded', timeout: 60_000})
   await page.waitForTimeout(1200)
   const ty = await page.evaluate(() => {
     const rows = Array.from(document.querySelectorAll('.ty-row'))
@@ -315,10 +315,10 @@ for (const [name, w, h] of [
     const el = document.getElementById(decodeURIComponent(location.hash.slice(1)))
     return el ? Math.round(el.getBoundingClientRect().top) : null
   })
-  check(`${name}, type rows: Look closer goes on to Up close`, /\/next\/close\/home\/?#/.test(page.url()) && tyLanded !== null && tyLanded < 200, `${page.url()} at ${tyLanded}px`)
+  check(`${name}, type rows: Look closer goes on to Up close`, /\/portfolio\/up-close\/?#/.test(page.url()) && tyLanded !== null && tyLanded < 200, `${page.url()} at ${tyLanded}px`)
   await page.goBack()
   await page.waitForTimeout(1200)
-  check(`${name}, type rows: and back again returns to the rows`, page.url().includes('/next/type/home'), page.url())
+  check(`${name}, type rows: and back again returns to the rows`, page.url().includes('/portfolio/type'), page.url())
   check(`${name}, the views: no script errors`, errors.length === 0, errors.join(' | '))
   await page.close()
 }
@@ -350,7 +350,7 @@ for (const [name, w, h] of [
       tiles: tiles.length,
       all: document.querySelectorAll('.hx-world .wd-piece').length,
       overlap,
-      doors: tiles.filter((t) => /\/next\/world\/home\?open=/.test(t.querySelector('a.wd-pic')?.getAttribute('href') ?? '')).length,
+      doors: tiles.filter((t) => /\/portfolio\/all\?open=/.test(t.querySelector('a.wd-pic')?.getAttribute('href') ?? '')).length,
       fieldTop: Math.round(field.top),
       rows: document.querySelectorAll('.hx-row').length,
       numbered: Array.from(document.querySelectorAll('.hx-row__number')).filter((n) => /\d/.test(n.textContent)).length,
@@ -367,7 +367,7 @@ for (const [name, w, h] of [
   await page.locator('.hx-world a.wd-pic').first().click()
   // The address gains its trailing slash on the way (a redirect), so wait
   // for the page that stays, then for it to open.
-  await page.waitForURL(/\/next\/world\/home\/\?/, {timeout: 15_000})
+  await page.waitForURL(/\/portfolio\/all\/\?/, {timeout: 15_000})
   await page.waitForLoadState('load')
   await page.waitForFunction(() => document.querySelector('.wd-piece.is-open'), null, {timeout: 10_000}).catch(() => {})
   const opened = await page.evaluate(() => ({
@@ -376,7 +376,7 @@ for (const [name, w, h] of [
     focus: document.querySelector('.wd-world')?.classList.contains('has-focus'),
     pieces: document.querySelectorAll('.wd-piece').length,
   }))
-  check(`${name}, homepage: a piece opens the portfolio at it`, /\/next\/world\/home\/?\?.*open=/.test(opened.url) && opened.open, JSON.stringify(opened))
+  check(`${name}, homepage: a piece opens the portfolio at it`, /\/portfolio\/all\/?\?.*open=/.test(opened.url) && opened.open, JSON.stringify(opened))
   check(`${name}, homepage: no script errors`, errors.length === 0, errors.join(' | '))
   await page.close()
 }

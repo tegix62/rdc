@@ -370,8 +370,13 @@ for (const [name, w, h] of [
   await page.waitForURL(/\/next\/world\/home\/\?/, {timeout: 15_000})
   await page.waitForLoadState('load')
   await page.waitForFunction(() => document.querySelector('.wd-piece.is-open'), null, {timeout: 10_000}).catch(() => {})
-  const opened = await page.evaluate(() => ({url: location.href, open: !!document.querySelector('.wd-piece.is-open')}))
-  check(`${name}, homepage: a piece opens the portfolio at it`, /\/next\/world\/home\/?\?open=/.test(opened.url) && opened.open, opened.url)
+  const opened = await page.evaluate(() => ({
+    url: location.href,
+    open: !!document.querySelector('.wd-piece.is-open'),
+    focus: document.querySelector('.wd-world')?.classList.contains('has-focus'),
+    pieces: document.querySelectorAll('.wd-piece').length,
+  }))
+  check(`${name}, homepage: a piece opens the portfolio at it`, /\/next\/world\/home\/?\?.*open=/.test(opened.url) && opened.open, JSON.stringify(opened))
   check(`${name}, homepage: no script errors`, errors.length === 0, errors.join(' | '))
   await page.close()
 }

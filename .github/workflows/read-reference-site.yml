@@ -14,6 +14,10 @@ on:
       hint:
         description: 'Read pages whose address matches this first (a regex)'
         default: 'merch|work|project|portfolio|shirt|apparel'
+      robots_only:
+        description: 'Only read the site robots.txt and stop'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -34,8 +38,10 @@ jobs:
           URL_IN: ${{ inputs.url }}
           MAX_IN: ${{ inputs.max_pages }}
           HINT_IN: ${{ inputs.hint }}
+          ROBOTS_ONLY: ${{ inputs.robots_only && '1' || '' }}
         run: node scripts/read-reference-site.mjs "$URL_IN" /tmp/reference "$MAX_IN" "$HINT_IN" 2>&1 | tee /tmp/reference.txt
       - name: Push the pictures to the reference branch
+        if: ${{ !inputs.robots_only }}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'

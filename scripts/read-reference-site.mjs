@@ -19,6 +19,35 @@ const MAX = Number(process.argv[4] ?? 8)
 const HINT = process.argv[5] ? new RegExp(process.argv[5], 'i') : null
 mkdirSync(OUT, {recursive: true})
 const origin = new URL(START).origin
+/*
+  The site's own rules first. robots.txt is where an owner says what
+  automated visitors may read - AI crawlers by name, often - and this is
+  an AI-driven reader, so a rule against any of them, or against
+  everyone, stops it before a page is opened.
+*/
+const robots = await fetch(`${origin}/robots.txt`).then((r) => (r.ok ? r.text() : '')).catch(() => '')
+console.log(`=== robots.txt\n${robots || '(none)'}\n`)
+const AI = /^(\*|claudebot|claude-web|claude-user|claude-searchbot|anthropic-ai|gptbot|chatgpt-user|ccbot|google-extended|perplexitybot|bytespider|applebot-extended)$/i
+const groups = []
+let agents = []
+let rules = []
+for (const raw of robots.split('\n')) {
+  const line = raw.split('#')[0].trim()
+  const m = line.match(/^(user-agent|disallow|allow)\s*:\s*(.*)$/i)
+  if (!m) continue
+  const [, k, v] = m
+  if (/user-agent/i.test(k)) {
+    if (rules.length) groups.push({agents, rules}), (agents = []), (rules = [])
+    agents.push(v.trim())
+  } else rules.push({allow: /allow/i.test(k) && !/disallow/i.test(k), path: v.trim()})
+}
+if (agents.length) groups.push({agents, rules})
+const barred = groups.filter((g) => g.agents.some((a) => AI.test(a)) && g.rules.some((r) => !r.allow && r.path === '/'))
+if (barred.length) {
+  console.log(`STOP: robots.txt bars ${barred.flatMap((g) => g.agents).join(', ')} from the whole site. Nothing read.`)
+  process.exit(0)
+}
+if (process.env.ROBOTS_ONLY) process.exit(0)
 const browser = await chromium.launch()
 const page = await browser.newPage({viewport: {width: 1440, height: 900}})
 const seen = new Set()

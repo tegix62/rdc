@@ -413,6 +413,65 @@ for (const [name, w, h] of [
   await page.close()
 }
 
+/*
+  Moments (preview, /next/moments/home): the homepage mock as bands of one
+  CSS grid - no tile over another, words as tiles on the grid, nothing
+  wider than the screen, and a click freezing its moment.
+*/
+for (const [name, w, h] of [
+  ['desktop', 1440, 900],
+  ['phone', 390, 844],
+]) {
+  const page = await browser.newPage({viewport: {width: w, height: h}})
+  const errors = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  if (!(await page.goto(`${BASE}/next/moments/home`, {waitUntil: 'domcontentloaded', timeout: 60_000}))?.ok()) {
+    console.log(`skip  ${name}, moments: not on this site (preview only)`)
+    await page.close()
+    continue
+  }
+  await page.waitForTimeout(800)
+  const mo = await page.evaluate(() => {
+    const bands = Array.from(document.querySelectorAll('.mo-band'))
+    let overlap = 0
+    let tiles = 0
+    for (const b of bands) {
+      const rs = Array.from(b.querySelectorAll('.mo-tile')).map((t) => t.getBoundingClientRect())
+      tiles += rs.length
+      for (let a = 0; a < rs.length; a++)
+        for (let z = a + 1; z < rs.length; z++) {
+          const A = rs[a], Z = rs[z]
+          if (Math.min(A.right, Z.right) - Math.max(A.left, Z.left) > 1 && Math.min(A.bottom, Z.bottom) - Math.max(A.top, Z.top) > 1) overlap++
+        }
+    }
+    return {
+      bands: bands.length,
+      tiles,
+      overlap,
+      words: document.querySelectorAll('.mo-text').length,
+      sketches: document.querySelectorAll('.mo-pic--sketch').length,
+      wide: document.documentElement.scrollWidth > innerWidth,
+    }
+  })
+  check(`${name}, moments: bands of the grid, no tile over another`, mo.bands >= 3 && mo.tiles > 50 && mo.overlap === 0, `${mo.bands} moments, ${mo.tiles} tiles, ${mo.overlap} overlap(s)`)
+  check(`${name}, moments: words as tiles, among the sketches`, mo.words >= 3 && mo.sketches > 50, `${mo.words} word tiles, ${mo.sketches} sketches`)
+  check(`${name}, moments: nothing wider than the screen`, !mo.wide, '')
+  const before = await page.evaluate(() => document.querySelector('.mo-band[data-band="chateau"] .mo-pic--sketch')?.getBoundingClientRect().top)
+  await page.locator('.mo-band[data-band="chateau"] .mo-pic--sketch').first().click()
+  await page.waitForTimeout(300)
+  const frozen = await page.evaluate(() => {
+    const b = document.querySelector('.mo-band[data-band="chateau"]')
+    const lit = b.querySelectorAll('.is-lit').length
+    return {focus: b.classList.contains('has-focus'), lit, card: !!b.querySelector('.mo-text.is-lit'), top: b.querySelector('.mo-pic--sketch')?.getBoundingClientRect().top}
+  })
+  check(`${name}, moments: a click freezes its moment, its set and its card lit`, frozen.focus && frozen.lit > 10 && frozen.card, JSON.stringify(frozen))
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(200)
+  check(`${name}, moments: Escape lets it go`, !(await page.evaluate(() => !!document.querySelector('.mo-band.has-focus'))), '')
+  check(`${name}, moments: no script errors`, errors.length === 0, errors.join(' | '))
+  await page.close()
+}
+
 await browser.close()
 console.log(failures ? `\n${failures} check(s) failed.` : '\nall checks passed')
 process.exit(failures ? 1 : 0)

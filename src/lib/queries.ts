@@ -278,6 +278,20 @@ const TILE = `
 */
 export const NOT_SKETCH = '!(category == "Sketch")';
 
+/*
+  The sketches themselves, for the places that ask for them by name (the
+  moments prototype, /next/moments): each one's picture and what it is a
+  sketch of. Not for any grid that shows the work - see NOT_SKETCH.
+*/
+export function getSketches() {
+  return sanityClient.fetch(
+    `*[_type == "caseStudy" && category == "Sketch" && defined(thumbnail.asset)]{
+       _id, title, thumbnail, year, "parent": parentBrand._ref,
+       "project": coalesce(parentBrand->parentBrand._ref, parentBrand._ref)
+     } | order(title asc)`,
+  );
+}
+
 export function getAllGridItems() {
   return sanityClient.fetch(
     `*[_type == "caseStudy" && pageType in ["Case Study", "Grid Item"] && ${NOT_SKETCH}

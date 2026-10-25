@@ -1,0 +1,334 @@
+---
+/*
+  MOMENTS - preview only, at /next/moments/home: a mock of the homepage as
+  a scroll of moments on one grid.
+
+  Chris: "imagine a landing page where we use the CSS grid ... where one
+  of the sections is an actual tile item ... those results containers, or
+  floating boxes with copy in them ... seen and interactable in a sea of
+  other, say, if I uploaded a bunch of those sketches around it ... a
+  scroll of moments like that, then I think we would have unified this
+  grid idea" - "the typographic grid is something that I've wanted on this
+  site for the longest time". And: "mock something out of them".
+
+  Each moment is a band of one real CSS grid - square cells, 16 across on a
+  wide screen, 8 on a phone - laid out by the browser from spans worked out
+  here at build time. No script places anything, so it paints at once and
+  nothing moves. Words are tiles like the pictures: they take whole cells,
+  sit on the same lines, and their type scales with the tile they are in.
+
+  The moments, in order:
+    1  who and what, in a field of the projects and the sketches
+    2  Chateau Seven: its block of type and credits, its finished pieces,
+       and the sketches that came before them - fragment, whole, origin
+    3  each result, in a field of the work that earned it
+    4  a way to get in touch, among the last of the sketches
+
+  A click on a picture freezes its moment: the rest drops back and its set
+  - the project's pieces, its sketches, its block of type - stays lit. The
+  block's links go on to the project and the portfolio. Escape, or the
+  same click again, lets it go. (Chris, of the All view: "freeze the rest
+  of the grid and pop that menu in as almost its own tile".)
+
+  The 109 Chateau Seven sketches are the only ones in Sanity so far, so the
+  sea is theirs. Draft words are marked DRAFT.
+
+  Never built for production (getStaticPaths), and noindex.
+*/
+import Layout from '../../../layouts/Layout.astro';
+import Img from '../../../components/Img.astro';
+import {getAllGridItems, getSiteSettings, getSketches} from '../../../lib/queries';
+import {tileImage, imageDimensions} from '../../../lib/image';
+import {tileHref, cleanKey, explicitTreatment} from '../../../lib/tiles';
+import {stripStegaKey} from '../../../lib/stega';
+import {clusterCard} from '../../../lib/clusterCard';
+import {parseCreditLines} from '../../../lib/credits';
+
+export async function getStaticPaths() {
+  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
+  return [{params: {page: 'home'}}];
+}
+
+const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
+const settings = await getSiteSettings();
+const CONTACT_URL = settings?.contactUrl || '/contact';
+const all: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)));
+const sketches: any[] = (await getSketches()).filter((it: any) => imageDimensions(tileImage(it)));
+const isProject = (it: any) => cleanKey(it.pageType) === 'Case Study';
+const idOf = (it: any) => cleanKey(it._id).replace(/^drafts\./, '');
+const keyOf = (it: any) => (it.slug?.current ? cleanKey(it.slug.current) : idOf(it));
+const rank = (it: any) => (typeof it.orderRank === 'string' ? it.orderRank : null);
+const studies = all.filter(isProject).sort((a, z) => {
+  const ra = rank(a);
+  const rz = rank(z);
+  if (ra && rz) return ra < rz ? -1 : 1;
+  return ra ? -1 : rz ? 1 : clean(a.title).localeCompare(clean(z.title));
+});
+const studyOfHref = new Map(studies.filter((s) => tileHref(s)).map((s) => [tileHref(s)!, s]));
+const piecesOf = (s: any) => all.filter((it) => !isProject(it) && tileHref(it) && tileHref(it) === tileHref(s));
+
+// A steady shuffle: the same scatter on every build, no two neighbours alike.
+const hash = (s: string) => [...s].reduce((h, c) => (Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0), 2166136261);
+const scatter = <T,>(list: T[], key: (t: T) => string) => [...list].sort((a, z) => hash(key(a)) - hash(key(z)));
+
+/*
+  A TILE'S CELLS. Square cells, so a tile's shape is columns over rows. Its
+  picture's shape picks the pair nearest it for the ground it is given;
+  [desktop, phone], the phone's cells being about half the width.
+*/
+type Span = {c: number; r: number};
+const spanFor = (aspect: number, area: number, maxC: number): Span => {
+  let best: Span = {c: 1, r: 1};
+  let err = Infinity;
+  for (let c = 1; c <= maxC; c++) {
+    const r = Math.max(1, Math.round(c / aspect));
+    const e = Math.abs(Math.log(c / r / aspect)) * 2 + Math.abs(Math.log((c * r) / area));
+    if (e < err) [best, err] = [{c, r}, e];
+  }
+  return best;
+};
+const aspectOf = (it: any) => {
+  const d = imageDimensions(tileImage(it))!;
+  return d.width / d.height;
+};
+// The sketches are small scans (most about 330px across), so they stay small.
+const sketchSpan = (it: any): [Span, Span] => {
+  const d = imageDimensions(tileImage(it))!;
+  const big = Math.max(d.width, d.height) >= 600;
+  return [spanFor(aspectOf(it), big ? 4 : 1.4, 3), spanFor(aspectOf(it), big ? 6 : 3, 3)];
+};
+const pieceSpan = (it: any, lead = false): [Span, Span] =>
+  lead ? [spanFor(aspectOf(it), 12, 5), spanFor(aspectOf(it), 16, 6)] : [spanFor(aspectOf(it), 5, 4), spanFor(aspectOf(it), 6, 4)];
+
+type Tile =
+  | {kind: 'pic'; it: any; set: string; d: Span; p: Span; sketch: boolean}
+  | {kind: 'text'; id: string; set?: string; d: Span & {col: number; row: number}; p: Span & {row: number}};
+type Moment = {id: string; label: string; tiles: Tile[]};
+
+const pic = (it: any, set: string, span: [Span, Span], sketch = false): Tile => ({kind: 'pic', it, set, d: span[0], p: span[1], sketch});
+
+const chateau = studies.find((s) => /chateau/i.test(clean(s.title)));
+const chateauSketches = scatter(
+  sketches.filter((s) => chateau && cleanKey(s.project ?? '') === idOf(chateau)),
+  (s) => idOf(s),
+);
+// The sea, shared out: some to open the page, most to Chateau Seven's own
+// moment, the rest to close.
+const opening = chateauSketches.slice(0, 26);
+const own = chateauSketches.slice(26, 86);
+const closing = chateauSketches.slice(86);
+
+const moments: Moment[] = [];
+
+// 1. Who and what.
+moments.push({
+  id: 'who',
+  label: 'Who',
+  tiles: [
+    {kind: 'text', id: 'intro', d: {c: 6, r: 3, col: 2, row: 2}, p: {c: 8, r: 4, row: 1}},
+    ...scatter(
+      [...studies.map((s) => pic(s, idOf(s), pieceSpan(s))), ...opening.map((s) => pic(s, chateau ? idOf(chateau) : 'sketch', sketchSpan(s), true))],
+      (t: any) => idOf(t.it),
+    ),
+  ],
+});
+
+// 2. Chateau Seven: fragment, whole, origin.
+if (chateau) {
+  const set = idOf(chateau);
+  moments.push({
+    id: 'chateau',
+    label: clean(chateau.title),
+    tiles: [
+      {kind: 'text', id: 'chateau-card', set, d: {c: 5, r: 5, col: 11, row: 2}, p: {c: 8, r: 6, row: 5}},
+      pic(chateau, set, pieceSpan(chateau, true)),
+      ...scatter(
+        [...piecesOf(chateau).map((it) => pic(it, set, pieceSpan(it))), ...own.map((s) => pic(s, set, sketchSpan(s), true))],
+        (t: any) => idOf(t.it),
+      ),
+    ],
+  });
+}
+
+// 3. Each result, in a field of the work that earned it.
+type Result = {number: string; what: string; who: string; href: string; study: any};
+const results: Result[] = ((settings?.proofStats ?? []) as any[])
+  .map((p) => {
+    const m = clean(p.stat).match(/^([$€£]?\d[\d.,]*\s*(?:%|k|K|x)?)\s*(.*)$/);
+    const study = p.href ? studyOfHref.get(clean(p.href)) : undefined;
+    if (!m || !study) return null;
+    return {
+      number: m[1].trim(),
+      what: `${m[2]}${clean(p.rest) ? ` ${clean(p.rest)}` : ''}`.trim().replace(/^./, (c) => c.toLowerCase()),
+      who: clean(study.title),
+      href: tileHref(study)!,
+      study,
+    };
+  })
+  .filter(Boolean) as Result[];
+results.forEach((res, k) => {
+  const set = idOf(res.study);
+  const left = k % 2 === 0;
+  moments.push({
+    id: `result-${k}`,
+    label: res.who,
+    tiles: [
+      {kind: 'text', id: `result-${k}`, set, d: {c: 5, r: 3, col: left ? 2 : 10, row: 2}, p: {c: 8, r: 4, row: 1}},
+      pic(res.study, set, pieceSpan(res.study, true)),
+      ...scatter(piecesOf(res.study), (it) => idOf(it))
+        .slice(0, 10)
+        .map((it) => pic(it, set, pieceSpan(it))),
+    ],
+  });
+});
+
+// 4. A way to get in touch.
+moments.push({
+  id: 'end',
+  label: 'Contact',
+  tiles: [
+    {kind: 'text', id: 'contact', d: {c: 6, r: 3, col: 6, row: 2}, p: {c: 8, r: 4, row: 2}},
+    ...closing.map((s) => pic(s, chateau ? idOf(chateau) : 'sketch', sketchSpan(s), true)),
+  ],
+});
+
+const chateauCard = chateau ? clusterCard(chateau) : null;
+const chateauCredits = chateau ? parseCreditLines(chateau.projectCredits).slice(0, 8) : [];
+const bioText =
+  settings?.bioText ||
+  'Chris Rumeau is a brand designer, illustrator, and typographer building visual identities rooted in heritage craft and hand-drawn precision.';
+const placed = (t: Tile) =>
+  t.kind === 'text'
+    ? `--c:${t.d.c};--r:${t.d.r};--col:${t.d.col};--row:${t.d.row};--pc:${t.p.c};--pr:${t.p.r};--prow:${t.p.row}`
+    : `--c:${t.d.c};--r:${t.d.r};--pc:${t.p.c};--pr:${t.p.r}`;
+---
+
+<Layout title="Moments - Rumeau Design Co" description="The homepage as moments on one grid." noindex>
+  <h1 class="visually-hidden">Rumeau Design Co</h1>
+  <div class="mo">
+    {moments.map((m) => (
+      <section class="mo-band" aria-label={m.label} data-band={m.id}>
+        {m.tiles.map((t) =>
+          t.kind === 'pic' ? (
+            <button
+              type="button"
+              class:list={['mo-tile', 'mo-pic', t.sketch && 'mo-pic--sketch', explicitTreatment(t.it) === 'mark' && 'mo-pic--air']}
+              style={placed(t)}
+              data-set={t.set}
+              data-href={t.sketch ? undefined : `/portfolio?view=all&open=${keyOf(t.it)}`}
+              aria-label={clean(t.it.title)}
+            >
+              <Img
+                image={tileImage(t.it)}
+                alt=""
+                width={t.sketch ? 700 : 1200}
+                sizes={`(min-width: 48rem) ${t.d.c * 90}px, ${t.p.c * 48}px`}
+                loading="lazy"
+                field={t.sketch ? 'Sketch (moments)' : 'Grid Thumbnail (moments)'}
+              />
+            </button>
+          ) : (
+            <div class:list={['mo-tile', 'mo-text', `mo-text--${t.id.replace(/-\d+$/, '')}`]} style={placed(t)} data-set={t.set}>
+              {t.id === 'intro' && (
+                <>
+                  <p class="mo-text__big">{bioText}</p>
+                  <a class="mo-go" href="/portfolio?view=all">
+                    All the work <span aria-hidden="true">&rarr;</span>
+                  </a>
+                </>
+              )}
+              {t.id === 'chateau-card' && chateauCard && (
+                <>
+                  {chateauCard.kicker && <p class="mo-kicker">{chateauCard.kicker}</p>}
+                  <h2 class="mo-title">{chateauCard.title}</h2>
+                  {chateauCard.client && <p class="mo-small">For {chateauCard.client}</p>}
+                  {chateauCard.line && <p class="mo-line">{chateauCard.line}</p>}
+                  <p class="mo-small">{chateauSketches.length} sketches, then the marks they became.</p>
+                  {chateauCredits.length > 0 && (
+                    <ul class="mo-credits">
+                      {chateauCredits.map((c) => (
+                        <li>
+                          {c.role && <span class="mo-credits__role">{c.role}</span>} {c.url ? <a href={c.url}>{c.name}</a> : c.name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <span class="mo-links">
+                    {tileHref(chateau) && (
+                      <a class="mo-go" href={tileHref(chateau)!}>
+                        The project <span aria-hidden="true">&rarr;</span>
+                      </a>
+                    )}
+                    <a class="mo-go" href={`/portfolio?view=all&open=${keyOf(chateau)}`}>
+                      In the portfolio <span aria-hidden="true">&rarr;</span>
+                    </a>
+                  </span>
+                </>
+              )}
+              {t.id.startsWith('result-') &&
+                (() => {
+                  const res = results[Number(t.id.split('-')[1])];
+                  return (
+                    <a class="mo-result" href={res.href}>
+                      <span class="mo-result__number">{res.number}</span>
+                      <span class="mo-result__what">{res.what}</span>
+                      <span class="mo-result__who">
+                        {res.who} <span aria-hidden="true">&rarr;</span>
+                      </span>
+                    </a>
+                  );
+                })()}
+              {t.id === 'contact' && (
+                <>
+                  {/* DRAFT words, Chris's to rewrite. */}
+                  <p class="mo-text__big">Something that needs drawing?</p>
+                  <a class="button" href={CONTACT_URL}>
+                    Let's work
+                  </a>
+                </>
+              )}
+            </div>
+          ),
+        )}
+      </section>
+    ))}
+  </div>
+</Layout>
+
+<script>
+  /*
+    A click freezes the moment: its set stays lit, the rest drops back.
+    The same click again, a click on a dropped-back tile's empty ground, or
+    Escape lets it go. A lit piece's second click opens it in the portfolio.
+  */
+  const bands = Array.from(document.querySelectorAll<HTMLElement>('.mo-band'));
+  let lit: {band: HTMLElement; set: string; tile: HTMLElement} | null = null;
+  const release = () => {
+    if (!lit) return;
+    lit.band.classList.remove('has-focus');
+    lit.band.querySelectorAll('.is-lit, .is-picked').forEach((el) => el.classList.remove('is-lit', 'is-picked'));
+    lit = null;
+  };
+  for (const band of bands) {
+    band.addEventListener('click', (e) => {
+      const tile = (e.target as HTMLElement).closest<HTMLElement>('.mo-pic');
+      if (!tile) return;
+      if (lit?.tile === tile) {
+        if (tile.dataset.href) location.href = tile.dataset.href;
+        else release();
+        return;
+      }
+      release();
+      const set = tile.dataset.set!;
+      band.classList.add('has-focus');
+      band.querySelectorAll<HTMLElement>(`[data-set="${CSS.escape(set)}"]`).forEach((el) => el.classList.add('is-lit'));
+      tile.classList.add('is-picked');
+      lit = {band, set, tile};
+    });
+  }
+  addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') release();
+  });
+</script>
+
+<!-- Styles: global.css, MOMENTS (PREVIEW). -->

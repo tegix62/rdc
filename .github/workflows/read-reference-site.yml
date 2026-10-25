@@ -30,6 +30,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      # Pictures answered with blanks of the same shape (scripts/lib/
+      # test-images-off.mjs): only the words and structure are read, and none
+      # of the site's pictures is downloaded at all.
+      - run: echo "NODE_OPTIONS=--import=$GITHUB_WORKSPACE/scripts/lib/test-images-off.mjs" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v4
         with:
           node-version: 22

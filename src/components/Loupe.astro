@@ -187,6 +187,16 @@ const web = hasScan ? webFrom(scan!.url!) : plainFrom(image);
   .loupe--shaped.loupe--fill {
     width: min(100%, calc((100svh - 15rem) * var(--loupe-a)));
   }
+  /*
+    Its shape held before the picture arrives. A picture without a scan
+    has no width and height to give the <img>, so it was 0px tall until it
+    loaded - and arriving at a piece by its address (Up close, from
+    Type/Lettering's "Look closer") landed hundreds of pixels off it as the
+    pictures above came in and pushed it down.
+  */
+  .loupe--shaped .loupe__img {
+    aspect-ratio: var(--loupe-a);
+  }
 
   .loupe--flat {
     box-shadow: none;

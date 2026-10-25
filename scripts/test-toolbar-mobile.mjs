@@ -76,12 +76,18 @@ const bar = await page.evaluate(() => {
     reported rows of 3, 1, 2, 1. The orphan check was reading a shape that
     did not exist on screen.
   */
+  /*
+    :not(.is-away) too: each view of the portfolio has its own arrange
+    controls in the one toolbar (All's Shuffle and +/- beside the grid's),
+    and only the shown view's are on screen. A hidden one measured as 0x0
+    on a row of its own.
+  */
   for (const el of root.querySelectorAll(
-    ':scope .pf-group:not(.pf-group--filters) > .pf-btn, :scope > .pf-btn',
+    ':scope .pf-group:not(.pf-group--filters):not(.is-away) > .pf-btn, :scope > .pf-btn',
   )) {
     controls.push({el, kind: 'arrange'})
   }
-  const zoom = root.querySelector('.pf-zoom')
+  const zoom = root.querySelector('.pf-group:not(.is-away) .pf-zoom')
   if (zoom) controls.push({el: zoom, kind: 'arrange'})
   const archive = root.querySelector('.view-switch')
   if (archive) controls.push({el: archive, kind: 'archive'})

@@ -1,0 +1,28 @@
+# Deletes one throwaway branch - the kind a diagnostic pushes pictures to
+# (shots, pictures, reference). By hand only, and never main.
+name: Delete a throwaway branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to delete (not main)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Delete
+        env:
+          BRANCH: ${{ inputs.branch }}
+        run: |
+          case "$BRANCH" in
+            main|master|''|claude/*) echo "Refusing to delete '$BRANCH'"; exit 1 ;;
+          esac
+          git push origin --delete "$BRANCH"

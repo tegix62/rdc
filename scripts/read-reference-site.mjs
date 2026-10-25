@@ -2,9 +2,9 @@
   Reads another designer's site for reference - what a portfolio in the
   field shows and says - from a runner, since the session cannot reach
   outside sites. Loads the start page and up to MAX of its own pages,
-  and for each writes a full-page picture (desktop) and prints its
-  headings, links and visible text, so the structure can be studied
-  without guessing at it.
+  and for each prints its headings, links and visible text, so the
+  structure can be studied without guessing at it. No pictures are taken
+  unless SHOTS is set, and the workflow never keeps them.
 
   READ-ONLY, a handful of pages, once.
 
@@ -87,7 +87,7 @@ while (queue.length && pages.length < MAX) {
   })
   const n = pages.length + 1
   const file = `${String(n).padStart(2, '0')}-${(new URL(url).pathname.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'home').slice(0, 60)}.png`
-  await page.screenshot({path: `${OUT}/${file}`, fullPage: true}).catch(() => {})
+  if (process.env.SHOTS) await page.screenshot({path: `${OUT}/${file}`, fullPage: true}).catch(() => {})
   pages.push({url, file, ...info, links: undefined})
   console.log(`\n=== ${n}. ${url} (${info.title}) - ${info.images} pictures -> ${file}`)
   console.log('NAV', JSON.stringify(info.nav))

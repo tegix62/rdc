@@ -1,5 +1,7 @@
-# Another designer's site, read for reference: pictures to the `reference`
-# branch, text to the log. See scripts/read-reference-site.mjs.
+# Another designer's site, read for reference: its structure and words to
+# the log, nothing kept. Pictures of someone else's work are not stored
+# anywhere (Chris: "don't keep anything in that regards if you don't have
+# to"). Honours the site's robots.txt. See scripts/read-reference-site.mjs.
 name: Read a reference site
 
 on:
@@ -20,7 +22,7 @@ on:
         default: false
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   read:
@@ -40,17 +42,3 @@ jobs:
           HINT_IN: ${{ inputs.hint }}
           ROBOTS_ONLY: ${{ inputs.robots_only && '1' || '' }}
         run: node scripts/read-reference-site.mjs "$URL_IN" /tmp/reference "$MAX_IN" "$HINT_IN" 2>&1 | tee /tmp/reference.txt
-      - name: Push the pictures to the reference branch
-        if: ${{ !inputs.robots_only }}
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git checkout --orphan reference
-          git rm -rfq .
-          cp /tmp/reference/* .
-          cp /tmp/reference.txt reference.txt
-          git add -- *.png pages.json reference.txt
-          git commit -qm "Reference: ${URL_IN}"
-          git push -f origin reference
-        env:
-          URL_IN: ${{ inputs.url }}

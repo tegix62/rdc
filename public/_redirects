@@ -38,12 +38,16 @@
 # alternate view of rather than on a 404.
 /catalog                             /portfolio     301
 
-# The portfolio's views, from their preview addresses to the ones they went
-# live at (Chris: "take the portfolio changes and push those live"), so a
-# link saved on the preview still arrives.
-/next/world/home    /portfolio/all        301
-/next/world/home/   /portfolio/all        301
-/next/type/home     /portfolio/type       301
-/next/type/home/    /portfolio/type       301
+# The portfolio's views, from the addresses they had as pages of their own
+# (and before that on the preview) to the one page they are views of now
+# (Chris: "I don't think the views need to be separate pages").
+/portfolio/all      /portfolio?view=all   301
+/portfolio/all/     /portfolio?view=all   301
+/portfolio/type     /portfolio?view=type  301
+/portfolio/type/    /portfolio?view=type  301
+/next/world/home    /portfolio?view=all   301
+/next/world/home/   /portfolio?view=all   301
+/next/type/home     /portfolio?view=type  301
+/next/type/home/    /portfolio?view=type  301
 /next/close/home    /portfolio/up-close   301
 /next/close/home/   /portfolio/up-close   301

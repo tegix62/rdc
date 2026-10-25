@@ -2,7 +2,7 @@
   Why does a project come apart on the world page? Chris: "I'm noticing the
   hug a mug stuff is all separated."
 
-  Loads /portfolio/all (Lands) on the preview with blank pictures, at a
+  Loads /portfolio?view=all (Lands) on the preview with blank pictures, at a
   phone and a desktop, and prints: for every piece whose title or project
   matches the term, its project, whether it is the project's own tile, what
   it is parented to, and where it landed; then, for every project, how many
@@ -21,7 +21,7 @@ for (const [name, w, h] of [
   ['desktop', 1440, 900],
 ]) {
   const page = await browser.newPage({viewport: {width: w, height: h}})
-  await page.goto(`${BASE}/portfolio/all?seed=4187`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.goto(`${BASE}/portfolio?view=all&seed=4187`, {waitUntil: 'domcontentloaded', timeout: 60_000})
   await page.waitForTimeout(2500)
   const out = await page.evaluate((term) => {
     const data = JSON.parse(document.getElementById('wd-data').textContent)

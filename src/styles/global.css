@@ -8204,7 +8204,7 @@ html.realsize-open {
 }
 
 /* ==========================================================================
-   WORLD - LANDS, THE ALL VIEW (/portfolio/all). See src/pages/portfolio/all.astro.
+   WORLD - LANDS, THE ALL VIEW (/portfolio?view=all). See src/components/portfolio/LandsView.astro.
    Here rather than in the page because the critical-CSS step prunes a
    page's inline styles to what the HTML holds at build time, and most of
    these are for classes the script adds.
@@ -8558,7 +8558,7 @@ a.pf-btn {
 }
 
 /* ==========================================================================
-   TYPE ROWS (/portfolio/type). See src/pages/portfolio/type.astro.
+   TYPE ROWS (/portfolio?view=type). See src/components/portfolio/TypeView.astro.
    A row per project: its name and block of type, then its pieces at one
    height, sideways. Chris: "a clean, sober take".
    ========================================================================== */
@@ -9080,4 +9080,11 @@ a.wd-pic {
   .hx-doors {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* The portfolio's views on one page (portfolio.astro, THE VIEWS, IN PLACE):
+   the views not shown, and their arrange controls. */
+.pf-pane.is-away,
+.pf-group.is-away {
+  display: none !important;
 }

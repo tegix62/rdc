@@ -1,7 +1,7 @@
 ---
 /*
-  TYPE/LETTERING - at /portfolio/type: the portfolio's fourth
-  view, back under its own name.
+  TYPE/LETTERING - the portfolio's Type/Lettering view, a pane of
+  /portfolio (?view=type), shown and hidden in place by its toolbar.
 
   Chris: keep the label - "pretend, okay, the person clicking on this is
   looking for this, but I'm actually showing them more" - and make it "the
@@ -20,11 +20,11 @@
   browser's back) leaves the rows as they were. "Look closer" still goes on
   to Up close, and without the script every piece is a plain link there.
 
-  Live since Chris: "take the portfolio changes and push those live".
-  noindex, as /catalog: the same work as /portfolio, which should rank.
+  Once its own page (/portfolio/type, now a redirect). Chris: "I don't
+  think the views need to be separate pages" - on the one page, a view is a
+  click away, not a page load.
 */
-import Layout from '../../layouts/Layout.astro';
-import Img from '../../components/Img.astro';
+import Img from '../Img.astro';
 import {getAllGridItems} from '../../lib/queries';
 import {tileImage, imageDimensions, imageUrl, buildSrcSet} from '../../lib/image';
 import {tileHref, cleanKey, explicitTreatment} from '../../lib/tiles';
@@ -86,19 +86,7 @@ const viewOf = (it: any) => {
 const H = {desktop: 300, phone: 200};
 ---
 
-<Layout title="Type/Lettering - Rumeau Design Co" description="The portfolio, a row per project." noindex>
-  {/* The page's heading, for screen readers and search, as on /portfolio. */}
-  <h1 class="visually-hidden">Portfolio: Type/Lettering</h1>
-  <div class="ty pf-section">
-    <div class="pf-controls">
-      <div class="pf-group pf-group--filters" role="group" aria-label="Views">
-        <a class="pf-btn" href="/portfolio/all">All</a>
-        <a class="pf-btn" href="/portfolio">Brand Identity</a>
-        <a class="pf-btn" href="/portfolio?view=merch">Merch &amp; Apparel</a>
-        <a class="pf-btn is-active" href="/portfolio/type" aria-current="page">Type/Lettering</a>
-      </div>
-    </div>
-
+<div class="ty pf-pane" data-pane="type">
     <ol class="ty-rows">
       {rows.map((row) => (
         <li class="ty-row" data-title={row.title} data-href={row.href ?? undefined}>
@@ -159,8 +147,7 @@ const H = {desktop: 300, phone: 200};
       <button type="button" class="ty-view__step ty-view__step--on" aria-label="Next piece">&rarr;</button>
       <button type="button" class="ty-view__x" aria-label="Close">&times;</button>
     </dialog>
-  </div>
-</Layout>
+</div>
 
 <script>
   /*
@@ -263,8 +250,10 @@ const H = {desktop: 300, phone: 200};
     on.addEventListener('click', () => by(1));
     strip.addEventListener('scroll', update, {passive: true});
     addEventListener('resize', update);
+    // Shown from hidden (the portfolio's toolbar): measured at last.
+    addEventListener('pf-pane', update);
     update();
   });
 </script>
 
-<!-- Styles: global.css, TYPE ROWS (PREVIEW). -->
+<!-- Styles: global.css, TYPE ROWS. -->

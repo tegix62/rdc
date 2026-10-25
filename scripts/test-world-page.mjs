@@ -1,6 +1,7 @@
 /*
-  The world page (/portfolio/all, preview) in a browser, with blank
-  pictures. For the lands, the page's one mode now (also sorted by colour), at a desktop and a phone:
+  The portfolio's views in a browser, with blank pictures - All (Lands,
+  /portfolio?view=all), Type/Lettering (?view=type) and Up close, and the
+  switching between them on the one page. For the lands, the page's one mode now (also sorted by colour), at a desktop and a phone:
   every piece shown, none overlapping; a piece opened is larger than it
   was and opens as on the main grid - the navy hairline frame, its project
   bar, its set lit round it and the rest dropped back, nothing moving; the
@@ -63,7 +64,7 @@ for (const [name, w, h] of [
     const page = await browser.newPage({viewport: {width: w, height: h}})
     const errors = []
     page.on('pageerror', (e) => errors.push(e.message))
-    await page.goto(`${BASE}/portfolio/all?mode=${mode}&seed=4187`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+    await page.goto(`${BASE}/portfolio?view=all&mode=${mode}&seed=4187`, {waitUntil: 'domcontentloaded', timeout: 60_000})
     await page.waitForTimeout(1500)
     const tag = `${name}, ${mode.replace('&sort=', ' by ')}`
     const rest = await state(page)
@@ -120,7 +121,7 @@ for (const [name, w, h] of [
     await page.goBack()
     await page.waitForTimeout(700)
     back = await state(page)
-    check(`${tag}: so does the browser's back, staying on the page`, !back.framed && back.dim === 0 && page.url().includes('/portfolio/all'), page.url())
+    check(`${tag}: so does the browser's back, staying on the page`, !back.framed && back.dim === 0 && page.url().includes('view=all'), page.url())
     check(`${tag}: no script errors`, errors.length === 0, errors.join(' | '))
     await page.close()
   }
@@ -140,7 +141,7 @@ for (const [name, w, h] of [
   const page = await browser.newPage({viewport: {width: w, height: h}})
   const errors = []
   page.on('pageerror', (e) => errors.push(e.message))
-  await page.goto(`${BASE}/portfolio/all`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.goto(`${BASE}/portfolio?view=all`, {waitUntil: 'domcontentloaded', timeout: 60_000})
   await page.waitForTimeout(1500)
   const shown = () => page.evaluate(() => Array.from(document.querySelectorAll('.wd-piece')).filter((t) => !t.hidden).map((t) => ({i: Number(t.dataset.i), w: t.getBoundingClientRect().width})))
   const cats = await page.evaluate(() => JSON.parse(document.getElementById('wd-data').textContent).pieces.map((p) => p.cat))
@@ -155,19 +156,42 @@ for (const [name, w, h] of [
     return wrong
   })
   check(`${name}: the Tab key meets them in the order they are seen`, order === 0, `${order} out of order`)
-  // The other categories are the portfolio's own views.
-  const merch = await page.locator('.pf-group--filters a', {hasText: 'Merch'}).getAttribute('href')
-  check(`${name}: Merch & Apparel goes to the portfolio's own merch view`, merch === '/portfolio?view=merch', merch ?? 'none')
-  const brand = await page.locator('.pf-group--filters a', {hasText: 'Brand Identity'}).getAttribute('href')
-  check(`${name}: Brand Identity goes to the portfolio's old All grid`, brand === '/portfolio', brand ?? 'none')
-  // And there, the portfolio's All comes back here.
-  const there = await browser.newPage({viewport: {width: w, height: h}})
-  await there.goto(`${BASE}${merch}`, {waitUntil: 'domcontentloaded', timeout: 60_000})
-  await there.waitForTimeout(1500)
-  await there.locator('.pf-group--filters a.pf-btn', {hasText: /^\s*All\s*$/}).click()
-  await there.waitForURL(/\/next\/world\//, {timeout: 15_000}).catch(() => {})
-  check(`${name}: from there, All comes back to Lands`, there.url().includes('/portfolio/all'), there.url())
-  await there.close()
+  /*
+    ONE PAGE, EVERY VIEW (Chris: "I don't think the views need to be
+    separate pages"): each button shows its view in place - the same
+    document throughout, the address naming the view - and All comes back
+    laid out whole.
+  */
+  await page.evaluate(() => (window.__samePage = true))
+  const paneNow = () =>
+    page.evaluate(() => ({
+      same: window.__samePage === true,
+      view: new URL(location.href).searchParams.get('view'),
+      grid: !document.querySelector('#pf-grid').classList.contains('is-away'),
+      all: !document.querySelector('.pf-pane[data-pane="all"]').classList.contains('is-away'),
+      type: !document.querySelector('.pf-pane[data-pane="type"]').classList.contains('is-away'),
+      active: Array.from(document.querySelectorAll('.pf-group--filters .pf-btn.is-active')).map((b) => b.textContent.trim()),
+      tiles: Array.from(document.querySelectorAll('#pf-grid .pf-item')).filter((t) => t.offsetParent && t.getBoundingClientRect().width > 20).length,
+    }))
+  await page.locator('.pf-group--filters .pf-btn', {hasText: 'Merch'}).click()
+  await page.waitForTimeout(900)
+  let v = await paneNow()
+  check(`${name}: Merch & Apparel shows in place`, v.same && v.view === 'merch' && v.grid && !v.all && !v.type && v.tiles > 0 && v.active.join() === 'Merch & Apparel', JSON.stringify(v))
+  await page.locator('.pf-group--filters .pf-btn', {hasText: 'Type/Lettering'}).click()
+  await page.waitForTimeout(600)
+  v = await paneNow()
+  check(`${name}: Type/Lettering shows in place`, v.same && v.view === 'type' && v.type && !v.grid && !v.all && v.active.join() === 'Type/Lettering', JSON.stringify(v))
+  await page.locator('.pf-group--filters .pf-btn', {hasText: 'Brand Identity'}).click()
+  await page.waitForTimeout(900)
+  v = await paneNow()
+  check(`${name}: Brand Identity shows the old All grid in place`, v.same && v.view === null && v.grid && !v.type && v.tiles > 10 && v.active.join() === 'Brand Identity', JSON.stringify(v))
+  await page.locator('.pf-group--filters .pf-btn', {hasText: /^\s*All\s*$/}).click()
+  await page.waitForTimeout(800)
+  v = await paneNow()
+  const back = await shown()
+  check(`${name}: All comes back in place, laid out whole`, v.same && v.view === 'all' && v.all && !v.grid && back.length === allShown.length && back.every((t) => t.w > 10), `${JSON.stringify(v)} ${back.length} pieces`)
+  const arrangeShown = await page.evaluate(() => Array.from(document.querySelectorAll('.pf-group--arrange')).filter((g) => getComputedStyle(g).display !== 'none').map((g) => g.dataset.for))
+  check(`${name}: one set of arrange controls, All's own`, arrangeShown.join() === 'all', arrangeShown.join())
   const before = await shown()
   const mean = (a) => a.reduce((x, t) => x + t.w, 0) / a.length
   await page.click('[data-zoom="1"]')
@@ -244,16 +268,16 @@ for (const [name, w, h] of [
   })
   check(`${name}, index: a row opens its piece in Up close`, /\/portfolio\/up-close\/?#/.test(page.url()) && landed !== null && landed < 200, `${page.url()} at ${landed}px`)
   } else console.log(`skip  ${name}, index: not on this site (preview only)`)
-  for (const path of ['/portfolio/all', '/portfolio', '/portfolio/up-close', ...(indexHere ? ['/next/index/home'] : [])]) {
+  for (const path of ['/portfolio?view=all', '/portfolio', '/portfolio/up-close', ...(indexHere ? ['/next/index/home'] : [])]) {
     await page.goto(`${BASE}${path}`, {waitUntil: 'domcontentloaded', timeout: 60_000})
-    const bar = await page.evaluate(() => Array.from(document.querySelectorAll('.pf-group--filters .pf-btn')).map((b) => [b.textContent.trim(), b.getAttribute('href')]))
-    check(`${name}, ${path}: Type/Lettering in the toolbar, to the rows`, bar.some(([t, h]) => t === 'Type/Lettering' && h === '/portfolio/type') && !bar.some(([t]) => t === 'Up close'), bar.map(([t]) => t).join(' | '))
+    const bar = await page.evaluate(() => Array.from(document.querySelectorAll('.pf-group--filters .pf-btn')).map((b) => [b.textContent.trim(), b.getAttribute('href'), b.dataset.pane]))
+    check(`${name}, ${path}: Type/Lettering in the toolbar, to the rows`, bar.some(([t, h, pane]) => t === 'Type/Lettering' && (h === '/portfolio?view=type' || pane === 'type')) && !bar.some(([t]) => t === 'Up close'), bar.map(([t]) => t).join(' | '))
   }
 
   // Type/Lettering: a row per project, each named, its pieces at one
   // height, sideways inside the row and never the page; a piece opens in
   // Up close.
-  await page.goto(`${BASE}/portfolio/type`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.goto(`${BASE}/portfolio?view=type`, {waitUntil: 'domcontentloaded', timeout: 60_000})
   await page.waitForTimeout(1200)
   const ty = await page.evaluate(() => {
     const rows = Array.from(document.querySelectorAll('.ty-row'))
@@ -322,7 +346,7 @@ for (const [name, w, h] of [
   check(`${name}, type rows: Look closer goes on to Up close`, /\/portfolio\/up-close\/?#/.test(page.url()) && tyLanded !== null && tyLanded < 200, `${page.url()} at ${tyLanded}px`)
   await page.goBack()
   await page.waitForTimeout(1200)
-  check(`${name}, type rows: and back again returns to the rows`, page.url().includes('/portfolio/type'), page.url())
+  check(`${name}, type rows: and back again returns to the rows`, page.url().includes('view=type'), page.url())
   check(`${name}, the views: no script errors`, errors.length === 0, errors.join(' | '))
   await page.close()
 }
@@ -358,7 +382,7 @@ for (const [name, w, h] of [
       tiles: tiles.length,
       all: document.querySelectorAll('.hx-world .wd-piece').length,
       overlap,
-      doors: tiles.filter((t) => /\/portfolio\/all\?open=/.test(t.querySelector('a.wd-pic')?.getAttribute('href') ?? '')).length,
+      doors: tiles.filter((t) => /\/portfolio\?view=all&open=/.test(t.querySelector('a.wd-pic')?.getAttribute('href') ?? '')).length,
       fieldTop: Math.round(field.top),
       rows: document.querySelectorAll('.hx-row').length,
       numbered: Array.from(document.querySelectorAll('.hx-row__number')).filter((n) => /\d/.test(n.textContent)).length,
@@ -375,7 +399,7 @@ for (const [name, w, h] of [
   await page.locator('.hx-world a.wd-pic').first().click()
   // The address gains its trailing slash on the way (a redirect), so wait
   // for the page that stays, then for it to open.
-  await page.waitForURL(/\/portfolio\/all\/\?/, {timeout: 15_000})
+  await page.waitForURL(/\/portfolio\/?\?/, {timeout: 15_000})
   await page.waitForLoadState('load')
   await page.waitForFunction(() => document.querySelector('.wd-piece.is-open'), null, {timeout: 10_000}).catch(() => {})
   const opened = await page.evaluate(() => ({
@@ -384,7 +408,7 @@ for (const [name, w, h] of [
     focus: document.querySelector('.wd-world')?.classList.contains('has-focus'),
     pieces: document.querySelectorAll('.wd-piece').length,
   }))
-  check(`${name}, homepage: a piece opens the portfolio at it`, /\/portfolio\/all\/?\?.*open=/.test(opened.url) && opened.open, JSON.stringify(opened))
+  check(`${name}, homepage: a piece opens the portfolio at it`, /\/portfolio\/?\?.*view=all.*open=|\/portfolio\/?\?.*open=.*view=all/.test(opened.url) && opened.open, JSON.stringify(opened))
   check(`${name}, homepage: no script errors`, errors.length === 0, errors.join(' | '))
   await page.close()
 }

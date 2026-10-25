@@ -166,9 +166,9 @@ const navLinks = [
   // All now Brand Identity, Lands will be All").
   {
     label: 'Portfolio',
-    href: '/portfolio/all',
+    href: '/portfolio?view=all',
     // Every view of the portfolio is the Portfolio page, for the marker.
-    also: ['/portfolio', '/portfolio/all', '/portfolio/type', '/portfolio/up-close', ...(IS_PREVIEW ? ['/next/index/home'] : [])],
+    also: ['/portfolio', '/portfolio/up-close', ...(IS_PREVIEW ? ['/next/index/home'] : [])],
   },
   { label: 'About', href: '/about', also: [] as string[] },
   { label: 'Video', href: '/video', also: [] as string[] },

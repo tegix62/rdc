@@ -325,10 +325,10 @@ check('every page has the skip target', noSkipTarget.length === 0, report(noSkip
 */
 const IS_PREVIEW = process.env.PUBLIC_IS_PREVIEW === 'true'
 const INTERNAL = new Set(['/style-guide'])
-// The portfolio's other views: the same work as /portfolio, arranged
-// differently, so deliberately noindex - /portfolio is the page that should
-// rank (as /catalog was; scripts/check-production-build.mjs, NOINDEX_ALLOWED).
-const VIEWS = new Set(['/portfolio/all', '/portfolio/type', '/portfolio/up-close'])
+// Up close: the same work as /portfolio, one piece at a time, so
+// deliberately noindex - /portfolio is the page that should rank (as
+// /catalog was; scripts/check-production-build.mjs, NOINDEX_ALLOWED).
+const VIEWS = new Set(['/portfolio/up-close'])
 const indexable = docs.filter((d) => !/noindex/i.test(d.robots ?? ''))
 
 if (IS_PREVIEW) {

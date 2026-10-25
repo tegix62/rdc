@@ -1,6 +1,7 @@
 ---
 /*
-  A WORLD OF WORK - the portfolio's All view, at /portfolio/all. See src/lib/world.ts
+  A WORLD OF WORK - the portfolio's All view, a pane of /portfolio
+  (?view=all), shown and hidden in place by its toolbar. See src/lib/world.ts
   for the rules of the layout.
 
   LANDS, the page's one mode: the height map's tight fill and sizes, with
@@ -38,14 +39,13 @@
   biomes without their tint): the height map and the biomes themselves;
   and By colour ("feels like a gimmick right now").
 
-  Live since Chris: "take the portfolio changes and push those live".
-  noindex, as /catalog: the same work as /portfolio, which is the page
-  that should rank (scripts/check-production-build.mjs). Most styles
+  Once its own page (/portfolio/all, now a redirect). Chris: "I don't
+  think the views need to be separate pages". Its Shuffle and +/- are in
+  the portfolio's toolbar (data-roll, data-zoom). Most styles
   are in global.css (WORLD, PREVIEW): they are for classes the script adds,
   which the critical-CSS step prunes from a page's own styles.
 */
-import Layout from '../../layouts/Layout.astro';
-import Img from '../../components/Img.astro';
+import Img from '../Img.astro';
 import {getAllGridItems} from '../../lib/queries';
 import {tileImage, imageDimensions} from '../../lib/image';
 import {treatmentOf, explicitTreatment, tileHref, cleanKey, merchPlacement} from '../../lib/tiles';
@@ -145,38 +145,7 @@ const pieces = all.map((it, i) => {
 const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name}))};
 ---
 
-<Layout title="World - Rumeau Design Co" description="The portfolio as a generated world." noindex>
-  {/* The portfolio's own section, so the toolbar and the page's edges match it exactly. */}
-  {/* The page's heading, for screen readers and search, as on /portfolio. */}
-  <h1 class="visually-hidden">Portfolio</h1>
-  <div class="wd pf-section">
-    {/* The portfolio's own toolbar markup, so it gets the same layout - its phone grid included. */}
-    <div class="pf-controls">
-      <div class="pf-group pf-group--filters" role="group" aria-label="Filter by category">
-        <button type="button" class="pf-btn is-active" data-filter="*">All</button>
-        {/*
-          The other categories are the portfolio's own views, each its own
-          design (the merch grid, the type cluster) - Chris: "this messed up
-          all the other filters/categories" when they were smaller worlds
-          here. Lands is All; Brand Identity is the portfolio's old All grid,
-          everything in it ("Make OLD version of All now Brand Identity").
-        */}
-        {FILTERS.filter((f) => f.name !== 'type').map((f) => (
-          <a class="pf-btn" href={f.name === 'brand' ? '/portfolio' : `/portfolio?view=${f.name}`}>
-            {f.label}
-          </a>
-        ))}
-        {/* Type/Lettering: a row per project (portfolio/type.astro). */}
-        <a class="pf-btn" href="/portfolio/type">Type/Lettering</a>
-      </div>
-      <div class="pf-group pf-group--arrange" role="group" aria-label="Arrange">
-        <button type="button" class="pf-btn pf-btn--span" data-roll>Shuffle</button>
-        <span class="pf-zoom">
-          <button type="button" class="pf-btn" data-zoom="-1" aria-label="Smaller tiles">&minus;</button>
-          <button type="button" class="pf-btn" data-zoom="1" aria-label="Larger tiles">+</button>
-        </span>
-      </div>
-    </div>
+<div class="wd pf-pane" data-pane="all">
     <div class="wd-world">
       {all.map((it, i) => {
         const href = tileHref(it);
@@ -231,9 +200,8 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
         </a>
       ))}
     </div>
-  </div>
   <script type="application/json" id="wd-data" set:html={JSON.stringify(data)} />
-</Layout>
+</div>
 
 <script>
   import {generateWorld, setsOf, type WorldMode, type WorldPiece, type WorldResult} from '../../lib/world';
@@ -252,9 +220,10 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   let seed = Number(q.get('seed')) || 4187;
   // Simple is the default; ?v=rules is the version with the stiffer rules, to compare (lib/world.ts, SIMPLE).
   const simple = q.get('v') !== 'rules';
-  // Lands is the All view; a link naming another view goes to the portfolio's own.
-  const asked = data.filters.find((f) => f.name === q.get('view'));
-  if (asked) location.replace(asked.name === 'brand' ? '/portfolio' : asked.name === 'type' ? '/portfolio/type' : `/portfolio?view=${asked.name}`);
+  // Shown, or kept out of sight while another view of the portfolio is (see
+  // the pane controller in portfolio.astro): its address is only its own
+  // while it is the one shown.
+  const shown = () => document.documentElement.dataset.pfPane === 'all';
   let focus: number | null = null;
   let focusRow = 0;
   let pushed = false;
@@ -387,6 +356,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     one history entry is the one opening adds, so Back closes a piece.
   */
   const writeLink = () => {
+    if (!shown()) return;
     const url = new URL(location.href);
     const set = (k: string, v: string | null) => (v ? url.searchParams.set(k, v) : url.searchParams.delete(k));
     set('open', focus === null ? null : keyOf(focus));
@@ -445,7 +415,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   );
 
   // Arriving on a shared link: the view at once, the piece opened in it.
-  const arrive = q.get('open');
+  const arrive = shown() ? q.get('open') : null;
   const arriving = arrive ? data.pieces.findIndex((p) => p.slug === arrive || p.id === arrive) : -1;
   draw();
   if (arriving >= 0) open(arriving, false);

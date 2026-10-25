@@ -50,9 +50,9 @@ const JSON_OUT = arg('json', '')
   of identical content, which is the situation a canonical exists to prevent,
   and the grid is the one that should rank.
 */
-// The portfolio's other views (/portfolio/all, /type, /up-close) are the same
-// work again, arranged differently: out for the same reason as /catalog.
-const NOT_IN_SITEMAP = new Set(['/404', '/style-guide', '/image-license-info', '/catalog', '/portfolio/all', '/portfolio/type', '/portfolio/up-close'])
+// Up close is the same work again, one piece at a time: out for the same
+// reason as /catalog.
+const NOT_IN_SITEMAP = new Set(['/404', '/style-guide', '/image-license-info', '/catalog', '/portfolio/up-close'])
 
 /*
   Every route that must be in a production sitemap. If a build quietly reverts
@@ -204,7 +204,7 @@ for (const file of htmlFiles) {
     the count check below still catches the flags-left-on case, because that
     would noindex all 21 pages rather than these two.
   */
-  const NOINDEX_ALLOWED = new Set(['/style-guide', '/catalog', '/portfolio/all', '/portfolio/type', '/portfolio/up-close'])
+  const NOINDEX_ALLOWED = new Set(['/style-guide', '/catalog', '/portfolio/up-close'])
   if (/<meta[^>]+name=["']robots["'][^>]*noindex/i.test(html) && !NOINDEX_ALLOWED.has(route)) {
     fail('noindex', `${route} tells crawlers not to index it`)
   }
@@ -429,7 +429,8 @@ if (existsSync(redirectsPath)) {
     // A wildcard or a placeholder cannot be resolved against a file list.
     if (to.includes(':') || to.includes('*') || /^https?:/.test(to)) continue
 
-    const target = to.replace(/(.)\/$/, '$1')
+    // A query names a view of the page (/portfolio?view=all); the page is what must exist.
+    const target = to.replace(/[?#].*$/, '').replace(/(.)\/$/, '$1')
     if (!built.has(target)) {
       fail('redirects', `${from} -> ${target}, which does not exist`)
     }

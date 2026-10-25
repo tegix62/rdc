@@ -13,6 +13,8 @@ import { orderTiles, isCaseStudy } from '../lib/gridOrder';
 import { tileImage } from '../lib/image';
 import { clusterCard } from '../lib/clusterCard';
 import { museumLabel, CREDITS_SHOWN } from '../lib/museumLabel';
+import LandsView from '../components/portfolio/LandsView.astro';
+import TypeView from '../components/portfolio/TypeView.astro';
 
 const page = await getPage('portfolio');
 const allItems = await getAllGridItems();
@@ -105,28 +107,32 @@ for (const item of items) {
   that. Buttons are hidden when empty and the gap is logged instead, so it stays
   visible as a content task rather than disappearing silently.
 */
-const filters: { value: string; label: string; href?: string }[] = [
+const filters: { value: string; label: string; href?: string; pane?: string }[] = [
   { value: '*', label: 'All' },
   ...ALL_FILTERS.filter((f) => (counts.get(f.value.replace('.', '')) ?? 0) > 0),
 ];
 /*
   LANDS IS ALL. Chris: "Make OLD version of All now Brand Identity, Lands
   will be All" - and Brand Identity shows everything, in this grid, as All
-  did. So All is a link to the world page (Lands, portfolio/all.astro), the
-  everything-view this page has always opened on is named Brand Identity,
-  and the brand-only filter goes. Shipped from the preview (Chris: "take
-  the portfolio changes and push those live"); this page keeps its address,
-  so every link to /portfolio still arrives.
+  did. So All is Lands, the everything-view this page has always opened on
+  is named Brand Identity, and the brand-only filter goes.
+
+  ONE PAGE, EVERY VIEW. Chris: "I don't think the views need to be
+  separate pages". All (Lands, components/portfolio/LandsView.astro) and
+  Type/Lettering (TypeView.astro) are panes of this page beside the grid,
+  which is Brand Identity and Merch; the toolbar shows one and hides the
+  rest, in place - no page to load. ?view=all and ?view=type name them;
+  /portfolio on its own is still Brand Identity, so every link to it, and
+  every test written against it, arrives where it did.
 */
 {
-  // And Type/Lettering is its own page: a row per project (portfolio/type.astro).
   filters.splice(
     0,
     filters.length,
-    { value: 'world', label: 'All', href: '/portfolio/all' },
+    { value: 'world', label: 'All', pane: 'all' },
     { value: '*', label: 'Brand Identity' },
     ...filters.slice(1).filter((f) => f.value !== '.brand-identity' && f.value !== '.type-lettering'),
-    { value: 'type', label: 'Type/Lettering', href: '/portfolio/type' },
+    { value: 'type', label: 'Type/Lettering', pane: 'type' },
   );
 }
 
@@ -245,7 +251,11 @@ if (emptyFilters.length > 0) {
     <div class="pf-controls" id="pf-controls">
       <div class="pf-group pf-group--filters" role="group" aria-label="Filter by category">
         {filters.map((f) =>
-          f.href ? (
+          f.pane ? (
+            <button type="button" class="pf-btn" data-pane={f.pane}>
+              {f.label}
+            </button>
+          ) : f.href ? (
             <a class="pf-btn" href={f.href}>
               {f.label}
             </a>
@@ -267,7 +277,7 @@ if (emptyFilters.length > 0) {
         whose selector counted the filters as a tools group. A modifier
         costs one word and makes the rule say what it means.
       */}
-      <div class="pf-group pf-group--arrange" role="group" aria-label="Arrange">
+      <div class="pf-group pf-group--arrange" role="group" aria-label="Arrange" data-for="grid">
         {/*
           Spans both phone columns. The Gather toggle it used to sit beside
           is gone, and so is the build-time flag that rendered it, so this
@@ -286,6 +296,15 @@ if (emptyFilters.length > 0) {
         <span class="pf-zoom">
           <button type="button" class="pf-btn" id="pf-minus" aria-label="Smaller tiles">&minus;</button>
           <button type="button" class="pf-btn" id="pf-plus" aria-label="Larger tiles">+</button>
+        </span>
+      </div>
+
+      {/* All's own: a new world, and its tile size (LandsView's script). */}
+      <div class="pf-group pf-group--arrange" role="group" aria-label="Arrange" data-for="all">
+        <button type="button" class="pf-btn pf-btn--span" data-roll>Shuffle</button>
+        <span class="pf-zoom">
+          <button type="button" class="pf-btn" data-zoom="-1" aria-label="Smaller tiles">&minus;</button>
+          <button type="button" class="pf-btn" data-zoom="1" aria-label="Larger tiles">+</button>
         </span>
       </div>
 
@@ -349,7 +368,7 @@ if (emptyFilters.length > 0) {
         - a timeout removes it regardless, so if Isotope fails to load the
           tiles come back in float order instead of staying invisible.
     */}
-    <div class:list={['pf-grid', MUSEUM_LABELS && 'has-labels', WALL && 'is-wall', PASTE_UP && 'is-paste', GLIDE && 'is-glide']} id="pf-grid" data-type-cluster={TYPE_CLUSTER ? '' : undefined}>
+    <div class:list={['pf-grid', 'pf-pane', MUSEUM_LABELS && 'has-labels', WALL && 'is-wall', PASTE_UP && 'is-paste', GLIDE && 'is-glide']} id="pf-grid" data-type-cluster={TYPE_CLUSTER ? '' : undefined}>
       {items.map((item: any, i: number) => {
         // tileImage, not `thumbnail || mainImage`: an empty Grid Thumbnail is
         // truthy and used to swallow the real picture. See lib/image.ts.
@@ -578,6 +597,33 @@ if (emptyFilters.length > 0) {
     </script>
 
     {items.length === 0 && <p>No items found.</p>}
+
+    <LandsView />
+    <TypeView />
+
+    {/*
+      Which view is shown, decided as the page is parsed - before anything
+      paints and before any view's script runs, so each can ask
+      (data-pf-pane on <html>) whether it is the one in sight.
+    */}
+    <script is:inline>
+      (function () {
+        var v = new URLSearchParams(location.search).get('view');
+        var pane = v === 'all' || v === 'type' ? v : 'grid';
+        document.documentElement.dataset.pfPane = pane;
+        document.querySelectorAll('.pf-pane').forEach(function (el) {
+          el.classList.toggle('is-away', (el.dataset.pane || 'grid') !== pane);
+        });
+        document.querySelectorAll('.pf-group--arrange').forEach(function (el) {
+          el.classList.toggle('is-away', el.dataset.for !== pane);
+        });
+        if (pane !== 'grid') {
+          document.querySelectorAll('.pf-btn[data-filter]').forEach(function (b) { b.classList.remove('is-active'); });
+          var btn = document.querySelector('.pf-btn[data-pane="' + pane + '"]');
+          if (btn) btn.classList.add('is-active');
+        }
+      })();
+    </script>
   </section>
 
   {page?.sections?.length > 0 && (
@@ -4493,6 +4539,8 @@ if (emptyFilters.length > 0) {
     const keyOf = (el: HTMLElement) => el.dataset.slug || el.dataset.piece || null;
 
     const writeLink = () => {
+      // The address is the grid's only while the grid is the view shown.
+      if ((document.documentElement.dataset.pfPane ?? 'grid') !== 'grid') return;
       const url = new URL(window.location.href);
       const active = Array.from(document.querySelectorAll<HTMLElement>('.pf-btn[data-filter].is-active'))
         .map((b) => b.dataset.filter!)
@@ -4528,14 +4576,17 @@ if (emptyFilters.length > 0) {
     const ARRIVE = new URLSearchParams(window.location.search);
     const ARRIVE_VIEW = ARRIVE.get('view');
     const ARRIVE_OPEN = ARRIVE.get('open');
-    if (ARRIVE_VIEW) {
+    // ?view=all or ?view=type is another pane of this page (see THE VIEWS,
+    // IN PLACE): its link is that view's to replay, not the grid's.
+    const ON_GRID = (document.documentElement.dataset.pfPane ?? 'grid') === 'grid';
+    if (ON_GRID && ARRIVE_VIEW) {
       for (const name of ARRIVE_VIEW.split(',')) {
         const f = filterNamed(name.trim());
         const btn = f ? document.querySelector<HTMLElement>(`.pf-btn[data-filter="${f}"]`) : null;
         if (btn && !btn.classList.contains('is-active')) btn.click();
       }
     }
-    if (ARRIVE_OPEN && !PROJECT) {
+    if (ON_GRID && ARRIVE_OPEN && !PROJECT) {
       window.setTimeout(() => {
         const all = Array.from(grid.querySelectorAll<HTMLElement>('.pf-item'));
         const shown = (el: HTMLElement) => el.style.display !== 'none';
@@ -4969,4 +5020,61 @@ if (emptyFilters.length > 0) {
       );
     });
   });
+</script>
+
+<script>
+  /*
+    THE VIEWS, IN PLACE. Chris: "I don't think the views need to be separate
+    pages". All (Lands) and Type/Lettering are panes of this page beside the
+    grid (Brand Identity, Merch); the toolbar shows one and hides the
+    others - display:none, so a hidden view's pictures wait unloaded - and
+    the address names the one shown (?view=all, ?view=type; none for the
+    grid, which writes its own). In place (replaceState): Back leaves the
+    portfolio, as it always has.
+
+    Each view re-measures itself when shown: the grid's and Lands' resize
+    observers hear their width arrive, and Type/Lettering's row arrows
+    listen for 'pf-pane'.
+  */
+  const root = document.documentElement;
+  const paneOf = () => root.dataset.pfPane ?? 'grid';
+  let switching = false;
+
+  function showPane(pane: string) {
+    const was = paneOf();
+    if (pane === was) return;
+    // Leaving the grid, it is put back at rest - Brand Identity, nothing
+    // open - so coming back to it by any button starts clean.
+    if (was === 'grid') {
+      switching = true;
+      document.querySelector<HTMLElement>('.pf-btn[data-filter="*"]')?.click();
+      switching = false;
+    }
+    root.dataset.pfPane = pane;
+    document.querySelectorAll<HTMLElement>('.pf-pane').forEach((el) => el.classList.toggle('is-away', (el.dataset.pane ?? 'grid') !== pane));
+    document.querySelectorAll<HTMLElement>('.pf-group--arrange').forEach((el) => el.classList.toggle('is-away', el.dataset.for !== pane));
+    document.querySelectorAll<HTMLElement>('.pf-btn[data-pane]').forEach((b) => b.classList.toggle('is-active', b.dataset.pane === pane));
+    if (pane !== 'grid') document.querySelectorAll('.pf-btn[data-filter]').forEach((b) => b.classList.remove('is-active'));
+    const url = new URL(location.href);
+    if (pane === 'grid') url.searchParams.delete('view');
+    else url.searchParams.set('view', pane);
+    // The view left takes its own words out of the address with it.
+    if (was === 'all') ['seed', 'open', 'mode', 'v'].forEach((k) => url.searchParams.delete(k));
+    if (was === 'grid') ['open', 'project'].forEach((k) => url.searchParams.delete(k));
+    if (url.href !== location.href) history.replaceState(history.state, '', url);
+    dispatchEvent(new Event('pf-pane'));
+  }
+
+  document.querySelectorAll<HTMLElement>('.pf-btn[data-pane]').forEach((b) => b.addEventListener('click', () => showPane(b.dataset.pane!)));
+  // A grid button (Brand Identity, Merch) brings the grid back first; its
+  // own handler then does what it always did.
+  document.querySelectorAll<HTMLElement>('.pf-btn[data-filter]').forEach((b) =>
+    b.addEventListener(
+      'click',
+      () => {
+        if (!switching && paneOf() !== 'grid') showPane('grid');
+      },
+      {capture: true},
+    ),
+  );
 </script>

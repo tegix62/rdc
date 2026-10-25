@@ -9112,9 +9112,6 @@ a.wd-pic {
   grid-auto-flow: dense;
   gap: var(--gap);
   padding: var(--space-4) 0;
-  /* A moment off screen is not drawn until it nears. */
-  content-visibility: auto;
-  contain-intrinsic-size: auto 900px;
 }
 .mo-tile {
   grid-column: span var(--c);

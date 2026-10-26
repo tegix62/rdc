@@ -161,9 +161,17 @@ const chateauSketches = scatter(
   sketches.filter((s) => chateau && cleanKey(s.project ?? '') === idOf(chateau)),
   (s) => idOf(s),
 );
-const opening = chateauSketches.slice(0, 26);
-const own = chateauSketches.slice(26, 86);
-const closing = chateauSketches.slice(86);
+/*
+  ONE SECTION, FOR NOW. Chris: "just work on one section. Don't spread the
+  sketches across two sections. just one." So the page is Chateau Seven's
+  moment alone, every one of its sketches in its one cluster; the other
+  moments below are kept, switched off (ONLY), to come back once this one
+  is right.
+*/
+const ONLY = 'chateau';
+const opening: any[] = [];
+const own = chateauSketches;
+const closing: any[] = [];
 
 const moments: Moment[] = [];
 
@@ -242,6 +250,7 @@ moments.push({
   ],
 });
 
+const shown = moments.filter((m) => !ONLY || m.id === ONLY);
 const chateauCard = chateau ? clusterCard(chateau) : null;
 const chateauCredits = chateau ? parseCreditLines(chateau.projectCredits) : [];
 const bioText =
@@ -256,7 +265,7 @@ const vars = (s: Spans) =>
 <Layout title="Moments - Rumeau Design Co" description="The homepage as moments on one grid." noindex>
   <h1 class="visually-hidden">Rumeau Design Co</h1>
   <div class="mo">
-    {moments.map((m) => (
+    {shown.map((m) => (
       <section class="mo-band" aria-label={m.label} data-band={m.id}>
         {m.tiles.map((t) => {
           if (t.kind === 'cluster')

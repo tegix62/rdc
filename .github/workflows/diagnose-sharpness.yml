@@ -1,0 +1,31 @@
+# Are the pictures sharp? See scripts/diagnose-sharpness.mjs.
+# By hand only. The browser gets blank pictures of the right size (enough
+# to measure); a few real files are fetched once for their format.
+name: Diagnose sharpness
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to measure'
+        default: 'https://rumeaudesign.co'
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "NODE_OPTIONS=--import=$GITHUB_WORKSPACE/scripts/lib/test-images-off.mjs" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - name: Measure
+        env:
+          BASE: ${{ inputs.base_url }}
+        run: |
+          set -o pipefail
+          node scripts/diagnose-sharpness.mjs "$BASE" 2>&1 | tee sharp.txt
+          { echo '## Sharpness'; echo '```'; cat sharp.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

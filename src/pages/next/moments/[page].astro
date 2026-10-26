@@ -100,21 +100,27 @@ const aspectOf = (it: any) => {
   return d.width / d.height;
 };
 const grow = (s: Span, k: number, maxC: number): Span => ({c: Math.min(maxC, Math.round(s.c * k)), r: Math.round(s.r * k)});
-const pieceSpans = (it: any, lead = false): Spans => {
-  const a = aspectOf(it);
-  const d = spanFor(a, lead ? 12 : 5, lead ? 5 : 4);
-  const p = spanFor(a, lead ? 16 : 6, lead ? 8 : 4);
-  return {d, od: spanFor(a, (d.c * d.r) * 2.6, 8), p, op: spanFor(a, (p.c * p.r) * 2.2, 8)};
-};
-// Sketches, in their cluster: a cell or two each - the scans are small
-// (most about 330px across) - and twice that open.
+/*
+  Pieces as even squares, each picture whole inside its square. Chris, of
+  the second mock: "this is way messier" - the spread of sizes was most of
+  it. The project's own tile a size up; open, a size up again.
+*/
+const pieceSpans = (_it: any, lead = false): Spans =>
+  lead ? {d: {c: 4, r: 4}, od: {c: 6, r: 6}, p: {c: 8, r: 8}, op: {c: 8, r: 8}} : {d: {c: 2, r: 2}, od: {c: 4, r: 4}, p: {c: 4, r: 4}, op: {c: 8, r: 8}};
+/*
+  Sketches, in their cluster, on a grid twice as fine as the page's - two
+  of its cells to a page column, its lines landing on the page's every
+  other one. Chris: "the sketch tiles are too large". A fine cell each, two
+  for a wide or a tall one or a big scan; open, a few times that. On a
+  phone the cluster keeps the page's own cells, which are already half the
+  width.
+*/
 const sketchSpans = (it: any): Spans => {
   const a = aspectOf(it);
   const dim = imageDimensions(tileImage(it))!;
   const big = Math.max(dim.width, dim.height) >= 600;
   const d: Span = big ? {c: 2, r: 2} : a > 1.7 ? {c: 2, r: 1} : a < 0.6 ? {c: 1, r: 2} : {c: 1, r: 1};
-  const p: Span = {c: d.c * 2, r: d.r * 2};
-  return {d, od: grow(d, 2, 4), p, op: grow(p, 2, 8)};
+  return {d, od: grow(d, 3, 6), p: d, op: grow(d, 3, 8)};
 };
 
 type Pic = {kind: 'pic'; it: any; set: string; s: Spans; sketch: boolean; of?: string};
@@ -132,8 +138,9 @@ const pic = (it: any, set: string, s: Spans, sketch = false, of?: string): Pic =
 const cluster = (list: any[], set: string, of: string, row: number): Cluster => {
   const pics = list.map((s) => pic(s, set, sketchSpans(s), true, of));
   const cells = (k: 'd' | 'p') => pics.reduce((t, p) => t + p.s[k].c * p.s[k].r, 0);
-  const cols = Math.max(6, Math.min(10, Math.round(Math.sqrt(cells('d') * 1.3))));
-  return {kind: 'cluster', set, pics, col: 17 - cols, row, cols, rows: Math.ceil(cells('d') / cols) + 2, prows: Math.ceil(cells('p') / 8) + 4};
+  // Page columns, each two of the cluster's fine ones.
+  const cols = Math.max(4, Math.min(8, Math.round(Math.sqrt(cells('d') * 1.4) / 2)));
+  return {kind: 'cluster', set, pics, col: 17 - cols, row, cols, rows: Math.ceil(Math.ceil(cells('d') / (cols * 2)) / 2) + 2, prows: Math.ceil(cells('p') / 8) + 3};
 };
 // A block of words beside a cluster opens only as wide as the room left of it.
 const beside = (c: Cluster, w: Words): Words => ({...w, s: {...w.s, od: {c: Math.min(w.s.od.c, 16 - c.cols), r: w.s.od.r + Math.max(0, w.s.od.c - (16 - c.cols))}}});

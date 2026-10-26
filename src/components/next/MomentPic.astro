@@ -32,7 +32,7 @@ const s = p.s;
       image={tileImage(p.it)}
       alt=""
       width={p.sketch ? 700 : 1400}
-      sizes={`(min-width: 48rem) ${s.od.c * 90}px, ${s.op.c * 48}px`}
+      sizes={`(min-width: 48rem) ${s.od.c * (p.sketch ? 45 : 90)}px, ${s.op.c * 48}px`}
       loading="lazy"
       field={p.sketch ? 'Sketch (moments)' : 'Grid Thumbnail (moments)'}
     />

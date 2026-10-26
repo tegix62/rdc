@@ -140,7 +140,7 @@ const cluster = (list: any[], set: string, of: string, row: number): Cluster => 
   const cells = (k: 'd' | 'p') => pics.reduce((t, p) => t + p.s[k].c * p.s[k].r, 0);
   // Page columns, each two of the cluster's fine ones.
   const cols = Math.max(4, Math.min(8, Math.round(Math.sqrt(cells('d') * 1.4) / 2)));
-  return {kind: 'cluster', set, pics, col: 17 - cols, row, cols, rows: Math.ceil(Math.ceil(cells('d') / (cols * 2)) / 2) + 2, prows: Math.ceil(cells('p') / 8) + 3};
+  return {kind: 'cluster', set, pics, col: 17 - cols, row, cols, rows: Math.ceil(Math.ceil(cells('d') / (cols * 2)) / 2) + 1, prows: Math.ceil(cells('p') / 8) + 1};
 };
 // A block of words beside a cluster opens only as wide as the room left of it.
 const beside = (c: Cluster, w: Words): Words => ({...w, s: {...w.s, od: {c: Math.min(w.s.od.c, 16 - c.cols), r: w.s.od.r + Math.max(0, w.s.od.c - (16 - c.cols))}}});
@@ -196,7 +196,9 @@ if (chateau) {
     tiles: [
       ...(() => {
         const c = cluster(own, chateauSet, chateauName, 1);
-        return [beside(c, words('chateau-card', chateauSet, {c: 5, r: 5}, {c: 8, r: 8}, {c: 8, r: 6}, {c: 8, r: 11}, 1, 1)), c];
+        // Four columns wide, so the project's own piece sits square beside
+        // it and the finished pieces in an even row beneath both.
+        return [beside(c, words('chateau-card', chateauSet, {c: 4, r: 4}, {c: 8, r: 8}, {c: 8, r: 6}, {c: 8, r: 11}, 1, 1)), c];
       })(),
       pic(chateau, chateauSet, pieceSpans(chateau, true)),
       ...scatter(piecesOf(chateau), (it) => idOf(it)).map((it) => pic(it, chateauSet, pieceSpans(it))),

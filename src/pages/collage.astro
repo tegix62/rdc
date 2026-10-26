@@ -241,7 +241,8 @@ const hasSections = page?.sections?.length > 0;
       const want = Math.min(piece.px, Math.ceil(W * Math.min(devicePixelRatio, 2)));
       const steps = [1200, 1800, 2600, 3600];
       const pick = Math.min(piece.px, steps.find((s) => s >= want) ?? 3600);
-      const next = `${piece.scan}?w=${pick}&fm=webp&q=80`;
+      // lib/image.ts, QUALITY_PHOTO.
+      const next = `${piece.scan}?w=${pick}&fm=webp&q=90`;
       if (sharp.dataset.src !== next) {
         sharp.dataset.src = next;
         sharp.style.opacity = '0';
@@ -268,7 +269,7 @@ const hasSections = page?.sections?.length > 0;
       title.textContent = `${piece.name}, actual size: ${fmt(piece.w)} × ${fmt(piece.h)} in`;
       // The copy already on the page, at once; the sharp one over it.
       const onPage = b.closest('.series__piece')?.querySelector<HTMLImageElement>('.loupe__img');
-      soft.src = onPage?.currentSrc || `${piece.scan}?w=1600&fm=webp&q=82`;
+      soft.src = onPage?.currentSrc || `${piece.scan}?w=1600&fm=webp&q=90`;
       sharp.removeAttribute('src');
       delete sharp.dataset.src;
       cal.hidden = true;

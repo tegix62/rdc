@@ -70,7 +70,7 @@ console.log('\nimageUrl')
 */
 const url = imageUrl(wide).width(800).url()
 check('negotiates format', url.includes('auto=format'), true)
-check('sets quality', url.includes('q=80'), true)
+check('sets quality - 90 for a photograph (lib/image.ts, QUALITY_PHOTO)', url.includes('q=90'), true)
 
 console.log('\nbuildSrcSet - sizing')
 check('caps at the requested width', Math.max(...widthsOf(buildSrcSet(wide, 1200))), 1200)
@@ -173,9 +173,10 @@ const ampleSet = buildSrcSet(ample, 2400)
 check('a stretched source is delivered at higher quality', /[?&]q=92/.test(shortSet), true)
 check('a stretched source is sharpened', /[?&]sharp=15/.test(shortSet), true)
 check('every candidate gets it, not just the largest', shortSet.split(', ').every((c) => c.includes('q=92')), true)
-// The default must be untouched, or this quietly becomes a site-wide quality
-// bump and a site-wide byte increase.
-check('a source with pixels to spare keeps q80', /[?&]q=80/.test(ampleSet) && !/q=92/.test(ampleSet), true)
+// The default must stay the photograph default (90 since October 2026,
+// chosen on purpose) - not the stretched picture's 92 - or this quietly
+// becomes a site-wide quality bump and a site-wide byte increase.
+check('a source with pixels to spare keeps the photograph quality, q90', /[?&]q=90/.test(ampleSet) && !/q=92/.test(ampleSet), true)
 check('a source with pixels to spare is not sharpened', /sharp=/.test(ampleSet), false)
 // Sharpening is the one knob here that can make things worse; a big number
 // prints halos along every edge. Pinned so a future edit has to mean it.

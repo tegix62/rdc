@@ -12,11 +12,24 @@ const builder = imageUrlBuilder(sanityClient);
   pages for hours, and it did it twice.
 */
 export const QUALITY_FLAT = 92;
+/*
+  Photographs at 90, no longer 80. Chris: "Images don't seem so sharp on
+  the site". Measured on the live site (scripts/diagnose-sharpness.mjs,
+  October 2026): every view sends enough pixels - the softness was the
+  compression. At 80 the WebP the picture route sends everyone smoothed
+  fabric grain and softened ink edges (the DumpStat "Drop the
+  Intelligence" photo side by side at 80, 92 and lossless); and many
+  uploads are already lossy WebP, so 80 was a second loss on top of the
+  first. 90 holds the texture, at about 1.5x the bytes of 80. The picture
+  route keeps one copy per address at Cloudflare, so the weight is
+  bandwidth, never a request more.
+*/
+export const QUALITY_PHOTO = 90;
 
 function urlFor(source: unknown) {
   // `auto('format')` lets Sanity's CDN negotiate WebP/AVIF per browser
-  // instead of always shipping the original JPEG/PNG. Quality 80 is
-  // visually indistinguishable here and materially smaller - for photographs.
+  // instead of always shipping the original JPEG/PNG. (The picture route,
+  // functions/img, sends WebP to everyone for now - see imageProxy.ts.)
   //
   // Not for a PNG upload: those are the mockups, cut-outs and graphics, flat
   // saturated colour on dark, which WebP at 80 breaks into blotches. Chris:
@@ -26,7 +39,7 @@ function urlFor(source: unknown) {
   // by side at 80, 92 and lossless). 92 holds the edges, at about twice the
   // bytes of 80, for those pictures only. The extension is only a hint here
   // (see mayBeAnimated): a mislabelled file just gets the better setting.
-  return builder.image(source as never).auto('format').quality(sourceExtension(source) === 'png' ? QUALITY_FLAT : 80);
+  return builder.image(source as never).auto('format').quality(sourceExtension(source) === 'png' ? QUALITY_FLAT : QUALITY_PHOTO);
 }
 
 /*
@@ -70,7 +83,7 @@ export function imageUrl(source: unknown) {
   CDN hands back the exact bytes that were uploaded.
 
   This is built from the asset reference rather than via the URL builder on
-  purpose. The builder is where auto('format') and quality(80) live, and a
+  purpose. The builder is where auto('format') and the quality live, and a
   future edit there would silently start re-encoding images that are meant to
   ship untouched. Constructing the URL directly means there is no code path
   from here to a transform parameter.

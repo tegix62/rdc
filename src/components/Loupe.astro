@@ -24,7 +24,7 @@
   The script and styles are hoisted once per page however many of these
   the page holds; the script loops over every [data-loupe] it finds.
 */
-import {imageUrl, sourceExtension, QUALITY_FLAT} from '../lib/image';
+import {imageUrl, sourceExtension, QUALITY_FLAT, QUALITY_PHOTO} from '../lib/image';
 
 interface Props {
   /** Shown in the alt text and the keyboard label. */
@@ -84,7 +84,7 @@ const widths = [800, 1200, 1600, 2000, 2600];
 // A PNG upload (a mockup, a cut-out) at the higher setting: lib/image.ts,
 // QUALITY_FLAT.
 const webFrom = (base: string) => {
-  const q = /\.png$/i.test(base) ? QUALITY_FLAT : 82;
+  const q = /\.png$/i.test(base) ? QUALITY_FLAT : QUALITY_PHOTO;
   return {
     src: `${base}?w=1600&fm=webp&q=${q}`,
     srcset: widths.map((w) => `${base}?w=${w}&fm=webp&q=${q} ${w}w`).join(', '),
@@ -93,7 +93,7 @@ const webFrom = (base: string) => {
 const plainFrom = (img: any) => {
   const b = imageUrl(img);
   if (!b) return null;
-  const q = sourceExtension(img) === 'png' ? QUALITY_FLAT : 82;
+  const q = sourceExtension(img) === 'png' ? QUALITY_FLAT : QUALITY_PHOTO;
   return {
     src: b.width(1600).auto('format').quality(q).url(),
     srcset: widths.map((w) => `${b.width(w).auto('format').quality(q).url()} ${w}w`).join(', '),

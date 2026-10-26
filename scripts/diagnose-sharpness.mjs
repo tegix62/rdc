@@ -48,15 +48,18 @@ for (const [screen, opts] of SCREENS) {
         .map((img) => {
           const r = img.getBoundingClientRect()
           const src = img.currentSrc || img.src
+          const q = new URL(src, location.href).searchParams
           const up = src.match(/-(\d+)x(\d+)\.[a-z0-9]+(?:\?|$)/i)
           // The picture's own box: an image drawn whole inside its element
           // (object-fit: contain) shows at the smaller of the two scales.
           const scale = Math.min(r.width / img.naturalWidth, r.height / img.naturalHeight)
           const shownW = img.naturalWidth * Math.min(scale, Infinity)
-          const q = new URL(src, location.href).searchParams
           return {
             need: Math.round(Math.min(r.width, shownW > 0 ? shownW : r.width) * dpr),
-            got: img.naturalWidth,
+            // The FILE's pixels: what was asked for (w), never more than the
+            // upload. Not naturalWidth - for a srcset picture the browser
+            // reports that already divided by the density it chose.
+            got: Math.min(Number(q.get('w')) || Infinity, up ? Number(up[1]) : Infinity, Number(q.get('w')) || up ? Infinity : img.naturalWidth),
             upload: up ? Number(up[1]) : null,
             w: q.get('w'),
             q: q.get('q'),

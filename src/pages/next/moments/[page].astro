@@ -198,7 +198,7 @@ if (chateau) {
         const c = cluster(own, chateauSet, chateauName, 1);
         // Four columns wide, so the project's own piece sits square beside
         // it and the finished pieces in an even row beneath both.
-        return [beside(c, words('chateau-card', chateauSet, {c: 4, r: 4}, {c: 8, r: 8}, {c: 8, r: 6}, {c: 8, r: 11}, 1, 1)), c];
+        return [beside(c, words('chateau-card', chateauSet, {c: 4, r: 5}, {c: 8, r: 8}, {c: 8, r: 6}, {c: 8, r: 11}, 1, 1)), c];
       })(),
       pic(chateau, chateauSet, pieceSpans(chateau, true)),
       ...scatter(piecesOf(chateau), (it) => idOf(it)).map((it) => pic(it, chateauSet, pieceSpans(it))),

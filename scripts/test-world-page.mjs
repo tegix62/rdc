@@ -6,7 +6,8 @@
   grid - the navy hairline frame, its project bar, its set lit round it and
   the rest dropped back, nothing else moving. On the live site it keeps its
   place and the project's block of type floats in view; on the preview it
-  GROWS where it is, the block of type inside it, all of it in sight, and
+  GROWS where it is, the block of type inside it, all of it in sight (on a
+  phone the rest below moves down to make room, covering nothing), and
   closed it goes back exactly where it was. Picking it again, Escape and
   the browser's back each close it, staying on the page; and no script
   errors.
@@ -103,7 +104,16 @@ for (const [name, w, h] of [
     await page.waitForTimeout(900)
     const open = await state(page)
     const after = await where(i)
-    check(`${tag}: nothing else moves`, (await others(i)) === othersBefore)
+    const othersAfter = await others(i)
+    if (grow && name === 'phone') {
+      // A phone's drawer (Chris: "it obscures the highlighted images that are related"):
+      // the rest keeps its columns and sizes, those below move down by one amount, and nothing is covered.
+      const parse = (t) => new Map(t.split(' ').map((e) => { const [k, v] = e.split(':'); return [k, v.split(',').map(Number)] }))
+      const a = parse(othersBefore), z = parse(othersAfter)
+      const moves = new Set([...a].map(([k, [x, y, w, h]]) => { const [x2, y2, w2, h2] = z.get(k); return x2 === x && w2 === w && h2 === h ? y2 - y : NaN }))
+      const dy = [...moves].filter((m) => m > 1)
+      check(`${tag}: the rest makes room below it, nothing covered`, !moves.has(NaN) && [...moves].every((m) => m >= -1) && dy.length > 0 && Math.max(...dy) - Math.min(...dy) <= 1 && open.overlaps === 0, `moves ${[...moves].join(',')}; ${open.overlaps} overlap(s)`)
+    } else check(`${tag}: nothing else moves`, othersAfter === othersBefore)
     check(`${tag}: the rest dims, its set does not`, open.dim > 0 && open.dim < open.shown, `${open.dim} of ${open.shown} dimmed`)
     check(`${tag}: it opens as on the main grid - the navy frame and its project bar`, open.framed && open.bar === true)
     if (grow) {

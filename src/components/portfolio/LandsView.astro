@@ -351,7 +351,8 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       const i = subset[p.i];
       const t = tiles[i];
       t.hidden = false;
-      t.classList.toggle('is-moving', moving.includes(i));
+      // On a phone everything below makes room (see the drawer below), so everything glides.
+      t.classList.toggle('is-moving', moving.length > 0 && (phone || moving.includes(i)));
       t.classList.toggle('has-card', i === focus && !!cardEl && grow);
       t.style.left = `${p.c * cell + gap / 2}px`;
       t.style.top = `${p.r * rowH + gap / 2}px`;
@@ -363,7 +364,24 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       t.classList.toggle('is-tiny', p.cw * cell < 90);
       const img = t.querySelector('img');
       if (img) img.sizes = `${Math.ceil(p.cw * cell)}px`;
-      if (grow && i === focus) growOpen(t, i, p, {cols, cell, rowH, gap, phone, rows: out.rows});
+      if (grow && i === focus && !phone) growOpen(t, i, p, {cols, cell, rowH, gap, phone, rows: out.rows});
+    }
+    /*
+      On a phone the grown piece takes the width of the screen, so laid over
+      the rest it hid the pieces lit round it - Chris: "it obscures the
+      highlighted images that are related". So there it opens like a drawer:
+      at the nearest line above it that no piece crosses, everything below
+      moves down by its height, and nothing is covered.
+    */
+    const at = grow && focus !== null && phone ? out.placed.find((x) => subset[x.i] === focus) : undefined;
+    if (at) {
+      const crosses = (r: number) => out.placed.some((x) => x.r < r && x.r + x.ch > r);
+      let cut = at.r;
+      while (cut > 0 && crosses(cut)) cut--;
+      const eh = growOpen(tiles[focus!], focus!, at, {cols, cell, rowH, gap, phone, rows: out.rows}, cut);
+      const room = eh + gap;
+      for (const x of out.placed) if (subset[x.i] !== focus && x.r >= cut) tiles[subset[x.i]].style.top = `${x.r * rowH + gap / 2 + room}px`;
+      world.style.height = `${Math.ceil(out.rows * rowH + room)}px`;
     }
     clearTimeout(settle);
     if (moving.length) settle = window.setTimeout(() => tiles.forEach((t) => t.classList.remove('is-moving')), 450);
@@ -382,12 +400,14 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     back where it lies. The piece takes about two fifths of the width on a
     wide screen (the width of the screen on a phone), less if it would
     stand taller than the screen, snapped to the grid's columns and rows
-    and kept over where it was, inside the world. Under the picture, its
+    and kept over where it was, inside the world (on a phone, where it
+    takes the whole width, the rest below moves down to make room instead).
+    Under the picture, its
     project's block of type and the bar into it - or, a piece with no
     project, its name. Closed, it goes back to exactly where it was.
   */
   const PAD = 8;
-  function growOpen(t: HTMLElement, i: number, p: {c: number; r: number; cw: number; ch: number}, g: {cols: number; cell: number; rowH: number; gap: number; phone: boolean; rows: number}) {
+  function growOpen(t: HTMLElement, i: number, p: {c: number; r: number; cw: number; ch: number}, g: {cols: number; cell: number; rowH: number; gap: number; phone: boolean; rows: number}, atRow?: number) {
     const a = data.pieces[i].w / data.pieces[i].h;
     const picW = (cw: number) => cw * g.cell - g.gap - PAD * 2;
     const tallest = Math.max(200, innerHeight - (g.phone ? 240 : 220));
@@ -409,7 +429,8 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
 
     const ec = Math.max(0, Math.min(g.cols - ecw, Math.round(p.c + p.cw / 2 - ecw / 2)));
     const rowsTall = (eh + g.gap) / g.rowH;
-    const er = Math.max(0, Math.min(Math.ceil(g.rows - rowsTall), Math.round(p.r + p.ch / 2 - rowsTall / 2)));
+    // Given a row (a phone's drawer), it opens there; otherwise over where it was, inside the world.
+    const er = atRow ?? Math.max(0, Math.min(Math.ceil(g.rows - rowsTall), Math.round(p.r + p.ch / 2 - rowsTall / 2)));
     t.style.left = `${ec * g.cell + g.gap / 2}px`;
     t.style.top = `${er * g.rowH + g.gap / 2}px`;
     t.style.width = `${ew}px`;
@@ -418,6 +439,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     t.classList.remove('is-small', 'is-tiny');
     const img = t.querySelector('img');
     if (img) img.sizes = `${Math.ceil(ew)}px`;
+    return eh;
   }
 
   /*

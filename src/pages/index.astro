@@ -396,6 +396,8 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
         var font = FONTS.hasOwnProperty(q.get('font')) ? q.get('font') : q.get('face') === 'now' ? 'now' : 'roboto';
         var face = FACES.hasOwnProperty(q.get('face')) ? q.get('face') : 'medium';
         var track = q.get('track') === '15' ? 15 : 20;
+        // Folded away to a single button, to see the page without it.
+        var folded = false;
 
         var C = '/fonts/cheltenham-classic/';
         var cut = function (family, url, w, st) {
@@ -444,7 +446,12 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
           }
           style.textContent = css;
           var off = f.family ? '' : ' disabled';
+          if (folded) {
+            bar.innerHTML = '<div class="ch-row"><button type="button" data-fold="0">Type trial +</button></div>';
+            return;
+          }
           bar.innerHTML =
+            '<div class="ch-row"><span>Type trial</span><button type="button" data-fold="1">Hide</button></div>' +
             row('Typeface', Object.keys(FONTS).map(function (k) {
               return '<button type="button" data-font="' + k + '" aria-pressed="' + (k === font) + '">' + FONTS[k].name + '</button>';
             })) +
@@ -463,6 +470,7 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
         bar.addEventListener('click', function (e) {
           var b = e.target.closest('button');
           if (!b || b.disabled) return;
+          if (b.dataset.fold) folded = b.dataset.fold === '1';
           if (b.dataset.font) font = b.dataset.font;
           if (b.dataset.face) face = b.dataset.face;
           if (b.dataset.track) track = Number(b.dataset.track);

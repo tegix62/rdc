@@ -1,6 +1,8 @@
 /*
-  The site's licensed fonts: drop a font file in, and the next build of the
-  site serves it from its own address (scripts/fetch-fonts.mjs).
+  The site's licensed fonts: drop a font file in, and the next PREVIEW build
+  serves it from the site's own address (scripts/fetch-fonts.mjs). Preview
+  only for now - Chris, of the type trial: "just make sure it's preview
+  only"; the live build fetches none of them.
 
   WHY THIS EXISTS
 
@@ -48,7 +50,7 @@ function FontsTool() {
     setNote('')
     try {
       for (const f of list) await client.assets.upload('file', f, {filename: f.name, label: LABEL})
-      setNote(`${list.length} sent. The site picks ${list.length === 1 ? 'it' : 'them'} up on its next build.`)
+      setNote(`${list.length} sent. The preview site picks ${list.length === 1 ? 'it' : 'them'} up on its next build.`)
     } catch (e) {
       setNote(e instanceof Error ? e.message : String(e))
     }
@@ -64,8 +66,8 @@ function FontsTool() {
             Fonts
           </Text>
           <Text size={1} muted>
-            Licensed fonts for the website. Each file here is served by the site from its own address after its next
-            build, and is kept out of the site's public code.
+            Licensed fonts for the website, kept out of its public code. For now only the preview site uses them,
+            after its next build; the live site is unaffected.
           </Text>
         </Stack>
 

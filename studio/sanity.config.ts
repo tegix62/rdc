@@ -7,6 +7,7 @@ import structure, {defaultDocumentNode} from './structure'
 import {openLiveAction, passwordBadge, pageTypeBadge} from './documentActions'
 import {altTextTool} from './tools/AltTextTool'
 import {bulkSketchTool} from './tools/BulkSketchTool'
+import {fontsTool} from './tools/FontsTool'
 
 // Which site the Presentation tab loads in its preview panel.
 //
@@ -108,5 +109,5 @@ export default defineConfig({
     one asset at a time. Appended to the default tools - Structure, Vision
     and Presentation all stay where they are.
   */
-  tools: (prev) => [...prev, altTextTool, bulkSketchTool],
+  tools: (prev) => [...prev, altTextTool, bulkSketchTool, fontsTool],
 })

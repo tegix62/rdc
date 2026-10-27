@@ -376,6 +376,16 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
                  its upright strokes thin; scripts made it, see the commit)
       roboto   - Roboto Serif at its condensed width (wdth 62), display size
       noto     - Noto Serif ExtraCondensed (wdth 62.5)
+      friend   - Friend (Simon Walker), licensed for the web by Chris. Not
+                 in this repository, which is public: uploaded in Studio's
+                 Fonts tool and fetched into public/fonts/licensed/ by the
+                 build (scripts/fetch-fonts.mjs). One weight, so its style and
+                 tracking are LOCKED, with the spacing Chris asked to have
+                 locked in ("lock that type and those margins in better"):
+                 tracking eases off as the size drops (Friend is tight to
+                 begin with), lines a tenth of an em apart (its caps are
+                 .70em), and spaces in 8px steps measured from cap tops and
+                 baselines (text-box trim).
     ?font= one of those, ?face=regular, medium, italic or medium-italic,
     ?track=15 or 20; a switch at the foot of the screen flips between them.
     The styles are added by the script, not written in the page, so the
@@ -390,10 +400,11 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
           squeezed: {name: 'Chelt. squeezed', family: 'Cheltenham Classic Squeezed'},
           roboto: {name: 'Roboto Serif Cond.', family: 'Roboto Serif Trial', more: 'font-stretch:62%;font-variation-settings:"opsz" 144;'},
           noto: {name: 'Noto Serif Cond.', family: 'Noto Serif Trial', more: 'font-stretch:62.5%;'},
+          friend: {name: 'Friend', family: 'Friend', locked: true},
         };
         var FACES = {regular: [400, 'normal', 'Regular'], medium: [500, 'normal', 'Medium'], italic: [400, 'italic', 'Italic'], 'medium-italic': [500, 'italic', 'Medium italic']};
         var q = new URLSearchParams(location.search);
-        var font = FONTS.hasOwnProperty(q.get('font')) ? q.get('font') : q.get('face') === 'now' ? 'now' : 'roboto';
+        var font = FONTS.hasOwnProperty(q.get('font')) ? q.get('font') : q.get('face') === 'now' ? 'now' : 'friend';
         var face = FACES.hasOwnProperty(q.get('face')) ? q.get('face') : 'medium';
         var track = q.get('track') === '15' ? 15 : 20;
         // Folded away to a single button, to see the page without it.
@@ -415,7 +426,29 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
           "@font-face{font-family:'Roboto Serif Trial';src:url(/fonts/roboto-serif/roboto-serif-latin-standard-normal.woff2) format('woff2');font-weight:100 900;font-stretch:50% 150%;font-display:swap}" +
           "@font-face{font-family:'Roboto Serif Trial';src:url(/fonts/roboto-serif/roboto-serif-latin-standard-italic.woff2) format('woff2');font-weight:100 900;font-stretch:50% 150%;font-style:italic;font-display:swap}" +
           "@font-face{font-family:'Noto Serif Trial';src:url(/fonts/noto-serif/noto-serif-latin-standard-normal.woff2) format('woff2');font-weight:100 900;font-stretch:62.5% 100%;font-display:swap}" +
-          "@font-face{font-family:'Noto Serif Trial';src:url(/fonts/noto-serif/noto-serif-latin-standard-italic.woff2) format('woff2');font-weight:100 900;font-stretch:62.5% 100%;font-style:italic;font-display:swap}";
+          "@font-face{font-family:'Noto Serif Trial';src:url(/fonts/noto-serif/noto-serif-latin-standard-italic.woff2) format('woff2');font-weight:100 900;font-stretch:62.5% 100%;font-style:italic;font-display:swap}" +
+          "@font-face{font-family:'Friend';src:url(/fonts/licensed/Friend-Regular.otf) format('opentype'),url(/fonts/licensed/Friend-Regular.woff2) format('woff2'),url(/fonts/licensed/Friend.otf) format('opentype');font-weight:400;font-style:normal;font-display:swap}";
+        // Friend's type and spacing, locked (see above). Mocked first, then put here as it was approved.
+        var LOCKED =
+          ':root{--fr-s3:24px;--fr-s4:32px;--fr-s5:48px;--fr-s6:64px;--fr-s7:96px}' +
+          '@media (max-width:40rem){:root{--fr-s5:40px;--fr-s6:48px;--fr-s7:64px}}' +
+          '.statement__heading,.peek__label,.bio-row__text,.proof-card__stat,.closer__heading,.final-cta__card h3{font-family:Friend,Georgia,serif!important;font-weight:400!important;font-style:normal!important;text-transform:uppercase;text-box:trim-both cap alphabetic;font-synthesis:none}' +
+          '.bio-row__text strong,.proof-card__stat strong,.closer__heading strong{font-weight:inherit}' +
+          '.statement{padding:var(--fr-s4) var(--fr-s3) var(--fr-s5)!important}' +
+          '.statement__line{margin:0!important}' +
+          '.statement__heading{font-size:min(21vh,26vw)!important;line-height:.8!important;letter-spacing:-.015em!important;margin:var(--fr-s4) 0!important}' +
+          '.statement__sub{margin-top:var(--fr-s3)!important}' +
+          '.top-cta{padding:var(--fr-s4) 0 var(--fr-s6)!important}' +
+          '.peek{margin:var(--fr-s5) 0!important}' +
+          '.peek__head{margin-bottom:var(--fr-s3)!important}' +
+          '.peek__label{font-size:1.375rem!important;letter-spacing:.02em!important;line-height:1!important}' +
+          '.bio-row{padding:var(--fr-s7) 0!important}' +
+          '.bio-row__text,.final-cta__card h3{font-size:clamp(1.75rem,1.2rem + 1.6vw,2.75rem)!important;letter-spacing:-.005em!important;line-height:.86!important}' +
+          '.bio-row.is-alone .bio-row__text{max-width:46rem!important}' +
+          '.proof-band__inner{padding-top:var(--fr-s7)!important;padding-bottom:var(--fr-s6)!important}' +
+          '.proof-row{gap:var(--fr-s3)!important}' +
+          '.proof-card{padding:var(--fr-s4)!important}' +
+          '.proof-card__stat,.closer__heading{font-size:clamp(1.375rem,1.1rem + .6vw,1.75rem)!important;letter-spacing:0!important;line-height:.88!important}';
         var HEADS = '.statement__heading,.peek__label,.bio-row__text,.proof-card__stat,.closer__heading,.final-cta__card h3';
         var style = document.createElement('style');
         document.head.appendChild(style);
@@ -436,7 +469,9 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
             '.ch-switch button[aria-pressed=true]{background:var(--color-navy);color:#fff}' +
             '.ch-switch button:disabled{opacity:.35;cursor:default}' +
             '.ch-switch span{align-self:center;min-width:4.2rem;padding:0 .3rem;color:#888}';
-          if (f.family) {
+          if (f.locked) {
+            css += faces + LOCKED;
+          } else if (f.family) {
             css +=
               faces +
               HEADS + "{font-family:'" + f.family + "',Georgia,serif!important;" + (f.more || '') + 'font-weight:' + st[0] + '!important;font-style:' + st[1] + '!important;text-transform:uppercase;letter-spacing:-' + track / 1000 + 'em!important;line-height:.94!important;font-synthesis:none}' +
@@ -445,7 +480,7 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
               '.statement__heading{line-height:.84!important}';
           }
           style.textContent = css;
-          var off = f.family ? '' : ' disabled';
+          var off = f.family && !f.locked ? '' : ' disabled';
           if (folded) {
             bar.innerHTML = '<div class="ch-row"><button type="button" data-fold="0">Type trial +</button></div>';
             return;
@@ -456,10 +491,10 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
               return '<button type="button" data-font="' + k + '" aria-pressed="' + (k === font) + '">' + FONTS[k].name + '</button>';
             })) +
             row('Style', Object.keys(FACES).map(function (k) {
-              return '<button type="button" data-face="' + k + '" aria-pressed="' + (!!f.family && k === face) + '"' + off + '>' + FACES[k][2] + '</button>';
+              return '<button type="button" data-face="' + k + '" aria-pressed="' + (!!f.family && !f.locked && k === face) + '"' + off + '>' + FACES[k][2] + '</button>';
             })) +
             row('Tracking', [15, 20].map(function (t) {
-              return '<button type="button" data-track="' + t + '" aria-pressed="' + (!!f.family && t === track) + '"' + off + '>&minus;' + t + '</button>';
+              return '<button type="button" data-track="' + t + '" aria-pressed="' + (!!f.family && !f.locked && t === track) + '"' + off + '>&minus;' + t + '</button>';
             }));
           var url = new URL(location.href);
           url.searchParams.set('font', font);

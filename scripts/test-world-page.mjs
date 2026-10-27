@@ -2,12 +2,14 @@
   The portfolio's views in a browser, with blank pictures - All (Lands,
   /portfolio?view=all), Type/Lettering (?view=type) and Up close, and the
   switching between them on the one page. For the lands, the page's one mode now (also sorted by colour), at a desktop and a phone:
-  every piece shown, none overlapping; a piece opened is larger than it
-  was and opens as on the main grid - the navy hairline frame, its project
-  bar, its set lit round it and the rest dropped back, nothing moving; the
-  project's block of type floating in view; picking it
-  again, Escape and the browser's back each close it, staying on the page;
-  and no script errors.
+  every piece shown, none overlapping; a piece opened opens as on the main
+  grid - the navy hairline frame, its project bar, its set lit round it and
+  the rest dropped back, nothing else moving. On the live site it keeps its
+  place and the project's block of type floats in view; on the preview it
+  GROWS where it is, the block of type inside it, all of it in sight, and
+  closed it goes back exactly where it was. Picking it again, Escape and
+  the browser's back each close it, staying on the page; and no script
+  errors.
 
   Usage: node scripts/test-world-page.mjs [base-url]
 */
@@ -86,30 +88,53 @@ for (const [name, w, h] of [
     const i = await page.evaluate((k) => Array.from(document.querySelectorAll('.wd-piece')).filter((t) => !t.hidden)[k]?.dataset.i, k)
     const where = (i) => page.evaluate((i) => {
       const r = document.querySelector(`.wd-piece[data-i="${i}"]`).getBoundingClientRect()
-      return {x: Math.round(r.left), y: Math.round(r.top + scrollY), w: Math.round(r.width)}
+      return {x: Math.round(r.left), y: Math.round(r.top + scrollY), w: Math.round(r.width), h: Math.round(r.height)}
     }, i)
+    // Every other piece's place, to see that nothing else moves.
+    const others = (i) => page.evaluate((i) => Array.from(document.querySelectorAll('.wd-piece:not([hidden])')).filter((t) => t.dataset.i !== String(i)).map((t) => {
+      const r = t.getBoundingClientRect()
+      return `${t.dataset.i}:${Math.round(r.left)},${Math.round(r.top + scrollY)},${Math.round(r.width)},${Math.round(r.height)}`
+    }).sort().join(' '), i)
+    const grow = await page.evaluate(() => JSON.parse(document.getElementById('wd-data').textContent).grow === true)
     await page.locator(`.wd-piece[data-i="${i}"] .wd-pic`).scrollIntoViewIfNeeded()
     const before = await where(i)
+    const othersBefore = await others(i)
     await page.locator(`.wd-piece[data-i="${i}"] .wd-pic`).click({position: {x: 4, y: 4}})
-    await page.waitForTimeout(700)
+    await page.waitForTimeout(900)
     const open = await state(page)
     const after = await where(i)
-    // Lands opens in place (Chris: "throw transparency on everything else"): nothing moves.
-    check(`${tag}: it opens in place - nothing moves`, after.x === before.x && after.y === before.y && after.w === before.w, `${JSON.stringify(before)} then ${JSON.stringify(after)}`)
+    check(`${tag}: nothing else moves`, (await others(i)) === othersBefore)
     check(`${tag}: the rest dims, its set does not`, open.dim > 0 && open.dim < open.shown, `${open.dim} of ${open.shown} dimmed`)
     check(`${tag}: it opens as on the main grid - the navy frame and its project bar`, open.framed && open.bar === true)
-    const floats = await page.evaluate(() => {
-      const c = Array.from(document.querySelectorAll('.wd-card')).find((x) => !x.hidden)
-      if (!c) return null
-      const r = c.getBoundingClientRect()
-      return {fixed: getComputedStyle(c).position === 'fixed', inView: r.top >= 0 && r.bottom <= innerHeight + 1 && r.left >= 0 && r.right <= innerWidth + 1}
-    })
-    check(`${tag}: the project's block of type floats in view`, open.card && open.card.text.length > 0 && floats?.fixed && floats?.inView, open.card ? `"${open.card.text}" ${JSON.stringify(floats)}` : 'no card')
-    check(`${tag}: still nothing overlaps`, open.overlaps === 0, `${open.overlaps}`)
+    if (grow) {
+      // Chris: "instead of having something shrink when clicked, it actually expands".
+      check(`${tag}: it grows where it is`, after.w > before.w * (name === 'phone' ? 1 : 1.3) && after.h > before.h && Math.abs(after.x + after.w / 2 - (before.x + before.w / 2)) < Math.max(after.w, 200), `${JSON.stringify(before)} then ${JSON.stringify(after)}`)
+      const inside = await page.evaluate((i) => {
+        const t = document.querySelector(`.wd-piece[data-i="${i}"]`)
+        const r = t.getBoundingClientRect()
+        const c = t.querySelector('.wd-card')
+        return {text: c?.querySelector('.pf-card__title')?.textContent ?? '', inView: r.top >= -1 && r.bottom <= innerHeight + 1, floats: document.querySelectorAll('.wd-card--float').length}
+      }, i)
+      check(`${tag}: its project's block of type is inside it, and none floats`, inside.text.length > 0 && inside.floats === 0, JSON.stringify(inside))
+      check(`${tag}: all of it in sight`, inside.inView)
+    } else {
+      // Lands opens in place (Chris: "throw transparency on everything else"): nothing moves.
+      check(`${tag}: it opens in place - nothing moves`, after.x === before.x && after.y === before.y && after.w === before.w, `${JSON.stringify(before)} then ${JSON.stringify(after)}`)
+      const floats = await page.evaluate(() => {
+        const c = Array.from(document.querySelectorAll('.wd-card')).find((x) => !x.hidden)
+        if (!c) return null
+        const r = c.getBoundingClientRect()
+        return {fixed: getComputedStyle(c).position === 'fixed', inView: r.top >= 0 && r.bottom <= innerHeight + 1 && r.left >= 0 && r.right <= innerWidth + 1}
+      })
+      check(`${tag}: the project's block of type floats in view`, open.card && open.card.text.length > 0 && floats?.fixed && floats?.inView, open.card ? `"${open.card.text}" ${JSON.stringify(floats)}` : 'no card')
+      check(`${tag}: still nothing overlaps`, open.overlaps === 0, `${open.overlaps}`)
+    }
     await page.locator(`.wd-piece[data-i="${i}"] .wd-pic`).click({position: {x: 4, y: 4}})
-    await page.waitForTimeout(600)
+    await page.waitForTimeout(700)
     let back = await state(page)
     check(`${tag}: picking it again closes it`, !back.framed && back.dim === 0)
+    const home = await where(i)
+    check(`${tag}: and it goes back exactly where it was`, home.x === before.x && home.y === before.y && home.w === before.w && home.h === before.h && back.overlaps === 0, `${JSON.stringify(before)} then ${JSON.stringify(home)}`)
     await page.locator('.wd-piece:not([hidden]) .wd-pic').nth(2).click({position: {x: 4, y: 4}})
     await page.waitForTimeout(500)
     await page.keyboard.press('Escape')

@@ -142,7 +142,14 @@ const pieces = all.map((it, i) => {
       cleanKey(it.category) === 'Merch & Apparel' && merchPlacement(it) === 'later' ? 0.45 : it.pieceParent ? 0.6 : 1,
   };
 });
-const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name}))};
+/*
+  A piece opened GROWS where it is, on the preview while Chris looks at it
+  (Chris: "instead of having something shrink when clicked, it actually
+  expands ... we freeze everything that fades out in opacity and just expand
+  from there"). The live site keeps the framed piece and floating card.
+*/
+const grow = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name})), grow};
 ---
 
 <div class="wd pf-pane" data-pane="all">
@@ -172,6 +179,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
                   <Img image={tileImage(it)} alt="" width={1400} sizes="25vw" loading="lazy" field="Grid Thumbnail (world)" />
                 </span>
               </button>
+              <span class="wd-caption">{clean(it.title)}</span>
               {href && (
                 <a class="wd-jump" href={href} aria-label={[barOf(it), (count[href] ?? 0) > 1 ? `${count[href]} pieces` : null].filter(Boolean).join(' - ')}>
                   <span class="wd-jump__label">{barOf(it)}</span>
@@ -208,7 +216,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   import {seedOf} from '../../lib/cluster';
 
   type P = WorldPiece & {id: string; slug: string | null; title: string; cat: string; photo: boolean};
-  const data: {pieces: P[]; names: Record<string, string>; filters: {value: string; name: string}[]} = JSON.parse(
+  const data: {pieces: P[]; names: Record<string, string>; filters: {value: string; name: string}[]; grow: boolean} = JSON.parse(
     document.getElementById('wd-data')!.textContent!,
   );
   const world = document.querySelector<HTMLElement>('.wd-world')!;
@@ -228,6 +236,9 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   let focusRow = 0;
   let pushed = false;
   let last: {out: WorldResult; subset: number[]} | null = null;
+  // The piece open at the last drawing: the one that opens or closes is the one that moves.
+  let drawn: number | null = null;
+  let settle = 0;
 
   /*
     - / +: the grid's columns. More columns, smaller tiles. The middle step
@@ -287,13 +298,20 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       the screen. (The shelved modes still gather.)
     */
     const inPlace = mode === 'lands';
+    const grow = inPlace && data.grow;
     cards.forEach((el) => {
       el.hidden = true;
       el.classList.remove('wd-card--float');
+      if (el.parentElement !== world) world.append(el);
     });
     const cardEl = focus !== null ? cards.get(data.pieces[focus].project ?? '') : undefined;
     let card: {cw: number; ch: number} | null = null;
-    if (cardEl && inPlace) {
+    if (cardEl && grow) {
+      // Its block of type goes inside the piece, under the picture (growOpen).
+      cardEl.removeAttribute('style');
+      cardEl.hidden = false;
+      tiles[focus!].querySelector('.wd-frame')!.insertBefore(cardEl, tiles[focus!].querySelector('.wd-jump'));
+    } else if (cardEl && inPlace) {
       cardEl.removeAttribute('style');
       cardEl.classList.add('wd-card--float');
       cardEl.hidden = false;
@@ -315,20 +333,26 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
         : out.family.map((k) => subset[k]),
     );
     if (inPlace) {
-      // The card floats; nothing to place.
+      // The card floats, or is inside the piece; nothing to place.
     } else if (cardEl && out.card) {
       Object.assign(cardEl.style, {left: `${out.card.c * cell + gap / 2}px`, top: `${out.card.r * rowH + gap / 2}px`, width: `${out.card.cw * cell - gap}px`, height: `${out.card.ch * rowH - gap}px`});
     } else if (cardEl) cardEl.hidden = true;
 
     world.classList.toggle('has-focus', focus !== null);
+    world.classList.toggle('is-grow', grow);
     world.style.width = `${width}px`;
     if (phone) world.style.marginLeft = `${EDGE - (world.parentElement!.getBoundingClientRect().left + parseFloat(pad.paddingLeft))}px`;
     world.style.height = `${Math.ceil(out.rows * rowH)}px`;
     tiles.forEach((t) => (t.hidden = true));
+    // Only the piece opening or closing glides; a redrawing (a wider window, + or -) is at once.
+    const moving = grow && drawn !== focus ? [drawn, focus] : [];
+    drawn = focus;
     for (const p of out.placed) {
       const i = subset[p.i];
       const t = tiles[i];
       t.hidden = false;
+      t.classList.toggle('is-moving', moving.includes(i));
+      t.classList.toggle('has-card', i === focus && !!cardEl && grow);
       t.style.left = `${p.c * cell + gap / 2}px`;
       t.style.top = `${p.r * rowH + gap / 2}px`;
       t.style.width = `${p.cw * cell - gap}px`;
@@ -339,7 +363,10 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       t.classList.toggle('is-tiny', p.cw * cell < 90);
       const img = t.querySelector('img');
       if (img) img.sizes = `${Math.ceil(p.cw * cell)}px`;
+      if (grow && i === focus) growOpen(t, i, p, {cols, cell, rowH, gap, phone, rows: out.rows});
     }
+    clearTimeout(settle);
+    if (moving.length) settle = window.setTimeout(() => tiles.forEach((t) => t.classList.remove('is-moving')), 450);
     // The order they are seen in, for the Tab key and screen readers.
     const seen = [...out.placed].sort((a, z) => a.r - z.r || a.c - z.c);
     for (const p of seen) world.append(tiles[subset[p.i]]);
@@ -349,6 +376,49 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     document.querySelector<HTMLButtonElement>('[data-zoom="1"]')!.disabled = zoom === steps.length - 1;
     writeLink();
   };
+
+  /*
+    THE OPENED PIECE GROWS WHERE IT IS. Nothing else moves; the rest drops
+    back where it lies. The piece takes about two fifths of the width on a
+    wide screen (the width of the screen on a phone), less if it would
+    stand taller than the screen, snapped to the grid's columns and rows
+    and kept over where it was, inside the world. Under the picture, its
+    project's block of type and the bar into it - or, a piece with no
+    project, its name. Closed, it goes back to exactly where it was.
+  */
+  const PAD = 8;
+  function growOpen(t: HTMLElement, i: number, p: {c: number; r: number; cw: number; ch: number}, g: {cols: number; cell: number; rowH: number; gap: number; phone: boolean; rows: number}) {
+    const a = data.pieces[i].w / data.pieces[i].h;
+    const picW = (cw: number) => cw * g.cell - g.gap - PAD * 2;
+    const tallest = Math.max(200, innerHeight - (g.phone ? 240 : 220));
+    let ecw = g.phone ? g.cols : Math.min(g.cols, Math.max(p.cw + 2, Math.round(g.cols * 0.4)));
+    while (!g.phone && ecw > p.cw + 1 && picW(ecw) / a > tallest) ecw--;
+    const ew = ecw * g.cell - g.gap;
+    const picH = Math.min(picW(ecw) / a, tallest);
+
+    // Its words and bar, measured at the width they will have, before it glides there.
+    const base = {width: t.style.width, height: t.style.height};
+    t.style.transition = 'none';
+    t.style.width = `${ew}px`;
+    t.style.height = 'auto';
+    const extra = t.querySelector<HTMLElement>('.wd-frame')!.offsetHeight - t.querySelector<HTMLElement>('.wd-pic')!.offsetHeight;
+    Object.assign(t.style, base);
+    void t.offsetWidth;
+    t.style.transition = '';
+    const eh = Math.ceil(picH + extra);
+
+    const ec = Math.max(0, Math.min(g.cols - ecw, Math.round(p.c + p.cw / 2 - ecw / 2)));
+    const rowsTall = (eh + g.gap) / g.rowH;
+    const er = Math.max(0, Math.min(Math.ceil(g.rows - rowsTall), Math.round(p.r + p.ch / 2 - rowsTall / 2)));
+    t.style.left = `${ec * g.cell + g.gap / 2}px`;
+    t.style.top = `${er * g.rowH + g.gap / 2}px`;
+    t.style.width = `${ew}px`;
+    t.style.height = `${eh}px`;
+    world.style.height = `${Math.ceil(Math.max(g.rows * g.rowH, er * g.rowH + eh + g.gap))}px`;
+    t.classList.remove('is-small', 'is-tiny');
+    const img = t.querySelector('img');
+    if (img) img.sizes = `${Math.ceil(ew)}px`;
+  }
 
   /*
     SHAREABLE LINKS, as /portfolio: ?open=<slug>, plus the
@@ -382,6 +452,11 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     draw();
     // In place, it is already where it was picked; a gathering mode brings it into view.
     if (mode !== 'lands') tiles[i].scrollIntoView({block: 'center'});
+    // Grown, all of it in sight once it has finished growing.
+    else if (data.grow) {
+      const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      setTimeout(() => focus === i && tiles[i].scrollIntoView({block: 'nearest', behavior: still || !push ? 'auto' : 'smooth'}), still ? 0 : 320);
+    }
   };
   function close() {
     if (pushed) {
@@ -393,6 +468,10 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   }
 
   tiles.forEach((t) => t.querySelector('.wd-pic')!.addEventListener('click', () => open(Number(t.dataset.i))));
+  // Grown, a click on the ground between the pieces puts it back too.
+  world.addEventListener('click', (e) => {
+    if (data.grow && e.target === world && focus !== null) close();
+  });
   addEventListener('popstate', (e) => {
     const i = (e.state as {wd?: number} | null)?.wd;
     pushed = typeof i === 'number';

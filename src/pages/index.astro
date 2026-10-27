@@ -368,34 +368,52 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
     CHELTENHAM, A TRIAL - PREVIEW ONLY. Chris: "can we try Cheltenham? ... all
     caps with good leading/kerning, like usually -15 to -20 ... medium/regular,
     but also try an italic version. Not sold on the idea, just want to see it
-    mocked up." Cheltenham itself is licensed type; this is Cheltenham
-    Classic, a free (SIL OFL) face drawn after it, to look at the idea with
-    (public/fonts/cheltenham-classic, licence alongside). ?face=regular,
-    medium, italic or medium-italic and ?track=15 or 20; a switch at the
-    foot of the screen flips between them. The styles are added by the
-    script, not written in the page, so the build's critical-CSS step does
-    not prune them away as unused.
+    mocked up." Then: "definitely looking for a more condensed version".
+    Cheltenham itself is licensed type, so these are free (SIL OFL)
+    stand-ins, each with its licence in public/fonts:
+      chelt    - Cheltenham Classic, drawn after Cheltenham; normal width
+      squeezed - the same, narrowed to 80% by machine (a fake condensed:
+                 its upright strokes thin; scripts made it, see the commit)
+      roboto   - Roboto Serif at its condensed width (wdth 62), display size
+      noto     - Noto Serif ExtraCondensed (wdth 62.5)
+    ?font= one of those, ?face=regular, medium, italic or medium-italic,
+    ?track=15 or 20; a switch at the foot of the screen flips between them.
+    The styles are added by the script, not written in the page, so the
+    build's critical-CSS step does not prune them away as unused.
   */}
   {IS_PREVIEW && (
     <script is:inline>
       (function () {
-        var FACES = {
-          now: null,
-          regular: [400, 'normal'],
-          medium: [500, 'normal'],
-          italic: [400, 'italic'],
-          'medium-italic': [500, 'italic'],
+        var FONTS = {
+          now: {name: 'As now'},
+          chelt: {name: 'Cheltenham Classic', family: 'Cheltenham Classic'},
+          squeezed: {name: 'Chelt. squeezed', family: 'Cheltenham Classic Squeezed'},
+          roboto: {name: 'Roboto Serif Cond.', family: 'Roboto Serif Trial', more: 'font-stretch:62%;font-variation-settings:"opsz" 144;'},
+          noto: {name: 'Noto Serif Cond.', family: 'Noto Serif Trial', more: 'font-stretch:62.5%;'},
         };
-        var NAMES = {now: 'As now', regular: 'Regular', medium: 'Medium', italic: 'Italic', 'medium-italic': 'Medium italic'};
+        var FACES = {regular: [400, 'normal', 'Regular'], medium: [500, 'normal', 'Medium'], italic: [400, 'italic', 'Italic'], 'medium-italic': [500, 'italic', 'Medium italic']};
         var q = new URLSearchParams(location.search);
+        var font = FONTS.hasOwnProperty(q.get('font')) ? q.get('font') : q.get('face') === 'now' ? 'now' : 'roboto';
         var face = FACES.hasOwnProperty(q.get('face')) ? q.get('face') : 'medium';
         var track = q.get('track') === '15' ? 15 : 20;
-        var dir = '/fonts/cheltenham-classic/';
+
+        var C = '/fonts/cheltenham-classic/';
+        var cut = function (family, url, w, st) {
+          return "@font-face{font-family:'" + family + "';src:url(" + url + ") format('woff2');font-weight:" + w + ';font-style:' + st + ';font-display:swap}';
+        };
         var faces =
-          "@font-face{font-family:'Cheltenham Classic';src:url(" + dir + "CheltenhamClassic.woff2) format('woff2');font-weight:400;font-style:normal;font-display:swap}" +
-          "@font-face{font-family:'Cheltenham Classic';src:url(" + dir + "CheltenhamClassicMedium.woff2) format('woff2');font-weight:500;font-style:normal;font-display:swap}" +
-          "@font-face{font-family:'Cheltenham Classic';src:url(" + dir + "CheltenhamClassicItalic.woff2) format('woff2');font-weight:400;font-style:italic;font-display:swap}" +
-          "@font-face{font-family:'Cheltenham Classic';src:url(" + dir + "CheltenhamClassicMediumltalic.woff2) format('woff2');font-weight:500;font-style:italic;font-display:swap}";
+          cut('Cheltenham Classic', C + 'CheltenhamClassic.woff2', 400, 'normal') +
+          cut('Cheltenham Classic', C + 'CheltenhamClassicMedium.woff2', 500, 'normal') +
+          cut('Cheltenham Classic', C + 'CheltenhamClassicItalic.woff2', 400, 'italic') +
+          cut('Cheltenham Classic', C + 'CheltenhamClassicMediumltalic.woff2', 500, 'italic') +
+          cut('Cheltenham Classic Squeezed', C + 'CheltenhamClassicSqueezed.woff2', 400, 'normal') +
+          cut('Cheltenham Classic Squeezed', C + 'CheltenhamClassicMediumSqueezed.woff2', 500, 'normal') +
+          cut('Cheltenham Classic Squeezed', C + 'CheltenhamClassicItalicSqueezed.woff2', 400, 'italic') +
+          cut('Cheltenham Classic Squeezed', C + 'CheltenhamClassicMediumltalicSqueezed.woff2', 500, 'italic') +
+          "@font-face{font-family:'Roboto Serif Trial';src:url(/fonts/roboto-serif/roboto-serif-latin-standard-normal.woff2) format('woff2');font-weight:100 900;font-stretch:50% 150%;font-display:swap}" +
+          "@font-face{font-family:'Roboto Serif Trial';src:url(/fonts/roboto-serif/roboto-serif-latin-standard-italic.woff2) format('woff2');font-weight:100 900;font-stretch:50% 150%;font-style:italic;font-display:swap}" +
+          "@font-face{font-family:'Noto Serif Trial';src:url(/fonts/noto-serif/noto-serif-latin-standard-normal.woff2) format('woff2');font-weight:100 900;font-stretch:62.5% 100%;font-display:swap}" +
+          "@font-face{font-family:'Noto Serif Trial';src:url(/fonts/noto-serif/noto-serif-latin-standard-italic.woff2) format('woff2');font-weight:100 900;font-stretch:62.5% 100%;font-style:italic;font-display:swap}";
         var HEADS = '.statement__heading,.peek__label,.bio-row__text,.proof-card__stat,.closer__heading,.final-cta__card h3';
         var style = document.createElement('style');
         document.head.appendChild(style);
@@ -403,39 +421,49 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
         bar.className = 'ch-switch';
         document.body.appendChild(bar);
 
+        function row(label, items) {
+          return '<div class="ch-row"><span>' + label + '</span>' + items.join('') + '</div>';
+        }
         function apply() {
-          var f = FACES[face];
+          var f = FONTS[font];
+          var st = FACES[face];
           var css =
-            '.ch-switch{position:fixed;left:.75rem;bottom:.75rem;z-index:50;display:flex;flex-wrap:wrap;gap:.25rem;max-width:calc(100vw - 1.5rem);padding:.4rem;background:#fff;box-shadow:0 0 0 1px var(--color-navy),0 10px 28px -12px rgb(0 0 0/.35);font:600 .7rem/1 var(--font-heading);letter-spacing:.04em;text-transform:uppercase}' +
-            '.ch-switch button{padding:.45rem .55rem;border:0;background:none;color:var(--color-navy);font:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer}' +
+            '.ch-switch{position:fixed;left:.75rem;bottom:.75rem;z-index:50;display:grid;gap:.15rem;max-width:calc(100vw - 1.5rem);padding:.4rem;background:#fff;box-shadow:0 0 0 1px var(--color-navy),0 10px 28px -12px rgb(0 0 0/.35);font:600 .68rem/1 var(--font-heading);letter-spacing:.04em;text-transform:uppercase}' +
+            '.ch-row{display:flex;flex-wrap:wrap;gap:.2rem}' +
+            '.ch-switch button{padding:.42rem .5rem;border:0;background:none;color:var(--color-navy);font:inherit;letter-spacing:inherit;text-transform:inherit;cursor:pointer}' +
             '.ch-switch button[aria-pressed=true]{background:var(--color-navy);color:#fff}' +
-            '.ch-switch span{align-self:center;padding:0 .3rem;color:#888}';
-          if (f) {
+            '.ch-switch button:disabled{opacity:.35;cursor:default}' +
+            '.ch-switch span{align-self:center;min-width:4.2rem;padding:0 .3rem;color:#888}';
+          if (f.family) {
             css +=
               faces +
-              HEADS + '{font-family:"Cheltenham Classic",Georgia,serif!important;font-weight:' + f[0] + '!important;font-style:' + f[1] + '!important;text-transform:uppercase;letter-spacing:-' + track / 1000 + 'em!important;line-height:.94!important;font-synthesis:none}' +
+              HEADS + "{font-family:'" + f.family + "',Georgia,serif!important;" + (f.more || '') + 'font-weight:' + st[0] + '!important;font-style:' + st[1] + '!important;text-transform:uppercase;letter-spacing:-' + track / 1000 + 'em!important;line-height:.94!important;font-synthesis:none}' +
               '.bio-row__text strong,.proof-card__stat strong,.closer__heading strong{font-weight:inherit}' +
-              // The big name keeps its stack, a little looser than Inter's .78 so Cheltenham's caps clear each other.
+              // The big name keeps its stack, a little looser than Inter's .78 so the serif caps clear each other.
               '.statement__heading{line-height:.84!important}';
           }
           style.textContent = css;
+          var off = f.family ? '' : ' disabled';
           bar.innerHTML =
-            '<span>Cheltenham trial</span>' +
-            Object.keys(NAMES).map(function (k) {
-              return '<button type="button" data-face="' + k + '" aria-pressed="' + (k === face) + '">' + NAMES[k] + '</button>';
-            }).join('') +
-            '<span>Tracking</span>' +
-            [15, 20].map(function (t) {
-              return '<button type="button" data-track="' + t + '" aria-pressed="' + (t === track) + '">&minus;' + t + '</button>';
-            }).join('');
+            row('Typeface', Object.keys(FONTS).map(function (k) {
+              return '<button type="button" data-font="' + k + '" aria-pressed="' + (k === font) + '">' + FONTS[k].name + '</button>';
+            })) +
+            row('Style', Object.keys(FACES).map(function (k) {
+              return '<button type="button" data-face="' + k + '" aria-pressed="' + (!!f.family && k === face) + '"' + off + '>' + FACES[k][2] + '</button>';
+            })) +
+            row('Tracking', [15, 20].map(function (t) {
+              return '<button type="button" data-track="' + t + '" aria-pressed="' + (!!f.family && t === track) + '"' + off + '>&minus;' + t + '</button>';
+            }));
           var url = new URL(location.href);
+          url.searchParams.set('font', font);
           url.searchParams.set('face', face);
           url.searchParams.set('track', String(track));
           history.replaceState(history.state, '', url);
         }
         bar.addEventListener('click', function (e) {
           var b = e.target.closest('button');
-          if (!b) return;
+          if (!b || b.disabled) return;
+          if (b.dataset.font) font = b.dataset.font;
           if (b.dataset.face) face = b.dataset.face;
           if (b.dataset.track) track = Number(b.dataset.track);
           apply();

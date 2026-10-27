@@ -20,9 +20,6 @@ on:
       # here changes what gets deployed - it was missing from this list, which
       # meant overlay changes silently never shipped.
       - 'scripts/build-overlay.mjs'
-      # Puts the type trial's fonts in place (preview builds only).
-      - 'scripts/fetch-fonts.mjs'
-      - 'preview-fonts/**'
       - '.github/workflows/deploy-pages.yml'
 
 # One preview deploy at a time, newest wins. Same reasoning as the identical

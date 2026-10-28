@@ -348,6 +348,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     */
     const inPlace = mode === 'lands';
     const grow = inPlace && data.grow;
+    world.querySelectorAll('.wd-kin').forEach((el) => el.remove());
     cards.forEach((el) => {
       el.hidden = true;
       el.classList.remove('wd-card--float');
@@ -422,20 +423,55 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       On a phone the grown piece takes the width of the screen, so laid over
       the rest it hid the pieces lit round it - Chris: "it obscures the
       highlighted images that are related". So there it opens like a drawer:
-      at the nearest line no piece crosses above it and above the rest of its
-      set, so the set sits together right under it; everything below moves
-      down by its height, and nothing is covered.
+      at the nearest line above it that no piece crosses, everything below
+      moves down by its height, and nothing is covered.
     */
     const at = grow && focus !== null && phone ? out.placed.find((x) => subset[x.i] === focus) : undefined;
     if (at) {
       const crosses = (r: number) => out.placed.some((x) => x.r < r && x.r + x.ch > r);
-      let cut = Math.min(at.r, ...lit.map((x) => x.r));
+      let cut = at.r;
       while (cut > 0 && crosses(cut)) cut--;
+      /*
+        ITS SET, WITH IT. Opened above its whole set, the drawer could still
+        sit a screen or more from the set's other pieces, which a phone's
+        layout strings down the page - Chris: "these marks can get too
+        separated from their related highlighted component tiles". So on a
+        phone the drawer carries them: a row of small pictures under its
+        words, each opening that piece. It opens where it was picked again.
+      */
+      if (lit.length) {
+        const kin = document.createElement('div');
+        kin.className = 'wd-kin';
+        const name = document.createElement('p');
+        name.className = 'wd-kin__name';
+        name.textContent = 'From this project';
+        const row = document.createElement('div');
+        row.className = 'wd-kin__row';
+        for (const x of [...lit].sort((a, z) => a.r - z.r || a.c - z.c)) {
+          const k = subset[x.i];
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'wd-kin__pick';
+          b.setAttribute('aria-label', data.pieces[k].title);
+          const from = tiles[k].querySelector('img');
+          const src = from?.currentSrc || from?.getAttribute('src');
+          if (src) {
+            const pic = document.createElement('img');
+            pic.src = src;
+            pic.alt = '';
+            b.append(pic);
+          }
+          b.addEventListener('click', () => open(k));
+          row.append(b);
+        }
+        kin.append(name, row);
+        const frame = tiles[focus!].querySelector('.wd-frame')!;
+        frame.insertBefore(kin, frame.querySelector('.wd-jump'));
+      }
       const eh = growOpen(tiles[focus!], focus!, at, {cols, cell, rowH, gap, phone, rows: out.rows}, [], cut);
       const room = eh + gap;
-      // In sight: the drawer, and as much of the set under it as the screen holds.
-      const setBottom = Math.max(cut * rowH + eh, ...lit.map((x) => (x.r + x.ch) * rowH + room));
-      want = [cut * rowH, setBottom, cut * rowH];
+      // In sight: the drawer, which now carries its set.
+      want = [cut * rowH, cut * rowH + eh, cut * rowH];
       for (const x of out.placed) if (subset[x.i] !== focus && x.r >= cut) tiles[subset[x.i]].style.top = `${x.r * rowH + gap / 2 + room}px`;
       world.style.height = `${Math.ceil(out.rows * rowH + room)}px`;
     }

@@ -8640,6 +8640,43 @@ a.pf-btn {
   }
 }
 
+/* A phone's opened piece carries the rest of its project (LandsView, "ITS SET, WITH IT"). */
+.wd-kin {
+  flex: 0 0 auto;
+  padding: 0.7rem 0.25rem 0;
+}
+.wd-kin__name {
+  margin: 0 0 0.4rem;
+  font: 700 0.6875rem/1 var(--font-heading);
+  letter-spacing: var(--label-track, 0.06em);
+  text-transform: uppercase;
+  color: var(--color-navy);
+}
+.wd-kin__row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.wd-kin__pick {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  padding: 3px;
+  border: 1px solid #d6d6d6;
+  background: #fff;
+  cursor: pointer;
+}
+.wd-kin__pick img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.wd-kin__pick:focus-visible,
+.wd-kin__pick:active {
+  border-color: var(--color-navy);
+}
+
 /* ==========================================================================
    PICKS (/picks/<code>): a board's heading, the + on each piece, and the
    tray. See src/pages/picks/[code]/index.astro and LandsView's script.

@@ -168,6 +168,19 @@ for (const [name, w, h] of [
     await page.waitForTimeout(700)
     back = await state(page)
     check(`${tag}: so does the browser's back, staying on the page`, !back.framed && back.dim === 0 && page.url().includes('view=all'), page.url())
+    if (grow && name === 'phone') {
+      // Chris: "these marks can get too separated from their related highlighted component tiles" - the drawer carries them.
+      await page.locator(`.wd-piece[data-i="${i}"] .wd-pic`).click({position: {x: 4, y: 4}})
+      await page.waitForTimeout(900)
+      const kin = await page.evaluate(() => ({picks: document.querySelectorAll('.wd-piece.is-open .wd-kin__pick').length, lit: document.querySelectorAll('.wd-piece.is-sibling:not(.is-open):not([hidden])').length}))
+      check(`${tag}: the drawer carries the rest of its set`, kin.picks > 0 && kin.picks === kin.lit, JSON.stringify(kin))
+      await page.locator('.wd-piece.is-open .wd-kin__pick').first().click()
+      await page.waitForTimeout(900)
+      const now = await page.evaluate(() => Array.from(document.querySelectorAll('.wd-piece.is-open')).map((t) => t.dataset.i))
+      check(`${tag}: and a picture there opens that piece`, now.length === 1 && now[0] !== String(i), JSON.stringify(now))
+      await page.keyboard.press('Escape')
+      await page.waitForTimeout(600)
+    }
     check(`${tag}: no script errors`, errors.length === 0, errors.join(' | '))
     await page.close()
   }

@@ -526,6 +526,42 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     if (url.href !== location.href) history.replaceState(history.state, '', url);
   };
 
+  /*
+    The scroll that brings a grown piece into sight, after its short wait.
+    Not the browser's own smooth scroll, whose speed cannot be set: Chris
+    liked the wait and asked for the scroll at double the speed, so this
+    takes about half as long (a quarter of a second, a little more for a long
+    way). A wheel, touch or key from the visitor stops it where it is.
+  */
+  let gliding = 0;
+  function glide(y: number, instant: boolean) {
+    cancelAnimationFrame(gliding);
+    if (instant) {
+      scrollTo({top: y});
+      return;
+    }
+    const from = scrollY;
+    const way = y - from;
+    const time = Math.min(400, 220 + Math.abs(way) * 0.1);
+    const start = performance.now();
+    const stop = () => {
+      cancelAnimationFrame(gliding);
+      removeEventListener('wheel', stop);
+      removeEventListener('touchstart', stop);
+      removeEventListener('keydown', stop);
+    };
+    addEventListener('wheel', stop, {passive: true});
+    addEventListener('touchstart', stop, {passive: true});
+    addEventListener('keydown', stop);
+    const step = (now: number) => {
+      const k = Math.min(1, (now - start) / time);
+      scrollTo({top: from + way * (1 - Math.pow(1 - k, 3))});
+      if (k < 1) gliding = requestAnimationFrame(step);
+      else stop();
+    };
+    gliding = requestAnimationFrame(step);
+  }
+
   // As on the main grid: a piece opens; picked again, it closes. Its bar is the way to the project.
   const open = (i: number, push = true) => {
     if (i === focus) {
@@ -557,7 +593,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
           if (at + from < lo) y = at + from - 16;
           else if (at + to > hi) y = at + to - innerHeight + 16;
         } else y = at + own - 16;
-        if (Math.abs(y - scrollY) > 2) scrollTo({top: y, behavior: still || !push ? 'auto' : 'smooth'});
+        if (Math.abs(y - scrollY) > 2) glide(y, still || !push);
       }, still ? 0 : 320);
     }
   };

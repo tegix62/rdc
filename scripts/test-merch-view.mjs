@@ -619,6 +619,8 @@ const press = async (page, filter) => {
     TYPE / LETTERING: four columns, a 2px seam, every picture cropped square.
     And views are exclusive of each other as well as of the filters.
   */
+  // Type/Lettering is its own view now (?view=type - test-world-page.mjs); its old grid filter only while it exists.
+  if (await page.$(`.pf-btn[data-filter="${TYPE}"]`)) {
   await press(page, TYPE)
   const t = await state(page)
   console.log('')
@@ -644,6 +646,7 @@ const press = async (page, filter) => {
   const tm = await state(page)
   check('Merch from Type switches views cleanly', tm.merchView && !tm.typeView && tm.cols === 5, `${tm.cols} columns, ${JSON.stringify(tm.active)}`)
   await press(page, MERCH)
+  }
 
   // Merch again, then Merch once more: toggles back to everything.
   await press(page, MERCH)

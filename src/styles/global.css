@@ -8530,6 +8530,21 @@ a.pf-btn {
   box-sizing: border-box;
 }
 /*
+  ...but a padding in % is a share of the WIDTH, top and bottom too, so on a
+  wide wordmark it ate the height: a 5:1 tile kept a fifth of itself.
+  Chris: "Telemetry and Golden Coast ... are basically invisible with how
+  small they are." On the preview the air is a share of the tile's shorter
+  side instead (cqmin of .wd-pic, the picture's box), taken off the
+  artwork's box rather than padded round it.
+*/
+.wd-world.is-grow .wd-piece--air .wd-pic {
+  padding: 0;
+}
+.wd-world.is-grow .wd-piece--air .wd-crop {
+  --air: 9cqmin;
+  width: min(100cqw - 2 * var(--air), (100cqh - 2 * var(--air)) * var(--a));
+}
+/*
   Lands opens in place: the project's block of type floats at the foot of
   the screen rather than taking room in the world. Chris: "throw
   transparency on everything else and have that little cluster work itself

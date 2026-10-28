@@ -324,7 +324,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       card = {cw, ch: Math.max(1, Math.ceil((cardEl.offsetHeight + gap) / rowH))};
       cardEl.style.visibility = '';
     }
-    const out = generateWorld(sub, {cols, mode, seed, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple}});
+    const out = generateWorld(sub, {cols, mode, seed, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow}});
     last = {out, subset};
     const sets = inPlace ? setsOf(sub) : [];
     const fam = new Set(

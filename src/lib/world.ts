@@ -118,7 +118,7 @@ export interface WorldOptions {
   /** Lands: rows to a cell's width (2: half-height rows, so boxes follow their pictures' shapes). Rows, `r` and `ch` are then in these. */
   rowsPerCell?: number;
   /** Lands: weights for how a set's pieces gather (for tuning; the defaults are the chosen ones). */
-  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean; simple?: boolean; floor?: number; curve?: number; capDrop?: number};
+  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean; simple?: boolean; floor?: number; curve?: number; capDrop?: number; tallMarks?: boolean};
   /** Lands: room for the opened project's card, beside the opened piece. */
   card?: {cw: number; ch: number} | null;
 }
@@ -719,7 +719,18 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
   const widen = (p: WorldPiece, w: number) => {
     const ratio = (p.w / p.h) || 1;
     // Simple: gently - by the fourth root, not the square root.
-    return ratio > 1.3 ? Math.round(w * ratio ** (simple ? 0.25 : 0.5)) : w;
+    if (ratio > 1.3) return Math.round(w * ratio ** (simple ? 0.25 : 0.5));
+    /*
+      A tall mark likewise by its area: narrower, by the square root of how
+      tall it is. Chris: "the Chateau Seven Icon (C7) is gigantic" - a flat
+      mark 1:1.55 at a supporting piece's full width stood over five cells
+      tall, more ground than any case study. Marks only: a tall poster or
+      tee carries the detail that earns its height ("the other sizes in
+      that region are good"), and the Adelante mark (1:1.25) is left as it is.
+    */
+    // On trial on the preview first (tune.tallMarks).
+    if (o.tune?.tallMarks && p.mark && ratio < 0.7) return Math.max(1, Math.round(w * Math.sqrt(ratio)));
+    return w;
   };
 
   const area = pieces.reduce((n, p) => n + boxAt(p, 2, kr).cw * boxAt(p, 2, kr).ch, 0);

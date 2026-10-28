@@ -1,0 +1,58 @@
+---
+/*
+  A PICKS BOARD: a pitch for one person, a client's picks, or a public
+  vote - made in Studio's Picks tool (studio/tools/PicksTool.tsx), read by
+  src/lib/picks.ts. Chris: "three different versions of the same
+  apparatus".
+
+  The All view itself (LandsView), with only the board's pieces if it
+  names any, its heading and note above, and - when it takes responses - a
+  + on each piece and a tray that rises once something is in it, so the
+  view's own flow (open, grow, close) is untouched: "as long as it doesn't
+  interrupt the really good UX flow we have going on right now".
+
+  Unlisted: kept out of search (noindex) and the sitemap; the address is
+  the only way in. Preview only while it is a trial.
+*/
+import Layout from '../../../layouts/Layout.astro';
+import LandsView from '../../../components/portfolio/LandsView.astro';
+import {getBoards, type Board} from '../../../lib/picks';
+
+export async function getStaticPaths() {
+  return (await getBoards()).map((board) => ({params: {code: board.code}, props: {board}}));
+}
+
+const {board} = Astro.props as {board: Board};
+const collect = (board.kind !== 'pitch' || board.collect !== false) && board.open !== false;
+const HEADINGS = {pitch: 'A few pieces for you', picks: 'Pick your favourites', vote: 'Which do you like most?'};
+const heading = board.heading?.trim() || HEADINGS[board.kind];
+const HOW = {
+  pitch: 'Tap + on any you like, then send them back to me.',
+  picks: 'Tap + on the pieces you love, then send them to me.',
+  vote: 'Tap + on your favourites, then send your vote.',
+};
+const closed = board.open === false;
+---
+
+<Layout title={`${heading} - Rumeau Design Co`} noindex>
+  <section class="pf-section pk">
+    <header class="pk-head">
+      <h1 class="pk-head__title">{heading}</h1>
+      {board.note && <p class="pk-head__note">{board.note}</p>}
+      {collect && <p class="pk-head__how">{HOW[board.kind]}</p>}
+      {closed && <p class="pk-head__how">This one has closed - thank you for looking.</p>}
+    </header>
+    <div class="pf-controls">
+      <div class="pf-group pf-group--arrange" role="group" aria-label="Arrange" data-for="all">
+        <button type="button" class="pf-btn pf-btn--span" data-roll>Shuffle</button>
+        <span class="pf-zoom">
+          <button type="button" class="pf-btn" data-zoom="-1" aria-label="Smaller tiles">&minus;</button>
+          <button type="button" class="pf-btn" data-zoom="1" aria-label="Larger tiles">+</button>
+        </span>
+      </div>
+    </div>
+    {/* The All view asks which pane is shown; here it is the only one. */}
+    <script is:inline>document.documentElement.dataset.pfPane = 'all';</script>
+    <LandsView only={board.pieces?.length ? board.pieces : undefined} picks={collect ? {code: board.code, kind: board.kind} : undefined} />
+  </section>
+</Layout>

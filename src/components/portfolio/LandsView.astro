@@ -54,8 +54,19 @@ import {sanityClient} from '../../lib/sanity';
 import {clusterCard} from '../../lib/clusterCard';
 
 
+/*
+  On a picks board (src/pages/picks/[code]): ONLY the board's pieces, if it
+  names any, and PICKS - a + on each piece and a tray to send them in.
+  See studio/tools/PicksTool.tsx.
+*/
+interface Props {
+  only?: string[];
+  picks?: {code: string; kind: 'pitch' | 'picks' | 'vote'};
+}
+const {only, picks} = Astro.props as Props;
 const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
-const all: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)));
+const idOf = (it: any) => cleanKey(it._id).replace(/^drafts\./, '');
+const all: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)) && (!only || only.includes(idOf(it))));
 const isProject = (it: any) => cleanKey(it.pageType) === 'Case Study';
 
 // The portfolio's categories and filters (portfolio.astro, CATEGORY_FILTER).
@@ -151,7 +162,7 @@ const pieces = all.map((it, i) => {
   view goes back to the framed piece and floating card.
 */
 const grow = true;
-const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name})), grow};
+const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name})), grow, picks: picks ?? null};
 ---
 
 <div class="wd pf-pane" data-pane="all">
@@ -182,6 +193,12 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
                 </span>
               </button>
               <span class="wd-caption">{clean(it.title)}</span>
+              {picks && (
+                <button type="button" class="wd-add" aria-pressed="false" aria-label={`Add ${clean(it.title)} to your picks`}>
+                  <span class="wd-add__mark" aria-hidden="true">+</span>
+                  <span class="wd-add__label">Add to picks</span>
+                </button>
+              )}
               {href && (
                 <a class="wd-jump" href={href} aria-label={[barOf(it), (count[href] ?? 0) > 1 ? `${count[href]} pieces` : null].filter(Boolean).join(' - ')}>
                   <span class="wd-jump__label">{barOf(it)}</span>
@@ -211,6 +228,34 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       ))}
     </div>
   <script type="application/json" id="wd-data" set:html={JSON.stringify(data)} />
+  {picks && (
+    <div class="pk-tray" data-kind={picks.kind} hidden>
+      <div class="pk-tray__bar">
+        <p class="pk-tray__count" aria-live="polite">
+          <span data-count>0</span> <span data-noun>{picks.kind === 'vote' ? 'favourites' : 'picks'}</span>
+        </p>
+        <ul class="pk-tray__thumbs" aria-label="Your picks"></ul>
+        <button type="button" class="pk-tray__send" data-send>{picks.kind === 'vote' ? 'Send my vote' : 'Send to Chris'}</button>
+      </div>
+      {picks.kind !== 'vote' && (
+        <form class="pk-tray__form" hidden>
+          <label>
+            <span>Your name</span>
+            <input name="name" autocomplete="name" maxlength="120" />
+          </label>
+          <label>
+            <span>Anything to add? (optional)</span>
+            <textarea name="note" rows="2" maxlength="2000"></textarea>
+          </label>
+          <div class="pk-tray__actions">
+            <button type="submit" class="pk-tray__send">Send</button>
+            <button type="button" class="pk-tray__back" data-back>Back</button>
+          </div>
+        </form>
+      )}
+      <p class="pk-tray__said" data-said hidden></p>
+    </div>
+  )}
 </div>
 
 <script>
@@ -218,7 +263,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   import {seedOf} from '../../lib/cluster';
 
   type P = WorldPiece & {id: string; slug: string | null; title: string; cat: string; photo: boolean};
-  const data: {pieces: P[]; names: Record<string, string>; filters: {value: string; name: string}[]; grow: boolean} = JSON.parse(
+  const data: {pieces: P[]; names: Record<string, string>; filters: {value: string; name: string}[]; grow: boolean; picks: {code: string; kind: 'pitch' | 'picks' | 'vote'} | null} = JSON.parse(
     document.getElementById('wd-data')!.textContent!,
   );
   const world = document.querySelector<HTMLElement>('.wd-world')!;
@@ -609,6 +654,149 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   }
 
   tiles.forEach((t) => t.querySelector('.wd-pic')!.addEventListener('click', () => open(Number(t.dataset.i))));
+
+  /*
+    PICKS, on a board (src/pages/picks/[code]): a + on each piece puts it in
+    the tray, which rises from the foot of the screen once something is in
+    it; the tray's thumbnails take a piece out again, and Send posts them
+    (with a name and a line, unless it is a vote) to functions/api/picks.ts.
+    Opening and growing a piece work as anywhere else - the + is beside the
+    picture, not on it. Chosen pieces are kept for the visit (session
+    storage), and a sent board remembers it was sent (local storage), so a
+    vote is not sent twice by accident.
+  */
+  const tray = document.querySelector<HTMLElement>('.pk-tray');
+  if (data.picks && tray) {
+    const P = data.picks;
+    const KEEP = `picks:${P.code}`;
+    const SENT = `picks-sent:${P.code}`;
+    const store = (s: Storage | undefined, k: string, v?: string) => {
+      try {
+        if (v === undefined) return s?.getItem(k) ?? null;
+        s?.setItem(k, v);
+      } catch {}
+      return null;
+    };
+    const ids = data.pieces.map((p) => p.id);
+    let chosen = new Set<string>(
+      (() => {
+        try {
+          return (JSON.parse(store(sessionStorage, KEEP) ?? '[]') as string[]).filter((id) => ids.includes(id));
+        } catch {
+          return [];
+        }
+      })(),
+    );
+    const form = tray.querySelector<HTMLFormElement>('.pk-tray__form');
+    const said = tray.querySelector<HTMLElement>('[data-said]')!;
+    const bar = tray.querySelector<HTMLElement>('.pk-tray__bar')!;
+    const thumbs = tray.querySelector<HTMLElement>('.pk-tray__thumbs')!;
+    let done = store(localStorage, SENT) === '1';
+
+    const render = () => {
+      tiles.forEach((t) => {
+        const on = chosen.has(data.pieces[Number(t.dataset.i)].id);
+        t.classList.toggle('is-picked', on);
+        const b = t.querySelector('.wd-add');
+        if (b) {
+          b.setAttribute('aria-pressed', String(on));
+          b.querySelector('.wd-add__mark')!.textContent = on ? '✓' : '+';
+          b.querySelector('.wd-add__label')!.textContent = on ? 'In your picks' : 'Add to picks';
+        }
+      });
+      tray.querySelector('[data-count]')!.textContent = String(chosen.size);
+      thumbs.replaceChildren(
+        ...[...chosen].map((id) => {
+          const i = ids.indexOf(id);
+          const li = document.createElement('li');
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'pk-tray__thumb';
+          b.setAttribute('aria-label', `Take ${data.pieces[i].title} out`);
+          const img = tiles[i].querySelector('img');
+          if (img?.currentSrc) {
+            const pic = document.createElement('img');
+            pic.src = img.currentSrc;
+            pic.alt = '';
+            b.append(pic);
+          } else b.textContent = data.pieces[i].title;
+          b.addEventListener('click', () => pick(id, false));
+          li.append(b);
+          return li;
+        }),
+      );
+      tray.hidden = !done && chosen.size === 0;
+      document.body.classList.toggle('has-tray', !tray.hidden);
+      store(sessionStorage, KEEP, JSON.stringify([...chosen]));
+    };
+    const pick = (id: string, on: boolean) => {
+      if (done) return;
+      on ? chosen.add(id) : chosen.delete(id);
+      if (!chosen.size && form) showForm(false);
+      render();
+    };
+    const showForm = (on: boolean) => {
+      if (!form) return;
+      form.hidden = !on;
+      bar.querySelector<HTMLButtonElement>('[data-send]')!.hidden = on;
+      if (on) form.querySelector<HTMLInputElement>('input')?.focus();
+    };
+    const finish = (text: string) => {
+      done = true;
+      store(localStorage, SENT, '1');
+      chosen = new Set();
+      said.textContent = text;
+      said.hidden = false;
+      bar.hidden = true;
+      if (form) form.hidden = true;
+      document.querySelectorAll<HTMLElement>('.wd-add').forEach((b) => (b.hidden = true));
+      render();
+    };
+    const send = async (name = '', note = '') => {
+      said.hidden = true;
+      const sendBtns = tray.querySelectorAll<HTMLButtonElement>('.pk-tray__send');
+      sendBtns.forEach((b) => (b.disabled = true));
+      try {
+        const res = await fetch('/api/picks', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({board: P.code, pieces: [...chosen], name, note}),
+        });
+        const body = (await res.json().catch(() => ({}))) as {ok?: boolean; message?: string};
+        if (res.ok && body.ok) finish(P.kind === 'vote' ? 'Thank you - your vote is in.' : 'Sent - thank you. Chris will see them.');
+        else {
+          said.textContent = body.message ?? 'That did not go through. Please try again.';
+          said.hidden = false;
+        }
+      } catch {
+        said.textContent = 'That did not go through. Please try again.';
+        said.hidden = false;
+      }
+      sendBtns.forEach((b) => (b.disabled = false));
+    };
+
+    tiles.forEach((t) =>
+      t.querySelector('.wd-add')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = data.pieces[Number(t.dataset.i)].id;
+        pick(id, !chosen.has(id));
+      }),
+    );
+    bar.querySelector('[data-send]')!.addEventListener('click', () => (P.kind === 'vote' ? send() : showForm(true)));
+    form?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const f = new FormData(form);
+      send(String(f.get('name') ?? ''), String(f.get('note') ?? ''));
+    });
+    form?.querySelector('[data-back]')?.addEventListener('click', () => showForm(false));
+    if (done) {
+      said.textContent = P.kind === 'vote' ? 'Your vote is in - thank you.' : 'Your picks were sent - thank you.';
+      said.hidden = false;
+      bar.hidden = true;
+      document.querySelectorAll<HTMLElement>('.wd-add').forEach((b) => (b.hidden = true));
+    }
+    render();
+  }
   // Grown, a click on the ground between the pieces puts it back too.
   world.addEventListener('click', (e) => {
     if (data.grow && e.target === world && focus !== null) close();

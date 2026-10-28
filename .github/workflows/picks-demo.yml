@@ -1,0 +1,20 @@
+# Makes the demo picks board (once) and checks boards are private.
+# See scripts/picks-demo.mjs. By hand only.
+name: Picks demo
+
+on:
+  workflow_dispatch:
+
+jobs:
+  make:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Make
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+        run: node scripts/picks-demo.mjs

@@ -8641,6 +8641,229 @@ a.pf-btn {
 }
 
 /* ==========================================================================
+   PICKS (/picks/<code>): a board's heading, the + on each piece, and the
+   tray. See src/pages/picks/[code]/index.astro and LandsView's script.
+   ========================================================================== */
+.pk-head {
+  max-width: 40rem;
+  margin: 0 0 1.5rem;
+}
+.pk-head__title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(1.75rem, 1.2rem + 2vw, 2.75rem);
+  line-height: 1.05;
+  color: var(--color-navy);
+}
+.pk-head__note {
+  margin: 0.75rem 0 0;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+.pk-head__how {
+  margin: 0.75rem 0 0;
+  font-size: 0.875rem;
+  color: var(--color-gray, #6b6b6b);
+}
+/* The +: beside the picture, never on the way to opening it. */
+.wd-add {
+  position: absolute;
+  z-index: 2;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 30px;
+  height: 30px;
+  padding: 0;
+  justify-content: center;
+  border: 1px solid var(--color-navy);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-navy);
+  font: 700 0.75rem/1 var(--font-heading);
+  letter-spacing: var(--label-track, 0.06em);
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 2px 8px -4px rgb(0 0 0 / 0.4);
+}
+.wd-add[hidden] {
+  display: none;
+}
+.wd-add__mark {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+.wd-add__label {
+  display: none;
+}
+.wd-add:hover,
+.wd-add:focus-visible,
+.wd-add[aria-pressed='true'] {
+  background: var(--color-navy);
+  color: #fff;
+}
+.wd-piece.is-tiny .wd-add {
+  top: 3px;
+  right: 3px;
+  min-width: 24px;
+  height: 24px;
+}
+/* Grown, it says what it does. */
+.wd-piece.is-open .wd-add {
+  top: 14px;
+  right: 14px;
+  height: 34px;
+  padding: 0 0.85rem 0 0.7rem;
+}
+.wd-piece.is-open .wd-add__label {
+  display: inline;
+}
+.wd-piece.is-picked:not(.is-open) .wd-frame {
+  box-shadow: inset 0 0 0 2px var(--color-navy);
+}
+.pk-tray {
+  position: fixed;
+  z-index: 20;
+  left: 50%;
+  bottom: 1rem;
+  width: min(40rem, calc(100vw - 1rem));
+  transform: translateX(-50%);
+  padding: 0.6rem;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px var(--color-navy),
+    0 16px 40px -16px rgb(0 0 0 / 0.45);
+  animation: pk-rise 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.pk-tray[hidden] {
+  display: none;
+}
+@keyframes pk-rise {
+  from {
+    transform: translate(-50%, 120%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pk-tray {
+    animation: none;
+  }
+}
+body.has-tray {
+  padding-bottom: 7rem;
+}
+.pk-tray__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.pk-tray__bar[hidden] {
+  display: none;
+}
+.pk-tray__count {
+  flex: 0 0 auto;
+  margin: 0;
+  font: 700 0.75rem/1.2 var(--font-heading);
+  letter-spacing: var(--label-track, 0.06em);
+  text-transform: uppercase;
+  color: var(--color-navy);
+}
+.pk-tray__thumbs {
+  flex: 1 1 auto;
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.pk-tray__thumb {
+  display: block;
+  width: 40px;
+  height: 40px;
+  padding: 2px;
+  border: 1px solid #ddd;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.5rem;
+  overflow: hidden;
+}
+.pk-tray__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.pk-tray__thumb:hover,
+.pk-tray__thumb:focus-visible {
+  border-color: var(--color-navy);
+  opacity: 0.6;
+}
+.pk-tray__send {
+  flex: 0 0 auto;
+  padding: 0.7rem 1rem;
+  border: 0;
+  background: var(--color-navy);
+  color: #fff;
+  font: 700 0.75rem/1 var(--font-heading);
+  letter-spacing: var(--label-track, 0.06em);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.pk-tray__send[hidden] {
+  display: none;
+}
+.pk-tray__send:disabled {
+  opacity: 0.5;
+}
+.pk-tray__form {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+.pk-tray__form[hidden] {
+  display: none;
+}
+.pk-tray__form label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+}
+.pk-tray__form input,
+.pk-tray__form textarea {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #bbb;
+  font: inherit;
+  font-size: 1rem;
+}
+.pk-tray__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.pk-tray__back {
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--color-navy);
+  background: #fff;
+  color: var(--color-navy);
+  font: 700 0.75rem/1 var(--font-heading);
+  letter-spacing: var(--label-track, 0.06em);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.pk-tray__said {
+  margin: 0;
+  padding: 0.4rem 0.2rem;
+  font-size: 0.9375rem;
+  color: var(--color-navy);
+}
+.pk-tray__said[hidden] {
+  display: none;
+}
+
+/* ==========================================================================
    TYPE ROWS (/portfolio?view=type). See src/components/portfolio/TypeView.astro.
    A row per project: its name and block of type, then its pieces at one
    height, sideways. Chris: "a clean, sober take".

@@ -1080,7 +1080,8 @@ for (const [w, h] of [[1536, 730], [2560, 1000]]) {
       // Right under the rest: no band of empty page between the last row and it.
       const under = b.top - Math.max(...others.map((o) => o.bottom))
       const block = grid.querySelector('.pf-item.is-card')?.getBoundingClientRect()
-      const go = grid.querySelector('.pf-item.is-card .pf-card__go')?.getBoundingClientRect()
+      const goEl = grid.querySelector('.pf-item.is-card .pf-card__go')
+      const go = goEl && getComputedStyle(goEl).display !== 'none' ? goEl.getBoundingClientRect() : null
       return {
         href: el.querySelector('a')?.getAttribute('href'),
         project: grid.querySelector('.pf-item.is-card .pf-card')?.getAttribute('href'),
@@ -1100,11 +1101,8 @@ for (const [w, h] of [[1536, 730], [2560, 1000]]) {
     const pr = await justifiedRows(page)
     check('phone: the rest sits in level, flush rows', pr.uneven === 0 && pr.ragged === 0, `${pr.pieces} pieces in ${pr.rows} rows, ${pr.uneven} uneven, ${pr.ragged} ragged`)
     check('phone: and the merch is larger than the wordmarks', pr.merchOverMarks, pr.sizes)
-    check(
-      "phone: the caption's button runs the width of the block",
-      !!end?.caption && end.caption.go >= end.caption.block - 16,
-      JSON.stringify(end?.caption),
-    )
+    // Chris: "there are redundant buttons in this situation" - on a phone the set's end button is the one way in.
+    check("phone: one way into the project - the caption carries no second button", !!end && end.caption === null, JSON.stringify(end?.caption))
     check('phone: and there is no X any more', await page.evaluate(() => !document.querySelector('.pf-close')))
     check('phone: every wordmark among the rest is legible', end?.slivers === 0, `${end?.slivers} under 40px`)
     const pm = await marksTogether(page)

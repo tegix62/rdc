@@ -143,12 +143,14 @@ const pieces = all.map((it, i) => {
   };
 });
 /*
-  A piece opened GROWS where it is, on the preview while Chris looks at it
-  (Chris: "instead of having something shrink when clicked, it actually
-  expands ... we freeze everything that fades out in opacity and just expand
-  from there"). The live site keeps the framed piece and floating card.
+  A piece opened GROWS where it is (Chris: "instead of having something
+  shrink when clicked, it actually expands ... we freeze everything that
+  fades out in opacity and just expand from there"), with the tall marks
+  sized by their area and a logomark's air from its shorter side. Tried on
+  the preview, then live - Chris: "Okay, put it live." Off (false), the
+  view goes back to the framed piece and floating card.
 */
-const grow = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+const grow = true;
 const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name})), grow};
 ---
 

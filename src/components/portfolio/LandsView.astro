@@ -238,6 +238,8 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   let last: {out: WorldResult; subset: number[]} | null = null;
   // The piece open at the last drawing: the one that opens or closes is the one that moves.
   let drawn: number | null = null;
+  // World pixels to bring into sight once a piece has grown: from, to, and its own top.
+  let want: [number, number, number] | null = null;
   let settle = 0;
 
   /*
@@ -364,22 +366,29 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       t.classList.toggle('is-tiny', p.cw * cell < 90);
       const img = t.querySelector('img');
       if (img) img.sizes = `${Math.ceil(p.cw * cell)}px`;
-      if (grow && i === focus && !phone) growOpen(t, i, p, {cols, cell, rowH, gap, phone, rows: out.rows});
     }
+    want = null;
+    const lit = (focus === null ? [] : out.placed.filter((x) => fam.has(subset[x.i]) && subset[x.i] !== focus));
+    const mine = grow && focus !== null && !phone ? out.placed.find((x) => subset[x.i] === focus) : undefined;
+    if (mine) growOpen(tiles[focus!], focus!, mine, {cols, cell, rowH, gap, phone, rows: out.rows}, lit);
     /*
       On a phone the grown piece takes the width of the screen, so laid over
       the rest it hid the pieces lit round it - Chris: "it obscures the
       highlighted images that are related". So there it opens like a drawer:
-      at the nearest line above it that no piece crosses, everything below
-      moves down by its height, and nothing is covered.
+      at the nearest line no piece crosses above it and above the rest of its
+      set, so the set sits together right under it; everything below moves
+      down by its height, and nothing is covered.
     */
     const at = grow && focus !== null && phone ? out.placed.find((x) => subset[x.i] === focus) : undefined;
     if (at) {
       const crosses = (r: number) => out.placed.some((x) => x.r < r && x.r + x.ch > r);
-      let cut = at.r;
+      let cut = Math.min(at.r, ...lit.map((x) => x.r));
       while (cut > 0 && crosses(cut)) cut--;
-      const eh = growOpen(tiles[focus!], focus!, at, {cols, cell, rowH, gap, phone, rows: out.rows}, cut);
+      const eh = growOpen(tiles[focus!], focus!, at, {cols, cell, rowH, gap, phone, rows: out.rows}, [], cut);
       const room = eh + gap;
+      // In sight: the drawer, and as much of the set under it as the screen holds.
+      const setBottom = Math.max(cut * rowH + eh, ...lit.map((x) => (x.r + x.ch) * rowH + room));
+      want = [cut * rowH, setBottom, cut * rowH];
       for (const x of out.placed) if (subset[x.i] !== focus && x.r >= cut) tiles[subset[x.i]].style.top = `${x.r * rowH + gap / 2 + room}px`;
       world.style.height = `${Math.ceil(out.rows * rowH + room)}px`;
     }
@@ -407,39 +416,98 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     project, its name. Closed, it goes back to exactly where it was.
   */
   const PAD = 8;
-  function growOpen(t: HTMLElement, i: number, p: {c: number; r: number; cw: number; ch: number}, g: {cols: number; cell: number; rowH: number; gap: number; phone: boolean; rows: number}, atRow?: number) {
+  function growOpen(
+    t: HTMLElement,
+    i: number,
+    p: {c: number; r: number; cw: number; ch: number},
+    g: {cols: number; cell: number; rowH: number; gap: number; phone: boolean; rows: number},
+    lit: {c: number; r: number; cw: number; ch: number}[],
+    atRow?: number,
+  ) {
     const a = data.pieces[i].w / data.pieces[i].h;
     const picW = (cw: number) => cw * g.cell - g.gap - PAD * 2;
     const tallest = Math.max(200, innerHeight - (g.phone ? 240 : 220));
-    let ecw = g.phone ? g.cols : Math.min(g.cols, Math.max(p.cw + 2, Math.round(g.cols * 0.4)));
-    while (!g.phone && ecw > p.cw + 1 && picW(ecw) / a > tallest) ecw--;
-    const ew = ecw * g.cell - g.gap;
-    const picH = Math.min(picW(ecw) / a, tallest);
+    let widest = g.phone ? g.cols : Math.min(g.cols, Math.max(p.cw + 2, Math.round(g.cols * 0.4)));
+    while (!g.phone && widest > p.cw + 1 && picW(widest) / a > tallest) widest--;
 
-    // Its words and bar, measured at the width they will have, before it glides there.
+    // Its words and bar, measured at a width, before it glides there.
     const base = {width: t.style.width, height: t.style.height};
-    t.style.transition = 'none';
-    t.style.width = `${ew}px`;
-    t.style.height = 'auto';
-    const extra = t.querySelector<HTMLElement>('.wd-frame')!.offsetHeight - t.querySelector<HTMLElement>('.wd-pic')!.offsetHeight;
+    const tall = (cw: number) => {
+      t.style.transition = 'none';
+      t.style.width = `${cw * g.cell - g.gap}px`;
+      t.style.height = 'auto';
+      const extra = t.querySelector<HTMLElement>('.wd-frame')!.offsetHeight - t.querySelector<HTMLElement>('.wd-pic')!.offsetHeight;
+      return Math.ceil(Math.min(picW(cw) / a, tallest) + extra);
+    };
+
+    /*
+      WHERE IT OPENS. Chris: "it does obscure some of the highlighted related
+      tiles ... can we get it to lay out in a way that sits well with those
+      or keeps those all within viewport". Every place near it is weighed,
+      at its full width and a step or two narrower:
+      - the rest of its set, lit, should not be covered (by far the most);
+      - it and its set should fit one screen together;
+      - it should stay close to where it was picked, and as large as it can.
+      On a phone it is the drawer (atRow), and nothing is covered anyway.
+    */
+    let best = {c: 0, r: atRow ?? 0, cw: widest, h: 0, score: Infinity};
+    const widths = g.phone || atRow !== undefined ? [widest] : [widest, widest - 1, widest - 2].filter((w) => w > p.cw);
+    // The screen it should sit in: round its set if the set fits one, otherwise round the piece itself.
+    const view = innerHeight - 32;
+    const top = (x: {r: number}) => x.r * g.rowH;
+    const bottom = (x: {r: number; ch: number}) => (x.r + x.ch) * g.rowH;
+    const sTop = Math.min(top(p), ...lit.map(top));
+    const sBot = Math.max(bottom(p), ...lit.map(bottom));
+    const middle = sBot - sTop <= view ? (sTop + sBot) / 2 : (top(p) + bottom(p)) / 2;
+    const wTop = Math.max(0, middle - view / 2);
+    const wBot = wTop + view;
+    const px = (p.c + p.cw / 2) * g.cell;
+    const py = (top(p) + bottom(p)) / 2;
+    for (const cw of widths.length ? widths : [widest]) {
+      const h = tall(cw);
+      const rowsTall = (h + g.gap) / g.rowH;
+      const w = cw * g.cell;
+      if (atRow !== undefined) {
+        best = {c: 0, r: atRow, cw, h, score: 0};
+        break;
+      }
+      const lastRow = Math.max(0, Math.ceil(g.rows - rowsTall));
+      for (let r = 0; r <= lastRow; r++) {
+        const y0 = r * g.rowH;
+        const y1 = y0 + h;
+        // Far from the screen it belongs on: not worth weighing.
+        if (y1 < wTop - g.rowH * 4 || y0 > wBot + g.rowH * 4) continue;
+        for (let c = 0; c <= g.cols - cw; c++) {
+          const x0 = c * g.cell;
+          let covered = 0;
+          for (const x of lit) {
+            const ox = Math.min(x0 + w, (x.c + x.cw) * g.cell) - Math.max(x0, x.c * g.cell);
+            const oy = Math.min(y1, bottom(x)) - Math.max(y0, top(x));
+            if (ox > 0 && oy > 0) covered += (ox * oy) / (x.cw * g.cell * x.ch * g.rowH);
+          }
+          const outside = Math.max(0, wTop - y0) + Math.max(0, y1 - wBot);
+          const far = Math.hypot(x0 + w / 2 - px, (y0 + y1) / 2 - py);
+          const score = covered * 4000 + outside * 3 + far + (widest - cw) * g.cell * 0.75;
+          if (score < best.score) best = {c, r, cw, h, score};
+        }
+      }
+    }
     Object.assign(t.style, base);
     void t.offsetWidth;
     t.style.transition = '';
-    const eh = Math.ceil(picH + extra);
 
-    const ec = Math.max(0, Math.min(g.cols - ecw, Math.round(p.c + p.cw / 2 - ecw / 2)));
-    const rowsTall = (eh + g.gap) / g.rowH;
-    // Given a row (a phone's drawer), it opens there; otherwise over where it was, inside the world.
-    const er = atRow ?? Math.max(0, Math.min(Math.ceil(g.rows - rowsTall), Math.round(p.r + p.ch / 2 - rowsTall / 2)));
-    t.style.left = `${ec * g.cell + g.gap / 2}px`;
-    t.style.top = `${er * g.rowH + g.gap / 2}px`;
+    const ew = best.cw * g.cell - g.gap;
+    t.style.left = `${best.c * g.cell + g.gap / 2}px`;
+    t.style.top = `${best.r * g.rowH + g.gap / 2}px`;
     t.style.width = `${ew}px`;
-    t.style.height = `${eh}px`;
-    world.style.height = `${Math.ceil(Math.max(g.rows * g.rowH, er * g.rowH + eh + g.gap))}px`;
+    t.style.height = `${best.h}px`;
+    world.style.height = `${Math.ceil(Math.max(g.rows * g.rowH, best.r * g.rowH + best.h + g.gap))}px`;
     t.classList.remove('is-small', 'is-tiny');
     const img = t.querySelector('img');
     if (img) img.sizes = `${Math.ceil(ew)}px`;
-    return eh;
+    // In sight once it has grown: it and its set, if they fit one screen.
+    if (atRow === undefined) want = [Math.min(best.r * g.rowH, sBot - sTop <= view ? sTop : Infinity), Math.max(best.r * g.rowH + best.h, sBot - sTop <= view ? sBot : 0), best.r * g.rowH];
+    return best.h;
   }
 
   /*
@@ -477,7 +545,20 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     // Grown, all of it in sight once it has finished growing.
     else if (data.grow) {
       const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
-      setTimeout(() => focus === i && tiles[i].scrollIntoView({block: 'nearest', behavior: still || !push ? 'auto' : 'smooth'}), still ? 0 : 320);
+      setTimeout(() => {
+        if (focus !== i || !want) return;
+        // As little scrolling as brings it - and its set, where they fit - into sight.
+        const at = world.getBoundingClientRect().top + scrollY;
+        const [from, to, own] = want;
+        const lo = scrollY + 16;
+        const hi = scrollY + innerHeight - 16;
+        let y = scrollY;
+        if (to - from <= innerHeight - 32) {
+          if (at + from < lo) y = at + from - 16;
+          else if (at + to > hi) y = at + to - innerHeight + 16;
+        } else y = at + own - 16;
+        if (Math.abs(y - scrollY) > 2) scrollTo({top: y, behavior: still || !push ? 'auto' : 'smooth'});
+      }, still ? 0 : 320);
     }
   };
   function close() {

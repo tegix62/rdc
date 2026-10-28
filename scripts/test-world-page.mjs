@@ -118,7 +118,18 @@ for (const [name, w, h] of [
     check(`${tag}: it opens as on the main grid - the navy frame and its project bar`, open.framed && open.bar === true)
     if (grow) {
       // Chris: "instead of having something shrink when clicked, it actually expands".
-      check(`${tag}: it grows where it is`, after.w > before.w * (name === 'phone' ? 1 : 1.3) && after.h > before.h && Math.abs(after.x + after.w / 2 - (before.x + before.w / 2)) < Math.max(after.w, 200), `${JSON.stringify(before)} then ${JSON.stringify(after)}`)
+      check(`${tag}: it grows, near where it was`, after.w > before.w * (name === 'phone' ? 1 : 1.3) && after.h > before.h && Math.abs(after.y + after.h / 2 - (before.y + before.h / 2)) < 900, `${JSON.stringify(before)} then ${JSON.stringify(after)}`)
+      // Chris: "it does obscure some of the highlighted related tiles" - it opens where it covers as little of its set as it can.
+      const set = await page.evaluate((i) => {
+        const o = document.querySelector(`.wd-piece[data-i="${i}"]`).getBoundingClientRect()
+        return Array.from(document.querySelectorAll('.wd-piece.is-sibling:not([hidden])')).filter((t) => t.dataset.i !== String(i)).map((t) => {
+          const r = t.getBoundingClientRect()
+          const w = Math.min(o.right, r.right) - Math.max(o.left, r.left)
+          const h = Math.min(o.bottom, r.bottom) - Math.max(o.top, r.top)
+          return w > 0 && h > 0 ? (w * h) / (r.width * r.height) : 0
+        })
+      }, i)
+      check(`${tag}: it covers none of the rest of its set`, set.every((f) => f < 0.05), `${set.length} lit, covered ${set.map((f) => Math.round(f * 100) + '%').join(' ')}`)
       const inside = await page.evaluate((i) => {
         const t = document.querySelector(`.wd-piece[data-i="${i}"]`)
         const r = t.getBoundingClientRect()

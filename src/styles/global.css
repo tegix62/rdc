@@ -3298,6 +3298,28 @@ main {
     display: none;
   }
 
+  /*
+    ONE WAY INTO THE PROJECT, on a phone. Chris, on Chateau Seven gathered
+    on a phone: "there are redundant buttons in this situation" - the
+    block's See the project, and the full-width button the set ends on (THE
+    SET ENDS ON A BUTTON, portfolio.astro), one under the other. The set's
+    own button stays: it closes the set and counts its pieces. On a wide
+    screen, where the block sits beside the piece, both stay - "having those
+    two buttons makes it a little bit more visible".
+  */
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster):has(.pf-end) .pf-item.is-card .pf-card__go {
+    display: none;
+  }
+
+  /*
+    And opened on the project's own tile, the block is a copy of that tile
+    (OPENING THE PROJECT'S OWN TILE) - on a phone, under the piece, its
+    picture was the same picture again, small. Only its words stay.
+  */
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-card[data-block-copy] .pf-item__frame {
+    display: none;
+  }
+
   :is(.pf-grid.is-merch-view, .pf-grid.is-cluster) .pf-item.is-card {
     gap: 0.75rem;
     padding: 0.625rem 0.25rem 0.5rem;

@@ -8715,6 +8715,19 @@ a.pf-btn {
   background: var(--color-navy-dark, #061a5a);
 }
 
+/* The project's people in its grown piece (LandsView, THE NAMES, WITH THEIR PROJECT). */
+.wd-credits {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0.45rem 0.25rem 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--color-gray);
+}
+.wd-credits[hidden] {
+  display: none;
+}
+
 /* A phone's opened piece carries the rest of its project (LandsView, "ITS SET, WITH IT"). */
 .wd-kin {
   flex: 0 0 auto;
@@ -8750,91 +8763,6 @@ a.pf-btn {
 .wd-kin__pick:focus-visible,
 .wd-kin__pick:active {
   border-color: var(--color-navy);
-}
-
-/* ==========================================================================
-   PEOPLE (/people). See src/pages/people/[...slug].astro.
-   ========================================================================== */
-.pp {
-  max-width: var(--content-width);
-  margin: 0 auto;
-  padding: 2.5rem var(--space-3) 4rem;
-}
-.pp-head__title {
-  margin: 0;
-  font-family: var(--font-heading);
-  font-size: clamp(2rem, 1.4rem + 2.4vw, 3.25rem);
-  line-height: 1;
-  color: var(--color-navy);
-}
-.pp-head__line {
-  margin: 0.75rem 0 2rem;
-  color: var(--color-gray, #6b6b6b);
-}
-.pp-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  border-top: 1px solid var(--color-navy);
-}
-.pp-row {
-  display: grid;
-  grid-template-columns: minmax(12rem, 1fr) 2fr;
-  gap: 1rem 2rem;
-  align-items: center;
-  padding: 1rem 0;
-  border-bottom: 1px solid #ddd;
-}
-@media (max-width: 40rem) {
-  .pp-row {
-    grid-template-columns: 1fr;
-  }
-}
-.pp-row__who {
-  display: grid;
-  gap: 0.25rem;
-}
-.pp-row__name {
-  font-family: var(--font-heading);
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-navy);
-}
-a.pp-row__name {
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
-  text-decoration-thickness: 1px;
-}
-.pp-row__roles {
-  font-size: 0.875rem;
-  color: var(--color-gray, #6b6b6b);
-}
-.pp-row__work {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.pp-work {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.25rem 0.75rem 0.25rem 0.25rem;
-  border: 1px solid #ddd;
-  color: var(--color-ink);
-  text-decoration: none;
-  font-size: 0.875rem;
-}
-.pp-work:hover,
-.pp-work:focus-visible {
-  border-color: var(--color-navy);
-}
-.pp-work img {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
 }
 
 /* ==========================================================================

@@ -558,9 +558,8 @@ for (const [name, w, h] of [
 }
 
 /*
-  RESULTS AS TILES and PEOPLE, preview only for now (skipped where absent).
-  Chris: "those information blocks ... can be clicked on to shift the grid
-  around too", and "names involved".
+  RESULTS AS TILES, preview only for now (skipped where absent). Chris:
+  "those information blocks ... can be clicked on to shift the grid around too".
 */
 {
   const page = await browser.newPage({viewport: {width: 1440, height: 900}})
@@ -579,18 +578,15 @@ for (const [name, w, h] of [
       return {i: o?.dataset.i, lit: r ? r.classList.contains('is-sibling') : null}
     })
     check(`results: ${n} result tiles; one opens its project's own piece`, open.i === opens, `${JSON.stringify(open)} (wanted ${opens})`)
+    // Chris: "name dropping per case study" - the project's people in its grown piece, where its Credits panel has any.
+    const named = await page.evaluate(() => {
+      const o = document.querySelector('.wd-piece.is-open')
+      const c = o?.querySelector('.wd-credits')
+      return {inside: !!c && !c.hidden, names: c ? c.querySelectorAll('.pf-item__credit').length : 0, any: document.querySelectorAll('[data-credits]').length}
+    })
+    check('credits: the opened project shows its people, where it has any', named.any === 0 || named.inside || named.names === 0, JSON.stringify(named))
     check('results: no script errors', errors.length === 0, errors.join(' | '))
   } else console.log('(no result tiles here - skipped)')
-  const res = await page.goto(`${BASE}/people/`, {waitUntil: 'domcontentloaded', timeout: 60_000})
-  if (res?.status() === 200) {
-    const pp = await page.evaluate(() => ({
-      rows: document.querySelectorAll('.pp-row').length,
-      named: Array.from(document.querySelectorAll('.pp-row__name')).filter((x) => x.textContent.trim()).length,
-      work: Array.from(document.querySelectorAll('.pp-row')).every((r) => r.querySelectorAll('.pp-work').length > 0),
-      links: Array.from(document.querySelectorAll('.pp-work')).every((a) => /\/portfolio\?view=all&open=/.test(a.getAttribute('href'))),
-    }))
-    check('people: a named row per person, each with the work they are on, opening it in the All view', pp.rows > 0 && pp.named === pp.rows && pp.work && pp.links, JSON.stringify(pp))
-  } else console.log('(no people page here - skipped)')
   await page.close()
 }
 

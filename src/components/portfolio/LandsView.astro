@@ -52,6 +52,7 @@ import {treatmentOf, explicitTreatment, tileHref, cleanKey, merchPlacement} from
 import {stripStegaKey} from '../../lib/stega';
 import {sanityClient} from '../../lib/sanity';
 import {clusterCard} from '../../lib/clusterCard';
+import {parseCreditLines} from '../../lib/credits';
 
 
 /*
@@ -181,7 +182,11 @@ all.forEach((it, i) => {
   if (isProject(it) && tileHref(it)) studyAt.set(norm(tileHref(it)), i);
 });
 const results = ((settings?.proofStats ?? []) as any[])
-  .map((r) => ({stat: clean(r.stat), rest: clean(r.rest), who: [clean(r.name), clean(r.org)].filter(Boolean).join(', '), href: norm(r.href)}))
+  .map((r) => {
+    // The number alone large ("$3500"); the stat's other words join the sentence - a phone's tile has room for one big word.
+    const [num, ...more] = clean(r.stat).split(' ');
+    return {stat: num, rest: [more.join(' '), clean(r.rest)].filter(Boolean).join(' '), who: [clean(r.name), clean(r.org)].filter(Boolean).join(', '), href: norm(r.href)};
+  })
   .filter((r) => r.stat && studyAt.has(r.href))
   .map((r) => ({...r, opens: studyAt.get(r.href)!}));
 results.forEach((r, k) =>
@@ -194,16 +199,30 @@ results.forEach((r, k) =>
     id: `result-${k}`,
     slug: null,
     parent: null,
-    title: `${r.stat}${r.rest}`,
+    title: `${r.stat} ${r.rest}`,
     cat: '',
     kind: 'result',
     mark: false,
-    big: false,
+    // As large as a case study: Chris, of the first ones on a phone, "way too small".
+    big: true,
     order: undefined,
     photo: false,
-    weight: 0.8,
+    weight: 1,
   }),
 );
+/*
+  THE NAMES, WITH THEIR PROJECT, preview first. Chris, taking the People
+  page back out: "I'd rather them be tied to each project ... name dropping
+  per case study". The project's Credits panel, as Brand Identity's labels
+  show it, goes in the grown piece under the project's words. Its own
+  block, not inside the card: the card is a link, and the names link out.
+*/
+const credits = IS_PREVIEW
+  ? all
+      .filter((it) => isProject(it) && tileHref(it))
+      .map((it) => ({href: tileHref(it)!, people: parseCreditLines(it.projectCredits)}))
+      .filter((c) => c.people.length)
+  : [];
 const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name})), grow, picks: picks ?? null};
 ---
 
@@ -259,13 +278,29 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       {results.map((r, k) => (
         <div class="wd-piece wd-piece--result" data-i={all.length + k} data-opens={r.opens} hidden>
           <div class="wd-frame">
-            <button type="button" class="wd-pic wd-result" aria-label={`${r.stat}${r.rest} - open the project`}>
+            <button type="button" class="wd-pic wd-result" aria-label={`${r.stat} ${r.rest} - open the project`}>
               <span class="wd-result__stat">{r.stat}</span>
-              <span class="wd-result__rest">{r.rest.trim()}</span>
+              <span class="wd-result__rest">{r.rest}</span>
               {r.who && <span class="wd-result__who">{r.who}</span>}
             </button>
           </div>
         </div>
+      ))}
+      {credits.map(({href, people}) => (
+        <p class="wd-credits" data-credits={href} hidden>
+          {people.map((c) => (
+            <span class="pf-item__credit">
+              {c.role && <span class="pf-item__credit-role">{c.role}</span>}
+              {c.url ? (
+                <a class="pf-item__credit-name" href={c.url} target="_blank" rel="noopener">
+                  {c.name}
+                </a>
+              ) : (
+                <span class="pf-item__credit-name">{c.name}</span>
+              )}
+            </span>
+          ))}
+        </p>
       ))}
       {cards.map(({href, card}) => (
         <a class="wd-card" href={href} data-card={href} hidden>
@@ -389,7 +424,11 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
 
     const subset = data.pieces.map((_, i) => i);
     if (focus !== null && !subset.includes(focus)) focus = null;
-    const sub = subset.map((i) => ({...data.pieces[i], least: phone && mode === 'lands' && data.pieces[i].photo ? 2 : 1}));
+    // A result tile as wide as a case study may be on a phone (a step under the widest), two cells on a wide screen, so its number reads.
+    const sub = subset.map((i) => ({
+      ...data.pieces[i],
+      least: data.pieces[i].kind === 'result' ? (phone ? Math.max(2, maxSpan - 1) : 2) : phone && mode === 'lands' && data.pieces[i].photo ? 2 : 1,
+    }));
 
     /*
       The opened project's block of type, measured at the width it will
@@ -408,6 +447,10 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     const inPlace = mode === 'lands';
     const grow = inPlace && data.grow;
     world.querySelectorAll('.wd-kin').forEach((el) => el.remove());
+    world.querySelectorAll<HTMLElement>('[data-credits]').forEach((el) => {
+      el.hidden = true;
+      if (el.parentElement !== world) world.append(el);
+    });
     cards.forEach((el) => {
       el.hidden = true;
       el.classList.remove('wd-card--float');
@@ -430,6 +473,12 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       cardEl.hidden = false;
       card = {cw, ch: Math.max(1, Math.ceil((cardEl.offsetHeight + gap) / rowH))};
       cardEl.style.visibility = '';
+    }
+    // Its people, under its words (THE NAMES, WITH THEIR PROJECT).
+    const named = grow && focus !== null ? world.querySelector<HTMLElement>(`[data-credits="${CSS.escape(data.pieces[focus].project ?? '')}"]`) : null;
+    if (named) {
+      named.hidden = false;
+      tiles[focus!].querySelector('.wd-frame')!.insertBefore(named, tiles[focus!].querySelector('.wd-jump'));
     }
     const out = generateWorld(sub, {cols, mode, seed, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow}});
     last = {out, subset};

@@ -372,7 +372,13 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
         world.parentElement!.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
     const steps = phone ? STEPS.phone : STEPS.desktop;
     let cols = steps[zoom];
-    let maxSpan = phone ? Math.round(cols / 2) : Math.round(cols * 0.3);
+    /*
+      A phone's widest piece: half the columns, rounded down from the default
+      up (finer grids) and up from it down (coarser ones), so - never allows
+      a wider piece than the step before it: 9 columns rounded 4.5 up to 5,
+      and - made the tiles larger on average than the 8 it came from.
+    */
+    let maxSpan = phone ? (cols > STEPS.phone[2] ? Math.floor(cols / 2) : Math.ceil(cols / 2)) : Math.round(cols * 0.3);
     if (mode === 'biomes') [cols, maxSpan] = phone ? [15, 6] : [40, 12];
     if (mode === 'heights' && phone) [cols, maxSpan] = [6, 3];
     const cell = width / cols;

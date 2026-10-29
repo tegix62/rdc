@@ -358,6 +358,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
               isProject(it) && href && 'wd-piece--study',
             ]}
             data-i={i}
+            data-piece={pieces[i]?.id}
             data-video={playing[i]?.src}
             data-video-kind={playing[i]?.kind}
             hidden

@@ -36,6 +36,16 @@ import imageUrlBuilder from '@sanity/image-url'
 // The site the boards are on. Preview only while this is a trial.
 const SITE = 'https://preview.rumeau-design-co.pages.dev'
 
+/*
+  Votes: "I dig this" on the portfolio, for anyone (functions/api/votes.ts).
+  Counts only - nothing about who - so the list needs no key.
+*/
+const VOTE_SITES = [
+  {value: 'https://rumeaudesign.co', title: 'Live'},
+  {value: SITE, title: 'Preview'},
+]
+type Votes = {total: number; voters: number; counts: {id: string; n: number}[]}
+
 type Kind = 'pitch' | 'picks' | 'vote'
 type Board = {
   _id: string
@@ -132,6 +142,21 @@ function PicksTool() {
       now.has(id) ? now.delete(id) : now.add(id)
       return {...e, pieces: [...now]}
     })
+  const [voteSite, setVoteSite] = useState(VOTE_SITES[0].value)
+  const [votes, setVotes] = useState<Votes | string | null>(null)
+  const loadVotes = useCallback(async (site: string) => {
+    setVotes('Loading...')
+    try {
+      const res = await fetch(`${site}/api/votes`)
+      const body = await res.json()
+      setVotes(res.ok ? body : body.message ?? `Could not load (${res.status})`)
+    } catch (e) {
+      setVotes(e instanceof Error ? e.message : String(e))
+    }
+  }, [])
+  useEffect(() => {
+    loadVotes(voteSite)
+  }, [loadVotes, voteSite])
   const [search, setSearch] = useState('')
   const shown = pieces.filter((p) => (p.title ?? '').toLowerCase().includes(search.trim().toLowerCase()))
 
@@ -148,6 +173,47 @@ function PicksTool() {
             back here.
           </Text>
         </Stack>
+
+        <Card border radius={2} padding={4}>
+          <Stack space={3}>
+            <Flex align="center" gap={3} wrap="wrap">
+              <Text size={2} weight="semibold">
+                What people dig
+              </Text>
+              {VOTE_SITES.map((v) => (
+                <Button key={v.value} fontSize={1} padding={2} mode={voteSite === v.value ? 'default' : 'ghost'} text={v.title} onClick={() => setVoteSite(v.value)} />
+              ))}
+              <Button fontSize={1} padding={2} mode="bleed" text="Refresh" onClick={() => loadVotes(voteSite)} />
+            </Flex>
+            <Text size={1} muted>
+              From the Vote button on the portfolio. One vote per piece per person; who voted is not kept. Emails people leave
+              afterwards go to the sign-up list, with "votes" as where they came from.
+            </Text>
+            {typeof votes === 'string' && <Text size={1}>{votes}</Text>}
+            {votes && typeof votes !== 'string' && (
+              <Stack space={2}>
+                <Text size={1} muted>
+                  {votes.total} vote{votes.total === 1 ? '' : 's'} from {votes.voters} {votes.voters === 1 ? 'person' : 'people'}
+                </Text>
+                {votes.counts.filter((c) => byId.has(c.id)).slice(0, 40).map((c, k) => {
+                  const p = byId.get(c.id)
+                  return (
+                    <Flex key={c.id} align="center" gap={3}>
+                      <Text size={1} muted style={{width: 24, textAlign: 'right'}}>
+                        {k + 1}
+                      </Text>
+                      {thumb(p, 40) ? <img src={thumb(p, 40)} alt="" width={40} height={40} style={{objectFit: 'contain', background: '#f4f4f4'}} /> : <Box style={{width: 40, height: 40}} />}
+                      <Box flex={1}>
+                        <Text size={1}>{p?.title ?? c.id}</Text>
+                      </Box>
+                      <Badge>{c.n}</Badge>
+                    </Flex>
+                  )
+                })}
+              </Stack>
+            )}
+          </Stack>
+        </Card>
 
         {!editing && (
           <Flex gap={2}>

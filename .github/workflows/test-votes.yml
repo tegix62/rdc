@@ -1,0 +1,43 @@
+name: Test votes
+
+# The Vote toggle on the portfolio (preview). See scripts/test-votes.mjs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to test'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      # From here on, test browsers never download the site's pictures:
+      # each is answered with a blank of the same shape (scripts/lib/
+      # test-images-off.mjs). Set after checkout, which runs before the file exists.
+      - run: echo "NODE_OPTIONS=--import=$GITHUB_WORKSPACE/scripts/lib/test-images-off.mjs" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # The server's side first, against SQLite standing in for D1.
+      - run: node --experimental-strip-types --no-warnings scripts/test-votes-api.mjs
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - run: |
+          set -o pipefail
+          node scripts/test-votes.mjs "$BASE" | tee /tmp/votes.txt
+        env:
+          BASE: ${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}
+      - name: Publish to the run summary
+        if: always()
+        run: |
+          {
+            echo '## Votes'
+            echo ''
+            echo '```'
+            cat /tmp/votes.txt 2>/dev/null || echo '(the test did not run)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -188,6 +188,12 @@ const emptyFilters = ALL_FILTERS.filter(
 // SHIPPED with the views (Chris: "push those live", all of it).
 const MUSEUM_LABELS = true;
 /*
+  VOTES - "I dig this" on any piece, for anyone, from a Vote toggle beside
+  Shuffle and the sizes. Preview first. See src/lib/votes.ts and
+  functions/api/votes.ts.
+*/
+const VOTES = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+/*
   ROLLED BACK, both. Chris, on seeing them: "the animations are interesting,
   but they look a little cheesy currently ... roll back the animations for
   now" - the motion idea wants rethinking (why animate at all, and what
@@ -298,6 +304,7 @@ if (emptyFilters.length > 0) {
           <button type="button" class="pf-btn" id="pf-minus" aria-label="Smaller tiles">&minus;</button>
           <button type="button" class="pf-btn" id="pf-plus" aria-label="Larger tiles">+</button>
         </span>
+        {VOTES && <button type="button" class="pf-btn pf-btn--vote" data-vote aria-pressed="false">Vote</button>}
       </div>
 
       {/* All's own: a new world, and its tile size (LandsView's script). */}
@@ -307,6 +314,7 @@ if (emptyFilters.length > 0) {
           <button type="button" class="pf-btn" data-zoom="-1" aria-label="Smaller tiles">&minus;</button>
           <button type="button" class="pf-btn" data-zoom="1" aria-label="Larger tiles">+</button>
         </span>
+        {VOTES && <button type="button" class="pf-btn pf-btn--vote" data-vote aria-pressed="false">Vote</button>}
       </div>
 
       {/*
@@ -5079,4 +5087,10 @@ if (emptyFilters.length > 0) {
       {capture: true},
     ),
   );
+</script>
+
+<script>
+  // Votes (src/lib/votes.ts): does nothing where there is no Vote toggle.
+  import {startVotes} from '../lib/votes';
+  startVotes();
 </script>

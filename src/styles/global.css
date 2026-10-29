@@ -2427,6 +2427,15 @@ main {
   }
 
   /*
+    With the Vote toggle (preview), one row still: Shuffle, the zoom pair,
+    Vote. As a second row it was a control alone on a line, and 36px more
+    chrome above the work than the 280px this toolbar is held to.
+  */
+  .pf-group--arrange:has(.pf-btn--vote) {
+    grid-template-columns: 1fr auto auto;
+  }
+
+  /*
     Kept for the shelved Archive switch. It costs nothing while nothing
     matches it, and deleting it would mean rebuilding the mobile
     treatment from scratch if Chris wants the view back.

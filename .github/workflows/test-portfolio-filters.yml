@@ -5,6 +5,10 @@ name: Test the portfolio category filters
 # about the markup.
 on:
   workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to test'
+        default: 'https://preview.rumeau-design-co.pages.dev'
   push:
     paths:
       - 'scripts/test-portfolio-filters.mjs'
@@ -33,7 +37,7 @@ jobs:
       # Give the deploy that this push also triggered time to go live, so the
       # test isn't run against the previous build.
       - run: sleep 150
-      - run: node scripts/test-portfolio-filters.mjs
+      - run: node scripts/test-portfolio-filters.mjs "${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}/portfolio"
       # The column count is JavaScript, so it appears in no stylesheet and no
       # CSS diff shows it changing. Four widths, four branches.
       - run: node scripts/test-portfolio-columns.mjs

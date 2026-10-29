@@ -32,3 +32,9 @@ for (const d of body.result) {
       .join(' | '),
   )
 }
+
+// And what the built page shows (its HTML only - no pictures fetched).
+const base = process.env.BASE || 'https://preview.rumeau-design-co.pages.dev'
+const html = await (await fetch(`${base}/collage/`)).text().catch(() => '')
+const names = [...html.matchAll(/class="series__name"[^>]*>([^<]*)</g)].map((m) => m[1])
+console.log(`\n${base}/collage/ shows ${names.length}: ${names.join(', ')}`)

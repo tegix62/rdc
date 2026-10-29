@@ -165,17 +165,27 @@ export function startVotes() {
     save(state);
     paint();
     const first = dig && !state.asked;
-    try {
-      const t = dig && !state.checked ? await token() : '';
-      const res = await fetch('/api/votes', {
+    const send = (extra: Record<string, unknown> = {}) =>
+      fetch('/api/votes', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({piece: id, visitor: state.visitor, on: dig, token: t || undefined}),
-      });
-      const body = (await res.json().catch(() => ({}))) as {ok?: boolean; verified?: boolean};
+        body: JSON.stringify({piece: id, visitor: state.visitor, on: dig, ...extra}),
+      }).then(async (res) => ({res, body: (await res.json().catch(() => ({}))) as {ok?: boolean; verified?: boolean}}));
+    try {
+      // The vote goes at once; the spam check, if this browser has not passed one, runs beside it.
+      const {res, body} = await send();
       if (!res.ok || !body.ok) throw new Error('not kept');
       if (body.verified && !state.checked) save((state = {...state, checked: true}));
       if (first) ask();
+      if (dig && !state.checked && SITE_KEY) {
+        token().then(async (t) => {
+          // Not if the vote was taken back while the check ran.
+          if (!t || !state.dug.includes(id)) return;
+          // The same vote again with the token: kept once, and this browser marked as checked.
+          const again = await send({token: t}).catch(() => null);
+          if (again?.body.verified) save((state = {...state, checked: true}));
+        });
+      }
     } catch {
       // Not kept: put the button back as it was.
       state = {...state, dug: dig ? state.dug.filter((x) => x !== id) : [...state.dug, id]};

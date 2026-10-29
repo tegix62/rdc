@@ -1074,13 +1074,7 @@ a {
 }
 
 .blog-category {
-  font-family: var(--font-heading);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: var(--label-track);
   color: var(--color-navy);
-  margin: 0 0 var(--space-1);
 }
 
 .blog-byline {
@@ -1103,10 +1097,8 @@ a {
 
 .blog-audio__label {
   font-family: var(--font-heading);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: var(--label-track);
+  font-size: 0.9375rem;
+  font-weight: 600;
   color: var(--color-navy);
   margin: 0 0 0.5rem;
 }
@@ -3245,10 +3237,8 @@ main {
 
 .pf-end__go {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 0.3rem;
+  align-items: center;
+  gap: 0.4rem;
   min-height: 4.5rem;
   padding: 0.75rem 0.875rem;
   box-sizing: border-box;
@@ -3259,11 +3249,13 @@ main {
 }
 
 .pf-end__count {
-  font-family: var(--font-body);
-  font-size: 0.6875rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  opacity: 0.8;
+  font-size: 0.9375rem;
+  opacity: 0.75;
+}
+
+.pf-end__arrow {
+  margin-left: auto;
+  font-size: 1.1rem;
 }
 
 .pf-end__label {
@@ -8421,9 +8413,7 @@ a.pf-btn {
   margin: 0 0 var(--space-1);
   text-align: center;
   font-family: var(--font-heading);
-  font-size: 0.7rem;
-  letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  font-size: 0.8125rem;
   color: color-mix(in srgb, var(--color-navy) 70%, transparent);
 }
 .uc-caption {
@@ -8716,10 +8706,8 @@ a.pf-btn {
 }
 .wd-result__who {
   min-width: 0;
-  font-size: clamp(0.55rem, min(5cqh, 3.4cqw), 0.8rem);
+  font-size: clamp(0.62rem, min(5.5cqh, 3.8cqw), 0.875rem);
   line-height: 1.3;
-  letter-spacing: var(--label-track, 0.06em);
-  text-transform: uppercase;
   opacity: 0.75;
 }
 /* The way into the project, as on the project bars. */
@@ -8808,13 +8796,7 @@ a.pf-btn {
   flex: 0 0 auto;
   padding: 0.7rem 0.25rem 0;
 }
-.wd-kin__name {
-  margin: 0 0 0.4rem;
-  font: 700 0.6875rem/1 var(--font-heading);
-  letter-spacing: var(--label-track, 0.06em);
-  text-transform: uppercase;
-  color: var(--color-navy);
-}
+
 .wd-kin__row {
   display: flex;
   gap: 6px;
@@ -9046,9 +9028,7 @@ body.has-tray {
 .pk-tray__count {
   flex: 0 0 auto;
   margin: 0;
-  font: 700 0.75rem/1.2 var(--font-heading);
-  letter-spacing: var(--label-track, 0.06em);
-  text-transform: uppercase;
+  font: 600 0.875rem/1.2 var(--font-heading);
   color: var(--color-navy);
 }
 .pk-tray__thumbs {

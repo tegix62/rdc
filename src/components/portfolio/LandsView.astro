@@ -687,9 +687,6 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       if (lit.length) {
         const kin = document.createElement('div');
         kin.className = 'wd-kin';
-        const name = document.createElement('p');
-        name.className = 'wd-kin__name';
-        name.textContent = 'From this project';
         const row = document.createElement('div');
         row.className = 'wd-kin__row';
         for (const x of [...lit].sort((a, z) => a.r - z.r || a.c - z.c)) {
@@ -709,7 +706,9 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
           b.addEventListener('click', () => open(k));
           row.append(b);
         }
-        kin.append(name, row);
+        // No label over them: under the project's words, they are plainly its other pieces.
+        kin.setAttribute('aria-label', 'More from this project');
+        kin.append(row);
         const frame = tiles[focus!].querySelector('.wd-frame')!;
         frame.insertBefore(kin, frame.querySelector('.wd-jump'));
       }

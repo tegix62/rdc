@@ -47,11 +47,11 @@ const time = readingTime(post.body);
 
   <article class="blog-article">
     <header class="blog-header">
-      {post.category && (
-        <p class="blog-category">{post.category}</p>
-      )}
+      {/* The category in the byline, after the title - not an eyebrow above it. */}
       <h1>{post.title}</h1>
       <p class="blog-byline">
+        {post.category && <span class="blog-category">{post.category}</span>}
+        {post.category && (post.author || formatDate(post.publishedAt) || time) && ' · '}
         {post.author}
         {post.author && formatDate(post.publishedAt) && ' · '}
         {formatDate(post.publishedAt) && (

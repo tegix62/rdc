@@ -2453,8 +2453,9 @@ if (emptyFilters.length > 0) {
       const el = document.createElement('div');
       el.className = 'pf-item pf-end';
       el.innerHTML =
-        '<a class="pf-end__go"><span class="pf-end__count"></span>' +
-        '<span class="pf-end__label">See the project <span aria-hidden="true">&rarr;</span></span></a>';
+        // One line, the count after the words - no small capitals above them (Chris: eyebrow labels read as machine-made).
+        '<a class="pf-end__go"><span class="pf-end__label">See the project</span>' +
+        '<span class="pf-end__count"></span><span class="pf-end__arrow" aria-hidden="true">&rarr;</span></a>';
       return el;
     };
 
@@ -3636,7 +3637,7 @@ if (emptyFilters.length > 0) {
             endTile.style.setProperty('--end-span', String(cols));
             const a = endTile.querySelector<HTMLAnchorElement>('a')!;
             a.href = go.href;
-            endTile.querySelector('.pf-end__count')!.textContent = `All ${family.length} pieces`;
+            endTile.querySelector('.pf-end__count')!.textContent = `\u00b7 ${family.length} pieces`;
             endTile.classList.add('is-sibling');
             revealed.add(endTile);
             packed.push(endTile);

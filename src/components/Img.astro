@@ -28,6 +28,12 @@ interface Props {
     where the surrounding page knows better than the asset does.
   */
   alt?: string;
+  /*
+    Last resort, after the asset's own text: what the picture is called on the
+    page it is in (the piece's title). For pictures with nothing written for
+    them in Sanity, which would otherwise go out with no alt text at all.
+  */
+  altFallback?: string;
   /** Largest width this image is ever rendered at, in CSS pixels. */
   width: number;
   /** Only when cropping to a fixed ratio. */
@@ -106,6 +112,7 @@ interface Props {
 const {
   image,
   alt: altProp,
+  altFallback,
   archive,
   width,
   height,
@@ -127,7 +134,7 @@ const {
   The await costs one query for the whole build, not one per image: the
   module resolves a single lookup table and every caller shares it.
 */
-const alt = altProp || image?.alt || (await assetAlt(image)) || '';
+const alt = altProp || image?.alt || (await assetAlt(image)) || altFallback || '';
 
 /*
   How an image is named in a build warning. The document title alone is not

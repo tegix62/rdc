@@ -23,7 +23,7 @@ import {chromium} from 'playwright'
 import {gzipSync} from 'node:zlib'
 
 const BASE = (process.argv[2] || 'https://rumeaudesign.co').replace(/\/$/, '')
-const PAGES = [['/', 'new homepage'], ['/hello', 'old homepage']]
+const PAGES = [['/', 'new homepage'], ['/hello', 'old homepage'], ['/portfolio', 'portfolio']]
 const SCREENS = [['desktop', {width: 1366, height: 900}], ['phone', {width: 390, height: 844, isMobile: true, deviceScaleFactor: 3}]]
 const kb = (n) => `${(n / 1024).toFixed(0)} KB`
 
@@ -92,7 +92,11 @@ const measure = async (path, viewport) => {
       }
     }).observe({type: 'largest-contentful-paint', buffered: true})
     new PerformanceObserver((l) => {
-      for (const e of l.getEntries()) if (!e.hadRecentInput) window.__perf.cls += e.value
+      for (const e of l.getEntries()) {
+        if (e.hadRecentInput) continue
+        window.__perf.cls += e.value
+        if (e.value > 0.01) for (const src of e.sources ?? []) window.__perf.shifted = [...(window.__perf.shifted ?? []), `${src.node?.className?.toString?.().split(' ')[0] || src.node?.nodeName || '?'} ${e.value.toFixed(3)}`].slice(0, 6)
+      }
     }).observe({type: 'layout-shift', buffered: true})
     new PerformanceObserver((l) => {
       for (const e of l.getEntries()) window.__perf.block += Math.max(0, e.duration - 50)
@@ -149,7 +153,7 @@ for (const [path, name] of PAGES) {
     const m = await measure(path, vp)
     console.log(
       `SPEED ${screen.padEnd(7)} first content ${m.fcp.toFixed(0)}ms, largest ${m.lcp.toFixed(0)}ms (${m.lcpEl}), shift ${m.cls.toFixed(3)}, blocked ${m.block.toFixed(0)}ms, ` +
-        `JS ${kb(m.js)}, CSS ${kb(m.css)}, ${m.nodes} elements, ${m.height}px tall`,
+        `JS ${kb(m.js)}, CSS ${kb(m.css)}, ${m.nodes} elements, ${m.height}px tall${m.shifted ? `; shifted: ${m.shifted.join(', ')}` : ''}`,
     )
     console.log(
       `        pictures: ${m.picsFirst} before scrolling (${m.mpFirst.toFixed(1)} MP asked for), ${m.picsAll} after scrolling it all (${m.mpAll.toFixed(1)} MP); other sites: ${m.hosts}`,

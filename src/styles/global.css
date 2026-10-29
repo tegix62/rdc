@@ -8229,6 +8229,16 @@ html.realsize-open {
   position: relative;
   margin: 0 auto;
 }
+/*
+  Room held for the pieces until the script lays them out and sets the
+  height (its style attribute): with none, what comes after - the homepage's
+  foot - painted right under the band, then jumped ~2000px down when the
+  pieces landed, a layout shift of 0.31 on a desktop screen (Google calls
+  over 0.25 poor). Held, it starts below the fold and moves only out of sight.
+*/
+.wd-world:not([style]) {
+  min-height: 120vh;
+}
 .wd-piece {
   position: absolute;
   z-index: 1;

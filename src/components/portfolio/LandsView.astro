@@ -365,7 +365,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
             <div class="wd-frame">
               <button type="button" class="wd-pic" aria-label={clean(it.title)}>
                 <span class="wd-crop" style={crop}>
-                  <Img image={tileImage(it)} alt="" width={1400} sizes="25vw" loading="lazy" field="Grid Thumbnail (world)" />
+                  <Img image={tileImage(it)} alt="" altFallback={clean(it.title)} width={1400} sizes="25vw" loading="lazy" field="Grid Thumbnail (world)" />
                 </span>
                 {playing[i] && <span class="wd-play" aria-hidden="true"></span>}
               </button>
@@ -411,7 +411,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
           <div class="wd-frame">
             <button type="button" class="wd-pic" aria-label={`${v.title} - play`}>
               <span class="wd-crop wd-crop--still" style="--a:1.7778;--iw:100%;--ih:100%;--il:0%;--it:0%">
-                {v.poster && <img src={v.poster} alt="" loading="lazy" decoding="async" width="1280" height="720" />}
+                {v.poster && <img src={v.poster} alt={v.title} loading="lazy" decoding="async" width="1280" height="720" />}
               </span>
               <span class="wd-play" aria-hidden="true"></span>
             </button>

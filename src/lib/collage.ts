@@ -35,12 +35,22 @@ export function collagePath(slug: string): string {
     .replace(/-\d{4}$/, '');
 }
 
-/** Every collage in the dataset, however it was filed. */
-// Never a sketch, even one whose title (and so slug) names its collage -
-// "Collage - Red Kettle, sketch" would otherwise match collage-* (see
-// NOT_SKETCH in queries.ts).
+/*
+  The collages themselves, not everything that says "collage".
+
+  Chris: the Collage page "lists everything collage related rather than,
+  say, just the collages". The old filter matched the slug with GROQ's
+  `match`, which matches WORDS, so "collage-*" took any slug with the word in
+  it: the six Red Kettle close-ups and the Sun & Moon Collage Stamp beside the
+  nine collages. Now a collage is a piece whose title starts or ends with the
+  word - "Collage - Red Kettle 2025", "Anatomy of Melancholy Collage" - and
+  that is not filed under another piece (the close-ups have Red Kettle as
+  their parent). Category "Collage" still counts, should Chris file one so.
+  Never a sketch, even one whose title names its collage (see NOT_SKETCH in
+  queries.ts). scripts/diagnose-collage-page.mjs lists what it keeps.
+*/
 export const COLLAGE_FILTER =
-  '((category == "Collage" || slug.current match "collage-*" || slug.current match "*-collage") && !(category == "Sketch"))';
+  '((category == "Collage" || string::startsWith(lower(title), "collage") || string::split(lower(title), " ")[-1] == "collage") && !defined(parentBrand) && !(category == "Sketch"))';
 
 /** Oldest first, by the year in the title, then by name. */
 export function bySeriesOrder<T extends {title?: unknown}>(a: T, b: T): number {

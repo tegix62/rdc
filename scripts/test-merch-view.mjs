@@ -1170,9 +1170,12 @@ for (const [w, h] of [[1536, 730], [2560, 1000]]) {
   check('on a phone the merch view is 2 columns', p.cols === 2, `${p.cols} columns`)
   const pAir = await rowAir(page)
   check('and its rows have air between them', pAir >= 12, `${pAir}px at the closest`)
-  await press(page, TYPE)
-  const pt = await state(page)
-  check('and so is the type view', pt.cols === 2, `${pt.cols} columns`)
+  // The old Type/Lettering grid filter, only while it exists (it is its own view now, ?view=type).
+  if (await page.$(`.pf-btn[data-filter="${TYPE}"]`)) {
+    await press(page, TYPE)
+    const pt = await state(page)
+    check('and so is the type view', pt.cols === 2, `${pt.cols} columns`)
+  }
   const docW = await page.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth])
   check('and nothing scrolls sideways', docW[0] <= docW[1], `${docW[0]} vs ${docW[1]}`)
   await page.close()

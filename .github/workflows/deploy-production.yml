@@ -246,7 +246,7 @@ jobs:
           # project measured the previous build for want of exactly this.
           stamp=""
           for attempt in 1 2 3 4 5 6 7 8; do
-            stamp=$(curl -sL --max-time 20 "$BASE/" \
+            stamp=$(curl -sL --retry 3 --retry-all-errors --max-time 20 "$BASE/" \
               | grep -o 'name="build-commit" content="[^"]*"' \
               | head -1 | sed 's/.*content="//; s/"//')
             [ "$stamp" = "$GITHUB_SHA" ] && break
@@ -260,7 +260,7 @@ jobs:
             bad "still serving '${stamp:-nothing}' after 80s, so everything below describes some other build"
           fi
 
-          robots=$(curl -sL --max-time 20 "$BASE/robots.txt")
+          robots=$(curl -sL --retry 3 --retry-all-errors --max-time 20 "$BASE/robots.txt")
           if grep -qiE '^[[:space:]]*Disallow:[[:space:]]*/[[:space:]]*$' <<<"$robots"; then
             bad "robots.txt disallows the whole site"
           else
@@ -272,7 +272,7 @@ jobs:
             bad "robots.txt names no sitemap"
           fi
 
-          home=$(curl -sL --max-time 20 "$BASE/")
+          home=$(curl -sL --retry 3 --retry-all-errors --max-time 20 "$BASE/")
           # Here-strings, not `printf | grep -q`: under pipefail, grep -q
           # stopping at its first match broke printf's pipe on a big page
           # (the work-first homepage) and a found canonical read as missing.
@@ -287,7 +287,7 @@ jobs:
             bad "homepage canonical is not https://rumeaudesign.co/"
           fi
 
-          code=$(curl -sL -o /dev/null -w "%{http_code}" --max-time 20 "$BASE/sanity-visual-editing.js")
+          code=$(curl -sL --retry 3 --retry-all-errors -o /dev/null -w "%{http_code}" --max-time 20 "$BASE/sanity-visual-editing.js")
           if [ "$code" = "404" ]; then
             note "✓ the editing overlay is not served (404)"
           else
@@ -298,8 +298,8 @@ jobs:
           # falls back to "Content coming soon" when its document is missing,
           # which is a healthy-looking 200 with no content behind it.
           for p in / /portfolio /about /video /collage /merchfolio /blog /privacy-policy; do
-            body=$(curl -sL --max-time 20 "$BASE$p")
-            code=$(curl -sL -o /dev/null -w "%{http_code}" --max-time 20 "$BASE$p")
+            body=$(curl -sL --retry 3 --retry-all-errors --max-time 20 "$BASE$p")
+            code=$(curl -sL --retry 3 --retry-all-errors -o /dev/null -w "%{http_code}" --max-time 20 "$BASE$p")
             if [ "$code" != "200" ]; then
               bad "$p -> HTTP $code"
             elif grep -q "Content coming soon" <<<"$body"; then

@@ -554,6 +554,43 @@ for (const [name, w, h] of [
   await page.close()
 }
 
+/*
+  RESULTS AS TILES and PEOPLE, preview only for now (skipped where absent).
+  Chris: "those information blocks ... can be clicked on to shift the grid
+  around too", and "names involved".
+*/
+{
+  const page = await browser.newPage({viewport: {width: 1440, height: 900}})
+  const errors = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  await page.goto(`${BASE}/portfolio?view=all&seed=4187`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.waitForTimeout(1500)
+  const n = await page.locator('.wd-piece--result:not([hidden])').count()
+  if (n) {
+    const opens = await page.locator('.wd-piece--result:not([hidden])').first().getAttribute('data-opens')
+    await page.locator('.wd-piece--result:not([hidden]) .wd-pic').first().click()
+    await page.waitForTimeout(900)
+    const open = await page.evaluate(() => {
+      const o = document.querySelector('.wd-piece.is-open')
+      const r = document.querySelector('.wd-piece--result')
+      return {i: o?.dataset.i, lit: r ? r.classList.contains('is-sibling') : null}
+    })
+    check(`results: ${n} result tiles; one opens its project's own piece`, open.i === opens, `${JSON.stringify(open)} (wanted ${opens})`)
+    check('results: no script errors', errors.length === 0, errors.join(' | '))
+  } else console.log('(no result tiles here - skipped)')
+  const res = await page.goto(`${BASE}/people/`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  if (res?.status() === 200) {
+    const pp = await page.evaluate(() => ({
+      rows: document.querySelectorAll('.pp-row').length,
+      named: Array.from(document.querySelectorAll('.pp-row__name')).filter((x) => x.textContent.trim()).length,
+      work: Array.from(document.querySelectorAll('.pp-row')).every((r) => r.querySelectorAll('.pp-work').length > 0),
+      links: Array.from(document.querySelectorAll('.pp-work')).every((a) => /\/portfolio\?view=all&open=/.test(a.getAttribute('href'))),
+    }))
+    check('people: a named row per person, each with the work they are on, opening it in the All view', pp.rows > 0 && pp.named === pp.rows && pp.work && pp.links, JSON.stringify(pp))
+  } else console.log('(no people page here - skipped)')
+  await page.close()
+}
+
 await browser.close()
 console.log(failures ? `\n${failures} check(s) failed.` : '\nall checks passed')
 process.exit(failures ? 1 : 0)

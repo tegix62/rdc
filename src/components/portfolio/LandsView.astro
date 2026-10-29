@@ -46,7 +46,7 @@
   which the critical-CSS step prunes from a page's own styles.
 */
 import Img from '../Img.astro';
-import {getAllGridItems} from '../../lib/queries';
+import {getAllGridItems, getSiteSettings} from '../../lib/queries';
 import {tileImage, imageDimensions} from '../../lib/image';
 import {treatmentOf, explicitTreatment, tileHref, cleanKey, merchPlacement} from '../../lib/tiles';
 import {stripStegaKey} from '../../lib/stega';
@@ -162,6 +162,48 @@ const pieces = all.map((it, i) => {
   view goes back to the framed piece and floating card.
 */
 const grow = true;
+
+/*
+  RESULTS AS TILES, preview first. Chris, on the work's blocks of words:
+  "those information blocks ... can be clicked on to shift the grid around
+  too", and liked the idea of the result numbers as such blocks. So the
+  three metric cards in Site Settings (proofStats: the number, the rest of
+  the sentence, who said it, and the project - the same cards the homepage
+  shows, no new field) become tiles of their own. Each lands with its
+  project, lights with it, and opens its project's own piece when picked.
+  Not on a picks board, which shows only what Chris chose.
+*/
+const IS_PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+const settings: any = IS_PREVIEW && !only && !picks ? await getSiteSettings() : null;
+const norm = (h: unknown) => String(stripStegaKey(h) ?? '').replace(/\/+$/, '');
+const studyAt = new Map<string, number>();
+all.forEach((it, i) => {
+  if (isProject(it) && tileHref(it)) studyAt.set(norm(tileHref(it)), i);
+});
+const results = ((settings?.proofStats ?? []) as any[])
+  .map((r) => ({stat: clean(r.stat), rest: clean(r.rest), who: [clean(r.name), clean(r.org)].filter(Boolean).join(', '), href: norm(r.href)}))
+  .filter((r) => r.stat && studyAt.has(r.href))
+  .map((r) => ({...r, opens: studyAt.get(r.href)!}));
+results.forEach((r, k) =>
+  pieces.push({
+    // A block of words about as wide as a postcard.
+    w: 3,
+    h: 2,
+    project: tileHref(all[r.opens]),
+    own: false,
+    id: `result-${k}`,
+    slug: null,
+    parent: null,
+    title: `${r.stat}${r.rest}`,
+    cat: '',
+    kind: 'result',
+    mark: false,
+    big: false,
+    order: undefined,
+    photo: false,
+    weight: 0.8,
+  }),
+);
 const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name})), grow, picks: picks ?? null};
 ---
 
@@ -214,6 +256,17 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
           </div>
         );
       })}
+      {results.map((r, k) => (
+        <div class="wd-piece wd-piece--result" data-i={all.length + k} data-opens={r.opens} hidden>
+          <div class="wd-frame">
+            <button type="button" class="wd-pic wd-result" aria-label={`${r.stat}${r.rest} - open the project`}>
+              <span class="wd-result__stat">{r.stat}</span>
+              <span class="wd-result__rest">{r.rest.trim()}</span>
+              {r.who && <span class="wd-result__who">{r.who}</span>}
+            </button>
+          </div>
+        </div>
+      ))}
       {cards.map(({href, card}) => (
         <a class="wd-card" href={href} data-card={href} hidden>
           {card!.kicker && <span class="pf-card__kicker">{card!.kicker}</span>}
@@ -689,7 +742,8 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     draw();
   }
 
-  tiles.forEach((t) => t.querySelector('.wd-pic')!.addEventListener('click', () => open(Number(t.dataset.i))));
+  // A result tile opens its project's own piece (data-opens), not itself.
+  tiles.forEach((t) => t.querySelector('.wd-pic')!.addEventListener('click', () => open(Number(t.dataset.opens ?? t.dataset.i))));
 
   /*
     PICKS, on a board (src/pages/picks/[code]): a + on each piece puts it in

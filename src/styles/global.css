@@ -8662,6 +8662,50 @@ a.pf-btn {
   }
 }
 
+/*
+  A result as a tile of its own (LandsView, RESULTS AS TILES): the number
+  large, the rest of the sentence under it, who said it last. Sized by its
+  tile (container units of .wd-pic), so it reads at any of the view's sizes.
+*/
+.wd-result {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 0.35em;
+  padding: 7cqmin 8cqmin;
+  box-sizing: border-box;
+  background: var(--color-navy);
+  color: #fff;
+  text-align: left;
+  font-family: var(--font-heading);
+}
+.wd-result__stat {
+  font-size: clamp(0.95rem, 15cqmin, 3.5rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+}
+.wd-result__rest {
+  font-size: clamp(0.62rem, 7cqmin, 1.15rem);
+  line-height: 1.2;
+}
+.wd-result__who {
+  margin-top: auto;
+  font-size: clamp(0.55rem, 5cqmin, 0.8rem);
+  letter-spacing: var(--label-track, 0.06em);
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.wd-piece--result.is-tiny .wd-result__rest,
+.wd-piece--result.is-tiny .wd-result__who {
+  display: none;
+}
+.wd-result:hover,
+.wd-result:focus-visible {
+  background: var(--color-navy-dark, #061a5a);
+}
+
 /* A phone's opened piece carries the rest of its project (LandsView, "ITS SET, WITH IT"). */
 .wd-kin {
   flex: 0 0 auto;
@@ -8697,6 +8741,91 @@ a.pf-btn {
 .wd-kin__pick:focus-visible,
 .wd-kin__pick:active {
   border-color: var(--color-navy);
+}
+
+/* ==========================================================================
+   PEOPLE (/people). See src/pages/people/[...slug].astro.
+   ========================================================================== */
+.pp {
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 2.5rem var(--space-3) 4rem;
+}
+.pp-head__title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 1.4rem + 2.4vw, 3.25rem);
+  line-height: 1;
+  color: var(--color-navy);
+}
+.pp-head__line {
+  margin: 0.75rem 0 2rem;
+  color: var(--color-gray, #6b6b6b);
+}
+.pp-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--color-navy);
+}
+.pp-row {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) 2fr;
+  gap: 1rem 2rem;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid #ddd;
+}
+@media (max-width: 40rem) {
+  .pp-row {
+    grid-template-columns: 1fr;
+  }
+}
+.pp-row__who {
+  display: grid;
+  gap: 0.25rem;
+}
+.pp-row__name {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+a.pp-row__name {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  text-decoration-thickness: 1px;
+}
+.pp-row__roles {
+  font-size: 0.875rem;
+  color: var(--color-gray, #6b6b6b);
+}
+.pp-row__work {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pp-work {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem 0.25rem 0.25rem;
+  border: 1px solid #ddd;
+  color: var(--color-ink);
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+.pp-work:hover,
+.pp-work:focus-visible {
+  border-color: var(--color-navy);
+}
+.pp-work img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
 }
 
 /* ==========================================================================

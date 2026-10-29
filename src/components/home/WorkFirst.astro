@@ -1,0 +1,87 @@
+---
+/*
+  THE WORK FIRST - the homepage as the work itself, on the preview.
+
+  Chris, of the homepage: "I'm still struggling with the idea that the
+  homepage is not servicing the website as much as the portfolio is." The
+  portfolio is the site now - the work is the content, and it is used, not
+  read - so the homepage stops being a brochure in front of it:
+
+  - A slim band: what the studio does (the page's one heading, for search
+    as much as for people), one sentence of who, and the two ways on.
+  - The field: the All view itself (LandsView) - pieces grow where they
+    are, projects light together, the result numbers and the video work
+    are among them - over a curated part of the work, not all of it, so the
+    page stays light: each project's own piece and the first of its
+    pieces, plus whatever Chris picks in Site Settings' Homepage Work Grid.
+  - A short foot: his portrait, how he works, and Let's work again, so the
+    page keeps a face and some real words.
+
+  What moved, not lost: the logo strip (those clients are in the field as
+  their work), the testimonial cards (their numbers are tiles here), the
+  checklist and the process video - About is the place for them.
+*/
+import Img from '../Img.astro';
+import LandsView from '../portfolio/LandsView.astro';
+import {getAllGridItems} from '../../lib/queries';
+import {cleanKey, tileHref} from '../../lib/tiles';
+import {tileImage} from '../../lib/image';
+import {stripStegaKey} from '../../lib/stega';
+
+interface Props {
+  settings: any;
+  contactUrl: string;
+  bioText: string;
+  featured: any[];
+}
+const {settings, contactUrl, bioText, featured} = Astro.props;
+const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
+const idOf = (it: any) => cleanKey(it?._id).replace(/^drafts\./, '');
+
+/*
+  The curated part: every project's own piece and up to PER more of its
+  pieces, in the portfolio's order, and the Homepage Work Grid picks.
+*/
+const PER = 7;
+const items: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it));
+const taken = new Map<string, number>();
+const only = new Set<string>(featured.map(idOf).filter(Boolean));
+for (const it of items) {
+  const href = tileHref(it);
+  if (!href) continue;
+  const study = cleanKey(it.pageType) === 'Case Study';
+  const n = taken.get(href) ?? 0;
+  if (study || n < PER) {
+    only.add(idOf(it));
+    if (!study) taken.set(href, n + 1);
+  }
+}
+const tagline = clean(settings?.tagline) || 'Brand identity & merch design for heritage apparel brands.';
+const finalLine = clean(settings?.finalCtaLine);
+---
+
+<section class="wf-band">
+  <h1 class="wf-band__line">{tagline}</h1>
+  <p class="wf-band__who">{bioText}</p>
+  <div class="wf-band__go">
+    <a class="button" href={contactUrl}>Let's Work</a>
+    <a class="button button--outline" href="/portfolio?view=all">See all the work</a>
+  </div>
+</section>
+
+<section class="pf-section wf-field" aria-label="The work">
+  {/* The field asks which pane is shown; here it is the only one. */}
+  <script is:inline>document.documentElement.dataset.pfPane = 'all';</script>
+  <LandsView only={[...only]} home />
+  <p class="wf-field__more"><a href="/portfolio?view=all">See everything <span aria-hidden="true">&rarr;</span></a></p>
+</section>
+
+<section class="wf-foot">
+  {settings?.portrait && (
+    <Img class="wf-foot__portrait" image={settings.portrait} field="portrait (Portrait of you)" alt="Chris Rumeau, founder of Rumeau Design Co" width={520} sizes="(max-width: 40rem) 60vw, 260px" loading="lazy" />
+  )}
+  <div class="wf-foot__words">
+    <p class="wf-foot__line">{finalLine || 'Hand-drawn brand identity and merch, made with the people who wear it.'}</p>
+    <a class="button" href={contactUrl}>Let's Work</a>
+  </div>
+</section>

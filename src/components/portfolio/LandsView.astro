@@ -46,7 +46,9 @@
   which the critical-CSS step prunes from a page's own styles.
 */
 import Img from '../Img.astro';
-import {getAllGridItems, getSiteSettings} from '../../lib/queries';
+import {getAllGridItems, getSiteSettings, getPage} from '../../lib/queries';
+import {embedUrl} from '../../lib/video';
+import {youTubePoster} from '../../lib/youtubePoster';
 import {tileImage, imageDimensions} from '../../lib/image';
 import {treatmentOf, explicitTreatment, tileHref, cleanKey, merchPlacement} from '../../lib/tiles';
 import {stripStegaKey} from '../../lib/stega';
@@ -63,8 +65,10 @@ import {parseCreditLines} from '../../lib/credits';
 interface Props {
   only?: string[];
   picks?: {code: string; kind: 'pitch' | 'picks' | 'vote'};
+  /** The homepage's field (src/pages/index.astro): no seed in the address. */
+  home?: boolean;
 }
-const {only, picks} = Astro.props as Props;
+const {only, picks, home} = Astro.props as Props;
 const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
 const idOf = (it: any) => cleanKey(it._id).replace(/^drafts\./, '');
 const all: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)) && (!only || only.includes(idOf(it))));
@@ -175,7 +179,7 @@ const grow = true;
   Not on a picks board, which shows only what Chris chose.
 */
 const IS_PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
-const settings: any = IS_PREVIEW && !only && !picks ? await getSiteSettings() : null;
+const settings: any = IS_PREVIEW && !picks ? await getSiteSettings() : null;
 const norm = (h: unknown) => String(stripStegaKey(h) ?? '').replace(/\/+$/, '');
 const studyAt = new Map<string, number>();
 all.forEach((it, i) => {
@@ -225,7 +229,60 @@ const credits = IS_PREVIEW
       .map((it) => ({href: tileHref(it)!, people: parseCreditLines(it.projectCredits)}))
       .filter((c) => c.people.length)
   : [];
-const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name})), grow, picks: picks ?? null};
+/*
+  THE VIDEO WORK, WITH THE REST, preview first. Chris: "my video work
+  should not be separate now that I think about it" - so every video on
+  the video page (its sections, as built in Studio: a video section, a
+  media row's videos) is a piece of the All view too: YouTube's own still
+  as its picture, its name from YouTube, a play mark; opened, it grows as
+  any piece does and plays where it is. Nothing to add in Studio - a
+  video put on the video page joins the field at the next build.
+*/
+const videoPage: any = IS_PREVIEW && !picks ? await getPage('video') : null;
+const videoUrls = new Set<string>();
+for (const sec of videoPage?.sections ?? []) {
+  for (const v of [sec, ...(Array.isArray(sec?.items) ? sec.items : [])]) {
+    const src = embedUrl(stripStegaKey(v?.url));
+    if (src?.includes('youtube.com/embed/')) videoUrls.add(src);
+  }
+}
+const titleOf = async (id: string) => {
+  try {
+    const r = await fetch(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(`https://www.youtube.com/watch?v=${id}`)}`, {signal: AbortSignal.timeout(5000)});
+    return r.ok ? clean(((await r.json()) as any).title) || 'Video' : 'Video';
+  } catch {
+    return 'Video';
+  }
+};
+const videos = await Promise.all(
+  [...videoUrls].map(async (src) => {
+    const id = src.split('/').pop()!;
+    // The privacy-enhanced player: no YouTube cookies until it is played.
+    return {id, poster: await youTubePoster(id), title: await titleOf(id), embed: `https://www.youtube-nocookie.com/embed/${id}`};
+  }),
+);
+const videoAt = pieces.length;
+videos.forEach((v) =>
+  pieces.push({
+    w: 16,
+    h: 9,
+    project: null,
+    own: false,
+    id: `video-${v.id}`,
+    slug: `video-${v.id}`,
+    parent: null,
+    title: v.title,
+    cat: 'video',
+    kind: 'video',
+    mark: false,
+    // Finished pieces of work, sized as a case study is.
+    big: true,
+    order: undefined,
+    photo: true,
+    weight: 1,
+  }),
+);
+const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name})), grow, picks: picks ?? null, home: !!home};
 ---
 
 <div class="wd pf-pane" data-pane="all">
@@ -290,6 +347,19 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
                 <span class="wd-result__go" aria-hidden="true">&rarr;</span>
               </span>
             </button>
+          </div>
+        </div>
+      ))}
+      {videos.map((v, k) => (
+        <div class="wd-piece wd-piece--video" data-i={videoAt + k} data-video={v.embed} hidden>
+          <div class="wd-frame">
+            <button type="button" class="wd-pic" aria-label={`${v.title} - play`}>
+              <span class="wd-crop" style="--a:1.7778;--iw:100%;--ih:100%;--il:0%;--it:0%">
+                <img src={v.poster} alt="" loading="lazy" decoding="async" width="1280" height="720" />
+              </span>
+              <span class="wd-play" aria-hidden="true"></span>
+            </button>
+            <span class="wd-caption">{v.title}</span>
           </div>
         </div>
       ))}
@@ -358,7 +428,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   import {seedOf} from '../../lib/cluster';
 
   type P = WorldPiece & {id: string; slug: string | null; title: string; cat: string; photo: boolean};
-  const data: {pieces: P[]; names: Record<string, string>; filters: {value: string; name: string}[]; grow: boolean; picks: {code: string; kind: 'pitch' | 'picks' | 'vote'} | null} = JSON.parse(
+  const data: {pieces: P[]; names: Record<string, string>; filters: {value: string; name: string}[]; grow: boolean; picks: {code: string; kind: 'pitch' | 'picks' | 'vote'} | null; home: boolean} = JSON.parse(
     document.getElementById('wd-data')!.textContent!,
   );
   const world = document.querySelector<HTMLElement>('.wd-world')!;
@@ -454,6 +524,14 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     const inPlace = mode === 'lands';
     const grow = inPlace && data.grow;
     world.querySelectorAll('.wd-kin').forEach((el) => el.remove());
+    // A video plays only while it is the one open: closing it, or opening another, stops it.
+    world.querySelectorAll<HTMLElement>('.wd-player').forEach((el) => {
+      const t = el.closest<HTMLElement>('.wd-piece');
+      if (!t || Number(t.dataset.i) !== focus) {
+        t?.classList.remove('has-player');
+        el.remove();
+      }
+    });
     world.querySelectorAll<HTMLElement>('[data-credits]').forEach((el) => {
       el.hidden = true;
       if (el.parentElement !== world) world.append(el);
@@ -590,6 +668,20 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       for (const x of out.placed) if (subset[x.i] !== focus && x.r >= cut) tiles[subset[x.i]].style.top = `${x.r * rowH + gap / 2 + room}px`;
       world.style.height = `${Math.ceil(out.rows * rowH + room)}px`;
     }
+    // The opened video, playing in its picture's place.
+    const playing = grow && focus !== null ? tiles[focus] : null;
+    if (playing?.dataset.video && !playing.querySelector('.wd-player')) {
+      const player = document.createElement('div');
+      player.className = 'wd-player';
+      const frame = document.createElement('iframe');
+      frame.src = `${playing.dataset.video}?autoplay=1&rel=0&playsinline=1`;
+      frame.title = data.pieces[focus!].title;
+      frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+      frame.allowFullscreen = true;
+      player.append(frame);
+      playing.querySelector('.wd-pic')!.after(player);
+      playing.classList.add('has-player');
+    }
     clearTimeout(settle);
     if (moving.length) settle = window.setTimeout(() => tiles.forEach((t) => t.classList.remove('is-moving')), 450);
     // The order they are seen in, for the Tab key and screen readers.
@@ -597,8 +689,11 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     for (const p of seen) world.append(tiles[subset[p.i]]);
     if (cardEl && out.card && !inPlace) world.append(cardEl);
 
-    document.querySelector<HTMLButtonElement>('[data-zoom="-1"]')!.disabled = zoom === 0;
-    document.querySelector<HTMLButtonElement>('[data-zoom="1"]')!.disabled = zoom === steps.length - 1;
+    // The page's - and + (none on the homepage).
+    const less = document.querySelector<HTMLButtonElement>('[data-zoom="-1"]');
+    const more = document.querySelector<HTMLButtonElement>('[data-zoom="1"]');
+    if (less) less.disabled = zoom === 0;
+    if (more) more.disabled = zoom === steps.length - 1;
     writeLink();
   };
 
@@ -718,7 +813,8 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     const url = new URL(location.href);
     const set = (k: string, v: string | null) => (v ? url.searchParams.set(k, v) : url.searchParams.delete(k));
     set('open', focus === null ? null : keyOf(focus));
-    set('seed', String(seed));
+    // The homepage's field is the one world it always is: no seed in its address.
+    set('seed', data.home ? null : String(seed));
     set('mode', mode === 'lands' ? null : mode);
     set('v', simple ? null : 'rules');
     if (url.href !== location.href) history.replaceState(history.state, '', url);
@@ -962,7 +1058,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && focus !== null) close();
   });
-  document.querySelector('[data-roll]')!.addEventListener('click', () => {
+  document.querySelector('[data-roll]')?.addEventListener('click', () => {
     seed = (seedOf(`${seed}:${Date.now()}`) % 9000) + 1000;
     draw();
   });

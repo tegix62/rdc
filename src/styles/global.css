@@ -8738,6 +8738,48 @@ a.pf-btn {
   background: var(--color-navy-dark, #061a5a);
 }
 
+/* The video work among the rest (LandsView, THE VIDEO WORK, WITH THE REST): a play mark on its still. */
+.wd-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: clamp(28px, 22cqmin, 64px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgb(0 40 133 / 0.88);
+  box-shadow: 0 4px 14px -6px rgb(0 0 0 / 0.5);
+  pointer-events: none;
+}
+.wd-play::after {
+  content: '';
+  position: absolute;
+  left: 54%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-style: solid;
+  border-width: 0.45em 0 0.45em 0.75em;
+  border-color: transparent transparent transparent #fff;
+  font-size: clamp(10px, 7cqmin, 22px);
+}
+/* Opened, it plays in its picture's place. */
+.wd-piece.has-player .wd-pic {
+  display: none;
+}
+.wd-player {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  background: #000;
+}
+.wd-player iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
 /* The project's people in its grown piece (LandsView, THE NAMES, WITH THEIR PROJECT). */
 .wd-credits {
   flex: 0 0 auto;
@@ -8786,6 +8828,87 @@ a.pf-btn {
 .wd-kin__pick:focus-visible,
 .wd-kin__pick:active {
   border-color: var(--color-navy);
+}
+
+/* ==========================================================================
+   THE WORK FIRST - the preview homepage. See src/components/home/WorkFirst.astro.
+   A slim band, the field (the All view), a short foot.
+   ========================================================================== */
+.wf-band {
+  padding: var(--space-5) 0 var(--space-3);
+}
+.wf-band__line {
+  max-width: 20ch;
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(1.75rem, 1rem + 3.2vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  color: var(--color-navy);
+}
+.wf-band__who {
+  max-width: 46ch;
+  margin: var(--space-2) 0 0;
+  font-size: clamp(1rem, 0.9rem + 0.4vw, 1.1875rem);
+  line-height: 1.45;
+  color: var(--color-ink);
+}
+.wf-band__go {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+@media (max-width: 40rem) {
+  .wf-band {
+    padding: var(--space-3) 0 var(--space-2);
+  }
+}
+.wf-field {
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-4);
+}
+.wf-field__more {
+  margin: var(--space-3) var(--space-3) 0;
+  text-align: right;
+  font-family: var(--font-heading);
+  font-weight: 700;
+}
+.wf-field__more a {
+  color: var(--color-navy);
+  text-decoration: none;
+}
+.wf-field__more a:hover,
+.wf-field__more a:focus-visible {
+  text-decoration: underline;
+}
+.wf-foot {
+  display: grid;
+  grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: end;
+  padding: var(--space-5) 0 var(--space-6);
+  border-top: 1px solid var(--color-navy);
+}
+@media (max-width: 40rem) {
+  .wf-foot {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+}
+.wf-foot__portrait {
+  width: 100%;
+  height: auto;
+}
+.wf-foot__line {
+  max-width: 28ch;
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-heading);
+  font-size: clamp(1.375rem, 1rem + 1.6vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-navy);
 }
 
 /* ==========================================================================

@@ -5,12 +5,15 @@ import Img from '../components/Img.astro';
 import Sections from '../components/Sections.astro';
 import WorkGrid from '../components/WorkGrid.astro';
 import Video from '../components/Video.astro';
+import WorkFirst from '../components/home/WorkFirst.astro';
 import { getPage, getSiteSettings, getFeaturedWork } from '../lib/queries';
 import { backgroundUrl, hotspotPosition, imageUrl, buildSrcSet, originalUrl, isPassThrough, cappedWidth, hasAsset, fileUrl } from '../lib/image';
 import { isAnimatedSource } from '../lib/animated';
 import { stripStega } from '../lib/stega';
 
 const page = await getPage('home');
+// The work-first homepage (components/home/WorkFirst.astro) is the preview's alone while it is tried.
+const IS_PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
 const settings = await getSiteSettings();
 const clientLogos = settings?.clientLogos ?? [];
 
@@ -175,6 +178,10 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
 ---
 
 <Layout title={page?.title ?? 'Rumeau Design Co'} description={pageDescription(page, 'Hand-drawn brand identity, lettering and merch design for heritage apparel brands and musicians. The studio of Chris Rumeau, New Jersey.')}>
+  {IS_PREVIEW ? (
+    <WorkFirst settings={settings} contactUrl={CONTACT_URL} bioText={bioText} featured={featuredWork} />
+  ) : (
+  <Fragment>
   <section class="statement">
     {heroVideoUrl ? (
       <video
@@ -361,5 +368,7 @@ const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined
       <a class="button button--white" href={CONTACT_URL}>Let's Work</a>
     </div>
   </section>
+  </Fragment>
+  )}
 </Layout>
 

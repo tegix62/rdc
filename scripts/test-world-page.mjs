@@ -586,7 +586,60 @@ for (const [name, w, h] of [
     })
     check('credits: the opened project shows its people, where it has any', named.any === 0 || named.inside || named.names === 0, JSON.stringify(named))
     check('results: no script errors', errors.length === 0, errors.join(' | '))
+    // Chris: "my video work should not be separate" - a video among the pieces grows and plays where it is.
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(500)
+    const vids = await page.locator('.wd-piece--video:not([hidden])').count()
+    if (vids) {
+      await page.locator('.wd-piece--video:not([hidden]) .wd-pic').first().click()
+      await page.waitForTimeout(900)
+      const v = await page.evaluate(() => {
+        const o = document.querySelector('.wd-piece.is-open')
+        const f = o?.querySelector('.wd-player iframe')
+        return {video: !!o?.classList.contains('wd-piece--video'), player: f?.getAttribute('src')?.includes('youtube-nocookie.com/embed/') ?? false, h: Math.round(f?.getBoundingClientRect().height ?? 0)}
+      })
+      check(`videos: ${vids} video tiles; one grows and plays in place`, v.video && v.player && v.h > 100, JSON.stringify(v))
+      await page.keyboard.press('Escape')
+      await page.waitForTimeout(500)
+      const gone = await page.evaluate(() => document.querySelectorAll('.wd-player').length)
+      check('videos: closed, it stops - no player left', gone === 0, `${gone}`)
+    } else console.log('(no video tiles here - skipped)')
   } else console.log('(no result tiles here - skipped)')
+  /*
+    THE WORK FIRST homepage (preview): the band's one heading, the field in
+    the first screen - a curated part of the work, with its results and
+    videos - and the foot.
+  */
+  for (const [name, w, h] of [['desktop', 1440, 900], ['phone', 390, 844]]) {
+    await page.setViewportSize({width: w, height: h})
+    const e2 = []
+    page.on('pageerror', (e) => e2.push(e.message))
+    await page.goto(`${BASE}/`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+    await page.waitForTimeout(1500)
+    const hp = await page.evaluate(() => {
+      const field = document.querySelector('.wf-field .wd-world')
+      const shown = Array.from(document.querySelectorAll('.wf-field .wd-piece')).filter((t) => !t.hidden)
+      return {
+        band: !!document.querySelector('.wf-band'),
+        h1: Array.from(document.querySelectorAll('h1')).map((x) => x.textContent.trim()),
+        fieldTop: field ? Math.round(field.getBoundingClientRect().top) : null,
+        pieces: shown.length,
+        results: shown.filter((t) => t.classList.contains('wd-piece--result')).length,
+        videos: shown.filter((t) => t.classList.contains('wd-piece--video')).length,
+        foot: !!document.querySelector('.wf-foot a.button'),
+        wide: document.documentElement.scrollWidth > innerWidth,
+        url: location.search,
+      }
+    })
+    if (!hp.band) {
+      console.log('(the work-first homepage is not on this site - skipped)')
+      break
+    }
+    check(`${name}, work-first homepage: one heading, the field starting in the first screen`, hp.h1.length === 1 && hp.fieldTop !== null && hp.fieldTop < h * 0.6, JSON.stringify({h1: hp.h1, fieldTop: hp.fieldTop}))
+    check(`${name}, work-first homepage: a curated field with its results and videos, and the foot`, hp.pieces > 20 && hp.results > 0 && hp.videos > 0 && hp.foot && !hp.wide, JSON.stringify(hp))
+    check(`${name}, work-first homepage: no seed in its address`, !/seed=/.test(hp.url), hp.url)
+    check(`${name}, work-first homepage: no script errors`, e2.length === 0, e2.join(' | '))
+  }
   await page.close()
 }
 

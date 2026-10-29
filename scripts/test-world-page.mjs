@@ -74,9 +74,11 @@ for (const [name, w, h] of [
     if (name === 'phone') {
       const edge = await page.evaluate(() => {
         const r = document.querySelector('.wd-world').getBoundingClientRect()
-        return {left: Math.round(r.left), right: Math.round(innerWidth - r.right), scroll: document.documentElement.scrollWidth > innerWidth}
+        // What sticks out, if anything does: its class and how far.
+        const out = Array.from(document.querySelectorAll('body *')).map((e) => [e, e.getBoundingClientRect()]).filter(([, b]) => b.width && b.right > innerWidth + 1).map(([e, b]) => `${e.tagName.toLowerCase()}.${String(e.className).split(' ')[0]} +${Math.round(b.right - innerWidth)}`).slice(0, 4)
+        return {left: Math.round(r.left), right: Math.round(innerWidth - r.right), scroll: document.documentElement.scrollWidth > innerWidth, out}
       })
-      check(`${tag}: to 4px from the screen's edges, no sideways scroll`, Math.abs(edge.left - 4) <= 1 && Math.abs(edge.right - 4) <= 1 && !edge.scroll, `${edge.left}px / ${edge.right}px`)
+      check(`${tag}: to 4px from the screen's edges, no sideways scroll`, Math.abs(edge.left - 4) <= 1 && Math.abs(edge.right - 4) <= 1 && !edge.scroll, `${edge.left}px / ${edge.right}px ${edge.out.join(', ')}`)
     }
     if (mode.startsWith('lands')) {
       const sized = await page.evaluate(() => new Set(Array.from(document.querySelectorAll('.wd-piece:not([hidden])')).map((t) => Math.round(t.getBoundingClientRect().width))).size)
@@ -202,7 +204,8 @@ for (const [name, w, h] of [
   page.on('pageerror', (e) => errors.push(e.message))
   await page.goto(`${BASE}/portfolio?view=all`, {waitUntil: 'domcontentloaded', timeout: 60_000})
   await page.waitForTimeout(1500)
-  const shown = () => page.evaluate(() => Array.from(document.querySelectorAll('.wd-piece')).filter((t) => !t.hidden).map((t) => ({i: Number(t.dataset.i), w: t.getBoundingClientRect().width})))
+  // The pictures: a result tile (a block of words, preview) is not one.
+  const shown = () => page.evaluate(() => Array.from(document.querySelectorAll('.wd-piece:not(.wd-piece--result)')).filter((t) => !t.hidden).map((t) => ({i: Number(t.dataset.i), w: t.getBoundingClientRect().width})))
   const cats = await page.evaluate(() => JSON.parse(document.getElementById('wd-data').textContent).pieces.map((p) => p.cat))
   const allShown = await shown()
   const trimmed = await page.evaluate(() => Array.from(document.querySelectorAll('.wd-crop')).filter((c) => parseFloat(c.style.getPropertyValue('--iw')) > 100.5).length)

@@ -8665,12 +8665,19 @@ a.pf-btn {
 /*
   A result as a tile of its own (LandsView, RESULTS AS TILES): the number
   large, the rest of the sentence under it, who said it last. Sized by its
-  tile (container units of .wd-pic), so it reads at any of the view's sizes.
+  tile, so it reads at any of the view's sizes: the frame is the container
+  the units measure (a button, .wd-pic, cannot be measured from inside -
+  the units fell back to the screen, and a 31px padding pushed the number
+  off a phone's edge).
 */
+.wd-piece--result .wd-frame {
+  container-type: size;
+}
 .wd-result {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  /* safe: a full tile starts at its top rather than spilling out of both ends. */
+  justify-content: safe center;
   align-items: flex-start;
   gap: 0.35em;
   padding: 7cqmin 8cqmin;
@@ -8681,7 +8688,9 @@ a.pf-btn {
   font-family: var(--font-heading);
 }
 .wd-result__stat {
-  font-size: clamp(0.95rem, 15cqmin, 3.5rem);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: clamp(0.8rem, 15cqmin, 3.5rem);
   font-weight: 800;
   line-height: 0.95;
   letter-spacing: -0.02em;
@@ -8697,8 +8706,8 @@ a.pf-btn {
   text-transform: uppercase;
   opacity: 0.75;
 }
-.wd-piece--result.is-tiny .wd-result__rest,
-.wd-piece--result.is-tiny .wd-result__who {
+.wd-piece--result.is-small .wd-result__who,
+.wd-piece--result.is-tiny .wd-result__rest {
   display: none;
 }
 .wd-result:hover,

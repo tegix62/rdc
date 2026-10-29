@@ -1,0 +1,20 @@
+---
+/*
+  /hello - the original homepage, kept as a landing page (see
+  components/home/ClassicHome.astro). Chris: "can we throw the original
+  homepage somewhere as a throwaway landing page? I feel like it had value
+  somehow". For links Chris hands out himself - an ad, a pitch email, a QR
+  code - so it is noindex and not in the sitemap or the nav: to search it
+  would be the homepage twice, and only one of them can be the homepage.
+*/
+import Layout from '../layouts/Layout.astro';
+import { pageDescription } from '../lib/meta';
+import ClassicHome from '../components/home/ClassicHome.astro';
+import { getPage } from '../lib/queries';
+
+const page = await getPage('home');
+---
+
+<Layout title={page?.title ?? 'Rumeau Design Co'} description={pageDescription(page, 'Hand-drawn brand identity, lettering and merch design for heritage apparel brands and musicians. The studio of Chris Rumeau, New Jersey.')} noindex>
+  <ClassicHome />
+</Layout>

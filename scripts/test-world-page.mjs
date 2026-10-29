@@ -654,6 +654,27 @@ for (const [name, w, h] of [
   await page.close()
 }
 
+/*
+  /hello - the original homepage kept as a landing page (ClassicHome.astro):
+  out of search, with its hero, its testimonial cards and its closing call.
+*/
+{
+  const page = await browser.newPage({viewport: {width: 1280, height: 900}})
+  const errors = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  const res = await page.goto(`${BASE}/hello`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.waitForTimeout(800)
+  const hello = await page.evaluate(() => ({
+    robots: document.querySelector('meta[name="robots"]')?.getAttribute('content') ?? '',
+    hero: !!document.querySelector('.statement'),
+    cards: document.querySelectorAll('.proof-card').length,
+    lets: Array.from(document.querySelectorAll('main a.button')).filter((a) => /work/i.test(a.textContent)).length,
+  }))
+  check('/hello: the original homepage, out of search, with its hero, cards and call', res?.status() === 200 && /noindex/.test(hello.robots) && hello.hero && hello.cards > 0 && hello.lets > 0, JSON.stringify({status: res?.status(), ...hello}))
+  check('/hello: no script errors', errors.length === 0, errors.join(' | '))
+  await page.close()
+}
+
 await browser.close()
 console.log(failures ? `\n${failures} check(s) failed.` : '\nall checks passed')
 process.exit(failures ? 1 : 0)

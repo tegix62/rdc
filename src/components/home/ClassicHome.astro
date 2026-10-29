@@ -1,0 +1,370 @@
+---
+/*
+  THE ORIGINAL HOMEPAGE - the brochure: the hero, the bio and process video,
+  the testimonial cards, the checklist, the closing call. Production's
+  homepage until the work-first one (WorkFirst.astro) goes live, and kept
+  after that at /hello as a landing page - Chris: "I feel like it had value
+  somehow". It reads as a pitch, which is what a page someone arrives at
+  from an ad, a link in a pitch email or a QR code on a flyer wants.
+  Everything in it still comes from Site Settings and the Home page in
+  Studio, as before.
+*/
+import Img from '../Img.astro';
+import Sections from '../Sections.astro';
+import WorkGrid from '../WorkGrid.astro';
+import Video from '../Video.astro';
+import { getPage, getSiteSettings, getFeaturedWork } from '../../lib/queries';
+import { backgroundUrl, hotspotPosition, imageUrl, buildSrcSet, originalUrl, isPassThrough, cappedWidth, hasAsset, fileUrl } from '../../lib/image';
+import { isAnimatedSource } from '../../lib/animated';
+import { stripStega } from '../../lib/stega';
+
+const page = await getPage('home');
+// The work-first homepage (components/home/WorkFirst.astro) is the preview's alone while it is tried.
+const settings = await getSiteSettings();
+const clientLogos = settings?.clientLogos ?? [];
+
+/*
+  Work, high on the page.
+
+  The homepage's job - Chris's own brief for it - is a contact button and all
+  the context someone needs inside half a scroll. It did the context part with
+  words: a bio, four testimonials and a checklist, with the work itself nowhere
+  on the page. This puts a handful of tiles directly under the hero's buttons,
+  so the CTA still comes first and the evidence arrives immediately after it
+  rather than three screens down.
+
+  Curated in Studio, falling back to the most recent while the picker is empty.
+*/
+const featuredWork = await getFeaturedWork(8);
+
+// Editable in Studio under Site Settings. Defaults to the native /contact
+// page - see the same override note in Layout.astro, which every
+// "Contact" button on the site now shares.
+const CONTACT_URL = settings?.contactUrl || '/contact';
+
+const bioText =
+  settings?.bioText ||
+  'Chris Rumeau is a brand designer, illustrator, and typographer building visual ' +
+    'identities rooted in heritage craft and hand-drawn precision.';
+
+const checklist =
+  settings?.checklist?.length > 0
+    ? settings.checklist
+    : [
+        'Hand-drawn from the first sketch',
+        'Deep vintage typography research',
+        'Designed for fabric, not just screens',
+      ];
+
+const proofStats =
+  settings?.proofStats?.length > 0
+    ? settings.proofStats
+    : [
+        {
+          stat: '22% Increase',
+          rest: ' in yearly revenue using RDC Branding.',
+          name: 'Anabel D.',
+          org: 'Hug a Mug Coffeehouse',
+          href: '/work/hug-a-mug',
+        },
+        {
+          stat: '16,000 Weekly Listeners',
+          rest: ' in 6 months with RDC.',
+          name: 'Jonathan Bell',
+          org: 'DumpStat Podcast',
+          href: '/work/dumpstat',
+        },
+        {
+          stat: '$3500',
+          rest: ' in first-day merch revenue with RDC.',
+          name: 'Adelante Barbell Club',
+          org: 'Union, New Jersey',
+          href: '/work/adelante-barbell-club',
+        },
+      ];
+
+const closerPrefix = settings?.closerPrefix || 'Hand-drawn brand identity and merch design, ';
+const closerBold = settings?.closerBold || 'rooted in heritage craft';
+const closerSuffix = settings?.closerSuffix || ' and built to perform on fabric.';
+const finalCtaHeading = settings?.finalCtaHeading || 'DTC Brands and Apparel Companies:';
+/*
+  The heading was written as the first half of a sentence - it ends in a
+  colon - and for months the second half was a button. With a line under it
+  the colon makes sense; without one it is dropped rather than left hanging.
+*/
+const finalCtaLine: string = settings?.finalCtaLine || '';
+// Tested on the stega-stripped string: a value from Sanity carries invisible
+// visual-editing characters AFTER the colon, so `:$` never matched it. The
+// colon is then taken out of the raw string, which keeps the editing link.
+const finalCtaHeadingShown =
+  !finalCtaLine && /:$/.test(stripStega(finalCtaHeading) ?? '')
+    ? finalCtaHeading.replace(/:(?=[^:]*$)/, '')
+    : finalCtaHeading;
+
+/*
+  The process video beside the bio - see processVideoSrc in siteSettings.ts.
+  Without one the bio runs the full width: the grey "coming soon" box that
+  stood here was the most unfinished-looking thing on the site.
+*/
+const processVideo: string | null =
+  typeof settings?.processVideoSrc === 'string' && settings.processVideoSrc ? settings.processVideoSrc : null;
+
+/*
+  The hero background: a video when one is uploaded, an image otherwise.
+
+  Video is better for the animated content Chris uses here: WebM is an order
+  of magnitude smaller than an animated WebP/GIF at the same quality, and it
+  streams — the browser starts painting frames before the file finishes,
+  where an animated image must download completely first.
+
+  The image doubles as the video's poster frame (shown while the video
+  loads), so both fields complement each other rather than competing.
+*/
+const heroVideoUrl = fileUrl(settings?.heroVideo);
+const heroSource = settings?.heroBackground;
+const heroHasAsset = hasAsset(heroSource);
+let heroSrc = '';
+let heroSrcset: string | undefined;
+const heroPosition = hotspotPosition(heroSource);
+
+/*
+  An animated source is pass-through, exactly as everywhere else.
+
+  This branch used to do the opposite: it asked the CDN for a TRANSFORMED
+  still to show first, and then a script swapped in the original animation.
+  Both files therefore landed on every visitor - and transforming an
+  animation re-encodes it rather than flattening it, which is the inflation
+  isPassThrough exists to avoid (see lib/image.ts: one 867 KB GIF came back
+  at 4,602 KB).
+
+  Measured on the live homepage by PageSpeed: the transformed "still" was
+  1,125.8 KiB and the animation it was standing in for was 510.0 KiB. So the
+  placeholder cost more than twice the thing it was a placeholder FOR, and
+  being larger it also arrived later - there was no moment at which it was
+  the faster picture. 1,636 KiB spent to show 510 KiB.
+
+  isPassThrough(source, animated) already folds both cases together, which is
+  what Img.astro calls, so the special case collapses into the normal path.
+*/
+if (heroHasAsset) {
+  const animated = await isAnimatedSource(heroSource);
+  if (isPassThrough(heroSource, animated)) {
+    heroSrc = originalUrl(heroSource) ?? '';
+  } else {
+    heroSrc = imageUrl(heroSource)?.width(cappedWidth(heroSource, 1800)).url() ?? '';
+    heroSrcset = buildSrcSet(heroSource, 1800);
+  }
+}
+
+/*
+  The video's poster is a different job from the <img> above, and must not
+  reuse heroSrc.
+
+  A poster is painted as a STILL. Handing it the animated original would
+  download an entire animation to show one frame of it - and the poster is
+  the LCP element, so that lands squarely on the critical path, which is the
+  whole thing the video was meant to fix.
+
+  Transforming an animated source normally re-encodes it (the inflation
+  isPassThrough exists to avoid). Asking for jpg cannot: JPEG has no
+  animation, so the CDN is forced to flatten to a single frame. That makes
+  it the one transform that returns an animated source SMALLER rather than
+  larger - a still frame instead of a re-encoded loop.
+
+  q70 because this is behind text and swapped out for the video within a
+  second or two; it is the fastest paint that still looks right, not an
+  image anyone studies.
+*/
+const heroPoster = heroVideoUrl && heroHasAsset
+  ? (imageUrl(heroSource)?.width(1600).format('jpg').quality(70).url() ?? undefined)
+  : undefined;
+
+const proofBg = await backgroundUrl(settings?.proofBandBackground, 500);
+const proofBandStyle = proofBg ? `--proof-bg-image: url(${proofBg})` : undefined;
+---
+<section class="statement">
+  {heroVideoUrl ? (
+    <video
+      class="statement__bg"
+      src={heroVideoUrl}
+      poster={heroPoster}
+      autoplay
+      muted
+      loop
+      playsinline
+      preload="auto"
+      style={heroPosition ? `object-position: ${heroPosition}` : undefined}
+    />
+  ) : heroHasAsset ? (
+    <img
+      class="statement__bg"
+      src={heroSrc}
+      srcset={heroSrcset}
+      sizes={heroSrcset ? '100vw' : undefined}
+      alt=""
+      loading="eager"
+      fetchpriority="high"
+      decoding="async"
+      style={heroPosition ? `object-position: ${heroPosition}` : undefined}
+    />
+  ) : null}
+  {/*
+    Reduced motion, honoured for this hero too.
+
+    Video.astro's script covers every clip IT renders, but this hero is
+    written inline here, so that observer never sees it - and an
+    autoplaying full-screen background is the last thing that should
+    ignore the setting. Placed immediately after the element and inline,
+    so it runs as the page is parsed rather than on DOMContentLoaded,
+    after a second of motion the visitor asked not to see.
+
+    The poster stays, which is the same fallback Video.astro documents.
+    No-op when the hero is an image, and roughly 120 bytes.
+  */}
+  <script is:inline>
+    (function () {
+      if (!matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      var v = document.querySelector('video.statement__bg');
+      if (v) { v.autoplay = false; v.pause(); }
+    })();
+  </script>
+  <div class="statement__line" aria-hidden="true"></div>
+  {/*
+    Three words, three lines - always, not just at the width where they
+    happen to wrap that way. The vh-sized font wrapped naturally, so a wide
+    viewport fit RUMEAU and DESIGN on one line and dropped COMPANY to a
+    second, which is not the mark: the old site stacked all three, one per
+    line, at every width. A block per word guarantees that instead of
+    depending on where the browser breaks it.
+  */}
+  <h1 class="statement__heading">
+    <span class="statement__word">RUMEAU</span>
+    <span class="statement__word">DESIGN</span>
+    <span class="statement__word">COMPANY</span>
+  </h1>
+  <div class="statement__line" aria-hidden="true"></div>
+  <p class="statement__sub">{settings?.tagline ?? 'Brand Identity & Merch Design for Heritage Apparel Brands.'}</p>
+</section>
+
+<div class="top-cta">
+  <a class="button button--outline" href="/portfolio">See Portfolio</a>
+  <a class="button" href={CONTACT_URL}>Let's Work</a>
+</div>
+
+<WorkGrid items={featuredWork} heading={settings?.featuredWorkHeading || 'Selected work'} />
+
+<section class:list={['bio-row', !processVideo && 'is-alone']}>
+  <h2 class="bio-row__text">{bioText}</h2>
+  {processVideo && (
+    <div class="bio-row__video">
+      <Video
+        videoSrc={processVideo}
+        poster={settings?.processVideoPoster}
+        posterField="processVideoPoster (Process video - poster frame)"
+        playback={settings?.processVideoPlayback || 'autoplay'}
+        title="How the work gets made"
+        width={900}
+        sizes="(max-width: 48rem) 100vw, 45vw"
+      />
+    </div>
+  )}
+</section>
+
+{clientLogos.length > 0 && (
+  <section class="logo-strip">
+    <div class="logo-strip__inner">
+      {/*
+        A logo with no link is not a link.
+
+        This used to fall back to href="#", which renders an anchor that
+        announces itself as a link, takes keyboard focus, and jumps to the top
+        of the page when activated. Chris emptied these hrefs tonight to get
+        past a validation error, and every logo in the strip silently became
+        one of those - interactive-looking and inert, which is worse than
+        plain.
+      */}
+      {clientLogos.map((item: any) =>
+        item.logo ? (
+          item.href ? (
+            <a href={item.href} class="logo-strip__item">
+              <Img image={item.logo} alt={item.alt || ''} field="clientLogos[].logo" width={220} sizes="150px" />
+            </a>
+          ) : (
+            <div class="logo-strip__item">
+              <Img image={item.logo} alt={item.alt || ''} field="clientLogos[].logo" width={220} sizes="150px" />
+            </div>
+          )
+        ) : null,
+      )}
+    </div>
+  </section>
+)}
+
+<section class="proof-band" style={proofBandStyle}>
+  <div class="proof-band__inner">
+    <div class="proof-row">
+      {proofStats.map((p: any) => (
+        <a class="proof-card" href={p.href}>
+          <h3 class="proof-card__stat"><strong>{p.stat}</strong>{p.rest}</h3>
+          {p.quote ? (
+            <p class="proof-card__quote">&ldquo;{p.quote}&rdquo;</p>
+          ) : (
+            <div class="proof-card__rating" aria-hidden="true">
+              {Array.from({ length: 5 }).map(() => (
+                <span>&#9733;</span>
+              ))}
+            </div>
+          )}
+          <p class="proof-card__name">{p.name}</p>
+          <p class="proof-card__org">{p.org}</p>
+        </a>
+      ))}
+
+      <div class="proof-card proof-card--closer">
+        <h2 class="closer__heading">
+          {closerPrefix}<strong>{closerBold}</strong>{closerSuffix}
+        </h2>
+        <a class="button" href={CONTACT_URL}>Let's Work</a>
+      </div>
+    </div>
+
+    <div class="checklist">
+      {checklist.map((item: string) => (
+        <div class="checklist__item">
+          <span class="checklist__check" aria-hidden="true">&#10003;</span>
+          <p>{item}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+{/*
+  Editable block slot. The rest of this page is a fixed composition, so
+  anything added to "Page Sections" in Studio lands here - between the
+  checklist and the closing CTA - rather than being freely positionable.
+  Renders nothing when the array is empty.
+*/}
+{page?.sections?.length > 0 && (
+  <div class="page-sections">
+    <Sections sections={page.sections} where="/ (homepage)" />
+  </div>
+)}
+
+<section class="final-cta">
+  {settings?.portrait && (
+    <Img
+      class="final-cta__portrait"
+      image={settings.portrait}
+      field="portrait (Portrait of you)"
+      alt="Chris Rumeau, founder of Rumeau Design Co"
+      width={700}
+      sizes="(max-width: 40rem) 100vw, 40vw"
+    />
+  )}
+  <div class="final-cta__card">
+    <h3>{finalCtaHeadingShown}</h3>
+    {finalCtaLine && <p class="final-cta__line">{finalCtaLine}</p>}
+    <a class="button button--white" href={CONTACT_URL}>Let's Work</a>
+  </div>
+</section>

@@ -68,7 +68,7 @@ const measure = async (path, viewport) => {
     if (r.resourceType() === 'image') {
       const w = Number(u.searchParams.get('w')) || 0
       const h = Number(u.searchParams.get('h')) || 0
-      pics.push({phase, w, h, host: u.host})
+      pics.push({phase, w, h, host: u.host, key: u.pathname.replace(/^\/img\//, ''), t: Math.round(performance.now())})
     }
   })
   page.on('response', async (r) => {
@@ -136,6 +136,13 @@ const measure = async (path, viewport) => {
     mpFirst: px(pics.slice(0, first)) / 1e6,
     mpAll: px(pics) / 1e6,
     hosts: [...hosts].map(([h, n]) => `${h} ${n}`).join(', ') || 'none',
+    // The same picture asked for more than once, and at which widths.
+    twice: (() => {
+      const by = new Map()
+      for (const p of pics) by.set(p.key, [...(by.get(p.key) ?? []), p.w])
+      const d = [...by.values()].filter((ws) => ws.length > 1)
+      return d.length ? `${d.length} asked for more than once, e.g. widths ${d.slice(0, 4).map((ws) => ws.join('>')).join(', ')}` : ''
+    })(),
   }
 }
 
@@ -156,7 +163,7 @@ for (const [path, name] of PAGES) {
         `JS ${kb(m.js)}, CSS ${kb(m.css)}, ${m.nodes} elements, ${m.height}px tall${m.shifted ? `; shifted: ${m.shifted.join(', ')}` : ''}`,
     )
     console.log(
-      `        pictures: ${m.picsFirst} before scrolling (${m.mpFirst.toFixed(1)} MP asked for), ${m.picsAll} after scrolling it all (${m.mpAll.toFixed(1)} MP); other sites: ${m.hosts}`,
+      `        pictures: ${m.picsFirst} before scrolling (${m.mpFirst.toFixed(1)} MP asked for), ${m.picsAll} after scrolling it all (${m.mpAll.toFixed(1)} MP); other sites: ${m.hosts}${m.twice ? `; ${m.twice}` : ''}`,
     )
   }
 }

@@ -653,7 +653,9 @@ const press = async (page, filter) => {
   await press(page, MERCH)
   }
 
-  // Merch again, then Merch once more: toggles back to everything.
+  // Merch again, then Merch once more: toggles back to everything. From All: with
+  // no other grid filter left (Type is its own view now), the page may still be on Merch here.
+  if ((await state(page)).merchView) await press(page, MERCH)
   await press(page, MERCH)
   await press(page, MERCH)
   const off = await state(page)

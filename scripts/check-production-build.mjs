@@ -52,7 +52,7 @@ const JSON_OUT = arg('json', '')
 */
 // Up close is the same work again, one piece at a time: out for the same
 // reason as /catalog.
-const NOT_IN_SITEMAP = new Set(['/404', '/style-guide', '/image-license-info', '/catalog', '/portfolio/up-close'])
+const NOT_IN_SITEMAP = new Set(['/404', '/style-guide', '/image-license-info', '/catalog', '/portfolio/up-close', '/hello'])
 
 /*
   Every route that must be in a production sitemap. If a build quietly reverts
@@ -203,8 +203,12 @@ for (const file of htmlFiles) {
     Narrow on purpose. Any other route carrying noindex is still a failure, and
     the count check below still catches the flags-left-on case, because that
     would noindex all 21 pages rather than these two.
+
+    /hello joins them for the same reason as /catalog: it is the original
+    homepage kept as a landing page for links Chris hands out (see
+    src/pages/hello.astro), so to search it would be the homepage twice.
   */
-  const NOINDEX_ALLOWED = new Set(['/style-guide', '/catalog', '/portfolio/up-close'])
+  const NOINDEX_ALLOWED = new Set(['/style-guide', '/catalog', '/portfolio/up-close', '/hello'])
   if (/<meta[^>]+name=["']robots["'][^>]*noindex/i.test(html) && !NOINDEX_ALLOWED.has(route)) {
     fail('noindex', `${route} tells crawlers not to index it`)
   }

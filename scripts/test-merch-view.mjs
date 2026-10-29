@@ -24,8 +24,13 @@ const MERCH = '.merch-apparel'
 const TYPE = '.type-lettering'
 
 let failures = 0
+// Named again at the end, so a long run's failures can be read without its whole log.
+const failed = []
 const check = (name, ok, detail = '') => {
-  if (!ok) failures++
+  if (!ok) {
+    failures++
+    failed.push(`${name}${detail ? ` - ${detail}` : ''}`)
+  }
   console.log(`${ok ? 'ok  ' : 'FAIL'}  ${name}${detail ? ` - ${detail}` : ''}`)
 }
 
@@ -1184,7 +1189,8 @@ for (const [w, h] of [[1536, 730], [2560, 1000]]) {
 await browser.close()
 console.log('')
 if (failures) {
-  console.log(`${failures} check(s) failed.`)
+  console.log(`${failures} check(s) failed:`)
+  for (const f of failed) console.log(`  - ${f}`)
   process.exit(1)
 }
 console.log('The merch view behaves as asked.')

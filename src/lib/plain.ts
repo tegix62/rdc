@@ -6,9 +6,11 @@
   "do all of it on preview". So on the preview <html data-plain> is set
   (Layout.astro), the styles hang off :root[data-plain] in global.css
   (PLAIN), and the few words that carry a dot or an arrow ask PLAIN here.
-  Production is untouched; to roll back, drop the attribute in Layout.
+  Tried on the preview, then live - Chris: "Let's go live with all of that."
+  To roll back, set PLAIN to false: the attribute, the styles and the words
+  all follow it.
 */
-export const PLAIN = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+export const PLAIN = true;
 
 /* Chris's own separator, a slash, in place of the middle dot. */
 export const SEP = PLAIN ? ' / ' : ' · ';

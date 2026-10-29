@@ -13,6 +13,7 @@ import SiteFooter from '../components/SiteFooter.astro';
 import PageDeck from '../components/PageDeck.astro';
 import { buildGraph, serialise, type SiteContext } from '../lib/structuredData';
 import { stripStega as clean } from '../lib/stega';
+import { PLAIN } from '../lib/plain';
 import {
   bareTitle,
   DEFAULT_LEGAL_NAME,
@@ -257,7 +258,7 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
 ---
 
 <!doctype html>
-<html lang="en" data-plain={IS_PREVIEW ? '' : undefined}>
+<html lang="en" data-plain={PLAIN ? '' : undefined}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />

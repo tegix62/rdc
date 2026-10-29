@@ -178,9 +178,13 @@ const grow = true;
   shows, no new field) become tiles of their own. Each lands with its
   project, lights with it, and opens its project's own piece when picked.
   Not on a picks board, which shows only what Chris chose.
+
+  WITH_REST: the result tiles, the project's credits in its grown piece and
+  the video work among the pieces - tried on the preview, then live (Chris:
+  "Let's go live with all of that"). False takes all three off again.
 */
-const IS_PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
-const settings: any = IS_PREVIEW && !picks ? await getSiteSettings() : null;
+const WITH_REST = true;
+const settings: any = WITH_REST && !picks ? await getSiteSettings() : null;
 const norm = (h: unknown) => String(stripStegaKey(h) ?? '').replace(/\/+$/, '');
 const studyAt = new Map<string, number>();
 all.forEach((it, i) => {
@@ -224,7 +228,7 @@ results.forEach((r, k) =>
   show it, goes in the grown piece under the project's words. Its own
   block, not inside the card: the card is a link, and the names link out.
 */
-const credits = IS_PREVIEW
+const credits = WITH_REST
   ? all
       .filter((it) => isProject(it) && tileHref(it))
       .map((it) => ({href: tileHref(it)!, people: parseCreditLines(it.projectCredits)}))
@@ -254,7 +258,7 @@ const playOf = (v: any): {src: string; kind: 'embed' | 'file'; yt: string | null
   return file && /^https:\/\//.test(file) ? {src: file, kind: 'file', yt: null} : null;
 };
 // A grid item with a picture AND a video: its picture is the still, and it plays when opened.
-const playing = all.map((it) => (IS_PREVIEW && !picks && cleanKey(it.pageType) === 'Grid Item' ? playOf(it) : null));
+const playing = all.map((it) => (WITH_REST && !picks && cleanKey(it.pageType) === 'Grid Item' ? playOf(it) : null));
 const titleOf = async (id: string) => {
   try {
     const r = await fetch(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(`https://www.youtube.com/watch?v=${id}`)}`, {signal: AbortSignal.timeout(5000)});
@@ -268,8 +272,8 @@ const titleOf = async (id: string) => {
   video (getVideoGridItems - with their project, so they land and light
   with it), then the video page's videos that are not already among them.
 */
-const bare: any[] = IS_PREVIEW && !picks && (!only || home) ? await getVideoGridItems() : [];
-const videoPage: any = IS_PREVIEW && !picks ? await getPage('video') : null;
+const bare: any[] = WITH_REST && !picks && (!only || home) ? await getVideoGridItems() : [];
+const videoPage: any = WITH_REST && !picks ? await getPage('video') : null;
 const seen = new Set<string>([...playing, ...bare.map(playOf)].map((v) => v?.yt).filter(Boolean) as string[]);
 const loose: string[] = [];
 for (const sec of videoPage?.sections ?? []) {

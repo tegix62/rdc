@@ -156,8 +156,12 @@ check(
   mainImage is deliberately in the second list: the grid falls back to it when
   there is no thumbnail, so on some Grid Items it is the only image there is.
 */
+/*
+  heroVideo and heroVideoSrc are not page-only any more: on a grid item they
+  make the piece a video (the Video panel on its Tile tab) - see TILE_ALWAYS.
+*/
 const PAGE_ONLY = [
-  'heroVideo', 'heroVideoSrc', 'heroVideoFile', 'heroVideoWebm', 'heroVideoPlayback',
+  'heroVideoFile', 'heroVideoWebm', 'heroVideoPlayback',
   'headline', 'subtitle', 'oneLineSummary', 'summary', 'resultStat',
   'client', 'clientLogo', 'sections', 'creditsText',
   'body', 'servicesRendered', 'merchGrid', 'flyerGrid', 'processGrid',
@@ -166,6 +170,8 @@ const PAGE_ONLY = [
 const TILE_ALWAYS = [
   'title', 'slug', 'pageType', 'category', 'thumbnail', 'mainImage',
   'archiveMark', 'heroTile', 'assetType', 'tileTreatment',
+  // A grid item that is a video. Chris: "it would be nice if these could become grid items".
+  'heroVideo', 'heroVideoSrc',
 ]
 const csFields = new Map((byName.get('caseStudy')?.fields ?? []).map((f) => [f.name, f]))
 

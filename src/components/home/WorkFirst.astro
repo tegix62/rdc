@@ -57,7 +57,8 @@ for (const it of items) {
   }
 }
 const tagline = clean(settings?.tagline) || 'Brand identity & merch design for heritage apparel brands.';
-const finalLine = clean(settings?.finalCtaLine);
+// His own closing words from Site Settings, or none - no sentence written for him.
+const finalLine = clean(settings?.finalCtaLine) || clean(settings?.finalCtaHeading).replace(/:\s*$/, '');
 ---
 
 <section class="wf-band">
@@ -65,7 +66,7 @@ const finalLine = clean(settings?.finalCtaLine);
   <p class="wf-band__who">{bioText}</p>
   <div class="wf-band__go">
     <a class="button" href={contactUrl}>Let's Work</a>
-    <a class="button button--outline" href="/portfolio?view=all">See all the work</a>
+    <a class="button button--outline" href="/portfolio?view=all">Portfolio</a>
   </div>
 </section>
 
@@ -73,7 +74,7 @@ const finalLine = clean(settings?.finalCtaLine);
   {/* The field asks which pane is shown; here it is the only one. */}
   <script is:inline>document.documentElement.dataset.pfPane = 'all';</script>
   <LandsView only={[...only]} home />
-  <p class="wf-field__more"><a href="/portfolio?view=all">See everything <span aria-hidden="true">&rarr;</span></a></p>
+  <p class="wf-field__more"><a href="/portfolio?view=all">All the work</a></p>
 </section>
 
 <section class="wf-foot">
@@ -81,7 +82,7 @@ const finalLine = clean(settings?.finalCtaLine);
     <Img class="wf-foot__portrait" image={settings.portrait} field="portrait (Portrait of you)" alt="Chris Rumeau, founder of Rumeau Design Co" width={520} sizes="(max-width: 40rem) 60vw, 260px" loading="lazy" />
   )}
   <div class="wf-foot__words">
-    <p class="wf-foot__line">{finalLine || 'Hand-drawn brand identity and merch, made with the people who wear it.'}</p>
+    {finalLine && <p class="wf-foot__line">{finalLine}</p>}
     <a class="button" href={contactUrl}>Let's Work</a>
   </div>
 </section>

@@ -176,7 +176,7 @@ const H = {desktop: 300, phone: 200};
     img.alt = a.dataset.title ?? '';
     view.classList.toggle('is-air', !!a.closest('.ty-piece--air'));
     q('.ty-view__title').textContent = a.dataset.title ?? '';
-    q('.ty-view__detail').textContent = [r.dataset.href ? r.dataset.title : null, a.dataset.detail].filter(Boolean).join(' \u00b7 ');
+    q('.ty-view__detail').textContent = [r.dataset.href ? r.dataset.title : null, a.dataset.detail].filter(Boolean).join(document.documentElement.hasAttribute('data-plain') ? ' / ' : ' \u00b7 ');
     q('.ty-view__count').textContent = links.length > 1 ? `${at + 1} / ${links.length}` : '';
     q<HTMLAnchorElement>('.ty-view__closer').href = a.getAttribute('href')!;
     const project = q<HTMLAnchorElement>('.ty-view__project');

@@ -13,6 +13,7 @@ import { caseStudyNode } from '../../lib/structuredData';
 import { caseStudyDescription } from '../../lib/meta';
 import { readableOn } from '../../lib/color';
 import { creditsHtml, hasCreditsText } from '../../lib/credits';
+import { PLAIN, SEP } from '../../lib/plain';
 
 export async function getStaticPaths() {
   const slugs = await sanityClient.fetch(
@@ -441,7 +442,7 @@ const markStyle =
   */}
   {!gated && (
     <div class="page-ask">
-      <p class="page-ask__line">Have a project like this in mind?</p>
+      {!PLAIN && <p class="page-ask__line">Have a project like this in mind?</p>}
       <div class="page-ask__buttons">
         <a class="button" href={CONTACT_URL}>Let's Work</a>
         <a class="button button--outline" href="/portfolio">See Portfolio</a>
@@ -451,7 +452,7 @@ const markStyle =
           More work:{' '}
           {otherWork.map((item: any, i: number) => (
             <>
-              {i > 0 && <span aria-hidden="true"> &middot; </span>}
+              {i > 0 && <span aria-hidden="true">{SEP}</span>}
               <a href={`/work/${item.slug.current}`}>{item.title}</a>
             </>
           ))}

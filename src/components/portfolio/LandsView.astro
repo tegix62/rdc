@@ -55,6 +55,7 @@ import {stripStegaKey} from '../../lib/stega';
 import {sanityClient} from '../../lib/sanity';
 import {clusterCard} from '../../lib/clusterCard';
 import {parseCreditLines} from '../../lib/credits';
+import {DOT} from '../../lib/plain';
 
 
 /*
@@ -376,7 +377,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
                   <span class="wd-jump__label">{barOf(it)}</span>
                   {(count[href] ?? 0) > 1 && (
                     <span class="wd-jump__count">
-                      &middot; {count[href]} pieces
+                      {DOT} {count[href]} pieces
                     </span>
                   )}
                   <span class="wd-jump__arrow" aria-hidden="true">&rarr;</span>
@@ -396,7 +397,6 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
               </span>
               <span class="wd-result__foot">
                 {r.who && <span class="wd-result__who">{r.who}</span>}
-                <span class="wd-result__go" aria-hidden="true">&rarr;</span>
               </span>
             </button>
           </div>
@@ -1010,7 +1010,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
         const b = t.querySelector('.wd-add');
         if (b) {
           b.setAttribute('aria-pressed', String(on));
-          b.querySelector('.wd-add__mark')!.textContent = on ? '✓' : '+';
+          b.querySelector('.wd-add__mark')!.textContent = on ? '\u2212' : '+';
           b.querySelector('.wd-add__label')!.textContent = on ? 'In your picks' : 'Add to picks';
         }
       });
@@ -1073,7 +1073,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
           body: JSON.stringify({board: P.code, pieces: [...chosen], name, note}),
         });
         const body = (await res.json().catch(() => ({}))) as {ok?: boolean; message?: string};
-        if (res.ok && body.ok) finish(P.kind === 'vote' ? 'Thank you - your vote is in.' : 'Sent - thank you. Chris will see them.');
+        if (res.ok && body.ok) finish(P.kind === 'vote' ? 'Vote counted. Thanks.' : 'Sent to Chris. Thanks.');
         else {
           said.textContent = body.message ?? 'That did not go through. Please try again.';
           said.hidden = false;
@@ -1100,7 +1100,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     });
     form?.querySelector('[data-back]')?.addEventListener('click', () => showForm(false));
     if (done) {
-      said.textContent = P.kind === 'vote' ? 'Your vote is in - thank you.' : 'Your picks were sent - thank you.';
+      said.textContent = P.kind === 'vote' ? 'Vote counted. Thanks.' : 'Sent to Chris. Thanks.';
       said.hidden = false;
       bar.hidden = true;
       document.querySelectorAll<HTMLElement>('.wd-add').forEach((b) => (b.hidden = true));

@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import { pageDescription } from '../lib/meta';
 import { getContactForm, getPage } from '../lib/queries';
+import { bare } from '../lib/plain';
 
 /*
   While Site Settings -> contactUrl points off the site (the Tally form),
@@ -315,11 +316,11 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as string |
 
       <div class="contact-form__nav">
         <button type="button" class="button button--outline contact-form__back" hidden>
-          {copy(form?.backLabel, '← Back')}
+          {bare(copy(form?.backLabel, '← Back'))}
         </button>
-        <button type="button" class="button contact-form__next">{copy(form?.nextLabel, 'Next →')}</button>
+        <button type="button" class="button contact-form__next">{bare(copy(form?.nextLabel, 'Next →'))}</button>
         <button type="submit" class="button contact-form__submit" hidden>
-          {copy(form?.submitLabel, 'Submit →')}
+          {bare(copy(form?.submitLabel, 'Submit →'))}
         </button>
       </div>
 

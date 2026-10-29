@@ -10,6 +10,7 @@ import Loupe from '../components/Loupe.astro';
 import {sanityClient} from '../lib/sanity';
 import {tileImage} from '../lib/image';
 import {COLLAGE_FILTER, collageName} from '../lib/collage';
+import { SEP } from '../lib/plain';
 
 const page = await getPage('about');
 
@@ -75,10 +76,10 @@ const work = await getFeaturedWork(4);
   {collage && collageLabel && (
     <section class="about-collage" aria-labelledby="about-collage-heading">
       <p class="about-collage__eyebrow" id="about-collage-heading">
-        {collageLabel.name}{collageLabel.year && <> &middot; Collage, {collageLabel.year}</>}
+        {collageLabel.name}{collageLabel.year && <>{SEP}Collage, {collageLabel.year}</>}
       </p>
       <Loupe name={collageLabel.name} scan={collage.scan} image={tileImage(collage)} />
-      <p class="about-collage__more"><a href="/collage">The collages &rarr;</a></p>
+      <p class="about-collage__more"><a href="/collage">The collages{!IS_PREVIEW && <> &rarr;</>}</a></p>
     </section>
   )}
 

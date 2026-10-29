@@ -70,6 +70,7 @@ const OTHERS = 0.55;
 const WAIT = 1600;
 
 export function startTypeCluster(grid: HTMLElement) {
+  const plain = document.documentElement.hasAttribute('data-plain');
   const stage = document.createElement('div');
   stage.className = 'tc';
   stage.hidden = true;
@@ -315,7 +316,7 @@ export function startTypeCluster(grid: HTMLElement) {
         if (href.startsWith('/')) {
           const go = document.createElement('a');
           go.href = href;
-          go.textContent = 'See the project →';
+          go.textContent = plain ? 'See the project' : 'See the project →';
           bar.append(go);
         }
       }
@@ -346,8 +347,8 @@ export function startTypeCluster(grid: HTMLElement) {
     if (p.project?.startsWith('/')) {
       const go = document.createElement('a');
       go.href = p.project;
-      go.textContent = `${projectName(p.project)} →`;
-      cap.append(' · ', go);
+      go.textContent = plain ? projectName(p.project) : `${projectName(p.project)} →`;
+      cap.append(plain ? ' / ' : ' · ', go);
     }
     const close = document.createElement('button');
     close.type = 'button';

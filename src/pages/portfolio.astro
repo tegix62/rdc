@@ -14,6 +14,7 @@ import { tileImage } from '../lib/image';
 import { clusterCard } from '../lib/clusterCard';
 import { museumLabel, CREDITS_SHOWN } from '../lib/museumLabel';
 import LandsView from '../components/portfolio/LandsView.astro';
+import {DOT} from '../lib/plain';
 import TypeView from '../components/portfolio/TypeView.astro';
 
 const page = await getPage('portfolio');
@@ -541,7 +542,7 @@ if (emptyFilters.length > 0) {
                   */}
                   {(pieceCount.get(parentHref) ?? 0) > 1 && (
                     <span class="pf-item__jump-count">
-                      <span class="pf-item__jump-count-sep">&middot;</span>
+                      <span class="pf-item__jump-count-sep">{DOT}</span>
                       {pieceCount.get(parentHref)}
                       <span class="pf-item__jump-count-word">pieces</span>
                     </span>
@@ -3637,7 +3638,7 @@ if (emptyFilters.length > 0) {
             endTile.style.setProperty('--end-span', String(cols));
             const a = endTile.querySelector<HTMLAnchorElement>('a')!;
             a.href = go.href;
-            endTile.querySelector('.pf-end__count')!.textContent = `\u00b7 ${family.length} pieces`;
+            endTile.querySelector('.pf-end__count')!.textContent = `${document.documentElement.hasAttribute('data-plain') ? '/' : '\u00b7'} ${family.length} pieces`;
             endTile.classList.add('is-sibling');
             revealed.add(endTile);
             packed.push(endTile);

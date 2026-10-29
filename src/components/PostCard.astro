@@ -31,6 +31,7 @@
 import Img from './Img.astro';
 import { dateAttr, formatDate } from '../lib/date';
 import { readingTime } from '../lib/readingTime';
+import { SEP } from '../lib/plain';
 
 interface Props {
   post: any;
@@ -90,9 +91,9 @@ const category = showCategory ? post.category : null;
     {(date || read || category) && (
       <p class="post-card__meta">
         {date && <time datetime={dateAttr(post.publishedAt)}>{date}</time>}
-        {date && read && ' · '}
+        {date && read && SEP}
         {read && <span>{read}</span>}
-        {(date || read) && category && ' · '}
+        {(date || read) && category && SEP}
         {category && <span>{category}</span>}
       </p>
     )}

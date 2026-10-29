@@ -128,6 +128,8 @@ export function initContactForm(doc: Document = document): void {
     event.preventDefault();
     if (!validateStep()) return;
 
+    // Whatever Studio calls the button, it gets back after a failed send.
+    const label = submitBtn?.textContent ?? 'Submit';
     if (submitBtn) {
       submitBtn.disabled = true;
       submitBtn.textContent = 'Sending…';
@@ -164,7 +166,7 @@ export function initContactForm(doc: Document = document): void {
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit →';
+        submitBtn.textContent = label;
       }
       /*
         Mint a fresh Turnstile token for the retry.

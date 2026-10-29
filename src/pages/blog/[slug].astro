@@ -12,6 +12,7 @@ import { blogPostNode } from '../../lib/structuredData';
 import { dateAttr, formatDate } from '../../lib/date';
 import { blogPostDescription } from '../../lib/meta';
 import { readingTime } from '../../lib/readingTime';
+import { SEP } from '../../lib/plain';
 
 export async function getStaticPaths() {
   const slugs = await sanityClient.fetch(`*[_type == "blogPost"].slug.current`);
@@ -51,13 +52,13 @@ const time = readingTime(post.body);
       <h1>{post.title}</h1>
       <p class="blog-byline">
         {post.category && <span class="blog-category">{post.category}</span>}
-        {post.category && (post.author || formatDate(post.publishedAt) || time) && ' · '}
+        {post.category && (post.author || formatDate(post.publishedAt) || time) && SEP}
         {post.author}
-        {post.author && formatDate(post.publishedAt) && ' · '}
+        {post.author && formatDate(post.publishedAt) && SEP}
         {formatDate(post.publishedAt) && (
           <time datetime={dateAttr(post.publishedAt)}>{formatDate(post.publishedAt)}</time>
         )}
-        {(post.author || formatDate(post.publishedAt)) && time && ' · '}
+        {(post.author || formatDate(post.publishedAt)) && time && SEP}
         {time}
       </p>
     </header>

@@ -33,6 +33,7 @@ import {tileHref, cleanKey, treatmentOf} from '../../lib/tiles';
 import {stripStegaKey} from '../../lib/stega';
 import {clusterCard} from '../../lib/clusterCard';
 import {museumLabel} from '../../lib/museumLabel';
+import {DOT} from '../../lib/plain';
 
 
 const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
@@ -162,7 +163,7 @@ for (const it of order) add(it, 0, null);
               {href && s.depth === 0 && (
                 <a class="uc-jump" href={href}>
                   <span>{clean(s.it.parentTitle ?? s.it.title)}</span>
-                  {(count[href] ?? 0) > 1 && <span class="uc-jump__count">&middot; {count[href]} pieces</span>}
+                  {(count[href] ?? 0) > 1 && <span class="uc-jump__count">{DOT} {count[href]} pieces</span>}
                   <span aria-hidden="true">&rarr;</span>
                 </a>
               )}

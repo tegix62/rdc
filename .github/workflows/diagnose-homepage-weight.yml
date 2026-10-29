@@ -1,0 +1,31 @@
+# The new homepage against the old (/hello): speed and search. See
+# scripts/diagnose-homepage-weight.mjs. By hand only; pictures are blanks.
+name: Diagnose homepage weight
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to measure'
+        default: 'https://rumeaudesign.co'
+
+jobs:
+  look:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      # No picture downloaded: each is answered with a blank of the same shape (scripts/lib/test-images-off.mjs).
+      - run: echo "NODE_OPTIONS=--import=$GITHUB_WORKSPACE/scripts/lib/test-images-off.mjs" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - name: Measure
+        run: |
+          set -o pipefail
+          node scripts/diagnose-homepage-weight.mjs "$BASE" 2>&1 | tee weight.txt
+          { echo '## Homepage weight'; echo '```'; cat weight.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          BASE: ${{ inputs.base_url || 'https://rumeaudesign.co' }}

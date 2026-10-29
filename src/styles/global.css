@@ -8676,10 +8676,10 @@ a.pf-btn {
 .wd-result {
   display: flex;
   flex-direction: column;
-  /* safe: a full tile starts at its top rather than spilling out of both ends. */
-  justify-content: safe center;
-  align-items: flex-start;
-  gap: 0.35em;
+  /* The number and its sentence at the top, who said it at the foot - nothing floating in the middle. */
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 0.5em;
   padding: 7cqmin 8cqmin;
   box-sizing: border-box;
   background: var(--color-navy);
@@ -8687,25 +8687,48 @@ a.pf-btn {
   text-align: left;
   font-family: var(--font-heading);
 }
+.wd-result__top {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+  min-width: 0;
+}
+/* The number is the tile: about a quarter of its height, never wider than it. */
 .wd-result__stat {
   max-width: 100%;
   overflow-wrap: anywhere;
-  font-size: clamp(0.8rem, 15cqmin, 3.5rem);
+  font-size: clamp(1.35rem, min(25cqh, 19cqw), 5.5rem);
   font-weight: 800;
-  line-height: 0.95;
-  letter-spacing: -0.02em;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
 }
 .wd-result__rest {
-  font-size: clamp(0.62rem, 7cqmin, 1.15rem);
-  line-height: 1.2;
+  max-width: 34ch;
+  font-size: clamp(0.72rem, min(8.5cqh, 5.6cqw), 1.3rem);
+  line-height: 1.25;
+  opacity: 0.92;
+}
+.wd-result__foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75em;
 }
 .wd-result__who {
-  margin-top: auto;
-  font-size: clamp(0.55rem, 5cqmin, 0.8rem);
+  min-width: 0;
+  font-size: clamp(0.55rem, min(5cqh, 3.4cqw), 0.8rem);
+  line-height: 1.3;
   letter-spacing: var(--label-track, 0.06em);
   text-transform: uppercase;
   opacity: 0.75;
 }
+/* The way into the project, as on the project bars. */
+.wd-result__go {
+  margin-left: auto;
+  font-size: clamp(0.9rem, min(10cqh, 7cqw), 1.6rem);
+  line-height: 1;
+}
+/* A small tile keeps the number, its sentence and the arrow; a tiny one, the number and the arrow. */
 .wd-piece--result.is-small .wd-result__who,
 .wd-piece--result.is-tiny .wd-result__rest {
   display: none;

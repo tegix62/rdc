@@ -185,7 +185,9 @@ const results = ((settings?.proofStats ?? []) as any[])
   .map((r) => {
     // The number alone large ("$3500"); the stat's other words join the sentence - a phone's tile has room for one big word.
     const [num, ...more] = clean(r.stat).split(' ');
-    return {stat: num, rest: [more.join(' '), clean(r.rest)].filter(Boolean).join(' '), who: [clean(r.name), clean(r.org)].filter(Boolean).join(', '), href: norm(r.href)};
+    // In sentence case: "Weekly Listeners" was the card's bold heading; under the number it is the start of a sentence.
+    const lower = more.map((w) => (/^[A-Z0-9]{2,}$/.test(w) ? w : w.toLowerCase())).join(' ');
+    return {stat: num, rest: [lower, clean(r.rest)].filter(Boolean).join(' '), who: [clean(r.name), clean(r.org)].filter(Boolean).join(', '), href: norm(r.href)};
   })
   .filter((r) => r.stat && studyAt.has(r.href))
   .map((r) => ({...r, opens: studyAt.get(r.href)!}));
@@ -279,9 +281,14 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
         <div class="wd-piece wd-piece--result" data-i={all.length + k} data-opens={r.opens} hidden>
           <div class="wd-frame">
             <button type="button" class="wd-pic wd-result" aria-label={`${r.stat} ${r.rest} - open the project`}>
-              <span class="wd-result__stat">{r.stat}</span>
-              <span class="wd-result__rest">{r.rest}</span>
-              {r.who && <span class="wd-result__who">{r.who}</span>}
+              <span class="wd-result__top">
+                <span class="wd-result__stat">{r.stat}</span>
+                <span class="wd-result__rest">{r.rest}</span>
+              </span>
+              <span class="wd-result__foot">
+                {r.who && <span class="wd-result__who">{r.who}</span>}
+                <span class="wd-result__go" aria-hidden="true">&rarr;</span>
+              </span>
             </button>
           </div>
         </div>

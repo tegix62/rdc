@@ -8772,6 +8772,16 @@ a.pf-btn {
   min-height: 0;
   background: #000;
 }
+.wd-crop--still {
+  background: #111;
+}
+.wd-player video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 .wd-player iframe {
   position: absolute;
   inset: 0;

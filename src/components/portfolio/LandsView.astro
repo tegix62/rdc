@@ -46,7 +46,7 @@
   which the critical-CSS step prunes from a page's own styles.
 */
 import Img from '../Img.astro';
-import {getAllGridItems, getSiteSettings, getPage} from '../../lib/queries';
+import {getAllGridItems, getSiteSettings, getPage, getVideoGridItems} from '../../lib/queries';
 import {embedUrl} from '../../lib/video';
 import {youTubePoster} from '../../lib/youtubePoster';
 import {tileImage, imageDimensions} from '../../lib/image';
@@ -238,14 +238,22 @@ const credits = IS_PREVIEW
   any piece does and plays where it is. Nothing to add in Studio - a
   video put on the video page joins the field at the next build.
 */
-const videoPage: any = IS_PREVIEW && !picks ? await getPage('video') : null;
-const videoUrls = new Set<string>();
-for (const sec of videoPage?.sections ?? []) {
-  for (const v of [sec, ...(Array.isArray(sec?.items) ? sec.items : [])]) {
-    const src = embedUrl(stripStegaKey(v?.url));
-    if (src?.includes('youtube.com/embed/')) videoUrls.add(src);
+/*
+  Where a piece plays from, if it is a video: a grid item's Video panel
+  (YouTube or Vimeo link, or a self-hosted R2 file). YouTube through its
+  privacy-enhanced player - no cookies until it is played.
+*/
+const playOf = (v: any): {src: string; kind: 'embed' | 'file'; yt: string | null} | null => {
+  const embed = embedUrl(stripStegaKey(v?.heroVideo ?? v?.url));
+  if (embed) {
+    const yt = embed.includes('youtube.com/embed/') ? embed.split('/').pop()! : null;
+    return {src: yt ? `https://www.youtube-nocookie.com/embed/${yt}` : embed, kind: 'embed', yt};
   }
-}
+  const file = stripStegaKey(v?.heroVideoSrc);
+  return file && /^https:\/\//.test(file) ? {src: file, kind: 'file', yt: null} : null;
+};
+// A grid item with a picture AND a video: its picture is the still, and it plays when opened.
+const playing = all.map((it) => (IS_PREVIEW && !picks && cleanKey(it.pageType) === 'Grid Item' ? playOf(it) : null));
 const titleOf = async (id: string) => {
   try {
     const r = await fetch(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(`https://www.youtube.com/watch?v=${id}`)}`, {signal: AbortSignal.timeout(5000)});
@@ -254,29 +262,70 @@ const titleOf = async (id: string) => {
     return 'Video';
   }
 };
-const videos = await Promise.all(
-  [...videoUrls].map(async (src) => {
-    const id = src.split('/').pop()!;
-    // The privacy-enhanced player: no YouTube cookies until it is played.
-    return {id, poster: await youTubePoster(id), title: await titleOf(id), embed: `https://www.youtube-nocookie.com/embed/${id}`};
-  }),
-);
+/*
+  And the videos with no picture of their own: grid items that are only a
+  video (getVideoGridItems - with their project, so they land and light
+  with it), then the video page's videos that are not already among them.
+*/
+const bare: any[] = IS_PREVIEW && !picks && (!only || home) ? await getVideoGridItems() : [];
+const videoPage: any = IS_PREVIEW && !picks ? await getPage('video') : null;
+const seen = new Set<string>([...playing, ...bare.map(playOf)].map((v) => v?.yt).filter(Boolean) as string[]);
+const loose: string[] = [];
+for (const sec of videoPage?.sections ?? []) {
+  for (const v of [sec, ...(Array.isArray(sec?.items) ? sec.items : [])]) {
+    const yt = playOf(v)?.yt;
+    if (yt && !seen.has(yt)) {
+      seen.add(yt);
+      loose.push(yt);
+    }
+  }
+}
+const videos = (
+  await Promise.all([
+    ...bare.map(async (it) => {
+      const v = playOf(it);
+      if (!v) return null;
+      return {
+        ...v,
+        poster: v.yt ? await youTubePoster(v.yt) : null,
+        title: clean(it.title) || (v.yt ? await titleOf(v.yt) : 'Video'),
+        id: idOf(it),
+        slug: it.slug?.current ? cleanKey(it.slug.current) : idOf(it),
+        project: tileHref(it),
+        parent: it.pieceParent ? cleanKey(it.pieceParent) : null,
+        big: false,
+      };
+    }),
+    ...loose.map(async (yt) => ({
+      src: `https://www.youtube-nocookie.com/embed/${yt}`,
+      kind: 'embed' as const,
+      yt,
+      poster: await youTubePoster(yt),
+      title: await titleOf(yt),
+      id: `video-${yt}`,
+      slug: `video-${yt}`,
+      project: null,
+      parent: null,
+      // Finished pieces of work on their own, sized as a case study is.
+      big: true,
+    })),
+  ])
+).filter((v): v is NonNullable<typeof v> => !!v);
 const videoAt = pieces.length;
 videos.forEach((v) =>
   pieces.push({
     w: 16,
     h: 9,
-    project: null,
+    project: v.project,
     own: false,
-    id: `video-${v.id}`,
-    slug: `video-${v.id}`,
-    parent: null,
+    id: v.id,
+    slug: v.slug,
+    parent: v.parent,
     title: v.title,
     cat: 'video',
     kind: 'video',
     mark: false,
-    // Finished pieces of work, sized as a case study is.
-    big: true,
+    big: v.big,
     order: undefined,
     photo: true,
     weight: 1,
@@ -304,6 +353,8 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
               isProject(it) && href && 'wd-piece--study',
             ]}
             data-i={i}
+            data-video={playing[i]?.src}
+            data-video-kind={playing[i]?.kind}
             hidden
           >
             <div class="wd-frame">
@@ -311,6 +362,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
                 <span class="wd-crop" style={crop}>
                   <Img image={tileImage(it)} alt="" width={1400} sizes="25vw" loading="lazy" field="Grid Thumbnail (world)" />
                 </span>
+                {playing[i] && <span class="wd-play" aria-hidden="true"></span>}
               </button>
               <span class="wd-caption">{clean(it.title)}</span>
               {picks && (
@@ -351,11 +403,11 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
         </div>
       ))}
       {videos.map((v, k) => (
-        <div class="wd-piece wd-piece--video" data-i={videoAt + k} data-video={v.embed} hidden>
+        <div class="wd-piece wd-piece--video" data-i={videoAt + k} data-video={v.src} data-video-kind={v.kind} hidden>
           <div class="wd-frame">
             <button type="button" class="wd-pic" aria-label={`${v.title} - play`}>
-              <span class="wd-crop" style="--a:1.7778;--iw:100%;--ih:100%;--il:0%;--it:0%">
-                <img src={v.poster} alt="" loading="lazy" decoding="async" width="1280" height="720" />
+              <span class="wd-crop wd-crop--still" style="--a:1.7778;--iw:100%;--ih:100%;--il:0%;--it:0%">
+                {v.poster && <img src={v.poster} alt="" loading="lazy" decoding="async" width="1280" height="720" />}
               </span>
               <span class="wd-play" aria-hidden="true"></span>
             </button>
@@ -673,12 +725,23 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     if (playing?.dataset.video && !playing.querySelector('.wd-player')) {
       const player = document.createElement('div');
       player.className = 'wd-player';
-      const frame = document.createElement('iframe');
-      frame.src = `${playing.dataset.video}?autoplay=1&rel=0&playsinline=1`;
-      frame.title = data.pieces[focus!].title;
-      frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
-      frame.allowFullscreen = true;
-      player.append(frame);
+      if (playing.dataset.videoKind === 'file') {
+        // A self-hosted (R2) file: the browser's own player, with sound, from the start.
+        const video = document.createElement('video');
+        video.src = playing.dataset.video;
+        video.controls = true;
+        video.autoplay = true;
+        video.playsInline = true;
+        video.setAttribute('aria-label', data.pieces[focus!].title);
+        player.append(video);
+      } else {
+        const frame = document.createElement('iframe');
+        frame.src = `${playing.dataset.video}${playing.dataset.video.includes('?') ? '&' : '?'}autoplay=1&rel=0&playsinline=1`;
+        frame.title = data.pieces[focus!].title;
+        frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+        frame.allowFullscreen = true;
+        player.append(frame);
+      }
       playing.querySelector('.wd-pic')!.after(player);
       playing.classList.add('has-player');
     }

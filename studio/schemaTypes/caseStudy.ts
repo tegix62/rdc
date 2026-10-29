@@ -83,11 +83,14 @@ export default defineType({
   fieldsets: [
     {
       name: 'hero',
-      title: 'Video at the top of the page',
+      title: 'Video',
       options: {collapsible: true, collapsed: true},
       description:
-        'Optional, and only for a video. The hero IMAGE is "Main Project ' +
-        'Image" on the Tile tab. Anything set here plays instead of it.',
+        'Optional. On a project page it plays at the top, instead of Main ' +
+        'Project Image. On a grid item the piece IS this video: it plays ' +
+        'where it is when opened in the All view, with its project lit round ' +
+        'it. A grid thumbnail is optional for a YouTube video (YouTube\'s own ' +
+        'still is used).',
     },
     {
       name: 'heroUploads',
@@ -583,15 +586,20 @@ export default defineType({
     }),
     defineField({
       name: 'heroVideo',
-      title: 'Video at the top of the page (replaces Main Image)',
+      title: 'YouTube or Vimeo link',
       type: 'url',
-      group: 'page',
+      /*
+        Two uses, one field (Chris: a field should serve more than one
+        function): a project page's hero video, and - on a grid item - the
+        piece itself, a video among the work. On the Tile tab for a grid
+        item, the Project page tab for a case study.
+      */
+      group: ['page', 'tile'],
       fieldset: 'hero',
-      hidden: onlyOnCaseStudies,
       description:
-        'A YouTube or Vimeo link. When this is set it plays as the page hero ' +
-        'INSTEAD of Main Project Image - the image is not shown above it. For a ' +
-        'video further down the page, use the field near the bottom of this tab.',
+        'A YouTube or Vimeo link. On a project page it plays as the page hero ' +
+        'INSTEAD of Main Project Image. On a grid item, the piece is this video. ' +
+        'For a video further down a project page, use the Page Builder.',
     }),
     /*
       THE SELF-HOSTED HERO, which the template has been reading for months
@@ -615,11 +623,10 @@ export default defineType({
     */
     defineField({
       name: 'heroVideoSrc',
-      title: 'Or a self-hosted hero video (R2)',
+      title: 'Or a self-hosted video (R2)',
       type: 'url',
-      group: 'page',
+      group: ['page', 'tile'],
       fieldset: 'hero',
-      hidden: onlyOnCaseStudies,
       components: {input: VideoUpload},
       description:
         'Drop a video or paste a URL. Uploads go straight to R2 - no Sanity ' +

@@ -244,6 +244,8 @@ const TILE = `
   _id,
   title, slug, pageType, thumbnail, mainImage, category, archiveMark, heroTile, orderRank,
   tileTreatment, assetType, merchPlacement, medium, year,
+  // A grid item that is a video (the Video panel on its Tile tab): it plays in the All view.
+  heroVideo, heroVideoSrc,
   "projectCredits": coalesce(select(${VIA_PIECE} => parentBrand->parentBrand->creditsText, parentBrand->creditsText), creditsText),
   headline, subtitle, client, resultStat, "summaryText": pt::text(summary),
   "tileOpaque": select(
@@ -289,6 +291,20 @@ export function getSketches() {
        _id, title, thumbnail, year, "parent": parentBrand._ref,
        "project": coalesce(parentBrand->parentBrand._ref, parentBrand._ref)
      } | order(title asc)`,
+  );
+}
+
+/*
+  The grid items that are only a video - no picture of their own, which
+  every other grid shows - for the All view, which shows YouTube's still in
+  its place and plays it (LandsView, THE VIDEO WORK, WITH THE REST).
+*/
+export function getVideoGridItems() {
+  return sanityClient.fetch(
+    `*[_type == "caseStudy" && pageType == "Grid Item" && ${NOT_SKETCH}
+       && !(defined(thumbnail.asset) || defined(mainImage.asset))
+       && (defined(heroVideo) || defined(heroVideoSrc))]{${TILE}}
+     | order(title asc)`,
   );
 }
 

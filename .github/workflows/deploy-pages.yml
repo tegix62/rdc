@@ -172,7 +172,7 @@ jobs:
             code=$(curl -sL -o /dev/null -w "%{http_code}" --max-time 20 "$BASE$p" || echo 000)
             if [ "$code" != "200" ]; then
               echo "  $p -> HTTP $code"; empty="$empty $p(http:$code)"
-            elif printf '%s' "$body" | grep -q "Content coming soon"; then
+            elif grep -q "Content coming soon" <<<"$body"; then
               echo "  $p -> 200 but showing the placeholder"; empty="$empty $p(placeholder)"
             else
               echo "  $p -> ok"

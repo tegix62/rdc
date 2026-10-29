@@ -261,24 +261,27 @@ jobs:
           fi
 
           robots=$(curl -sL --max-time 20 "$BASE/robots.txt")
-          if printf '%s' "$robots" | grep -qiE '^[[:space:]]*Disallow:[[:space:]]*/[[:space:]]*$'; then
+          if grep -qiE '^[[:space:]]*Disallow:[[:space:]]*/[[:space:]]*$' <<<"$robots"; then
             bad "robots.txt disallows the whole site"
           else
             note "✓ robots.txt allows crawling"
           fi
-          if printf '%s' "$robots" | grep -qi 'Sitemap:'; then
+          if grep -qi 'Sitemap:' <<<"$robots"; then
             note "✓ robots.txt names a sitemap"
           else
             bad "robots.txt names no sitemap"
           fi
 
           home=$(curl -sL --max-time 20 "$BASE/")
-          if printf '%s' "$home" | grep -qi 'name="robots"[^>]*noindex'; then
+          # Here-strings, not `printf | grep -q`: under pipefail, grep -q
+          # stopping at its first match broke printf's pipe on a big page
+          # (the work-first homepage) and a found canonical read as missing.
+          if grep -qi 'name="robots"[^>]*noindex' <<<"$home"; then
             bad "the homepage is noindexed"
           else
             note "✓ no noindex"
           fi
-          if printf '%s' "$home" | grep -q 'rel="canonical" href="https://rumeaudesign.co/"'; then
+          if grep -q 'rel="canonical" href="https://rumeaudesign.co/"' <<<"$home"; then
             note "✓ canonical points at rumeaudesign.co"
           else
             bad "homepage canonical is not https://rumeaudesign.co/"
@@ -299,7 +302,7 @@ jobs:
             code=$(curl -sL -o /dev/null -w "%{http_code}" --max-time 20 "$BASE$p")
             if [ "$code" != "200" ]; then
               bad "$p -> HTTP $code"
-            elif printf '%s' "$body" | grep -q "Content coming soon"; then
+            elif grep -q "Content coming soon" <<<"$body"; then
               bad "$p -> 200 but showing the placeholder"
             fi
           done

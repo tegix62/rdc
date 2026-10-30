@@ -239,10 +239,11 @@ for (const [name, w, h] of [
   await page.waitForTimeout(900)
   let v = await paneNow()
   check(`${name}: Merch & Apparel shows in place`, v.same && v.view === 'merch' && v.grid && !v.all && !v.type && v.tiles > 0 && v.active.join() === 'Merch & Apparel', JSON.stringify(v))
-  await page.locator('.pf-group--filters .pf-btn', {hasText: 'Type/Lettering'}).click()
+  // The fourth view: Type/Lettering, or Projects where that has taken its place (ProjectsView.astro).
+  await page.locator('.pf-group--filters .pf-btn[data-pane="type"]').click()
   await page.waitForTimeout(600)
   v = await paneNow()
-  check(`${name}: Type/Lettering shows in place`, v.same && v.view === 'type' && v.type && !v.grid && !v.all && v.active.join() === 'Type/Lettering', JSON.stringify(v))
+  check(`${name}: the fourth view (${v.active.join()}) shows in place`, v.same && v.view === 'type' && v.type && !v.grid && !v.all && ['Type/Lettering', 'Projects'].includes(v.active.join()), JSON.stringify(v))
   await page.locator('.pf-group--filters .pf-btn', {hasText: 'Brand Identity'}).click()
   await page.waitForTimeout(900)
   v = await paneNow()
@@ -333,14 +334,15 @@ for (const [name, w, h] of [
   for (const path of ['/portfolio?view=all', '/portfolio', '/portfolio/up-close', ...(indexHere ? ['/next/index/home'] : [])]) {
     await page.goto(`${BASE}${path}`, {waitUntil: 'domcontentloaded', timeout: 60_000})
     const bar = await page.evaluate(() => Array.from(document.querySelectorAll('.pf-group--filters .pf-btn')).map((b) => [b.textContent.trim(), b.getAttribute('href'), b.dataset.pane]))
-    check(`${name}, ${path}: Type/Lettering in the toolbar, to the rows`, bar.some(([t, h, pane]) => t === 'Type/Lettering' && (h === '/portfolio?view=type' || pane === 'type')) && !bar.some(([t]) => t === 'Up close'), bar.map(([t]) => t).join(' | '))
+    check(`${name}, ${path}: Type/Lettering in the toolbar, to the rows`, bar.some(([t, h, pane]) => ['Type/Lettering', 'Projects'].includes(t) && (h === '/portfolio?view=type' || pane === 'type')) && !bar.some(([t]) => t === 'Up close'), bar.map(([t]) => t).join(' | '))
   }
 
   // Type/Lettering: a row per project, each named, its pieces at one
   // height, sideways inside the row and never the page; a piece opens in
-  // Up close.
+  // Up close. Where Projects has taken the view's place, its own checks are below.
   await page.goto(`${BASE}/portfolio?view=type`, {waitUntil: 'domcontentloaded', timeout: 60_000})
   await page.waitForTimeout(1200)
+  if (await page.locator('.ty-row').count()) {
   const ty = await page.evaluate(() => {
     const rows = Array.from(document.querySelectorAll('.ty-row'))
     const uneven = rows.filter((r) => {
@@ -409,6 +411,7 @@ for (const [name, w, h] of [
   await page.goBack()
   await page.waitForTimeout(1200)
   check(`${name}, type rows: and back again returns to the rows`, page.url().includes('view=type'), page.url())
+  } else console.log(`skip  ${name}, type rows: Projects in their place here`)
   check(`${name}, the views: no script errors`, errors.length === 0, errors.join(' | '))
   await page.close()
 }

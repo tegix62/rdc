@@ -689,15 +689,20 @@ for (const [name, w, h] of [
       const pr = p.getBoundingClientRect()
       const hitButton = document.elementFromPoint(br.left + br.width / 2, br.top + br.height / 2)?.closest('a.button') === b
       // A point in the fade, off the button: the piece under it, not the fade.
-      const under = document.elementFromPoint(pr.left + 20, pr.top + 30)
+      const wd = document.querySelector('.wf-field .wd')
+      const wr = wd.getBoundingClientRect()
+      const under = document.elementFromPoint(wr.left + 20, wr.bottom - 60)
+      // Nothing of the field shows below the fade's solid white: no piece reaches past the field's bottom edge.
+      const past = Array.from(document.querySelectorAll('.wf-field .wd-piece:not([hidden])')).filter((t) => t.getBoundingClientRect().bottom > wr.bottom + 1).length
       return {
-        fade: getComputedStyle(p).backgroundImage.includes('gradient'),
+        fade: getComputedStyle(wd, '::after').backgroundImage.includes('gradient'),
+        past,
         button: hitButton,
         through: !!under?.closest('.wd-piece') || !under?.closest('.wf-field__more'),
         sheet: getComputedStyle(document.querySelector('.wf-band'), '::before').backgroundImage.includes('url('),
       }
     })
-    check(`${name}, work-first homepage: the field fades out under a button, clicks pass through the fade, the blue sheet behind the band`, more.fade && more.button && more.through && more.sheet, JSON.stringify(more))
+    check(`${name}, work-first homepage: the field fades out under a button, clicks pass through the fade, the blue sheet behind the band`, more.fade && more.button && more.through && more.sheet && more.past === 0, JSON.stringify(more))
     check(`${name}, work-first homepage: no script errors`, e2.length === 0, e2.join(' | '))
   }
   await page.close()

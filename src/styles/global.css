@@ -9006,26 +9006,25 @@ a.pf-btn {
   I'm floating in the middle of nowhere ... play with relative positioning
   to put the button and the call out into my portrait in a good spot."
 
-  So the portrait is solid, in front, in the testimonial cards' frame - its
-  photo's flat cut becomes the frame's heavy foot, something to stand on -
-  and the words are a card of the same make laid over its corner: across
-  the portrait's right edge on a wide screen, over its foot on a phone.
+  So the portrait is solid and in front, as the cut-out it is - no frame,
+  no fill (Chris: "remove the bordering and the white background ... it
+  should be able to stand its own if it's in front"). The words are a card
+  in the testimonial cards' make, and they give the photo's flat cut
+  somewhere to land: on a wide screen the card sits beside it with its
+  heavy foot on the same line as the cut, one floor for both; on a phone
+  it lies over the portrait's foot and covers the cut.
 */
 .wf-foot__portrait {
   display: block;
   width: 100%;
   height: auto;
-  box-sizing: border-box;
-  background: var(--color-white);
-  border: 2px solid var(--color-navy);
-  border-bottom-width: 8px;
 }
 .wf-foot__words {
   position: relative;
   z-index: 1;
   justify-self: start;
   max-width: 30rem;
-  margin: 0 0 var(--space-5) -5rem;
+  margin: 0 0 0 -5rem;
   padding: var(--space-3) var(--space-3) var(--space-3);
   background: var(--color-white);
   border: 2px solid var(--color-navy);

@@ -39,14 +39,15 @@ const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
 const every: any[] = await getAllGridItems();
 const items: any[] = every.filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)));
 /*
-  The video work, by this view's rule (preview first). Chris: "I'd like
+  The video work, by this view's rule. Chris: "I'd like
   these to be present in all views ... but according to the rules of
   each." Here a row is a project's lettering, then the rest of it - so a
   project's videos end its row, on YouTube's still, and play from a button
   in the viewer. A video with no project has no row, as no loose piece
   that is not lettering does.
 */
-const VIDEO_TILES = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+// Live (Chris: "put it all live"); false takes the video tiles off this view.
+const VIDEO_TILES = true;
 const videos: any[] = VIDEO_TILES
   ? (
       await Promise.all(

@@ -22,7 +22,7 @@ import TypeView from '../components/portfolio/TypeView.astro';
 const page = await getPage('portfolio');
 const pictured = await getAllGridItems();
 /*
-  THE VIDEO WORK ON THE GRIDS TOO, preview first. Chris: "I'd like these to
+  THE VIDEO WORK ON THE GRIDS TOO. Chris: "I'd like these to
   be present on Brand Identity as well! It looks like the relations aren't
   showing on that view." His video grid items have no picture of their own,
   and a grid tile was a picture or nothing - so they were on All (which
@@ -30,7 +30,8 @@ const pictured = await getAllGridItems();
   the same still, keep their project and the piece they hang off like any
   tile, and play from a button once opened (lib/gridVideo.ts).
 */
-const VIDEO_TILES = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+// Live (Chris: "put it all live"); false takes the video tiles off this view.
+const VIDEO_TILES = true;
 // YouTube's still for a piece with a video and no picture - including one
 // whose picture field is there but empty, which the grid's own list takes in.
 const withStill = async (it: any) => {

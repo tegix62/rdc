@@ -46,7 +46,7 @@
   which the critical-CSS step prunes from a page's own styles.
 */
 import Img from '../Img.astro';
-import {getAllGridItems, getSiteSettings, getPage, getVideoGridItems} from '../../lib/queries';
+import {getAllGridItems, getSiteSettings, getVideoGridItems} from '../../lib/queries';
 import {embedUrl} from '../../lib/video';
 import {youTubePoster} from '../../lib/youtubePoster';
 import {tileImage, imageDimensions} from '../../lib/image';
@@ -268,23 +268,24 @@ const titleOf = async (id: string) => {
   }
 };
 /*
+  Video work takes more ground. Chris: "let's have video embeds take up
+  more, it looks like padding is stunting them on the grid." A video grid
+  item hung off its project took a supporting piece's share (weight 0.6),
+  and at one or two cells a 16:9 picture cannot fill its box - the rest
+  showed as white round it. Sized as a case study is, it gets the cells to
+  sit in at its own shape.
+*/
+playing.forEach((v, i) => {
+  if (v) Object.assign(pieces[i], {big: true, weight: 1});
+});
+/*
   And the videos with no picture of their own: grid items that are only a
   video (getVideoGridItems - with their project, so they land and light
-  with it), then the video page's videos that are not already among them.
+  with it). The Video page's own videos used to be pulled in here too;
+  Chris has made them all grid items since ("I added these all as grid
+  items, so you can take out the ones you added").
 */
 const bare: any[] = WITH_REST && !picks && (!only || home) ? await getVideoGridItems() : [];
-const videoPage: any = WITH_REST && !picks ? await getPage('video') : null;
-const seen = new Set<string>([...playing, ...bare.map(playOf)].map((v) => v?.yt).filter(Boolean) as string[]);
-const loose: string[] = [];
-for (const sec of videoPage?.sections ?? []) {
-  for (const v of [sec, ...(Array.isArray(sec?.items) ? sec.items : [])]) {
-    const yt = playOf(v)?.yt;
-    if (yt && !seen.has(yt)) {
-      seen.add(yt);
-      loose.push(yt);
-    }
-  }
-}
 const videos = (
   await Promise.all([
     ...bare.map(async (it) => {
@@ -298,22 +299,9 @@ const videos = (
         slug: it.slug?.current ? cleanKey(it.slug.current) : idOf(it),
         project: tileHref(it),
         parent: it.pieceParent ? cleanKey(it.pieceParent) : null,
-        big: false,
+        big: true,
       };
     }),
-    ...loose.map(async (yt) => ({
-      src: `https://www.youtube-nocookie.com/embed/${yt}`,
-      kind: 'embed' as const,
-      yt,
-      poster: await youTubePoster(yt),
-      title: await titleOf(yt),
-      id: `video-${yt}`,
-      slug: `video-${yt}`,
-      project: null,
-      parent: null,
-      // Finished pieces of work on their own, sized as a case study is.
-      big: true,
-    })),
   ])
 ).filter((v): v is NonNullable<typeof v> => !!v);
 const videoAt = pieces.length;

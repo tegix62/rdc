@@ -600,14 +600,23 @@ for (const [name, w, h] of [
     // Chris: "my video work should not be separate" - a video among the pieces grows and plays where it is.
     await page.keyboard.press('Escape')
     await page.waitForTimeout(500)
-    const vids = await page.locator('.wd-piece--video:not([hidden])').count()
+    const vids = await page.locator('.wd-piece[data-video]:not([hidden])').count()
     if (vids) {
-      await page.locator('.wd-piece--video:not([hidden]) .wd-pic').first().click()
+      // Chris: "let's have video embeds take up more, it looks like padding is stunting them" - each fills its cell.
+      const fills = await page.evaluate(() =>
+        Array.from(document.querySelectorAll('.wd-piece[data-video]:not([hidden])')).map((t) => {
+          const f = t.querySelector('.wd-pic').getBoundingClientRect()
+          const c = t.querySelector('.wd-crop').getBoundingClientRect()
+          return Math.round(((c.width * c.height) / (f.width * f.height)) * 100)
+        }),
+      )
+      check(`videos: each fills its cell, not stunted by white round it`, Math.min(...fills) >= 75, `${Math.min(...fills)}% at the least (${fills.join(', ')})`)
+      await page.locator('.wd-piece[data-video]:not([hidden]) .wd-pic').first().click()
       await page.waitForTimeout(900)
       const v = await page.evaluate(() => {
         const o = document.querySelector('.wd-piece.is-open')
-        const f = o?.querySelector('.wd-player iframe')
-        return {video: !!o?.classList.contains('wd-piece--video'), player: f?.getAttribute('src')?.includes('youtube-nocookie.com/embed/') ?? false, h: Math.round(f?.getBoundingClientRect().height ?? 0)}
+        const f = o?.querySelector('.wd-player iframe, .wd-player video')
+        return {video: !!o?.dataset.video, player: !!f, h: Math.round(f?.getBoundingClientRect().height ?? 0)}
       })
       check(`videos: ${vids} video tiles; one grows and plays in place`, v.video && v.player && v.h > 100, JSON.stringify(v))
       await page.keyboard.press('Escape')
@@ -636,7 +645,7 @@ for (const [name, w, h] of [
         fieldTop: field ? Math.round(field.getBoundingClientRect().top) : null,
         pieces: shown.length,
         results: shown.filter((t) => t.classList.contains('wd-piece--result')).length,
-        videos: shown.filter((t) => t.classList.contains('wd-piece--video')).length,
+        videos: shown.filter((t) => t.dataset.video).length,
         foot: !!document.querySelector('.wf-foot a.button'),
         wide: document.documentElement.scrollWidth > innerWidth,
         url: location.search,

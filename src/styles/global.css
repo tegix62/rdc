@@ -8974,17 +8974,9 @@ a.pf-btn {
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
-  gap: var(--space-4);
+  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
   align-items: end;
   padding: var(--space-6) 0 4.5rem;
-}
-@media (max-width: 40rem) {
-  .wf-foot {
-    grid-template-columns: 1fr;
-    gap: var(--space-3);
-    padding: var(--space-5) 0 var(--space-6);
-  }
 }
 .wf-foot::before {
   content: '';
@@ -9007,30 +8999,59 @@ a.pf-btn {
   background-repeat: no-repeat, no-repeat, repeat;
 }
 /*
-  The portrait is blue on white: multiplied, its white is the sheet's, so no
-  box round it. And its bottom - the photo's own cut, flat across the chest -
-  fades into the sheet rather than stopping in a line.
+  Chris, of the portrait multiplied into the sheet and faded at the foot:
+  "the pattern is on my self-portrait, whereas my self-portrait should
+  probably be in the front and that pattern behind it. Also, there's a
+  cutoff at the bottom of my portrait that the page is not working with ...
+  I'm floating in the middle of nowhere ... play with relative positioning
+  to put the button and the call out into my portrait in a good spot."
+
+  So the portrait is solid, in front, in the testimonial cards' frame - its
+  photo's flat cut becomes the frame's heavy foot, something to stand on -
+  and the words are a card of the same make laid over its corner: across
+  the portrait's right edge on a wide screen, over its foot on a phone.
 */
 .wf-foot__portrait {
+  display: block;
   width: 100%;
   height: auto;
-  mix-blend-mode: multiply;
-  -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent);
-  mask-image: linear-gradient(to bottom, #000 72%, transparent);
+  box-sizing: border-box;
+  background: var(--color-white);
+  border: 2px solid var(--color-navy);
+  border-bottom-width: 8px;
 }
-@media (max-width: 40rem) {
-  .wf-foot__portrait {
-    max-width: 15rem;
-  }
+.wf-foot__words {
+  position: relative;
+  z-index: 1;
+  justify-self: start;
+  max-width: 30rem;
+  margin: 0 0 var(--space-5) -5rem;
+  padding: var(--space-3) var(--space-3) var(--space-3);
+  background: var(--color-white);
+  border: 2px solid var(--color-navy);
+  border-bottom-width: 8px;
 }
 .wf-foot__line {
-  max-width: 28ch;
+  max-width: 24ch;
   margin: 0 0 var(--space-3);
   font-family: var(--font-heading);
-  font-size: clamp(1.375rem, 1rem + 1.6vw, 2.25rem);
+  font-size: clamp(1.25rem, 0.9rem + 1.4vw, 2rem);
   font-weight: 700;
   line-height: 1.1;
   color: var(--color-navy);
+}
+@media (max-width: 40rem) {
+  .wf-foot {
+    grid-template-columns: 1fr;
+    padding: var(--space-5) 0 var(--space-6);
+  }
+  .wf-foot__portrait {
+    max-width: 17rem;
+  }
+  /* Over the portrait's foot, set in from its left edge. */
+  .wf-foot__words {
+    margin: -4.5rem 0 0 var(--space-4);
+  }
 }
 
 /* ==========================================================================

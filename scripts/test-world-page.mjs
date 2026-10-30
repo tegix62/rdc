@@ -703,6 +703,22 @@ for (const [name, w, h] of [
       }
     })
     check(`${name}, work-first homepage: the field fades out under a button, clicks pass through the fade, the blue sheet behind the foot, not the band`, more.fade && more.button && more.through && more.sheet && more.past === 0, JSON.stringify(more))
+    // The foot: the portrait solid, in front of the sheet; the callout card laid over its corner.
+    const foot = await page.evaluate(() => {
+      const img = document.querySelector('.wf-foot__portrait')
+      const words = document.querySelector('.wf-foot__words')
+      if (!img || !words) return {there: false}
+      const a = img.getBoundingClientRect()
+      const b = words.getBoundingClientRect()
+      return {
+        there: true,
+        solid: getComputedStyle(img).mixBlendMode === 'normal' && getComputedStyle(img).maskImage === 'none',
+        over: b.left < a.right && b.right > a.left && b.top < a.bottom && b.bottom > a.top,
+        inside: b.left >= 0 && b.right <= innerWidth + 1 && a.left >= 0,
+        wide: document.documentElement.scrollWidth > innerWidth,
+      }
+    })
+    check(`${name}, work-first homepage: the portrait solid in front, the callout over its corner`, foot.there && foot.solid && foot.over && foot.inside && !foot.wide, JSON.stringify(foot))
     check(`${name}, work-first homepage: no script errors`, e2.length === 0, e2.join(' | '))
   }
   await page.close()

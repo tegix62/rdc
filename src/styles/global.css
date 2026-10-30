@@ -8972,6 +8972,11 @@ a.pf-btn {
   margin: -5rem 0 0;
   padding: 0 var(--space-3);
   text-align: center;
+  /* Only the button takes a tap; beside it, the pieces under the fade do. */
+  pointer-events: none;
+}
+.wf-field__more .button {
+  pointer-events: auto;
 }
 @media (max-width: 40rem) {
   .wf-field .wd::after {

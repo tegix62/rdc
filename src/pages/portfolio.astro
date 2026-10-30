@@ -85,7 +85,8 @@ const shirtRoot = (it: any) =>
   it.pieceParent ? cleanKey(it.pieceParent) : cleanKey(it._id).replace(/^drafts\./, '');
 const shirtCount = new Map<string, number>();
 for (const it of items) {
-  if (!tileHref(it) && tileImage(it)) shirtCount.set(shirtRoot(it), (shirtCount.get(shirtRoot(it)) ?? 0) + 1);
+  // A video's still counts as its picture: the Darrell Arden videos hang off the Pyramid Mountain Sessions artwork.
+  if (!tileHref(it) && (tileImage(it) || it.poster)) shirtCount.set(shirtRoot(it), (shirtCount.get(shirtRoot(it)) ?? 0) + 1);
 }
 const shirtFamily = (it: any) =>
   !tileHref(it) && (shirtCount.get(shirtRoot(it)) ?? 0) >= 2 ? `#shirt-${shirtRoot(it)}` : undefined;

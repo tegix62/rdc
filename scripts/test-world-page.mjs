@@ -701,8 +701,10 @@ for (const [name, w, h] of [
   )
   if (!tiles.length) console.log('(no video tiles on the grid here - skipped)')
   else {
-    const linked = tiles.filter((t) => t.family || t.parent || t.bar).length
-    check(`grid: ${tiles.length} video tiles on Brand Identity, ${linked} linked to their project or piece`, tiles.length >= 1 && linked >= 1, JSON.stringify(tiles))
+    // Linked: a project's bar, or a set of their own with the piece they hang off.
+    const linked = tiles.filter((t) => t.family || t.bar).length
+    const hung = tiles.filter((t) => t.parent)
+    check(`grid: ${tiles.length} video tiles on Brand Identity, ${linked} linked to their project or piece`, tiles.length >= 1 && linked >= 1 && hung.every((t) => t.family), JSON.stringify(tiles))
     const tile = page.locator('.pf-item[data-video]').first()
     await tile.scrollIntoViewIfNeeded()
     await tile.locator('.pf-item__img').click()

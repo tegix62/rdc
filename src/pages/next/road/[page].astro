@@ -1,0 +1,511 @@
+---
+/*
+  THE ROAD - preview only, at /next/road/map: the freelance years as a map
+  you walk down by scrolling.
+
+  Chris: "drafted my own little map and then ... a sort of scroll experience
+  where you could see me ... walk across that map ... upon each checkpoint,
+  you know, who I met, what they needed, what names pop up, what assets pop
+  up that were related to it, what I did. It becomes a whole timeline ...
+  year by year." And of how it would be drawn: "split up into different
+  assets or something so that it's more negative space. That seems to be
+  more intuitive to something that needs to be a responsive design layout."
+
+  So the map is a kit, not one picture:
+    - the stops are ordinary page content, side to side on a wide screen and
+      one column on a phone;
+    - the path is drawn by the script through the space the stops leave free,
+      after the page is laid out, so it never crosses words or pictures - it
+      crosses over only in the gaps between stops;
+    - each stop's marker is Chris's landmark drawing when it has one (Road
+      stop > Landmark), a plain mark until then; a business that closed gets
+      its own mark and stays on the road;
+    - the walker - a dot for now - is held level with the reading line, so
+      scrolling walks it along the path, and a stop counts as reached once it
+      has gone by.
+
+  Stops come from Studio > The road. Until there are any, the page makes
+  rough ones from the case studies (marked DRAFT) so the walk can be felt
+  before anything is written or drawn.
+
+  Never built for production (getStaticPaths), and noindex.
+*/
+import Layout from '../../../layouts/Layout.astro';
+import Img from '../../../components/Img.astro';
+import {sanityClient} from '../../../lib/sanity';
+import {tileImage, hasAsset} from '../../../lib/image';
+import {tileHref} from '../../../lib/tiles';
+import {stripStegaKey} from '../../../lib/stega';
+import {creditsHtml, hasCreditsText} from '../../../lib/credits';
+
+export async function getStaticPaths() {
+  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
+  return [{params: {page: 'map'}}];
+}
+
+const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
+
+const WORK = `{
+  _id, title, slug, pageType, thumbnail, mainImage, creditsText,
+  "parentSlug": parentBrand->slug.current,
+  "parentType": parentBrand->pageType
+}`;
+
+const written: any[] = await sanityClient.fetch(
+  `*[_type == "roadStop"] | order(year asc, month asc){..., "work": work[]->${WORK}}`,
+);
+
+/*
+  Until a stop is written: one per case study, its year if it has one, the
+  undated ones after. Its own picture first, then a few pieces filed under it.
+*/
+async function draftStops() {
+  const studies: any[] = await sanityClient.fetch(
+    `*[_type == "caseStudy" && pageType == "Case Study"]{
+      ...${WORK}, year, client, subtitle, oneLineSummary, orderRank,
+      "kids": *[_type == "caseStudy" && parentBrand._ref == ^._id && !(category == "Sketch")] | order(year desc)[0...3]${WORK}
+    }`,
+  );
+  return studies
+    .map((s) => ({
+      _id: s._id,
+      title: clean(s.client) || clean(s.title),
+      year: typeof s.year === 'number' ? s.year : null,
+      need: '',
+      did: clean(s.subtitle) || clean(s.oneLineSummary),
+      changed: '',
+      status: 'done',
+      people: s.creditsText,
+      work: [s, ...(s.kids ?? [])],
+      draft: true,
+    }))
+    .sort((a, z) => (a.year ?? 9999) - (z.year ?? 9999) || a.title.localeCompare(z.title));
+}
+
+const isDraft = written.length === 0;
+const raw = isDraft ? await draftStops() : written;
+
+const stops = raw.map((s: any, i: number) => {
+  const work = (s.work ?? []).filter((w: any) => w && tileImage(w));
+  const people = hasCreditsText({creditsText: s.people})
+    ? creditsHtml(s.people)
+    : (work.map((w: any) => creditsHtml(w.creditsText)).find(Boolean) ?? '');
+  return {
+    id: s._id,
+    title: clean(s.title),
+    year: typeof s.year === 'number' ? s.year : null,
+    span: clean(s.span),
+    need: clean(s.need),
+    did: clean(s.did),
+    changed: clean(s.changed),
+    after: clean(s.after),
+    status: ['going', 'done', 'closed'].includes(clean(s.status)) ? clean(s.status) : 'done',
+    people,
+    work: work.slice(0, 4).map((w: any) => ({image: tileImage(w), title: clean(w.title), href: tileHref(w)})),
+    landmark: hasAsset(s.landmark) ? s.landmark : null,
+    side: i % 2 === 0 ? 'left' : 'right',
+    newYear: i === 0 || (s.year ?? null) !== (raw[i - 1].year ?? null),
+    draft: Boolean(s.draft),
+  };
+});
+
+const firstYear = stops.find((s) => s.year)?.year ?? 2019;
+---
+
+<Layout title="The road - Rumeau Design Co" description="The freelance years, stop by stop." noindex>
+  <div class="rd">
+    <header class="rd-head">
+      <h1>Since {firstYear}</h1>
+      <p>DRAFT - a line or two from you about the road so far.</p>
+      {isDraft && (
+        <p class="rd-note">
+          No stops written yet, so these are made from the case studies. Add stops in Studio under The road and they
+          replace these.
+        </p>
+      )}
+    </header>
+
+    <div class="rd-road" data-road>
+      <svg class="rd-svg" aria-hidden="true">
+        <path class="rd-ahead" />
+        <path class="rd-done" />
+      </svg>
+
+      <ol class="rd-stops">
+        {stops.map((s) => (
+          <li class="rd-stop" data-side={s.side} data-status={s.status} data-new-year={s.newYear ? '' : undefined}>
+            <div class="rd-place">
+              {s.newYear && <span class="rd-year">{s.year ?? 'Undated'}</span>}
+              <span class={`rd-mark${s.landmark ? ' rd-mark--drawn' : ''}`} data-mark>
+                {s.landmark ? (
+                  <Img image={s.landmark} alt="" width={240} sizes="120px" loading="lazy" />
+                ) : s.status === 'closed' ? (
+                  <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+                    <path d="M4 20V9l4-3v4l3-2v12M14 20v-7l3-2 3 2v7M2 20h20" />
+                  </svg>
+                ) : null}
+              </span>
+            </div>
+
+            <article class="rd-card">
+              <p class="rd-when">
+                {[s.year, s.span].filter(Boolean).join(' · ') || 'Year not set'}
+                {s.status === 'closed' && ' · closed'}
+                {s.status === 'going' && ' · still going'}
+                {s.draft && ' · DRAFT'}
+              </p>
+              <h2>{s.title}</h2>
+              <dl>
+                {s.need && (<><dt>Needed</dt><dd>{s.need}</dd></>)}
+                {s.did && (<><dt>Did</dt><dd>{s.did}</dd></>)}
+                {s.changed && (<><dt>Changed</dt><dd>{s.changed}</dd></>)}
+                {s.after && (<><dt>After</dt><dd>{s.after}</dd></>)}
+              </dl>
+              {s.people && <div class="rd-people" set:html={s.people} />}
+              {s.work.length > 0 && (
+                <ul class="rd-work">
+                  {s.work.map((w) => (
+                    <li>
+                      {w.href ? (
+                        <a href={w.href}>
+                          <Img image={w.image} alt={w.title} width={320} sizes="(min-width: 48rem) 9rem, 22vw" loading="lazy" />
+                        </a>
+                      ) : (
+                        <Img image={w.image} alt={w.title} width={320} sizes="(min-width: 48rem) 9rem, 22vw" loading="lazy" />
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </article>
+          </li>
+        ))}
+      </ol>
+      <span class="rd-walker" aria-hidden="true"></span>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .rd {
+    --rd-line: var(--color-navy);
+    padding: var(--space-6, 4rem) var(--space-4, 1.5rem) 40vh;
+    max-width: 76rem;
+    margin: 0 auto;
+  }
+  .rd-head {
+    max-width: 36rem;
+    margin: 0 0 6rem;
+  }
+  .rd-head h1 {
+    font-family: var(--font-heading);
+    font-size: clamp(2.5rem, 7vw, 5rem);
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    margin: 0 0 1rem;
+  }
+  .rd-note {
+    color: var(--color-gray);
+    font-size: 0.875rem;
+  }
+
+  .rd-road {
+    position: relative;
+  }
+  .rd-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+  .rd-svg path {
+    fill: none;
+    stroke: var(--rd-line);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .rd-ahead {
+    stroke-dasharray: 2 9;
+    opacity: 0.45;
+  }
+
+  .rd-stops {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    position: relative;
+  }
+  .rd-stop {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin: 0 0 11rem;
+  }
+  .rd-stop[data-side='left'] .rd-card { grid-column: 1; grid-row: 1; justify-self: end; }
+  .rd-stop[data-side='left'] .rd-place { grid-column: 2; grid-row: 1; }
+  .rd-stop[data-side='right'] .rd-card { grid-column: 2; grid-row: 1; }
+  .rd-stop[data-side='right'] .rd-place { grid-column: 1; grid-row: 1; }
+
+  .rd-place {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 2.5rem;
+  }
+  .rd-year {
+    font-family: var(--font-heading);
+    font-size: clamp(2rem, 4vw, 3.25rem);
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--rd-line);
+    margin: -3.5rem 0 1.25rem;
+    background: var(--color-white);
+    padding: 0 0.5rem;
+    position: relative;
+    z-index: 1;
+  }
+  .rd-mark {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: var(--color-white);
+    border: 2px solid var(--rd-line);
+    transition: background 0.3s;
+  }
+  .rd-stop[data-status='going'] .rd-mark { background: var(--rd-line); }
+  .rd-stop[data-status='closed'] .rd-mark {
+    border: 0;
+    border-radius: 0;
+    width: 2rem;
+    height: 2rem;
+  }
+  .rd-mark svg path {
+    fill: var(--color-white);
+    stroke: var(--rd-line);
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+  }
+  .rd-mark--drawn {
+    width: 7.5rem;
+    height: auto;
+    border: 0;
+    border-radius: 0;
+    background: none;
+  }
+  .rd-mark--drawn :global(img) {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .rd-stop.is-reached:not([data-status='closed']) .rd-mark:not(.rd-mark--drawn) {
+    background: var(--rd-line);
+    box-shadow: inset 0 0 0 3px var(--color-white);
+  }
+
+  .rd-card {
+    max-width: 30rem;
+    width: 100%;
+    background: var(--color-white);
+    position: relative;
+    z-index: 1;
+    opacity: 0.5;
+    transition: opacity 0.4s;
+  }
+  .rd-stop.is-reached .rd-card { opacity: 1; }
+  .rd-when {
+    font-size: 0.8125rem;
+    color: var(--color-gray);
+    margin: 0 0 0.25rem;
+  }
+  .rd-card h2 {
+    font-family: var(--font-heading);
+    font-size: clamp(1.5rem, 3vw, 2.125rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 0 0 1rem;
+  }
+  .rd-card dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.4rem 1rem;
+    margin: 0 0 1rem;
+  }
+  .rd-card dt {
+    font-size: 0.8125rem;
+    color: var(--color-gray);
+    padding-top: 0.15rem;
+  }
+  .rd-card dd { margin: 0; line-height: 1.5; }
+  .rd-people {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin: 0 0 1rem;
+  }
+  .rd-people :global(p) { margin: 0; }
+  .rd-people :global(p + p:empty) { height: 0.75em; }
+  .rd-work {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+  }
+  .rd-work :global(img) {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    display: block;
+  }
+
+  .rd-walker {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0.875rem;
+    height: 0.875rem;
+    margin: -0.4375rem 0 0 -0.4375rem;
+    border-radius: 50%;
+    background: var(--rd-line);
+    box-shadow: 0 0 0 4px var(--color-white);
+    z-index: 2;
+    pointer-events: none;
+    will-change: transform;
+    visibility: hidden;
+  }
+  .rd-road.is-drawn .rd-walker { visibility: visible; }
+
+  /* A phone: one column, the road down the left edge. */
+  @media (max-width: 47.99rem) {
+    .rd-head { margin-bottom: 4rem; }
+    .rd-stop {
+      grid-template-columns: 2.25rem 1fr;
+      margin-bottom: 6rem;
+    }
+    .rd-stop[data-side] .rd-place { grid-column: 1; grid-row: 1; padding-top: 0.35rem; }
+    .rd-stop[data-side] .rd-card { grid-column: 2; grid-row: 1; justify-self: start; }
+    .rd-stop[data-new-year] { padding-top: 3.5rem; }
+    .rd-year {
+      position: absolute;
+      top: -3.5rem;
+      left: 2.25rem;
+      margin: 0;
+      padding: 0;
+      font-size: 2rem;
+    }
+    .rd-mark--drawn { width: 2.25rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rd-card, .rd-mark { transition: none; }
+  }
+</style>
+
+<script>
+  /*
+    The path, through the free side of each stop, crossing over only in the
+    gaps between stops; the walker held level with the reading line.
+  */
+  const road = document.querySelector<HTMLElement>('[data-road]');
+  if (road) {
+    const svg = road.querySelector('svg')!;
+    const ahead = svg.querySelector<SVGPathElement>('.rd-ahead')!;
+    const done = svg.querySelector<SVGPathElement>('.rd-done')!;
+    const walker = road.querySelector<HTMLElement>('.rd-walker')!;
+    const stops = [...road.querySelectorAll<HTMLElement>('.rd-stop')];
+    const still = matchMedia('(prefers-reduced-motion: reduce)');
+
+    let samples: {l: number; x: number; y: number}[] = [];
+    let total = 0;
+    let marks: number[] = [];
+
+    const draw = () => {
+      const box = road.getBoundingClientRect();
+      const at = (el: Element) => {
+        const r = el.getBoundingClientRect();
+        return {x: r.left + r.width / 2 - box.left, y: r.top + r.height / 2 - box.top, top: r.top - box.top, bottom: r.bottom - box.top};
+      };
+      const points = stops.map((s) => at(s.querySelector('[data-mark]')!));
+      const rows = stops.map((s) => at(s));
+      if (!points.length) return;
+
+      let d = `M ${points[0].x} 0 L ${points[0].x} ${points[0].y}`;
+      for (let i = 1; i < points.length; i++) {
+        const a = points[i - 1];
+        const b = points[i];
+        if (Math.abs(a.x - b.x) < 1) {
+          d += ` L ${b.x} ${b.y}`;
+          continue;
+        }
+        // Over in the gap between the two stops, never across either one.
+        const top = rows[i - 1].bottom;
+        const bottom = rows[i].top;
+        const mid = (top + bottom) / 2;
+        const h = Math.max(24, Math.min((bottom - top) * 0.8, 180)) / 2;
+        d += ` L ${a.x} ${mid - h} C ${a.x} ${mid} ${b.x} ${mid} ${b.x} ${mid + h} L ${b.x} ${b.y}`;
+      }
+      const last = points[points.length - 1];
+      d += ` L ${last.x} ${box.height}`;
+
+      ahead.setAttribute('d', d);
+      done.setAttribute('d', d);
+      total = done.getTotalLength();
+      samples = [];
+      for (let l = 0; l <= total; l += 4) {
+        const p = done.getPointAtLength(l);
+        samples.push({l, x: p.x, y: p.y});
+      }
+      marks = points.map((p) => p.y);
+      done.style.strokeDasharray = `${total} ${total}`;
+      road.classList.add('is-drawn');
+      walk();
+    };
+
+    const walk = () => {
+      if (!samples.length) return;
+      if (still.matches) {
+        done.style.strokeDashoffset = '0';
+        walker.style.visibility = 'hidden';
+        stops.forEach((s) => s.classList.add('is-reached'));
+        return;
+      }
+      walker.style.visibility = '';
+      const line = innerHeight * 0.5 - road.getBoundingClientRect().top;
+      // The first sample at or below the reading line (the road only goes down).
+      let lo = 0;
+      let hi = samples.length - 1;
+      while (lo < hi) {
+        const m = (lo + hi) >> 1;
+        if (samples[m].y < line) lo = m + 1;
+        else hi = m;
+      }
+      const p = samples[lo];
+      walker.style.transform = `translate(${p.x}px, ${p.y}px)`;
+      done.style.strokeDashoffset = String(total - p.l);
+      stops.forEach((s, i) => s.classList.toggle('is-reached', marks[i] <= p.y + 1));
+    };
+
+    const soon = (fn: () => void) => {
+      let queued = false;
+      return () => {
+        if (queued) return;
+      queued = true;
+        requestAnimationFrame(() => {
+          queued = false;
+          fn();
+        });
+      };
+    };
+    addEventListener('scroll', soon(walk), {passive: true});
+    new ResizeObserver(soon(draw)).observe(road);
+    still.addEventListener('change', walk);
+    draw();
+  }
+</script>

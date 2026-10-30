@@ -561,6 +561,52 @@ for (const [name, w, h] of [
 }
 
 /*
+  The road (preview, /next/road/map): a path drawn through every stop that
+  never runs over a stop's words or pictures, and a walker that goes down
+  it as the page scrolls, reaching the stops it passes.
+*/
+for (const [name, w, h] of [
+  ['desktop', 1440, 900],
+  ['phone', 390, 844],
+]) {
+  const page = await browser.newPage({viewport: {width: w, height: h}})
+  const errors = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  if (!(await page.goto(`${BASE}/next/road/map`, {waitUntil: 'domcontentloaded', timeout: 60_000}))?.ok()) {
+    console.log(`skip  ${name}, road: not on this site (preview only)`)
+    await page.close()
+    continue
+  }
+  await page.waitForTimeout(800)
+  const road = await page.evaluate(() => {
+    const path = document.querySelector('.rd-done')
+    const box = document.querySelector('[data-road]').getBoundingClientRect()
+    const cards = Array.from(document.querySelectorAll('.rd-card')).map((c) => {
+      const r = c.getBoundingClientRect()
+      return {l: r.left - box.left, r: r.right - box.left, t: r.top - box.top, b: r.bottom - box.top}
+    })
+    const total = path.getTotalLength()
+    let over = 0
+    for (let l = 0; l <= total; l += 3) {
+      const p = path.getPointAtLength(l)
+      if (cards.some((c) => p.x > c.l + 1 && p.x < c.r - 1 && p.y > c.t + 1 && p.y < c.b - 1)) over++
+    }
+    return {stops: cards.length, total: Math.round(total), over, wide: document.documentElement.scrollWidth > innerWidth}
+  })
+  check(`${name}, road: a path through every stop`, road.stops >= 2 && road.total > 500, `${road.stops} stops, ${road.total}px of road`)
+  check(`${name}, road: the path never runs over a stop's words or pictures`, road.over === 0, `${road.over} point(s) over a card`)
+  check(`${name}, road: nothing wider than the screen`, !road.wide, '')
+  const where = () => page.evaluate(() => ({t: getComputedStyle(document.querySelector('.rd-walker')).transform, reached: document.querySelectorAll('.rd-stop.is-reached').length}))
+  const before = await where()
+  await page.evaluate(() => scrollTo(0, document.querySelector('.rd-stop:nth-child(2)').getBoundingClientRect().bottom + scrollY))
+  await page.waitForTimeout(300)
+  const after = await where()
+  check(`${name}, road: scrolling walks the dot along and reaches the stops it passes`, after.t !== before.t && after.reached >= 2 && after.reached > before.reached, `${before.reached} -> ${after.reached} reached`)
+  check(`${name}, road: no script errors`, errors.length === 0, errors.join(' | '))
+  await page.close()
+}
+
+/*
   RESULTS AS TILES, preview only for now (skipped where absent). Chris:
   "those information blocks ... can be clicked on to shift the grid around too".
 */

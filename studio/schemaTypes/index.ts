@@ -1,4 +1,5 @@
 import tag from './tag'
+import roadStop from './roadStop'
 import page from './page'
 import caseStudy from './caseStudy'
 import blogPost from './blogPost'
@@ -13,5 +14,6 @@ export const schemaTypes = [
   caseStudy,
   blogPost,
   tag,
+  roadStop,
   ...caseStudySectionTypes,
 ]

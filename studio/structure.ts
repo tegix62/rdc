@@ -66,9 +66,24 @@ const structure: StructureResolver = (S, context) =>
             .defaultOrdering([{field: 'title', direction: 'asc'}])
             .initialValueTemplates([S.initialValueTemplateItem('caseStudy-sketch')]),
         ),
+      /*
+        The journey map's stops (roadStop.ts), in the order the map walks
+        them.
+      */
+      S.listItem()
+        .title('The road')
+        .schemaType('roadStop')
+        .child(
+          S.documentTypeList('roadStop')
+            .title('The road')
+            .defaultOrdering([
+              {field: 'year', direction: 'asc'},
+              {field: 'month', direction: 'asc'},
+            ]),
+        ),
       S.divider(),
       ...S.documentTypeListItems().filter(
-        (item) => item.getId() !== 'caseStudy',
+        (item) => !['caseStudy', 'roadStop'].includes(item.getId() ?? ''),
       ),
     ])
 

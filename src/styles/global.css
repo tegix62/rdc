@@ -2077,6 +2077,17 @@ main {
   without the hairline dividers that used to do the job - badly, since on a
   narrow screen they ended up starting and ending lines.
 */
+/* The sizes and Vote, together: one item in a wide toolbar's row, one cell on a phone's grid. */
+.pf-tools {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: stretch;
+}
+/* Less air between the nav and the toolbar - Chris: "eliminate some of the spacing". The homepage's field is a .pf-section too, and keeps its own. */
+.pf-section:has(> .pf-controls) {
+  padding-top: var(--space-2);
+}
+
 .pf-controls {
   display: flex;
   flex-wrap: wrap;
@@ -2427,12 +2438,22 @@ main {
   }
 
   /*
-    With the Vote toggle (preview), one row still: Shuffle, the zoom pair,
-    Vote. As a second row it was a control alone on a line, and 36px more
-    chrome above the work than the 280px this toolbar is held to.
+    Shuffle under the filters' left column, the sizes and Vote (.pf-tools)
+    under their right - Chris: "even it out so that shuffle ... lines up with
+    the other buttons". Two equal columns at the outer grid's gap, so both
+    edges meet the filters' above; inside the right one the glyph pair takes
+    what Vote's word leaves.
   */
-  .pf-group--arrange:has(.pf-btn--vote) {
-    grid-template-columns: 1fr auto auto;
+  .pf-group--arrange {
+    grid-template-columns: 1fr 1fr;
+  }
+  .pf-tools {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+  .pf-tools:has(.pf-btn--vote) {
+    grid-template-columns: 1fr auto;
   }
 
   /*

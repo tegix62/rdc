@@ -331,21 +331,26 @@ if (emptyFilters.length > 0) {
           there is nothing to switch.
         */}
         {/* nowrap: these two are one control in two halves. */}
-        <span class="pf-zoom">
-          <button type="button" class="pf-btn" id="pf-minus" aria-label="Smaller tiles">&minus;</button>
-          <button type="button" class="pf-btn" id="pf-plus" aria-label="Larger tiles">+</button>
+        {/* The sizes and Vote as one cell: on a phone it is the right column, under the filters'. */}
+        <span class="pf-tools">
+          <span class="pf-zoom">
+            <button type="button" class="pf-btn" id="pf-minus" aria-label="Smaller tiles">&minus;</button>
+            <button type="button" class="pf-btn" id="pf-plus" aria-label="Larger tiles">+</button>
+          </span>
+          {VOTES && <button type="button" class="pf-btn pf-btn--vote" data-vote aria-pressed="false">Vote</button>}
         </span>
-        {VOTES && <button type="button" class="pf-btn pf-btn--vote" data-vote aria-pressed="false">Vote</button>}
       </div>
 
       {/* All's own: a new world, and its tile size (LandsView's script). */}
       <div class="pf-group pf-group--arrange" role="group" aria-label="Arrange" data-for="all">
         <button type="button" class="pf-btn pf-btn--span" data-roll>Shuffle</button>
-        <span class="pf-zoom">
-          <button type="button" class="pf-btn" data-zoom="-1" aria-label="Smaller tiles">&minus;</button>
-          <button type="button" class="pf-btn" data-zoom="1" aria-label="Larger tiles">+</button>
+        <span class="pf-tools">
+          <span class="pf-zoom">
+            <button type="button" class="pf-btn" data-zoom="-1" aria-label="Smaller tiles">&minus;</button>
+            <button type="button" class="pf-btn" data-zoom="1" aria-label="Larger tiles">+</button>
+          </span>
+          {VOTES && <button type="button" class="pf-btn pf-btn--vote" data-vote aria-pressed="false">Vote</button>}
         </span>
-        {VOTES && <button type="button" class="pf-btn pf-btn--vote" data-vote aria-pressed="false">Vote</button>}
       </div>
 
       {/*

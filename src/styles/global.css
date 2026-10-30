@@ -8773,6 +8773,39 @@ a.pf-btn {
 .wd-piece.has-player .wd-pic {
   display: none;
 }
+/* Opened, a large play button on the picture's middle: one more click to play (LandsView, play()). */
+.wd-piece.is-open .wd-play {
+  display: none;
+}
+.wd-go-play {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 50%;
+  width: clamp(56px, 9vw, 88px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  padding: 0;
+  border: 2px solid var(--color-white, #fff);
+  border-bottom-width: 6px;
+  background: var(--color-navy);
+  cursor: pointer;
+}
+.wd-go-play::after {
+  content: '';
+  position: absolute;
+  left: 54%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-style: solid;
+  border-width: 0.6em 0 0.6em 1em;
+  border-color: transparent transparent transparent #fff;
+  font-size: clamp(14px, 2vw, 22px);
+}
+.wd-go-play:hover,
+.wd-go-play:focus-visible {
+  background: var(--color-navy-dark);
+}
 .wd-player {
   position: relative;
   flex: 1 1 auto;

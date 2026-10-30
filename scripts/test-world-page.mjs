@@ -613,12 +613,29 @@ for (const [name, w, h] of [
       check(`videos: each fills its cell, not stunted by white round it`, Math.min(...fills) >= 75, `${Math.min(...fills)}% at the least (${fills.join(', ')})`)
       await page.locator('.wd-piece[data-video]:not([hidden]) .wd-pic').first().click()
       await page.waitForTimeout(900)
+      // Chris: "don't autoplay on open, let it have one more click before playing".
+      const waits = await page.evaluate(() => ({open: !!document.querySelector('.wd-piece.is-open[data-video]'), player: !!document.querySelector('.wd-player'), button: !!document.querySelector('.wd-piece.is-open .wd-go-play')}))
+      check('videos: opened, it waits on its still with a play button', waits.open && !waits.player && waits.button, JSON.stringify(waits))
+      // "no option to declick-collapse": the picture round the button still closes it.
+      const pic = await page.locator('.wd-piece.is-open .wd-pic').boundingBox()
+      await page.mouse.click(pic.x + 12, pic.y + 12)
+      await page.waitForTimeout(600)
+      check('videos: a click on the picture, off the button, closes it', !(await page.locator('.wd-piece.is-open').count()))
+      await page.locator('.wd-piece[data-video]:not([hidden]) .wd-pic').first().click()
+      await page.waitForTimeout(900)
+      await page.locator('.wd-piece.is-open .wd-go-play').click()
+      await page.waitForTimeout(600)
       const v = await page.evaluate(() => {
         const o = document.querySelector('.wd-piece.is-open')
         const f = o?.querySelector('.wd-player iframe, .wd-player video')
         return {video: !!o?.dataset.video, player: !!f, h: Math.round(f?.getBoundingClientRect().height ?? 0)}
       })
-      check(`videos: ${vids} video tiles; one grows and plays in place`, v.video && v.player && v.h > 100, JSON.stringify(v))
+      check(`videos: ${vids} video tiles; the play button plays it in place`, v.video && v.player && v.h > 100, JSON.stringify(v))
+      // Playing, the piece's own margin still closes it.
+      const fr = await page.locator('.wd-piece.is-open .wd-frame').boundingBox()
+      await page.mouse.click(fr.x + 3, fr.y + 3)
+      await page.waitForTimeout(600)
+      check('videos: playing, a click on the margin of the piece closes it', !(await page.locator('.wd-piece.is-open').count()))
       await page.keyboard.press('Escape')
       await page.waitForTimeout(500)
       const gone = await page.evaluate(() => document.querySelectorAll('.wd-player').length)

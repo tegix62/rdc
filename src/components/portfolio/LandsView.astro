@@ -570,7 +570,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     const grow = inPlace && data.grow;
     world.querySelectorAll('.wd-kin').forEach((el) => el.remove());
     // A video plays only while it is the one open: closing it, or opening another, stops it.
-    world.querySelectorAll<HTMLElement>('.wd-player').forEach((el) => {
+    world.querySelectorAll<HTMLElement>('.wd-player, .wd-go-play').forEach((el) => {
       const t = el.closest<HTMLElement>('.wd-piece');
       if (!t || Number(t.dataset.i) !== focus) {
         t?.classList.remove('has-player');
@@ -712,30 +712,35 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       for (const x of out.placed) if (subset[x.i] !== focus && x.r >= cut) tiles[subset[x.i]].style.top = `${x.r * rowH + gap / 2 + room}px`;
       world.style.height = `${Math.ceil(out.rows * rowH + room)}px`;
     }
-    // The opened video, playing in its picture's place.
-    const playing = grow && focus !== null ? tiles[focus] : null;
-    if (playing?.dataset.video && !playing.querySelector('.wd-player')) {
-      const player = document.createElement('div');
-      player.className = 'wd-player';
-      if (playing.dataset.videoKind === 'file') {
-        // A self-hosted (R2) file: the browser's own player, with sound, from the start.
-        const video = document.createElement('video');
-        video.src = playing.dataset.video;
-        video.controls = true;
-        video.autoplay = true;
-        video.playsInline = true;
-        video.setAttribute('aria-label', data.pieces[focus!].title);
-        player.append(video);
-      } else {
-        const frame = document.createElement('iframe');
-        frame.src = `${playing.dataset.video}${playing.dataset.video.includes('?') ? '&' : '?'}autoplay=1&rel=0&playsinline=1`;
-        frame.title = data.pieces[focus!].title;
-        frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
-        frame.allowFullscreen = true;
-        player.append(frame);
-      }
-      playing.querySelector('.wd-pic')!.after(player);
-      playing.classList.add('has-player');
+    /*
+      The opened video waits for its own click. Chris: "don't autoplay on
+      open, let it have one more click before playing, currently there's no
+      option to declick-collapse because the commands conflict" - playing
+      at once put the player over the picture, so the click that closes any
+      other piece landed in the video. Now it opens on its still with a
+      play button: the button plays, the picture round it closes it as it
+      does any piece.
+    */
+    const opened = grow && focus !== null ? tiles[focus] : null;
+    if (opened?.dataset.video && !opened.querySelector('.wd-player, .wd-go-play')) {
+      const go = document.createElement('button');
+      go.type = 'button';
+      go.className = 'wd-go-play';
+      go.setAttribute('aria-label', `Play ${data.pieces[focus!].title}`);
+      const i = focus!;
+      go.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (focus === i) play(opened, i);
+      });
+      const pic = opened.querySelector<HTMLElement>('.wd-pic')!;
+      pic.after(go);
+      // On the picture's middle, not the frame's (the bar is under it), as the piece grows.
+      const ro = new ResizeObserver(() => {
+        if (!go.isConnected) return ro.disconnect();
+        go.style.left = `${pic.offsetLeft + pic.offsetWidth / 2}px`;
+        go.style.top = `${pic.offsetTop + pic.offsetHeight / 2}px`;
+      });
+      ro.observe(pic);
     }
     clearTimeout(settle);
     if (moving.length) settle = window.setTimeout(() => tiles.forEach((t) => t.classList.remove('is-moving')), 450);
@@ -910,6 +915,33 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     };
     gliding = requestAnimationFrame(step);
   }
+
+  // The open video, playing in its picture's place - on its play button's click.
+  const play = (t: HTMLElement, i: number) => {
+    t.querySelector('.wd-go-play')?.remove();
+    if (t.querySelector('.wd-player')) return;
+    const player = document.createElement('div');
+    player.className = 'wd-player';
+    if (t.dataset.videoKind === 'file') {
+      // A self-hosted (R2) file: the browser's own player, with sound.
+      const video = document.createElement('video');
+      video.src = t.dataset.video!;
+      video.controls = true;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.setAttribute('aria-label', data.pieces[i].title);
+      player.append(video);
+    } else {
+      const frame = document.createElement('iframe');
+      frame.src = `${t.dataset.video}${t.dataset.video!.includes('?') ? '&' : '?'}autoplay=1&rel=0&playsinline=1`;
+      frame.title = data.pieces[i].title;
+      frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+      frame.allowFullscreen = true;
+      player.append(frame);
+    }
+    t.querySelector('.wd-pic')!.after(player);
+    t.classList.add('has-player');
+  };
 
   // As on the main grid: a piece opens; picked again, it closes. Its bar is the way to the project.
   const open = (i: number, push = true) => {
@@ -1102,7 +1134,11 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   }
   // Grown, a click on the ground between the pieces puts it back too.
   world.addEventListener('click', (e) => {
-    if (data.grow && e.target === world && focus !== null) close();
+    if (!data.grow || focus === null) return;
+    const t = e.target as HTMLElement;
+    if (t === world) close();
+    // The open piece's own margin and words close it too - all a playing video leaves to click.
+    else if (t.closest('.wd-piece.is-open') && !t.closest('a, button, input, textarea, .wd-player, .wd-credits, .wd-kin')) close();
   });
   addEventListener('popstate', (e) => {
     const i = (e.state as {wd?: number} | null)?.wd;

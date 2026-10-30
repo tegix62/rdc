@@ -40,6 +40,9 @@ on:
       verify_url:
         description: 'URL to verify after publishing'
         default: 'https://rumeaudesign.co'
+      r2_max_uploads:
+        description: 'Most pictures to copy into R2 this build (high for the first full copy, just after the daily reset)'
+        default: '300'
   # A publish in Sanity Studio deploys to the real domain.
   #
   # Added after cutover, and it is a reversal of what this file used to say -
@@ -156,6 +159,21 @@ jobs:
           # Same Turnstile SITE key as the preview build - see the note there.
           # Public by design, so a repo variable rather than a secret.
           PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
+
+      # Pictures from R2 (scripts/r2-images.mjs): copies into the rdc-images
+      # bucket what it lacks, and points the pages at img.rumeaudesign.co so
+      # pictures stop running the /img/ Function - the free plan counts
+      # 100,000 of those a day. Without the secrets it changes nothing.
+      - name: Pictures to R2
+        run: |
+          node scripts/test-r2-images.mjs
+          npm install --no-save aws4fetch@1.0.20
+          node scripts/r2-images.mjs dist
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_MAX_UPLOADS: ${{ inputs.r2_max_uploads || '300' }}
 
       # Nothing is deployed until this passes. It reads the built files rather
       # than trusting the env block above: robots.txt rules, canonical hosts,

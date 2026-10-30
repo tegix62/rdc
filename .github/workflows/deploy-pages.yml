@@ -73,6 +73,19 @@ jobs:
           # docs/contact-form-setup.md - and the page explains the gap rather
           # than silently rendering nothing.
           PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
+      # Pictures from R2, as on production (scripts/r2-images.mjs). A preview
+      # build copies at most 50: every copy is a request to the live /img/
+      # route, and those count against the same daily limit.
+      - name: Pictures to R2
+        run: |
+          node scripts/test-r2-images.mjs
+          npm install --no-save aws4fetch@1.0.20
+          node scripts/r2-images.mjs dist
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_MAX_UPLOADS: '50'
       - name: Ensure Cloudflare Pages project exists
         run: npx wrangler@3 pages project create rumeau-design-co --production-branch main || true
         env:

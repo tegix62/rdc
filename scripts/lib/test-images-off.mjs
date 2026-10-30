@@ -27,12 +27,20 @@
 
 /** Is this request one of the site's pictures or videos? */
 export function isSitePicture(url) {
-  return url.hostname === 'cdn.sanity.io' || url.pathname.startsWith('/img/')
+  return url.hostname === 'cdn.sanity.io' || url.hostname === 'img.rumeaudesign.co' || url.pathname.startsWith('/img/')
 }
 
 /** The width and height the real picture at this address would have. */
 export function placeholderSize(href) {
   const url = new URL(href)
+  // From R2 (scripts/lib/r2-images.mjs): the query is a path segment, v2/<k_v~k_v>/...
+  const r2 = url.hostname === 'img.rumeaudesign.co' && url.pathname.match(/^\/v2\/([^/]+)\//)
+  if (r2 && r2[1] !== '-') {
+    for (const pair of r2[1].split('~')) {
+      const i = pair.indexOf('_')
+      if (i > 0) url.searchParams.set(pair.slice(0, i), pair.slice(i + 1))
+    }
+  }
   const m = url.pathname.match(/-(\d+)x(\d+)\.[a-z0-9]+$/i)
   let bw = m ? Number(m[1]) : 800
   let bh = m ? Number(m[2]) : 800

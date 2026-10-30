@@ -18,6 +18,8 @@
  *
  * Nothing downstream can now receive something that isn't a usable URL.
  */
+import {stripStegaKey} from './stega';
+
 export function embedUrl(url: unknown): string | null {
   if (typeof url !== 'string' || !url.trim()) return null;
   try {
@@ -43,4 +45,22 @@ export function embedUrl(url: unknown): string | null {
   } catch {
     return null;
   }
+}
+
+/*
+  What a piece plays, from a grid item's video fields (Studio's "Video"
+  group, shown on Grid Items): a YouTube or Vimeo link, played through the
+  embed (YouTube's no-cookie one), or a self-hosted file (R2) played by the
+  browser. `yt` is the YouTube id, for its poster. Shared by the All view
+  and the grids, so both play the same thing.
+*/
+export type Play = {src: string; kind: 'embed' | 'file'; yt: string | null};
+export function playOf(v: any): Play | null {
+  const embed = embedUrl(stripStegaKey(v?.heroVideo ?? v?.url));
+  if (embed) {
+    const yt = embed.includes('youtube.com/embed/') ? embed.split('/').pop()! : null;
+    return {src: yt ? `https://www.youtube-nocookie.com/embed/${yt}` : embed, kind: 'embed', yt};
+  }
+  const file = stripStegaKey(v?.heroVideoSrc);
+  return file && /^https:\/\//.test(file) ? {src: file, kind: 'file', yt: null} : null;
 }

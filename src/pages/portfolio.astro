@@ -5,7 +5,9 @@ import Img from '../components/Img.astro';
 // InkMode is shelved, not deleted - see the note where its control used to
 // sit in the toolbar. Restoring the import and that markup brings it back.
 import Sections from '../components/Sections.astro';
-import { getPage, getAllGridItems } from '../lib/queries';
+import { getPage, getAllGridItems, getVideoGridItems } from '../lib/queries';
+import { playOf } from '../lib/video';
+import { youTubePoster } from '../lib/youtubePoster';
 // Shared with the homepage's miniature grid, so the two cannot disagree about
 // what counts as a logomark or how wide a hero tile is. See lib/tiles.ts.
 import { cleanKey, treatmentOf, explicitTreatment, tileHref, heroHeight, HERO_RATIO_PORTFOLIO, merchPlacement } from '../lib/tiles';
@@ -18,7 +20,31 @@ import {DOT} from '../lib/plain';
 import TypeView from '../components/portfolio/TypeView.astro';
 
 const page = await getPage('portfolio');
-const allItems = await getAllGridItems();
+const pictured = await getAllGridItems();
+/*
+  THE VIDEO WORK ON THE GRIDS TOO, preview first. Chris: "I'd like these to
+  be present on Brand Identity as well! It looks like the relations aren't
+  showing on that view." His video grid items have no picture of their own,
+  and a grid tile was a picture or nothing - so they were on All (which
+  shows YouTube's still) and missing here, links and all. Here they take
+  the same still, keep their project and the piece they hang off like any
+  tile, and play from a button once opened (lib/gridVideo.ts).
+*/
+const VIDEO_TILES = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+const known = new Set(pictured.map((it: any) => it._id));
+const videoOnly: any[] = VIDEO_TILES
+  ? (
+      await Promise.all(
+        ((await getVideoGridItems()) as any[])
+          .filter((it) => !known.has(it._id))
+          .map(async (it) => {
+            const v = playOf(it);
+            return v?.yt ? {...it, poster: await youTubePoster(v.yt)} : null;
+          }),
+      )
+    ).filter(Boolean)
+  : [];
+const allItems = [...pictured, ...videoOnly];
 
 /*
   Weighted grid: parent projects occupy the first screenful, then their
@@ -410,7 +436,9 @@ if (emptyFilters.length > 0) {
         // value only in data-category every filter matched zero tiles and the
         // buttons appeared to do nothing. data-category is kept for styling
         // and debugging.
-        return img ? (
+        const poster: string | undefined = img ? undefined : item.poster;
+        const play = VIDEO_TILES && !isCaseStudy(item) ? playOf(item) : null;
+        return img || poster ? (
           <div
             class:list={[
               'pf-item',
@@ -434,6 +462,8 @@ if (emptyFilters.length > 0) {
             data-family={shirtFamily(item)}
             data-slug={pieceSlug}
             data-cutout={item.tileOpaque === false ? '' : undefined}
+            data-video={play?.src}
+            data-video-kind={play?.kind}
           >
             {/*
               The frame wraps the image and the jump button so a selected tile
@@ -460,27 +490,33 @@ if (emptyFilters.length > 0) {
                 set in Studio, so a mark or a face stays in frame instead of
                 being cut out of the middle.
               */}
-              <Img
-                class="pf-item__img"
-                image={img}
-                field={img === item.thumbnail ? 'thumbnail (Tile Image)' : 'mainImage (Main Project Image)'}
-                archive={item.archiveMark}
-                alt={item.title}
-                width={item.heroTile ? 1600 : 800}
-                height={item.heroTile ? heroHeight(1600, HERO_RATIO_PORTFOLIO) : undefined}
-                sizes={item.heroTile ? '(max-width: 48rem) 66vw, 34vw' : '(max-width: 48rem) 33vw, 17vw'}
-                {...(item.heroTile
-                  ? {}
-                  : {
-                      // Clicking a tile doubles its width, and `sizes` above
-                      // promises the single-column size - so the file chosen
-                      // for 17vw is the one that gets stretched across 34vw.
-                      // These ship as attributes and cost nothing until the
-                      // handler below assigns them. See Img.astro.
-                      upgradeWidth: 2000,
-                      upgradeSizes: '(max-width: 48rem) 66vw, 34vw',
-                    })}
-              />
+              {poster ? (
+                // A video with no picture of its own: YouTube's still in its place.
+                <img class="pf-item__img" src={poster} alt={item.title} width="1280" height="720" loading="lazy" decoding="async" />
+              ) : (
+                <Img
+                  class="pf-item__img"
+                  image={img}
+                  field={img === item.thumbnail ? 'thumbnail (Tile Image)' : 'mainImage (Main Project Image)'}
+                  archive={item.archiveMark}
+                  alt={item.title}
+                  width={item.heroTile ? 1600 : 800}
+                  height={item.heroTile ? heroHeight(1600, HERO_RATIO_PORTFOLIO) : undefined}
+                  sizes={item.heroTile ? '(max-width: 48rem) 66vw, 34vw' : '(max-width: 48rem) 33vw, 17vw'}
+                  {...(item.heroTile
+                    ? {}
+                    : {
+                        // Clicking a tile doubles its width, and `sizes` above
+                        // promises the single-column size - so the file chosen
+                        // for 17vw is the one that gets stretched across 34vw.
+                        // These ship as attributes and cost nothing until the
+                        // handler below assigns them. See Img.astro.
+                        upgradeWidth: 2000,
+                        upgradeSizes: '(max-width: 48rem) 66vw, 34vw',
+                      })}
+                />
+              )}
+              {play && <span class="pf-play" aria-hidden="true"></span>}
               {/* The museum label - shown only on the opened piece of a gather. */}
               {label && (
                 <span class:list={['pf-item__label', label.credits.length > 0 && 'pf-item__label--credits']}>
@@ -5093,4 +5129,11 @@ if (emptyFilters.length > 0) {
   // Votes (src/lib/votes.ts): does nothing where there is no Vote toggle.
   import {startVotes} from '../lib/votes';
   startVotes();
+</script>
+
+<script>
+  // Video tiles on the grids (src/lib/gridVideo.ts): a play button once opened.
+  import {startGridVideo} from '../lib/gridVideo';
+  const grid = document.getElementById('pf-grid');
+  if (grid?.querySelector('.pf-item[data-video]')) startGridVideo(grid);
 </script>

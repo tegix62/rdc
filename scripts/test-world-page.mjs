@@ -681,6 +681,65 @@ for (const [name, w, h] of [
 }
 
 /*
+  The video work on the grids. Chris: "I'd like these to be present on
+  Brand Identity as well! It looks like the relations aren't showing on
+  that view." Present, linked to what they hang off, and opened they wait
+  for the play button like the All view's.
+*/
+{
+  const page = await browser.newPage({viewport: {width: 1366, height: 900}})
+  const errors = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  await page.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.waitForTimeout(2000)
+  const tiles = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('.pf-item[data-video]')).map((t) => ({
+      family: t.getAttribute('data-family') || '',
+      parent: t.getAttribute('data-piece-parent') || '',
+      bar: !!t.querySelector('.pf-item__jump'),
+    })),
+  )
+  if (!tiles.length) console.log('(no video tiles on the grid here - skipped)')
+  else {
+    const linked = tiles.filter((t) => t.family || t.parent || t.bar).length
+    check(`grid: ${tiles.length} video tiles on Brand Identity, ${linked} linked to their project or piece`, tiles.length >= 1 && linked >= 1, JSON.stringify(tiles))
+    const tile = page.locator('.pf-item[data-video]').first()
+    await tile.scrollIntoViewIfNeeded()
+    await tile.locator('.pf-item__img').click()
+    await page.waitForTimeout(1400)
+    const waits = await page.evaluate(() => {
+      const o = document.querySelector('.pf-item.is-expanded[data-video]')
+      return {open: !!o, button: !!o?.querySelector('.wd-go-play'), player: !!document.querySelector('.pf-player')}
+    })
+    check('grid: an opened video tile waits with a play button', waits.open && waits.button && !waits.player, JSON.stringify(waits))
+    const img = await page.locator('.pf-item.is-expanded[data-video] .pf-item__img').boundingBox()
+    await page.mouse.click(img.x + 10, img.y + 10)
+    await page.waitForTimeout(1200)
+    check('grid: a click on it off the button closes it', !(await page.locator('.pf-item.is-expanded[data-video]').count()))
+    await tile.locator('.pf-item__img').click()
+    await page.waitForTimeout(1400)
+    await page.locator('.pf-item.is-expanded[data-video] .wd-go-play').click()
+    await page.waitForTimeout(800)
+    const p = await page.evaluate(() => {
+      const f = document.querySelector('.pf-player iframe, .pf-player video')?.getBoundingClientRect()
+      const i = document.querySelector('.pf-item.is-expanded[data-video] .pf-item__img')?.getBoundingClientRect()
+      return {player: !!f, open: !!i, over: f && i ? Math.abs(f.left - i.left) < 3 && Math.abs(f.width - i.width) < 3 : false}
+    })
+    check('grid: the button plays it over its picture, the tile still open', p.player && p.open && p.over, JSON.stringify(p))
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(1200)
+    if (await page.locator('.pf-item.is-expanded').count()) {
+      const box = await page.locator('.pf-item.is-expanded').boundingBox()
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height - 4)
+      await page.waitForTimeout(1200)
+    }
+    check('grid: closed, it stops', (await page.locator('.pf-player').count()) === 0 && !(await page.locator('.pf-item.is-expanded[data-video]').count()))
+  }
+  check('grid: no script errors', errors.length === 0, errors.join(' | '))
+  await page.close()
+}
+
+/*
   /hello - the original homepage kept as a landing page (ClassicHome.astro):
   out of search, with its hero, its testimonial cards and its closing call.
 */

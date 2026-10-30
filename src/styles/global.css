@@ -10267,3 +10267,46 @@ a.wd-pic {
   right: 1rem;
   bottom: 1rem;
 }
+
+/*
+  VIDEO TILES ON THE GRIDS (preview) - see src/lib/gridVideo.ts. A play
+  mark on the tile; opened, the large play button (.wd-go-play, as on All)
+  and then the player laid over the picture.
+*/
+.pf-play {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 50%;
+  width: clamp(28px, 18%, 56px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  background: var(--color-navy);
+  pointer-events: none;
+}
+.pf-play::after {
+  content: '';
+  position: absolute;
+  left: 54%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-style: solid;
+  border-width: 0.45em 0 0.45em 0.75em;
+  border-color: transparent transparent transparent #fff;
+  font-size: 14px;
+}
+.pf-item.is-expanded .pf-play {
+  display: none;
+}
+.pf-player {
+  position: absolute;
+  z-index: 2;
+  background: #000;
+}
+.pf-player iframe,
+.pf-player video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}

@@ -23,14 +23,17 @@ const hasSections = page?.sections?.length > 0;
 ---
 
 <Layout title={page?.title ?? 'Process'} description={pageDescription(page, 'Motion and film work made alongside the identity and merch projects.')}>
-  <h1>{page?.heading ?? page?.title ?? 'Process'}</h1>
-  {hasBody && <div class="prose" set:html={renderPortableText(page.body)} />}
-  {hasSections && (
-    <div class="page-sections">
-      <Sections sections={page.sections} where="/video" />
-    </div>
-  )}
-  {!hasBody && !hasSections && (
-    <p>Content coming soon - add this page's copy and videos in Studio.</p>
-  )}
+  {/* Its headings set as the homepage's are (global.css, VIDEO PAGE TYPE). */}
+  <div class="vp">
+    <h1 class="vp__title">{page?.heading ?? page?.title ?? 'Process'}</h1>
+    {hasBody && <div class="prose" set:html={renderPortableText(page.body)} />}
+    {hasSections && (
+      <div class="page-sections">
+        <Sections sections={page.sections} where="/video" />
+      </div>
+    )}
+    {!hasBody && !hasSections && (
+      <p>Content coming soon - add this page's copy and videos in Studio.</p>
+    )}
+  </div>
 </Layout>

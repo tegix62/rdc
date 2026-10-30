@@ -736,6 +736,78 @@ for (const [name, w, h] of [
       await page.waitForTimeout(1200)
     }
     check('grid: closed, it stops', (await page.locator('.pf-player').count()) === 0 && !(await page.locator('.pf-item.is-expanded[data-video]').count()))
+
+    /*
+      Merch & Apparel, by its own rule: "shows non Merch & Apparel related
+      stuff only on expansion, and it's sorted". At rest, no video; a
+      project's shirt opened, its videos come with the rest of the project,
+      after the merch.
+    */
+    const merchBtn = page.locator('.pf-btn[data-filter=".merch-apparel"]')
+    if (await merchBtn.count()) {
+      await merchBtn.first().click()
+      await page.waitForTimeout(1500)
+      const shown = () =>
+        page.evaluate(() =>
+          Array.from(document.querySelectorAll('.pf-item')).filter((t) => {
+            const r = t.getBoundingClientRect()
+            return r.width > 0 && getComputedStyle(t).display !== 'none' && getComputedStyle(t).visibility !== 'hidden' && Number(getComputedStyle(t).opacity) > 0.1
+          }),
+        )
+      const rest = await page.evaluate(() =>
+        Array.from(document.querySelectorAll('.pf-item[data-video]')).filter((t) => t.getBoundingClientRect().width > 0 && getComputedStyle(t).display !== 'none').length,
+      )
+      check('merch: at rest, no video among the merch', rest === 0, `${rest} shown`)
+      // A merch piece of a project that has video work.
+      const href = await page.evaluate(() => {
+        const withVideo = new Set(Array.from(document.querySelectorAll('.pf-item[data-video] .pf-item__jump')).map((a) => a.getAttribute('href')))
+        const t = Array.from(document.querySelectorAll('.pf-item.merch-apparel')).find((x) => withVideo.has(x.querySelector('.pf-item__jump')?.getAttribute('href')) && x.getBoundingClientRect().width > 0)
+        if (!t) return null
+        t.setAttribute('data-test-pick', '')
+        return t.querySelector('.pf-item__jump').getAttribute('href')
+      })
+      if (!href) console.log('(no merch piece of a project with video here - skipped)')
+      else {
+        await page.locator('[data-test-pick] .pf-item__img').click()
+        await page.waitForTimeout(2200)
+        const g = await page.evaluate((h) => {
+          const vis = (t) => t.getBoundingClientRect().width > 0 && getComputedStyle(t).display !== 'none'
+          const set = Array.from(document.querySelectorAll('.pf-item')).filter((t) => vis(t) && t.querySelector('.pf-item__jump')?.getAttribute('href') === h)
+          const vids = set.filter((t) => t.dataset.video)
+          const merch = set.filter((t) => t.classList.contains('merch-apparel'))
+          const top = (t) => t.getBoundingClientRect().top + scrollY
+          const lastMerch = Math.max(...merch.map(top))
+          return {set: set.length, videos: vids.length, after: vids.every((t) => top(t) >= Math.min(...merch.map(top))), open: !!document.querySelector('.pf-item.is-expanded'), lastMerch}
+        }, href)
+        check(`merch: a ${href} shirt opened brings its videos with the rest of the project`, g.open && g.videos >= 1, JSON.stringify(g))
+      }
+    }
+  }
+  // Type/Lettering, by its rule: a project's videos end its row, and play from the viewer's button.
+  await page.goto(`${BASE}/portfolio?view=type`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.waitForTimeout(1500)
+  const tv = page.locator('.ty-piece a[data-video]')
+  if (!(await tv.count())) console.log('(no videos in the Type/Lettering rows here - skipped)')
+  else {
+    const last = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('.ty-row')).every((r) => {
+        const a = Array.from(r.querySelectorAll('.ty-piece a'))
+        const first = a.findIndex((x) => x.dataset.video)
+        return first < 0 || a.slice(first).every((x) => x.dataset.video)
+      }),
+    )
+    check(`type: ${await tv.count()} videos, each at the end of its project's row`, last)
+    await tv.first().scrollIntoViewIfNeeded()
+    await tv.first().click()
+    await page.waitForTimeout(600)
+    const w = await page.evaluate(() => ({open: document.querySelector('.ty-view')?.open, button: !!document.querySelector('.ty-view .wd-go-play'), player: !!document.querySelector('.ty-view__player')}))
+    check('type: opened, the video waits on its still with a play button', w.open && w.button && !w.player, JSON.stringify(w))
+    await page.locator('.ty-view .wd-go-play').click()
+    await page.waitForTimeout(600)
+    check('type: the button plays it', (await page.locator('.ty-view__player iframe, .ty-view__player video').count()) === 1)
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(600)
+    check('type: closed, it stops', !(await page.evaluate(() => document.querySelector('.ty-view')?.open)) && (await page.locator('.ty-view__player').count()) === 0)
   }
   check('grid: no script errors', errors.length === 0, errors.join(' | '))
   await page.close()

@@ -25,7 +25,9 @@
   click away, not a page load.
 */
 import Img from '../Img.astro';
-import {getAllGridItems} from '../../lib/queries';
+import {getAllGridItems, getVideoGridItems} from '../../lib/queries';
+import {playOf} from '../../lib/video';
+import {youTubePoster} from '../../lib/youtubePoster';
 import {tileImage, imageDimensions, imageUrl, buildSrcSet} from '../../lib/image';
 import {tileHref, cleanKey, explicitTreatment} from '../../lib/tiles';
 import {stripStegaKey} from '../../lib/stega';
@@ -34,7 +36,27 @@ import {museumLabel} from '../../lib/museumLabel';
 
 
 const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
-const items: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)));
+const every: any[] = await getAllGridItems();
+const items: any[] = every.filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)));
+/*
+  The video work, by this view's rule (preview first). Chris: "I'd like
+  these to be present in all views ... but according to the rules of
+  each." Here a row is a project's lettering, then the rest of it - so a
+  project's videos end its row, on YouTube's still, and play from a button
+  in the viewer. A video with no project has no row, as no loose piece
+  that is not lettering does.
+*/
+const VIDEO_TILES = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+const videos: any[] = VIDEO_TILES
+  ? (
+      await Promise.all(
+        [...every.filter((it: any) => !tileImage(it)), ...((await getVideoGridItems()) as any[]).filter((v) => !every.some((it: any) => it._id === v._id))].map(async (it: any) => {
+          const v = playOf(it);
+          return v?.yt && tileHref(it) ? {...it, play: v, poster: await youTubePoster(v.yt)} : null;
+        }),
+      )
+    ).filter(Boolean)
+  : [];
 const isProject = (it: any) => cleanKey(it.pageType) === 'Case Study';
 const idOf = (it: any) => cleanKey(it._id).replace(/^drafts\./, '');
 const byTitle = (a: any, z: any) => clean(a.title).localeCompare(clean(z.title));
@@ -60,6 +82,8 @@ for (const s of studies) {
   const href = tileHref(s);
   const own = [s, ...items.filter((x) => !isProject(x) && href && tileHref(x) === href)];
   own.sort((a, z) => Number(isType(z)) - Number(isType(a)) || Number(z === s) - Number(a === s) || byTitle(a, z));
+  // Its videos last.
+  own.push(...videos.filter((v) => href && tileHref(v) === href).sort(byTitle));
   for (const it of own) used.add(idOf(it));
   rows.push({title: clean(s.parentTitle ?? s.title), href, card: clusterCard(s), pieces: own});
 }
@@ -68,11 +92,14 @@ if (loose.length) rows.push({title: 'More lettering', href: null, card: null, pi
 
 const keyOf = (it: any) => (it.slug?.current ? cleanKey(it.slug.current) : idOf(it));
 const aspectOf = (it: any) => {
+  if (it.poster) return 16 / 9;
   const d = imageDimensions(tileImage(it))!;
   return d.width / d.height;
 };
 // The viewer's copy: as wide as a large screen shows it.
 const viewOf = (it: any) => {
+  if (it.poster)
+    return {'data-src': it.poster, 'data-srcset': '', 'data-title': clean(it.title), 'data-detail': '', 'data-video': it.play.src, 'data-video-kind': it.play.kind};
   const img = tileImage(it);
   const label = museumLabel(it);
   return {
@@ -107,15 +134,20 @@ const H = {desktop: 300, phone: 200};
               const mark = explicitTreatment(it) === 'mark';
               return (
                 <li class:list={['ty-piece', mark && 'ty-piece--air']} style={`--a:${a.toFixed(3)}`}>
-                  <a href={`/portfolio/up-close#${keyOf(it)}`} aria-label={clean(it.title)} {...viewOf(it)}>
-                    <Img
-                      image={tileImage(it)}
-                      alt=""
-                      width={1400}
-                      sizes={`(min-width: 48rem) ${Math.round(H.desktop * a)}px, ${Math.round(H.phone * a)}px`}
-                      loading="lazy"
-                      field="Grid Thumbnail (type rows)"
-                    />
+                  <a href={it.poster ? it.play.src : `/portfolio/up-close#${keyOf(it)}`} aria-label={clean(it.title)} {...viewOf(it)}>
+                    {it.poster ? (
+                      <img src={it.poster} alt="" width="1280" height="720" loading="lazy" decoding="async" />
+                    ) : (
+                      <Img
+                        image={tileImage(it)}
+                        alt=""
+                        width={1400}
+                        sizes={`(min-width: 48rem) ${Math.round(H.desktop * a)}px, ${Math.round(H.phone * a)}px`}
+                        loading="lazy"
+                        field="Grid Thumbnail (type rows)"
+                      />
+                    )}
+                    {it.poster && <span class="pf-play" aria-hidden="true"></span>}
                   </a>
                 </li>
               );
@@ -169,6 +201,21 @@ const H = {desktop: 300, phone: 200};
     at = (i + links.length) % links.length;
     row = r;
     const a = links[at];
+    // A video waits on its still for the play button; moving on stops it.
+    view.querySelectorAll('.ty-view__player, .wd-go-play').forEach((el) => el.remove());
+    img.hidden = false;
+    if (a.dataset.video) {
+      const go = document.createElement('button');
+      go.type = 'button';
+      go.className = 'wd-go-play';
+      go.setAttribute('aria-label', `Play ${a.dataset.title ?? 'the video'}`);
+      go.addEventListener('click', (e) => {
+        e.stopPropagation();
+        play(a);
+      });
+      q('.ty-view__stage').append(go);
+    }
+    q<HTMLAnchorElement>('.ty-view__closer').hidden = !!a.dataset.video;
     img.removeAttribute('src');
     img.srcset = a.dataset.srcset ?? '';
     img.sizes = '90vw';
@@ -185,6 +232,31 @@ const H = {desktop: 300, phone: 200};
     view.querySelectorAll<HTMLElement>('.ty-view__step').forEach((b) => (b.hidden = links.length < 2));
     // Keep the row under the viewer at the piece shown.
     a.closest('.ty-piece')!.scrollIntoView({block: 'nearest', inline: 'nearest'});
+  }
+
+  function play(a: HTMLAnchorElement) {
+    view.querySelector('.wd-go-play')?.remove();
+    const player = document.createElement('div');
+    player.className = 'ty-view__player';
+    const src = a.dataset.video!;
+    if (a.dataset.videoKind === 'file') {
+      const video = document.createElement('video');
+      video.src = src;
+      video.controls = true;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.setAttribute('aria-label', a.dataset.title ?? 'Video');
+      player.append(video);
+    } else {
+      const frame = document.createElement('iframe');
+      frame.src = `${src}${src.includes('?') ? '&' : '?'}autoplay=1&rel=0&playsinline=1`;
+      frame.title = a.dataset.title ?? 'Video';
+      frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+      frame.allowFullscreen = true;
+      player.append(frame);
+    }
+    img.hidden = true;
+    q('.ty-view__stage').append(player);
   }
 
   function open(a: HTMLAnchorElement) {
@@ -207,6 +279,9 @@ const H = {desktop: 300, phone: 200};
     if (view.open) view.close();
   });
   view.addEventListener('close', () => {
+    // Closed, whatever was playing stops.
+    view.querySelectorAll('.ty-view__player, .wd-go-play').forEach((el) => el.remove());
+    img.hidden = false;
     if (row) linksOf(row)[at]?.focus({preventScroll: true});
   });
 

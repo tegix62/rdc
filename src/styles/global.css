@@ -10310,3 +10310,31 @@ a.wd-pic {
   height: 100%;
   border: 0;
 }
+
+/* Type/Lettering's videos (TypeView, preview): a play mark on the still; in the viewer, the play button and then the player, filling the stage as the picture does. */
+.ty-piece a {
+  position: relative;
+}
+.ty-view__img[hidden] {
+  display: none;
+}
+.ty-view__player {
+  position: absolute;
+  inset: var(--space-4) 4.5rem var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ty-view__player iframe,
+.ty-view__player video {
+  width: 100%;
+  max-height: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  background: #000;
+}
+@media (max-width: 40rem) {
+  .ty-view__player {
+    inset: var(--space-4) var(--space-2) var(--space-2);
+  }
+}

@@ -8937,8 +8937,9 @@ a.pf-btn {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 14rem;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), var(--color-white) 85%);
+  /* Long and gradual: Chris, "make it taller ... so that there's more of a fade out". */
+  height: 24rem;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.55) 45%, var(--color-white) 88%);
   pointer-events: none;
 }
 .wf-field .wd:has(.wd-world.has-focus)::after {
@@ -8959,7 +8960,7 @@ a.pf-btn {
 }
 @media (max-width: 40rem) {
   .wf-field .wd::after {
-    height: 10rem;
+    height: 18rem;
   }
   .wf-field__more {
     margin-top: -4rem;

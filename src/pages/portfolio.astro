@@ -31,20 +31,16 @@ const pictured = await getAllGridItems();
   tile, and play from a button once opened (lib/gridVideo.ts).
 */
 const VIDEO_TILES = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+// YouTube's still for a piece with a video and no picture - including one
+// whose picture field is there but empty, which the grid's own list takes in.
+const withStill = async (it: any) => {
+  if (!VIDEO_TILES || tileImage(it)) return it;
+  const v = playOf(it);
+  return v?.yt ? {...it, poster: await youTubePoster(v.yt)} : it;
+};
 const known = new Set(pictured.map((it: any) => it._id));
-const videoOnly: any[] = VIDEO_TILES
-  ? (
-      await Promise.all(
-        ((await getVideoGridItems()) as any[])
-          .filter((it) => !known.has(it._id))
-          .map(async (it) => {
-            const v = playOf(it);
-            return v?.yt ? {...it, poster: await youTubePoster(v.yt)} : null;
-          }),
-      )
-    ).filter(Boolean)
-  : [];
-const allItems = [...pictured, ...videoOnly];
+const videoOnly: any[] = VIDEO_TILES ? ((await getVideoGridItems()) as any[]).filter((it) => !known.has(it._id)) : [];
+const allItems = await Promise.all([...pictured, ...videoOnly].map(withStill));
 
 /*
   Weighted grid: parent projects occupy the first screenful, then their

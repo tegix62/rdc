@@ -9006,11 +9006,17 @@ a.pf-btn {
   background-size: auto, auto, 420px;
   background-repeat: no-repeat, no-repeat, repeat;
 }
-/* The portrait is blue on white: multiplied, its white is the sheet's, so no box round it. */
+/*
+  The portrait is blue on white: multiplied, its white is the sheet's, so no
+  box round it. And its bottom - the photo's own cut, flat across the chest -
+  fades into the sheet rather than stopping in a line.
+*/
 .wf-foot__portrait {
   width: 100%;
   height: auto;
   mix-blend-mode: multiply;
+  -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent);
+  mask-image: linear-gradient(to bottom, #000 72%, transparent);
 }
 @media (max-width: 40rem) {
   .wf-foot__portrait {

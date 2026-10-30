@@ -1,4 +1,5 @@
 import {defineField, defineType} from 'sanity'
+import {imageSpec} from './imageFields'
 
 /*
   A stop on the road - the journey map at /next/road/map (preview only for
@@ -126,10 +127,9 @@ export default defineType({
       description: 'Projects and grid items from this stop. The first few show on the map.',
       of: [{type: 'reference', to: [{type: 'caseStudy'}]}],
     }),
-    defineField({
+    imageSpec({
       name: 'landmark',
       title: 'Landmark drawing (optional)',
-      type: 'image',
       description: 'Your drawing for this stop on the map. A transparent PNG works best. Left empty, the map shows a plain marker.',
     }),
   ],

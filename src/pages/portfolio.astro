@@ -135,9 +135,10 @@ for (const item of items) {
 */
 /*
   PROJECTS - the fourth view as the plain agency index (ProjectsView.astro),
-  on the preview in place of the Type/Lettering rows. False puts the rows back.
+  in place of the Type/Lettering rows. Tried on the preview, then live
+  (Chris: "Let's go live with this."). False puts the rows back.
 */
-const PROJECTS = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+const PROJECTS = true;
 const filters: { value: string; label: string; href?: string; pane?: string }[] = [
   { value: '*', label: 'All' },
   ...ALL_FILTERS.filter((f) => (counts.get(f.value.replace('.', '')) ?? 0) > 0),

@@ -8879,28 +8879,7 @@ a.pf-btn {
    A slim band, the field (the All view), a short foot.
    ========================================================================== */
 .wf-band {
-  position: relative;
-  isolation: isolate;
-  padding: var(--space-5) 0 var(--space-4);
-}
-/*
-  The blue logo sheet, full width behind the band, as the original homepage
-  had it behind its cards (.proof-band): tiled, under a white wash, and
-  fading to white at the foot so the work below starts on white.
-*/
-.wf-band::before {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  top: 0;
-  bottom: 0;
-  left: calc(50% - 50vw);
-  width: 100vw;
-  background-color: var(--color-white);
-  background-image: linear-gradient(to top, var(--color-white), transparent 55%),
-    linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)), var(--wf-sheet, none);
-  background-size: auto, auto, 420px;
-  background-repeat: no-repeat, no-repeat, repeat;
+  padding: var(--space-5) 0 var(--space-3);
 }
 .wf-band__line {
   max-width: 20ch;
@@ -8986,7 +8965,14 @@ a.pf-btn {
     margin-top: -4rem;
   }
 }
+/*
+  The blue logo sheet, full width behind the foot, as the original homepage
+  had it behind its cards (.proof-band): tiled, under a white wash, fading
+  in from the white the field of work ends in.
+*/
 .wf-foot {
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
   gap: var(--space-4);
@@ -8999,6 +8985,20 @@ a.pf-btn {
     grid-template-columns: 1fr;
     gap: var(--space-3);
   }
+}
+.wf-foot::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  bottom: 0;
+  left: calc(50% - 50vw);
+  width: 100vw;
+  background-color: var(--color-white);
+  background-image: linear-gradient(to bottom, var(--color-white), transparent 45%),
+    linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)), var(--wf-sheet, none);
+  background-size: auto, auto, 420px;
+  background-repeat: no-repeat, no-repeat, repeat;
 }
 .wf-foot__portrait {
   width: 100%;

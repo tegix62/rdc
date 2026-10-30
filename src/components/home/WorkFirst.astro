@@ -58,11 +58,13 @@ for (const it of items) {
   }
 }
 /*
-  The blue sheet of logo sketches behind the band - Site Settings' Proof
+  The blue sheet of logo sketches behind the foot - Site Settings' Proof
   Band Background, the way the original homepage used it behind its cards:
-  tiled at 420px under a white wash, fading to white into the work. Chris:
-  "use the original blue logo flash sheet WebP ... similar to how I used it
-  on the original homepage". 840 wide for a 420px tile on a sharp screen.
+  tiled at 420px under a white wash. Chris: "use the original blue logo
+  flash sheet WebP ... similar to how I used it on the original homepage",
+  then, of it behind the opening band: "Drop the flashy background on the
+  top. Maybe it will work better on the bottom." So it fades in from the
+  white the field ends in. 840 wide for a 420px tile on a sharp screen.
 */
 const sheet = await backgroundUrl(settings?.proofBandBackground, 840);
 const tagline = clean(settings?.tagline) || 'Brand identity & merch design for heritage apparel brands.';
@@ -70,7 +72,7 @@ const tagline = clean(settings?.tagline) || 'Brand identity & merch design for h
 const finalLine = clean(settings?.finalCtaLine) || clean(settings?.finalCtaHeading).replace(/:\s*$/, '');
 ---
 
-<section class="wf-band" style={sheet ? `--wf-sheet: url(${sheet})` : undefined}>
+<section class="wf-band">
   <h1 class="wf-band__line">{tagline}</h1>
   <p class="wf-band__who">{bioText}</p>
   <div class="wf-band__go">
@@ -87,7 +89,7 @@ const finalLine = clean(settings?.finalCtaLine) || clean(settings?.finalCtaHeadi
   <p class="wf-field__more"><a class="button" href="/portfolio?view=all">See all the work</a></p>
 </section>
 
-<section class="wf-foot">
+<section class="wf-foot" style={sheet ? `--wf-sheet: url(${sheet})` : undefined}>
   {settings?.portrait && (
     <Img class="wf-foot__portrait" image={settings.portrait} field="portrait (Portrait of you)" alt="Chris Rumeau, founder of Rumeau Design Co" width={520} sizes="(max-width: 40rem) 60vw, 260px" loading="lazy" />
   )}

@@ -699,10 +699,10 @@ for (const [name, w, h] of [
         past,
         button: hitButton,
         through: !!under?.closest('.wd-piece') || !under?.closest('.wf-field__more'),
-        sheet: getComputedStyle(document.querySelector('.wf-band'), '::before').backgroundImage.includes('url('),
+        sheet: getComputedStyle(document.querySelector('.wf-foot'), '::before').backgroundImage.includes('url(') && !getComputedStyle(document.querySelector('.wf-band'), '::before').backgroundImage.includes('url('),
       }
     })
-    check(`${name}, work-first homepage: the field fades out under a button, clicks pass through the fade, the blue sheet behind the band`, more.fade && more.button && more.through && more.sheet && more.past === 0, JSON.stringify(more))
+    check(`${name}, work-first homepage: the field fades out under a button, clicks pass through the fade, the blue sheet behind the foot, not the band`, more.fade && more.button && more.through && more.sheet && more.past === 0, JSON.stringify(more))
     check(`${name}, work-first homepage: no script errors`, e2.length === 0, e2.join(' | '))
   }
   await page.close()

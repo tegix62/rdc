@@ -1,0 +1,23 @@
+# What the Hero pictures lists. See scripts/diagnose-hero.mjs.
+# By hand only; reads documents, downloads no pictures.
+name: Diagnose collage page
+
+on:
+  workflow_dispatch:
+
+jobs:
+  look:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Look
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+        run: |
+          set -o pipefail
+          node scripts/diagnose-hero.mjs 2>&1 | tee hero.txt
+          { echo '## Hero pictures'; echo '```'; cat hero.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

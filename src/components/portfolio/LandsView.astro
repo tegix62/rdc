@@ -271,8 +271,10 @@ const titleOf = async (id: string) => {
   these videos are sitting in the grids is messing with the flow" - where
   the rest of the field rises and falls with the ground.
 */
+// A little more than a piece's share of the ground, so the terrain lifts some well over the floor.
+const VIDEO_WEIGHT = 1.4;
 playing.forEach((v, i) => {
-  if (v) Object.assign(pieces[i], {weight: 1, video: true});
+  if (v) Object.assign(pieces[i], {weight: VIDEO_WEIGHT, video: true});
 });
 /*
   And the videos with no picture of their own: grid items that are only a
@@ -317,7 +319,7 @@ videos.forEach((v) =>
     big: v.big,
     order: undefined,
     photo: true,
-    weight: 1,
+    weight: VIDEO_WEIGHT,
   }),
 );
 const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name})), grow, picks: picks ?? null, home: !!home};
@@ -548,9 +550,9 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       least:
         data.pieces[i].kind === 'result'
           ? phone ? Math.max(2, maxSpan - 1) : 2
-          : // A video: the cells a 16:9 still needs to fill its box - two, three on the widest screens.
+          : // A video: the cells a 16:9 still needs to fill its box. Two: a floor, not a size - at three every video sat on it, one size again.
             mode === 'lands' && (data.pieces[i].kind === 'video' || (data.pieces[i] as any).video)
-            ? (phone ? 2 : cols >= STEPS.desktop[1] ? 3 : 2)
+            ? 2
             : phone && mode === 'lands' && data.pieces[i].photo ? 2 : 1,
     }));
 

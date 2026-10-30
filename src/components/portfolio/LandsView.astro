@@ -262,12 +262,17 @@ const titleOf = async (id: string) => {
   Video work takes more ground. Chris: "let's have video embeds take up
   more, it looks like padding is stunting them on the grid." A video grid
   item hung off its project took a supporting piece's share (weight 0.6),
-  and at one or two cells a 16:9 picture cannot fill its box - the rest
-  showed as white round it. Sized as a case study is, it gets the cells to
-  sit in at its own shape.
+  and at one cell a 16:9 picture cannot fill its box - the rest showed as
+  white round it. So it takes a full piece's share, and never less than
+  the cells its shape needs (`least`, in the script).
+
+  Not a case study's size, which was the first try: seven videos all at the
+  same large size lined up like a gallery - Chris: "something about the way
+  these videos are sitting in the grids is messing with the flow" - where
+  the rest of the field rises and falls with the ground.
 */
 playing.forEach((v, i) => {
-  if (v) Object.assign(pieces[i], {big: true, weight: 1});
+  if (v) Object.assign(pieces[i], {weight: 1, video: true});
 });
 /*
   And the videos with no picture of their own: grid items that are only a
@@ -290,7 +295,7 @@ const videos = (
         slug: it.slug?.current ? cleanKey(it.slug.current) : idOf(it),
         project: tileHref(it),
         parent: it.pieceParent ? cleanKey(it.pieceParent) : null,
-        big: true,
+        big: false,
       };
     }),
   ])
@@ -540,7 +545,13 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     // A result tile as wide as a case study may be on a phone (a step under the widest), two cells on a wide screen, so its number reads.
     const sub = subset.map((i) => ({
       ...data.pieces[i],
-      least: data.pieces[i].kind === 'result' ? (phone ? Math.max(2, maxSpan - 1) : 2) : phone && mode === 'lands' && data.pieces[i].photo ? 2 : 1,
+      least:
+        data.pieces[i].kind === 'result'
+          ? phone ? Math.max(2, maxSpan - 1) : 2
+          : // A video: the cells a 16:9 still needs to fill its box - two, three on the widest screens.
+            mode === 'lands' && (data.pieces[i].kind === 'video' || (data.pieces[i] as any).video)
+            ? (phone ? 2 : cols >= STEPS.desktop[1] ? 3 : 2)
+            : phone && mode === 'lands' && data.pieces[i].photo ? 2 : 1,
     }));
 
     /*

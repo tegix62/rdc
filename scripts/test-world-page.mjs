@@ -611,6 +611,9 @@ for (const [name, w, h] of [
         }),
       )
       check(`videos: each fills its cell, not stunted by white round it`, Math.min(...fills) >= 75, `${Math.min(...fills)}% at the least (${fills.join(', ')})`)
+      // "messing with the flow": sized by the ground like the rest, not all one size in a gallery row.
+      const widths = await page.evaluate(() => Array.from(document.querySelectorAll('.wd-piece[data-video]:not([hidden])')).map((t) => Math.round(t.getBoundingClientRect().width)))
+      check('videos: sized by the ground like the rest, not all one size', widths.length < 3 || new Set(widths).size > 1, widths.join(', '))
       await page.locator('.wd-piece[data-video]:not([hidden]) .wd-pic').first().click()
       await page.waitForTimeout(900)
       // Chris: "don't autoplay on open, let it have one more click before playing".

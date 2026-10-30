@@ -1,0 +1,61 @@
+---
+/*
+  PROJECTS - the portfolio's fourth view as the plain agency index, on the
+  preview in place of Type/Lettering. Chris: "having the fourth view be the
+  cleanest ... a grid of project images with like little to no margin that
+  just span the width of the page ... an insurance policy against the risk
+  I've taken on the chaotic layouts ... so an agency person or somebody
+  else poking through the website would have just a really clean, sober,
+  basic look, like most other portfolios in my industry."
+
+  Each case study once, by its Main Project Image (its tile picture if it
+  has none), in the order dragged in Studio; edge to edge across the page
+  with hairline gaps, two across on a wide screen and one on a phone, an
+  odd last one running the full width. The name sits small in a corner and
+  the tile goes to the case study. Nothing opens in place: this is the view
+  for someone who wants to be told where the projects are.
+
+  It takes the Type/Lettering pane's place (pane "type", ?view=type) so the
+  toolbar, the address and the history work as they did. The lettering rows
+  (TypeView.astro) are kept, switched back by PROJECTS in portfolio.astro.
+*/
+import Img from '../Img.astro';
+import {getAllGridItems} from '../../lib/queries';
+import {tileImage, hasAsset} from '../../lib/image';
+import {tileHref, cleanKey} from '../../lib/tiles';
+import {stripStegaKey} from '../../lib/stega';
+
+const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
+const rank = (it: any) => (typeof it.orderRank === 'string' ? it.orderRank : null);
+const projects = ((await getAllGridItems()) as any[])
+  .filter((it) => cleanKey(it.pageType) === 'Case Study' && tileHref(it))
+  .map((it) => ({it, image: hasAsset(it.mainImage) ? it.mainImage : tileImage(it)}))
+  .filter((p) => p.image)
+  .sort((a, z) => {
+    const ra = rank(a.it);
+    const rz = rank(z.it);
+    if (ra && rz) return ra < rz ? -1 : 1;
+    if (ra || rz) return ra ? -1 : 1;
+    return clean(a.it.title).localeCompare(clean(z.it.title));
+  });
+---
+
+<div class="pj pf-pane" data-pane="type">
+  <ul class="pj-grid">
+    {projects.map(({it, image}, i) => (
+      <li class="pj-tile">
+        <a href={tileHref(it)!}>
+          <Img
+            image={image}
+            alt={clean(it.title)}
+            width={2000}
+            sizes={i === projects.length - 1 && projects.length % 2 === 1 ? '100vw' : '(min-width: 48rem) 50vw, 100vw'}
+            loading={i < 2 ? 'eager' : 'lazy'}
+            field="mainImage (Main Project Image)"
+          />
+          <span class="pj-name">{clean(it.title)}</span>
+        </a>
+      </li>
+    ))}
+  </ul>
+</div>

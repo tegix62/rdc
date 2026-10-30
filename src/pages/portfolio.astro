@@ -18,6 +18,7 @@ import { museumLabel, CREDITS_SHOWN } from '../lib/museumLabel';
 import LandsView from '../components/portfolio/LandsView.astro';
 import {DOT} from '../lib/plain';
 import TypeView from '../components/portfolio/TypeView.astro';
+import ProjectsView from '../components/portfolio/ProjectsView.astro';
 
 const page = await getPage('portfolio');
 const pictured = await getAllGridItems();
@@ -132,6 +133,11 @@ for (const item of items) {
   that. Buttons are hidden when empty and the gap is logged instead, so it stays
   visible as a content task rather than disappearing silently.
 */
+/*
+  PROJECTS - the fourth view as the plain agency index (ProjectsView.astro),
+  on the preview in place of the Type/Lettering rows. False puts the rows back.
+*/
+const PROJECTS = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
 const filters: { value: string; label: string; href?: string; pane?: string }[] = [
   { value: '*', label: 'All' },
   ...ALL_FILTERS.filter((f) => (counts.get(f.value.replace('.', '')) ?? 0) > 0),
@@ -157,7 +163,7 @@ const filters: { value: string; label: string; href?: string; pane?: string }[] 
     { value: 'world', label: 'All', pane: 'all' },
     { value: '*', label: 'Brand Identity' },
     ...filters.slice(1).filter((f) => f.value !== '.brand-identity' && f.value !== '.type-lettering'),
-    { value: 'type', label: 'Type/Lettering', pane: 'type' },
+    { value: 'type', label: PROJECTS ? 'Projects' : 'Type/Lettering', pane: 'type' },
   );
 }
 
@@ -642,7 +648,7 @@ if (emptyFilters.length > 0) {
     {items.length === 0 && <p>No items found.</p>}
 
     <LandsView />
-    <TypeView />
+    {PROJECTS ? <ProjectsView /> : <TypeView />}
 
     {/*
       Which view is shown, decided as the page is parsed - before anything

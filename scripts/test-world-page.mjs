@@ -858,6 +858,40 @@ for (const [name, w, h] of [
 }
 
 /*
+  Projects - the fourth view as the plain agency index (ProjectsView.astro).
+  Chris: "a grid of project images with like little to no margin that just
+  span the width of the page".
+*/
+for (const [screen, viewport] of [['desktop', {width: 1366, height: 900}], ['phone', {width: 390, height: 844}]]) {
+  const page = await browser.newPage({viewport})
+  const errors = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  await page.goto(`${BASE}/portfolio?view=type`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.waitForTimeout(1200)
+  const pj = await page.evaluate(() => {
+    const tiles = Array.from(document.querySelectorAll('.pj-tile a'))
+    if (!tiles.length) return null
+    const grid = document.querySelector('.pj-grid').getBoundingClientRect()
+    const tops = new Set(tiles.map((a) => Math.round(a.getBoundingClientRect().top)))
+    return {
+      tiles: tiles.length,
+      toWork: tiles.every((a) => /^\/work\//.test(a.getAttribute('href'))),
+      label: document.querySelector('.pf-btn[data-pane="type"]')?.textContent.trim(),
+      span: Math.round(grid.width) >= innerWidth - 20,
+      perRow: Math.round(tiles.length / tops.size * 10) / 10,
+      wide: document.documentElement.scrollWidth > innerWidth,
+    }
+  })
+  if (!pj) console.log(`(${screen}: no Projects view on this site - skipped)`)
+  else {
+    check(`${screen}, projects: ${pj.tiles} case studies edge to edge, each to its page, under "${pj.label}"`, pj.toWork && pj.span && !pj.wide && pj.label === 'Projects', JSON.stringify(pj))
+    check(`${screen}, projects: ${screen === 'phone' ? 'one' : 'two'} across`, screen === 'phone' ? pj.perRow === 1 : pj.perRow > 1, `${pj.perRow} per row`)
+  }
+  check(`${screen}, projects: no script errors`, errors.length === 0, errors.join(' | '))
+  await page.close()
+}
+
+/*
   /hello - the original homepage kept as a landing page (ClassicHome.astro):
   out of search, with its hero, its testimonial cards and its closing call.
 */

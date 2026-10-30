@@ -10458,3 +10458,74 @@ a.wd-pic {
   line-height: 1.05;
   letter-spacing: -0.025em;
 }
+
+/*
+  PROJECTS (preview) - the plain agency index: see ProjectsView.astro. Edge
+  to edge across the page, hairline gaps, uniform 4:3 tiles cropped to fill,
+  the name small in a corner.
+*/
+.pj {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-top: var(--space-2);
+}
+.pj-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 48rem) {
+  .pj-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  /* An odd last one runs the full width, wide. */
+  .pj-tile:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+  .pj-tile:last-child:nth-child(odd) a {
+    aspect-ratio: 8 / 3;
+  }
+}
+.pj-tile a {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--color-gray-light);
+  color: inherit;
+  text-decoration: none;
+}
+.pj-tile img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 400ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.pj-tile a:hover img,
+.pj-tile a:focus-visible img {
+  transform: scale(1.02);
+}
+.pj-name {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-white);
+  color: var(--color-navy);
+  font: 700 0.8125rem/1.2 var(--font-heading);
+  letter-spacing: var(--label-track, 0.06em);
+  text-transform: uppercase;
+}
+.pj-tile a:focus-visible {
+  outline: 3px solid var(--color-navy);
+  outline-offset: -3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pj-tile img {
+    transition: none;
+  }
+}

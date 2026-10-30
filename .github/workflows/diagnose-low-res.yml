@@ -1,0 +1,32 @@
+# Which pictures should be uploaded again, bigger. See scripts/diagnose-low-res.mjs.
+# By hand only; pictures are answered with blanks, none downloaded.
+name: Diagnose low-res pictures
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to measure'
+        default: 'https://rumeaudesign.co'
+
+jobs:
+  look:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      # No picture downloaded: each is answered with a blank of the same shape (scripts/lib/test-images-off.mjs).
+      - run: echo "NODE_OPTIONS=--import=$GITHUB_WORKSPACE/scripts/lib/test-images-off.mjs" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      - name: Measure
+        env:
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          BASE: ${{ inputs.base_url || 'https://rumeaudesign.co' }}
+        run: |
+          set -o pipefail
+          node scripts/diagnose-low-res.mjs "$BASE" 2>&1 | tee lowres.txt
+          { echo '## Low-res pictures'; echo '```'; cat lowres.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

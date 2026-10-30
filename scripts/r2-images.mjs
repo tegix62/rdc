@@ -26,11 +26,24 @@ const DIST = process.argv[2] ?? 'dist'
 const BUCKET = 'rdc-images'
 const SOURCE = (process.env.R2_SOURCE || 'https://rumeaudesign.co').replace(/\/$/, '')
 const MAX = Number(process.env.R2_MAX_UPLOADS ?? 300)
-const {R2_ACCESS_KEY_ID: id, R2_SECRET_ACCESS_KEY: secret} = process.env
-const ENDPOINT = (process.env.R2_ENDPOINT ?? '').replace(/\/$/, '')
+const id = (process.env.R2_ACCESS_KEY_ID ?? '').trim()
+const secret = (process.env.R2_SECRET_ACCESS_KEY ?? '').trim()
+const ENDPOINT = (process.env.R2_ENDPOINT ?? '').trim().replace(/\/$/, '').replace(/\/rdc-images$/, '')
 
 if (!id || !secret || !ENDPOINT) {
   console.log('[r2-images] no R2 secrets here - pictures stay on /img/')
+  process.exit(0)
+}
+
+// Cloudflare's token page shows several values; say which secret holds the
+// wrong one, by its length only (never the value).
+const wrong = []
+if (id.length !== 32) wrong.push(`R2_ACCESS_KEY_ID is ${id.length} characters, an Access Key ID is 32 (the "Token value" is a different thing)`)
+if (secret.length !== 64) wrong.push(`R2_SECRET_ACCESS_KEY is ${secret.length} characters, a Secret Access Key is 64`)
+if (!/^https:\/\/[0-9a-f]{32}\.(eu\.|fedramp\.)?r2\.cloudflarestorage\.com$/.test(ENDPOINT)) wrong.push('R2_ENDPOINT should be https://<account id>.r2.cloudflarestorage.com')
+if (wrong.length) {
+  for (const w of wrong) console.log(`[r2-images] ${w}`)
+  console.log('[r2-images] pictures stay on /img/ until the secrets are fixed')
   process.exit(0)
 }
 

@@ -8879,7 +8879,28 @@ a.pf-btn {
    A slim band, the field (the All view), a short foot.
    ========================================================================== */
 .wf-band {
-  padding: var(--space-5) 0 var(--space-3);
+  position: relative;
+  isolation: isolate;
+  padding: var(--space-5) 0 var(--space-4);
+}
+/*
+  The blue logo sheet, full width behind the band, as the original homepage
+  had it behind its cards (.proof-band): tiled, under a white wash, and
+  fading to white at the foot so the work below starts on white.
+*/
+.wf-band::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  bottom: 0;
+  left: calc(50% - 50vw);
+  width: 100vw;
+  background-color: var(--color-white);
+  background-image: linear-gradient(to top, var(--color-white), transparent 55%),
+    linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)), var(--wf-sheet, none);
+  background-size: auto, auto, 420px;
+  background-repeat: no-repeat, no-repeat, repeat;
 }
 .wf-band__line {
   max-width: 20ch;
@@ -8913,19 +8934,34 @@ a.pf-btn {
   padding-top: var(--space-2);
   padding-bottom: var(--space-4);
 }
+/*
+  The end of the field fades to white, with the way on sitting in the fade:
+  Chris, "signal more that there is more to be seen by clicking off of the
+  home page ... a white gradient on the bottom so that it looks like it
+  fades out. Put a button instead of just the clickable text". Laid over
+  the field's last stretch; the fade lets clicks through to the pieces
+  under it, and goes while a piece is open so a grown one is never washed.
+*/
 .wf-field__more {
-  margin: var(--space-3) var(--space-3) 0;
-  text-align: right;
-  font-family: var(--font-heading);
-  font-weight: 700;
+  position: relative;
+  z-index: 4;
+  margin: -16rem 0 0;
+  padding: 11rem var(--space-3) 0;
+  text-align: center;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), var(--color-white) 72%);
+  pointer-events: none;
 }
-.wf-field__more a {
-  color: var(--color-navy);
-  text-decoration: none;
+.wf-field__more .button {
+  pointer-events: auto;
 }
-.wf-field__more a:hover,
-.wf-field__more a:focus-visible {
-  text-decoration: underline;
+.wf-field:has(.wd-world.has-focus) .wf-field__more {
+  background: none;
+}
+@media (max-width: 40rem) {
+  .wf-field__more {
+    margin-top: -11rem;
+    padding-top: 7rem;
+  }
 }
 .wf-foot {
   display: grid;

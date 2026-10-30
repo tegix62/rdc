@@ -26,7 +26,7 @@ import Img from '../Img.astro';
 import LandsView from '../portfolio/LandsView.astro';
 import {getAllGridItems} from '../../lib/queries';
 import {cleanKey, tileHref} from '../../lib/tiles';
-import {tileImage} from '../../lib/image';
+import {tileImage, backgroundUrl} from '../../lib/image';
 import {stripStegaKey} from '../../lib/stega';
 
 interface Props {
@@ -57,12 +57,20 @@ for (const it of items) {
     if (!study) taken.set(href, n + 1);
   }
 }
+/*
+  The blue sheet of logo sketches behind the band - Site Settings' Proof
+  Band Background, the way the original homepage used it behind its cards:
+  tiled at 420px under a white wash, fading to white into the work. Chris:
+  "use the original blue logo flash sheet WebP ... similar to how I used it
+  on the original homepage". 840 wide for a 420px tile on a sharp screen.
+*/
+const sheet = await backgroundUrl(settings?.proofBandBackground, 840);
 const tagline = clean(settings?.tagline) || 'Brand identity & merch design for heritage apparel brands.';
 // His own closing words from Site Settings, or none - no sentence written for him.
 const finalLine = clean(settings?.finalCtaLine) || clean(settings?.finalCtaHeading).replace(/:\s*$/, '');
 ---
 
-<section class="wf-band">
+<section class="wf-band" style={sheet ? `--wf-sheet: url(${sheet})` : undefined}>
   <h1 class="wf-band__line">{tagline}</h1>
   <p class="wf-band__who">{bioText}</p>
   <div class="wf-band__go">
@@ -75,7 +83,8 @@ const finalLine = clean(settings?.finalCtaLine) || clean(settings?.finalCtaHeadi
   {/* The field asks which pane is shown; here it is the only one. */}
   <script is:inline>document.documentElement.dataset.pfPane = 'all';</script>
   <LandsView only={[...only]} home />
-  <p class="wf-field__more"><a href="/portfolio?view=all">All the work</a></p>
+  {/* The field fades out under this, so it reads as going on - and the way on is a button. */}
+  <p class="wf-field__more"><a class="button" href="/portfolio?view=all">See all the work</a></p>
 </section>
 
 <section class="wf-foot">

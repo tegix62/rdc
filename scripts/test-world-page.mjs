@@ -678,6 +678,26 @@ for (const [name, w, h] of [
     check(`${name}, work-first homepage: one heading, the field starting in the first screen`, hp.h1.length === 1 && hp.fieldTop !== null && hp.fieldTop < h * 0.6, JSON.stringify({h1: hp.h1, fieldTop: hp.fieldTop}))
     check(`${name}, work-first homepage: a curated field with its results and videos, and the foot`, hp.pieces > 20 && hp.results > 0 && hp.videos > 0 && hp.foot && !hp.wide, JSON.stringify(hp))
     check(`${name}, work-first homepage: no seed in its address`, !/seed=/.test(hp.url), hp.url)
+    // "signal more that there is more to be seen": the field fades out, a button in the fade, the blue sheet behind the band.
+    const more = await page.evaluate(async () => {
+      const p = document.querySelector('.wf-field__more')
+      const b = p?.querySelector('a.button')
+      if (!p || !b) return {fade: false}
+      b.scrollIntoView({block: 'center'})
+      await new Promise((r) => setTimeout(r, 300))
+      const br = b.getBoundingClientRect()
+      const pr = p.getBoundingClientRect()
+      const hitButton = document.elementFromPoint(br.left + br.width / 2, br.top + br.height / 2)?.closest('a.button') === b
+      // A point in the fade, off the button: the piece under it, not the fade.
+      const under = document.elementFromPoint(pr.left + 20, pr.top + 30)
+      return {
+        fade: getComputedStyle(p).backgroundImage.includes('gradient'),
+        button: hitButton,
+        through: !!under?.closest('.wd-piece') || !under?.closest('.wf-field__more'),
+        sheet: getComputedStyle(document.querySelector('.wf-band'), '::before').backgroundImage.includes('url('),
+      }
+    })
+    check(`${name}, work-first homepage: the field fades out under a button, clicks pass through the fade, the blue sheet behind the band`, more.fade && more.button && more.through && more.sheet, JSON.stringify(more))
     check(`${name}, work-first homepage: no script errors`, e2.length === 0, e2.join(' | '))
   }
   await page.close()

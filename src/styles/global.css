@@ -8977,13 +8977,13 @@ a.pf-btn {
   grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
   gap: var(--space-4);
   align-items: end;
-  padding: var(--space-5) 0 var(--space-6);
-  border-top: 1px solid var(--color-navy);
+  padding: var(--space-6) 0 4.5rem;
 }
 @media (max-width: 40rem) {
   .wf-foot {
     grid-template-columns: 1fr;
     gap: var(--space-3);
+    padding: var(--space-5) 0 var(--space-6);
   }
 }
 .wf-foot::before {
@@ -8995,14 +8995,27 @@ a.pf-btn {
   left: calc(50% - 50vw);
   width: 100vw;
   background-color: var(--color-white);
-  background-image: linear-gradient(to bottom, var(--color-white), transparent 45%),
-    linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)), var(--wf-sheet, none);
+  /*
+    Faded in at the top and out at the foot, so the sheet has no edge of its
+    own: Chris, of the first version, "looks clunky" - a navy rule over it,
+    a hard bottom edge above the site's footer, and the portrait's white
+    showing as a box on it.
+  */
+  background-image: linear-gradient(to bottom, var(--color-white), transparent 32%, transparent 68%, var(--color-white)),
+    linear-gradient(rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.82)), var(--wf-sheet, none);
   background-size: auto, auto, 420px;
   background-repeat: no-repeat, no-repeat, repeat;
 }
+/* The portrait is blue on white: multiplied, its white is the sheet's, so no box round it. */
 .wf-foot__portrait {
   width: 100%;
   height: auto;
+  mix-blend-mode: multiply;
+}
+@media (max-width: 40rem) {
+  .wf-foot__portrait {
+    max-width: 15rem;
+  }
 }
 .wf-foot__line {
   max-width: 28ch;

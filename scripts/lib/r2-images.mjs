@@ -77,8 +77,18 @@ const read = (m) => {
   return {written, trail, path, query, escaped: slash !== '/'}
 }
 
+/*
+  NOT A PICTURE BUT A BASE. A data-scan attribute holds the scan's address
+  for the page script to add its own query to - the magnifier asks for
+  patches (?rect=...), "See it at actual size" for a width. An R2 address
+  ignores a query, so moved there every patch would be the whole scan.
+  These stay on /img/ and are never copied.
+*/
+const BASE_ATTR = /data-scan\s*=\s*["']?$/i
+const isBase = (html, at) => BASE_ATTR.test(html.slice(Math.max(0, at - 16), at))
+
 export function findPictures(html) {
-  return [...html.matchAll(FIND)].map(read)
+  return [...html.matchAll(FIND)].filter((m) => !isBase(html, m.index)).map(read)
 }
 
 /*
@@ -91,6 +101,10 @@ export function rewritePictures(html, have) {
   let moved = 0
   let kept = 0
   const out = html.replace(FIND, (...m) => {
+    if (isBase(html, m[m.length - 2])) {
+      kept++
+      return m[0]
+    }
     const p = read(m)
     const key = keyFor(p.path, p.query)
     if (!key || !have.has(key)) {

@@ -27,6 +27,9 @@ for (const p of PAGES) {
   const old = (html.match(OLD) ?? []).length
   r2.forEach((u) => seen.add(u))
   check(`${p}: pictures from R2`, res.ok && (r2.length > 0 || old === 0), `HTTP ${res.status}, ${r2.length} from R2, ${old} through /img/`)
+  // The magnifier and actual size add a query to data-scan, which R2 ignores.
+  const scans = (html.match(/data-scan="[^"]*"/g) ?? []).filter((a) => a.includes('img.rumeaudesign.co')).length
+  check(`${p}: scans for the magnifier still on /img/`, scans === 0, `${scans} on R2`)
 }
 
 const sample = [...seen].sort(() => Math.random() - 0.5).slice(0, 25)

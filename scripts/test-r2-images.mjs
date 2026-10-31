@@ -27,15 +27,16 @@ const html = [
   `<img src="/img/v2/${P}?w=900&amp;fm=webp">`,
 ].join('\n')
 const found = findPictures(html)
-check('every address is found, attributes and escaped JSON', found.length === 6, `${found.length}: ${found.map((f) => f.query).join(' | ')}`)
+check('every address is found, attributes and escaped JSON - but not a base in data-scan', found.length === 5, `${found.length}: ${found.map((f) => f.query).join(' | ')}`)
 check('&amp; and \\u0026 read as &', found.every((f) => !/amp;|u0026/.test(f.query)))
 
 const have = new Set([keyFor(P, 'w=800&fm=webp'), keyFor(P, 'w=400&fm=webp'), keyFor(P, '')])
 const {html: out, moved, kept} = rewritePictures(html, have)
 check('those in R2 point there, in each place as it was written', out.includes(`src="${HOST}/v2/w_800~fm_webp/${P}"`) && out.includes(`${HOST}/v2/w_400~fm_webp/${P} 400w`) && out.includes(`"src":"${HOST.split('/').join('\\/')}\\/v2\\/w_400~fm_webp\\/images`), out)
-check('one not in R2 keeps its /img/ address', out.includes(`/img/v2/${P}?w=900&amp;fm=webp`) && kept === 1, `kept ${kept}`)
-check('the bare scan address moves too', out.includes(`data-scan="${HOST}/v2/-/${P}"`))
-check('counted', moved === 5, `moved ${moved}`)
+check('one not in R2 keeps its /img/ address', out.includes(`/img/v2/${P}?w=900&amp;fm=webp`), `kept ${kept}`)
+// The magnifier adds ?rect=... to it; R2 would ignore that and send the whole scan.
+check('a scan in data-scan stays on /img/ even when its key is in R2', out.includes(`data-scan="/img/v2/${P}"`))
+check('counted', moved === 4 && kept === 2, `moved ${moved}, kept ${kept}`)
 
 console.log(failures ? `\n${failures} check(s) failed.` : '\nall checks passed')
 process.exit(failures ? 1 : 0)

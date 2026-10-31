@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "@sanity/visual-editing": "2.13.4",
+    "aws4fetch": "^1.0.20",
     "critters": "^0.0.23",
     "esbuild": "^0.28.1",
     "jsdom": "^30.0.1"

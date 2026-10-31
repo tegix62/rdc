@@ -62,6 +62,13 @@ jobs:
           # private ids ("picks.<code>") the public dataset does not serve.
           # Build-time only; never shipped to a page.
           SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          # scripts/fetch-fonts.mjs reads licensed fonts out of the R2 bucket
+          # (outside v2/, where the pictures are) and serves them from the
+          # site itself - a font from another address is refused by browsers
+          # unless that address allows it, and the bucket does not.
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           # Stamped into every page as <meta name="build-commit">, so the audit
           # can tell whether what it is measuring is the build it meant to.
           PUBLIC_BUILD_SHA: ${{ github.sha }}

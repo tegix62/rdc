@@ -113,7 +113,7 @@ const firstYear = stops.find((s) => s.year)?.year ?? 2019;
 ---
 
 <Layout title="The road - Rumeau Design Co" description="The freelance years, stop by stop." noindex>
-  <div class="rd">
+  <div class="rd rd--friend" data-road-page>
     <header class="rd-head">
       <h1>Since {firstYear}</h1>
       <p>DRAFT - a line or two from you about the road so far.</p>
@@ -185,6 +185,37 @@ const firstYear = stops.find((s) => s.year)?.year ?? 2019;
     </div>
   </div>
 </Layout>
+
+<style is:global>
+  /*
+    Friend (Simon Walker), licensed by Chris, fetched from Studio for preview
+    builds only (scripts/fetch-fonts.mjs) - tried here, on one page's
+    headings, after the whole homepage in it was "too transformational for
+    this website right now". Uppercase, one weight, set tight with the
+    tracking easing off as the size drops - the settings Chris approved on
+    the homepage trial. ?type=plain shows the page in the site's own type,
+    to compare.
+  */
+  @font-face {
+    font-family: 'Friend';
+    src: url(/fonts/licensed/Friend-Regular.woff2) format('woff2'), url(/fonts/licensed/Friend-Regular.otf) format('opentype'),
+      url(/fonts/licensed/Friend.otf) format('opentype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+  .rd--friend .rd-head h1,
+  .rd--friend .rd-year,
+  .rd--friend .rd-card h2 {
+    font-family: 'Friend', var(--font-heading);
+    font-weight: 400;
+    text-transform: uppercase;
+    font-synthesis: none;
+  }
+  .rd--friend .rd-head h1 { font-size: clamp(3.5rem, 11vw, 8rem); line-height: 0.8; letter-spacing: -0.015em; }
+  .rd--friend .rd-year { font-size: clamp(2.5rem, 5vw, 4rem); line-height: 0.8; letter-spacing: -0.005em; }
+  .rd--friend .rd-card h2 { font-size: clamp(1.75rem, 1.2rem + 1.6vw, 2.75rem); line-height: 0.86; letter-spacing: -0.005em; }
+</style>
 
 <style>
   .rd {
@@ -407,6 +438,12 @@ const firstYear = stops.find((s) => s.year)?.year ?? 2019;
     .rd-card, .rd-mark { transition: none; }
   }
 </style>
+
+<script>
+  // ?type=plain: the site's own type, to compare against Friend.
+  if (new URLSearchParams(location.search).get('type') === 'plain')
+    document.querySelector('[data-road-page]')?.classList.remove('rd--friend');
+</script>
 
 <script>
   /*

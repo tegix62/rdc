@@ -257,13 +257,14 @@ export default defineType({
     */
     defineField({
       name: 'nowLine',
-      title: 'New homepage - "Now" line',
+      title: 'Homepage - "Currently" line',
       type: 'string',
       group: 'homepage',
       description:
         'One sentence on what you are working on and when you are next free, ' +
         'e.g. "Lettering a run of tour posters. Booking from January." Shown ' +
-        'near the top of the new homepage; left empty, the line is left out.',
+        'under your intro at the top of the homepage, after "Currently:". On ' +
+        'the preview for now.',
       validation: (Rule) => Rule.max(140),
     }),
     defineField({

@@ -68,6 +68,14 @@ for (const it of items) {
 */
 const sheet = await backgroundUrl(settings?.proofBandBackground, 840);
 const tagline = clean(settings?.tagline) || 'Brand identity & merch design for heritage apparel brands.';
+/*
+  CURRENTLY - one line on what Chris is working on and when he is next
+  free (Site Settings > Homepage > "Currently" line). Chris liked "what's
+  Chris up to" - an open question since the first site brief. Preview only
+  until he says; there, an empty field says where to write it.
+*/
+const CURRENTLY = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+const nowLine = clean(settings?.nowLine);
 // His own closing words from Site Settings, or none - no sentence written for him.
 const finalLine = clean(settings?.finalCtaLine) || clean(settings?.finalCtaHeading).replace(/:\s*$/, '');
 ---
@@ -75,6 +83,11 @@ const finalLine = clean(settings?.finalCtaLine) || clean(settings?.finalCtaHeadi
 <section class="wf-band">
   <h1 class="wf-band__line">{tagline}</h1>
   <p class="wf-band__who">{bioText}</p>
+  {CURRENTLY && (
+    <p class="wf-band__now">
+      Currently: {nowLine || <em>write this line in Studio, Site Settings &gt; Homepage &gt; "Currently" line</em>}
+    </p>
+  )}
   <div class="wf-band__go">
     <a class="button" href={contactUrl}>Let's Work</a>
     <a class="button button--outline" href="/portfolio?view=all">Portfolio</a>

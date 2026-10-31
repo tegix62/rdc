@@ -20,6 +20,8 @@ on:
       # here changes what gets deployed - it was missing from this list, which
       # meant overlay changes silently never shipped.
       - 'scripts/build-overlay.mjs'
+      # Fetches the licensed fonts uploaded in Studio's Fonts tool.
+      - 'scripts/fetch-fonts.mjs'
       - '.github/workflows/deploy-pages.yml'
 
 # One preview deploy at a time, newest wins. Same reasoning as the identical

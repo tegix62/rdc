@@ -8919,6 +8919,17 @@ a.pf-btn {
   line-height: 1.45;
   color: var(--color-ink);
 }
+.wf-band__now {
+  max-width: 46ch;
+  margin: var(--space-2) 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  color: var(--color-gray);
+}
+.wf-band__now em {
+  font-style: normal;
+  color: #b00;
+}
 .wf-band__go {
   display: flex;
   flex-wrap: wrap;

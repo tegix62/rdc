@@ -172,6 +172,16 @@ const critters = new Critters({
   // browser fetches them immediately; the @font-face rules in the deferred
   // stylesheet map font-family names to those cached files when they arrive.
   inlineFonts: false,
+  /*
+    Rules for a state the page only reaches once a script runs. critters
+    keeps, of a page's own inline <style>, only the rules that match the
+    page as built - so a rule for a state set later by its script was
+    dropped, and the switch did nothing: copier mode's generations, the
+    shapes compare, candlelight's "every candle", the road's walker and its
+    reached stops (found when Chris said copier mode was "not doing
+    anything"). Each such state is named here.
+  */
+  allowRules: [/\[data-gen=/, /\[data-shapes=/, /\.is-lit\b/, /\.is-reached\b/, /\.is-drawn\b/],
   compress: true,
   logLevel: 'info',
 });

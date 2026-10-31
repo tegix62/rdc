@@ -22,6 +22,8 @@ on:
       - 'scripts/build-overlay.mjs'
       # Fetches the licensed fonts uploaded in Studio's Fonts tool.
       - 'scripts/fetch-fonts.mjs'
+      # Rewrites every page's CSS after the build.
+      - 'scripts/inline-critical-css.mjs'
       - '.github/workflows/deploy-pages.yml'
 
 # One preview deploy at a time, newest wins. Same reasoning as the identical

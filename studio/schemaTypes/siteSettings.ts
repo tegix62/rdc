@@ -259,15 +259,15 @@ export default defineType({
     /*
       Chris: "float my ... selfie somewhere next to where the H1 heading is on
       the homepage. Just have my face up there, probably on the right side."
-      Left empty, the portrait from the foot of the homepage is used.
+      Left empty, the municipal selfie is used.
     */
     imageSpec({
       name: 'headFace',
       title: 'Homepage - your face by the headline',
       group: 'homepage',
       description:
-        'Beside the big headline at the top, on the right. A cut-out (transparent PNG) sits best. ' +
-        'Left empty, the portrait from the foot of the homepage is used. Preview only for now.',
+        'Beside the big headline at the top, on the right. ' +
+        'Left empty, your municipal selfie is used. Preview only for now.',
     }),
     defineField({
       name: 'nowLine',

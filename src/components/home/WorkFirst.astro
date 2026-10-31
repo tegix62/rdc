@@ -84,15 +84,17 @@ const tagline = clean(settings?.tagline) || 'Brand identity & merch design for h
 const CURRENTLY = false;
 const nowLine = clean(settings?.nowLine);
 /*
-  YOUR FACE BY THE HEADLINE (Site Settings > Homepage), the foot's portrait
-  if that is empty. Chris: "float my ... selfie somewhere next to where the
+  YOUR FACE BY THE HEADLINE (Site Settings > Homepage); empty, the
+  municipal selfie - Chris: "use the municipal selfie not that other one"
+  (chrisrumeau-municipalselfie-blue, the 1900px upload). Chris: "float my ... selfie somewhere next to where the
   H1 heading is ... probably on the right side ... I already like where the
   header is as is." So the headline does not move: on a wide screen the face
   takes a column to its right; on a phone it floats at the right and the
   headline wraps round it. Preview first.
 */
 const FACE = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
-const face = FACE ? (hasAsset(settings?.headFace) ? settings.headFace : hasAsset(settings?.portrait) ? settings.portrait : null) : null;
+const MUNICIPAL_SELFIE = {_type: 'image', asset: {_type: 'reference', _ref: 'image-c74769e63b77e501e3b7bd233664d25e36508d80-1900x1900-webp'}};
+const face = FACE ? (hasAsset(settings?.headFace) ? settings.headFace : MUNICIPAL_SELFIE) : null;
 /*
   COMMISSION SLOTS as a ticket drop (Site Settings > Booking): a numbered
   ticket per slot, the taken ones stamped. Preview only, beside Currently;

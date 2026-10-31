@@ -61,6 +61,23 @@ for (const [name, viewport] of [['desktop', {width: 1440, height: 900}], ['phone
   }
   await page.close()
 }
+// The real site, copied: the homepage and the portfolio, as a visitor who pressed the ©.
+for (const [name, viewport] of [['desktop', {width: 1440, height: 900}], ['phone', {width: 390, height: 844}]]) {
+  const page = await browser.newPage({viewport, deviceScaleFactor: name === 'phone' ? 3 : 1})
+  await page.addInitScript(() => localStorage.setItem('rdc-copied', '1'))
+  for (const path of ['/', '/portfolio']) {
+    await page.goto(`${BASE}${path}`, {waitUntil: 'networkidle', timeout: 90_000})
+    await page.waitForTimeout(1500)
+    const tag = path === '/' ? 'home' : 'portfolio'
+    report[`${name}-${tag}`] = await page.evaluate(() => ({
+      copied: document.documentElement.classList.contains('is-copied'),
+      navColour: getComputedStyle(document.querySelector('.site-nav a') ?? document.body).color,
+      h1Filter: getComputedStyle(document.querySelector('main h1') ?? document.body).filter,
+    }))
+    await page.screenshot({path: `${OUT}/site-${name}-${tag}.png`})
+  }
+  await page.close()
+}
 console.log(JSON.stringify(report, null, 2))
 await writeFile(`${OUT}/report.json`, JSON.stringify(report, null, 2))
 await browser.close()

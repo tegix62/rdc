@@ -1,0 +1,154 @@
+---
+/*
+  SIGHTINGS - preview only, at /next/sightings/wild: the shirts and prints
+  out in the world. Chris liked it, "but it'd have to be more accessible to
+  somebody out in the wild, because it'd likely just be me taking the
+  pictures."
+
+  So it asks nothing of a stranger but what they already do: tag a photo on
+  Instagram (#rumeauinthewild) or send it. Chris adds the ones he likes in
+  Studio (Sighting: a photo, and optionally the piece, where, when and whose
+  photo it is) - nothing on the site for anyone to upload into, so nothing
+  to moderate but his own choices. His own photos count just the same.
+
+  Until there are any, the merch pieces stand in as DRAFT tiles so the
+  layout can be judged.
+
+  Never built for production (getStaticPaths), and noindex.
+*/
+import Layout from '../../../layouts/Layout.astro';
+import Img from '../../../components/Img.astro';
+import {sanityClient} from '../../../lib/sanity';
+import {getAllGridItems, getSiteSettings} from '../../../lib/queries';
+import {tileImage, hasAsset} from '../../../lib/image';
+import {tileHref, cleanKey} from '../../../lib/tiles';
+import {stripStegaKey} from '../../../lib/stega';
+
+export async function getStaticPaths() {
+  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
+  return [{params: {page: 'wild'}}];
+}
+
+const TAG = 'rumeauinthewild';
+const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
+const settings = await getSiteSettings();
+const insta =
+  (settings?.socialLinks ?? []).map((l: any) => clean(l.url)).find((u: string) => /instagram\.com/i.test(u)) || 'https://www.instagram.com/';
+const email = clean(settings?.email);
+
+const written: any[] = await sanityClient.fetch(
+  `*[_type == "sighting" && defined(photo.asset)] | order(when desc){photo, where, when, by, byLink,
+     "piece": piece->{title, slug, pageType, "parentSlug": parentBrand->slug.current, "parentType": parentBrand->pageType}}`,
+);
+const draft = written.length === 0;
+
+const fmt = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', {month: 'short', year: 'numeric'});
+const shots = draft
+  ? ((await getAllGridItems()) as any[])
+      .filter((it) => cleanKey(it.assetType) === 'Apparel' && tileImage(it))
+      .slice(0, 9)
+      .map((it) => ({image: tileImage(it), piece: clean(it.title), href: tileHref(it), where: '', when: '', by: '', byLink: ''}))
+  : written
+      .filter((s) => hasAsset(s.photo))
+      .map((s) => ({
+        image: s.photo,
+        piece: clean(s.piece?.title),
+        href: s.piece ? tileHref(s.piece) : null,
+        where: clean(s.where),
+        when: s.when ? fmt(s.when) : '',
+        by: clean(s.by),
+        byLink: clean(s.byLink),
+      }));
+---
+
+<Layout title="In the wild - Rumeau Design Co" description="The shirts and prints, out in the world." noindex>
+  <div class="sg">
+    <header class="sg-head">
+      <h1>In the wild</h1>
+      <p>Shirts and prints out in the world: at shows, on the street, in the back of a thrift shop.</p>
+      <p class="sg-send">
+        Seen one? Tag <a href={`https://www.instagram.com/explore/tags/${TAG}/`}>#{TAG}</a> on{' '}
+        <a href={insta}>Instagram</a>{email && <>, or send it to <a href={`mailto:${email}`}>{email}</a></>}.
+      </p>
+      {draft && <p class="sg-note">DRAFT - no sightings added yet, so the merch pieces stand in. Add photos in Studio under Sighting.</p>}
+    </header>
+
+    <ul class="sg-grid">
+      {shots.map((s) => (
+        <li>
+          <figure>
+            <Img image={s.image} alt={s.piece ? `${s.piece}, in the wild` : 'In the wild'} width={900} sizes="(min-width: 48rem) 33vw, 100vw" loading="lazy" />
+            <figcaption>
+              {s.piece && (s.href ? <a href={s.href}>{s.piece}</a> : <span>{s.piece}</span>)}
+              {[s.where, s.when].filter(Boolean).length > 0 && <span> - {[s.where, s.when].filter(Boolean).join(', ')}</span>}
+              {s.by && <span class="sg-by"> Photo {s.byLink ? <a href={s.byLink} rel="nofollow ugc">{s.by}</a> : s.by}</span>}
+            </figcaption>
+          </figure>
+        </li>
+      ))}
+    </ul>
+  </div>
+</Layout>
+
+<style>
+  .sg {
+    max-width: 84rem;
+    margin: 0 auto;
+    padding: var(--space-5, 3rem) var(--space-4, 1.5rem) var(--space-6, 4rem);
+  }
+  .sg-head {
+    max-width: 40rem;
+    margin-bottom: 2rem;
+  }
+  .sg-head h1 {
+    margin: 0 0 0.75rem;
+    font: 800 clamp(2.25rem, 6vw, 4rem) / 0.95 var(--font-heading);
+    letter-spacing: -0.035em;
+    color: var(--color-navy);
+  }
+  .sg-send {
+    font-weight: 600;
+  }
+  .sg-send a {
+    color: var(--color-navy);
+  }
+  .sg-note {
+    color: #b00;
+    font-size: 0.875rem;
+  }
+  .sg-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .sg-grid figure {
+    margin: 0;
+  }
+  .sg-grid :global(img) {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    background: var(--color-gray-light);
+  }
+  .sg-grid figcaption {
+    margin-top: 0.4rem;
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+  .sg-grid figcaption a {
+    color: var(--color-navy);
+    font-weight: 600;
+  }
+  .sg-by {
+    color: var(--color-gray);
+  }
+  @media (max-width: 47.99rem) {
+    .sg-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>

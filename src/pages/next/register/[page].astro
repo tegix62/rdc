@@ -1,0 +1,239 @@
+---
+/*
+  THE REGISTER - preview only, at /next/register/runs: every run of merch
+  or prints, set down like a catalogue - number, the piece, who it was for,
+  what it was, the year, how many, how it went, and whether it is still out
+  there. Chris: "I sort of see the appeal, but we'd have to really work on
+  it, so I would say yes to that idea."
+
+  Rows are Studio's Register runs (printRun.ts), newest first. Until there
+  are any, the merch pieces stand in as DRAFT rows - their picture, name,
+  project and year - so the shape can be judged before anything is typed.
+  The numbers are given in order of year, oldest first, so a run keeps its
+  number as new ones are added.
+
+  Never built for production (getStaticPaths), and noindex.
+*/
+import Layout from '../../../layouts/Layout.astro';
+import Img from '../../../components/Img.astro';
+import {sanityClient} from '../../../lib/sanity';
+import {getAllGridItems} from '../../../lib/queries';
+import {tileImage} from '../../../lib/image';
+import {tileHref, cleanKey} from '../../../lib/tiles';
+import {stripStegaKey} from '../../../lib/stega';
+
+export async function getStaticPaths() {
+  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
+  return [{params: {page: 'runs'}}];
+}
+
+const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
+
+type Row = {title: string; client: string; item: string; year: number | null; edition: number | null; went: string; status: string; image: any; href: string | null};
+
+const written: any[] = await sanityClient.fetch(
+  `*[_type == "printRun"]{..., "piece": piece->{title, slug, pageType, thumbnail, mainImage, client, year,
+     "parentSlug": parentBrand->slug.current, "parentType": parentBrand->pageType, "parentTitle": parentBrand->title}}`,
+);
+const draft = written.length === 0;
+
+const rows: Row[] = draft
+  ? ((await getAllGridItems()) as any[])
+      .filter((it) => cleanKey(it.assetType) === 'Apparel' || /merch/i.test(clean(it.category)))
+      .filter((it) => tileImage(it))
+      .map((it) => ({
+        title: clean(it.title),
+        client: clean(it.parentTitle) || clean(it.client),
+        item: clean(it.medium) || cleanKey(it.assetType) || 'Merch',
+        year: typeof it.year === 'number' ? it.year : null,
+        edition: null,
+        went: '',
+        status: '',
+        image: tileImage(it),
+        href: tileHref(it),
+      }))
+  : written.map((r) => ({
+      title: clean(r.title) || clean(r.piece?.title) || 'Untitled run',
+      client: clean(r.client) || clean(r.piece?.parentTitle) || clean(r.piece?.client),
+      item: clean(r.item),
+      year: typeof r.year === 'number' ? r.year : typeof r.piece?.year === 'number' ? r.piece.year : null,
+      edition: typeof r.edition === 'number' ? r.edition : null,
+      went: clean(r.went),
+      status: clean(r.status),
+      image: r.piece ? tileImage(r.piece) : null,
+      href: r.piece ? tileHref(r.piece) : null,
+    }));
+
+// Numbered oldest first; shown newest first.
+const numbered = [...rows]
+  .sort((a, z) => (a.year ?? 9999) - (z.year ?? 9999) || a.title.localeCompare(z.title))
+  .map((r, i) => ({...r, no: i + 1}))
+  .reverse();
+const STATUS: Record<string, string> = {available: 'Still available', soldout: 'Sold out', retired: 'Retired'};
+const made = rows.reduce((n, r) => n + (r.edition ?? 0), 0);
+---
+
+<Layout title="The register - Rumeau Design Co" description="Every run of merch and prints, set down." noindex>
+  <div class="rg">
+    <header class="rg-head">
+      <h1>The register</h1>
+      <p>
+        Every run of merch and prints, set down: who it was for, what it was, how many, and how it went.
+        {made > 0 && ` ${made.toLocaleString('en-US')} pieces made so far.`}
+      </p>
+      {draft && (
+        <p class="rg-note">
+          DRAFT - no runs written yet, so these are the merch pieces, with the details still to fill. Add runs in Studio
+          under Register run and they replace these.
+        </p>
+      )}
+    </header>
+
+    <table class="rg-table">
+      <thead>
+        <tr>
+          <th scope="col">No.</th>
+          <th scope="col"><span class="visually-hidden">Picture</span></th>
+          <th scope="col">Piece</th>
+          <th scope="col">For</th>
+          <th scope="col">What</th>
+          <th scope="col">Year</th>
+          <th scope="col">Made</th>
+          <th scope="col">How it went</th>
+        </tr>
+      </thead>
+      <tbody>
+        {numbered.map((r) => (
+          <tr class:list={[r.status === 'soldout' && 'is-gone']}>
+            <td class="rg-no">{String(r.no).padStart(3, '0')}</td>
+            <td class="rg-pic">
+              {r.image && (r.href ? (
+                <a href={r.href}><Img image={r.image} alt="" width={160} sizes="4rem" loading="lazy" /></a>
+              ) : (
+                <Img image={r.image} alt="" width={160} sizes="4rem" loading="lazy" />
+              ))}
+            </td>
+            <td class="rg-title">{r.title}</td>
+            <td data-th="For">{r.client || '-'}</td>
+            <td data-th="What">{r.item || '-'}</td>
+            <td data-th="Year">{r.year ?? '-'}</td>
+            <td data-th="Made">{r.edition ? r.edition.toLocaleString('en-US') : '-'}</td>
+            <td data-th="How it went">
+              {r.went || '-'}
+              {r.status && <span class={`rg-status rg-status--${r.status}`}>{STATUS[r.status] ?? r.status}</span>}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</Layout>
+
+<style>
+  .rg {
+    max-width: 76rem;
+    margin: 0 auto;
+    padding: var(--space-5, 3rem) var(--space-4, 1.5rem) var(--space-6, 4rem);
+  }
+  .rg-head {
+    max-width: 40rem;
+    margin-bottom: 2rem;
+  }
+  .rg-head h1 {
+    margin: 0 0 0.75rem;
+    font: 800 clamp(2.25rem, 6vw, 4rem) / 0.95 var(--font-heading);
+    letter-spacing: -0.035em;
+    color: var(--color-navy);
+  }
+  .rg-note {
+    color: #b00;
+    font-size: 0.875rem;
+  }
+  .rg-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+  }
+  .rg-table th {
+    text-align: left;
+    padding: 0 0.75rem 0.6rem 0;
+    border-bottom: 2px solid var(--color-navy);
+    font: 700 0.6875rem/1 var(--font-heading);
+    letter-spacing: var(--label-track, 0.06em);
+    text-transform: uppercase;
+    color: var(--color-navy);
+  }
+  .rg-table td {
+    padding: 0.6rem 0.75rem 0.6rem 0;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+  }
+  .rg-no {
+    font: 700 0.8125rem/1 var(--font-heading);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-gray);
+    width: 3rem;
+  }
+  .rg-pic {
+    width: 4rem;
+  }
+  .rg-pic :global(img) {
+    display: block;
+    width: 4rem;
+    height: 4rem;
+    object-fit: cover;
+    background: var(--color-gray-light);
+  }
+  .rg-title {
+    font-weight: 700;
+    color: var(--color-ink);
+  }
+  .rg-status {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.1rem 0.35rem;
+    border: 1.5px solid currentColor;
+    font: 700 0.625rem/1.2 var(--font-heading);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .rg-status--soldout {
+    color: #b3261e;
+    transform: rotate(-4deg);
+  }
+  .rg-status--available {
+    color: var(--color-navy);
+  }
+  .rg-status--retired {
+    color: var(--color-gray);
+  }
+
+  /* A phone: each run a small card - picture, number and name, then the rest in pairs. */
+  @media (max-width: 47.99rem) {
+    .rg-table thead {
+      display: none;
+    }
+    .rg-table tr {
+      display: grid;
+      grid-template-columns: 4rem 1fr;
+      gap: 0.15rem 0.75rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .rg-table td {
+      display: block;
+      padding: 0;
+      border: 0;
+      grid-column: 2;
+      font-size: 0.875rem;
+    }
+    .rg-table td.rg-pic {
+      grid-column: 1;
+      grid-row: 1 / span 6;
+    }
+    .rg-table td[data-th]::before {
+      content: attr(data-th) ': ';
+      color: var(--color-gray);
+    }
+  }
+</style>

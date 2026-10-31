@@ -1,0 +1,249 @@
+---
+/*
+  COPIER MODE - preview only, at /next/copier/mode. Chris: "we've actually
+  sort of kind of tried this with the ink modes, but I think we'd need to
+  introduce like some kind of deeper effect, like doing a slight noisy
+  black outer glow on everything, or giving a minor fade across the whole
+  thing, and then introducing like a paper or a photocopy texture."
+
+  So, on a sample of the portfolio and its words, three generations of
+  copy - an original, a copy, a copy of a copy:
+
+    - every picture and every line of type gets a rough black glow round
+      its edge (the toner spreading), broken up by noise so it is never a
+      clean shadow; the pictures go to one ink, contrast pushed;
+    - the whole page fades a touch, as a copy loses its blacks and whites;
+    - paper grain and toner speckle over everything, and a dark streak down
+      one edge where the lid did not close;
+    - the further the generation, the heavier all of it, and the page sits
+      a fraction crooked.
+
+  All SVG filters and CSS, made in the browser: no texture files. The
+  noise is fixed (one seed), so it does not crawl as you scroll.
+
+  Never built for production (getStaticPaths), and noindex.
+*/
+import Layout from '../../../layouts/Layout.astro';
+import Img from '../../../components/Img.astro';
+import {getAllGridItems} from '../../../lib/queries';
+import {tileImage} from '../../../lib/image';
+import {stripStegaKey} from '../../../lib/stega';
+
+export async function getStaticPaths() {
+  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
+  return [{params: {page: 'mode'}}];
+}
+
+const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
+const all = ((await getAllGridItems()) as any[]).filter((it) => tileImage(it));
+// A spread of the work: every few pieces, so it is not all one project.
+const step = Math.max(1, Math.floor(all.length / 12));
+const pieces = all.filter((_, i) => i % step === 0).slice(0, 12);
+---
+
+<Layout title="Copier mode - Rumeau Design Co" description="The portfolio, photocopied." noindex>
+  <svg class="cp-defs" aria-hidden="true" width="0" height="0">
+    <defs>
+      {[
+        {id: 'cp-1', glow: 1.2, blur: 0.9, dark: 0.45, freq: 0.9, contrast: 1.5, cut: -0.2},
+        {id: 'cp-2', glow: 2, blur: 1.4, dark: 0.7, freq: 0.75, contrast: 2.2, cut: -0.45},
+      ].map((f) => (
+        <filter id={f.id} x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+          {/* One ink, contrast pushed. */}
+          <feColorMatrix in="SourceGraphic" type="saturate" values="0" result="grey" />
+          <feComponentTransfer in="grey" result="ink">
+            <feFuncR type="linear" slope={f.contrast} intercept={f.cut} />
+            <feFuncG type="linear" slope={f.contrast} intercept={f.cut} />
+            <feFuncB type="linear" slope={f.contrast} intercept={f.cut} />
+          </feComponentTransfer>
+          {/* The toner's spread: the shape grown, softened, and broken up by noise. */}
+          <feMorphology in="SourceAlpha" operator="dilate" radius={f.glow} result="grown" />
+          <feGaussianBlur in="grown" stdDeviation={f.blur} result="soft" />
+          <feTurbulence type="fractalNoise" baseFrequency={f.freq} numOctaves="2" seed="7" result="noise" />
+          <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 2.4 -0.9" result="grit" />
+          <feComposite in="soft" in2="grit" operator="in" result="rough" />
+          <feFlood flood-color="#000" flood-opacity={f.dark} result="black" />
+          <feComposite in="black" in2="rough" operator="in" result="glow" />
+          <feMerge>
+            <feMergeNode in="glow" />
+            <feMergeNode in="ink" />
+          </feMerge>
+        </filter>
+      ))}
+    </defs>
+  </svg>
+
+  <div class="cp" data-copier data-gen="0">
+    <div class="cp-bar" role="group" aria-label="Generation">
+      <span>Generation</span>
+      <button type="button" data-set="0" aria-pressed="true">Original</button>
+      <button type="button" data-set="1" aria-pressed="false">Copy</button>
+      <button type="button" data-set="2" aria-pressed="false">Copy of a copy</button>
+    </div>
+
+    <div class="cp-sheet">
+      <header class="cp-head">
+        <h1 class="cp-ink">Brand identity &amp; merch, for heritage apparel brands and musicians.</h1>
+        <p class="cp-ink">
+          A sample of the portfolio and its words, run through the copier. Switch generations above; the pictures, the
+          type and the paper all go together.
+        </p>
+      </header>
+      <ul class="cp-grid">
+        {pieces.map((p) => (
+          <li>
+            <Img class="cp-ink" image={tileImage(p)} alt={clean(p.title)} width={600} sizes="(min-width: 48rem) 25vw, 50vw" loading="lazy" />
+            <span class="cp-ink cp-name">{clean(p.title)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+    <div class="cp-paper" aria-hidden="true"></div>
+  </div>
+</Layout>
+
+<style>
+  .cp-defs {
+    position: absolute;
+  }
+  .cp {
+    position: relative;
+    padding: var(--space-4, 1.5rem) var(--space-4, 1.5rem) var(--space-6, 4rem);
+    background: #fff;
+    overflow: hidden;
+  }
+  .cp-bar {
+    position: sticky;
+    top: 0.75rem;
+    z-index: 5;
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 1.5rem;
+    border: 2px solid var(--color-navy);
+    background: #fff;
+  }
+  .cp-bar span {
+    padding: 0 0.75rem;
+    font: 700 0.6875rem/1 var(--font-heading);
+    letter-spacing: var(--label-track, 0.06em);
+    text-transform: uppercase;
+    color: var(--color-gray);
+  }
+  .cp-bar button {
+    font: inherit;
+    font-size: 0.875rem;
+    padding: 0.5rem 0.85rem;
+    border: 0;
+    border-left: 1px solid var(--color-navy);
+    background: #fff;
+    color: var(--color-navy);
+    cursor: pointer;
+  }
+  .cp-bar button[aria-pressed='true'] {
+    background: var(--color-navy);
+    color: #fff;
+  }
+  .cp-sheet {
+    transform-origin: 50% 0;
+    transition: transform 0.4s;
+  }
+  .cp-head {
+    max-width: 44rem;
+    margin-bottom: 2rem;
+  }
+  .cp-head h1 {
+    margin: 0 0 1rem;
+    font: 800 clamp(1.75rem, 1rem + 3.2vw, 3.5rem) / 1.02 var(--font-heading);
+    letter-spacing: -0.03em;
+    color: var(--color-navy);
+  }
+  .cp-head p {
+    font-size: 1.0625rem;
+    line-height: 1.5;
+  }
+  .cp-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    columns: 4;
+    column-gap: 12px;
+  }
+  .cp-grid li {
+    break-inside: avoid;
+    margin-bottom: 14px;
+  }
+  .cp-grid :global(img) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .cp-name {
+    display: inline-block;
+    margin-top: 0.3rem;
+    font-size: 0.8125rem;
+  }
+
+  /* The copies. */
+  [data-gen='1'] .cp-ink,
+  [data-gen='1'] .cp-grid :global(img) {
+    filter: url(#cp-1);
+  }
+  [data-gen='2'] .cp-ink,
+  [data-gen='2'] .cp-grid :global(img) {
+    filter: url(#cp-2);
+  }
+  [data-gen='1'] .cp-head h1,
+  [data-gen='2'] .cp-head h1 {
+    color: #111;
+  }
+  [data-gen='2'] .cp-sheet {
+    transform: rotate(-0.35deg) translateX(-2px);
+  }
+  /* The fade, the paper, the speckle and the lid's streak, over everything. */
+  .cp-paper {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0) 2.5%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.15' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 3.2 -1.85'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='0.012 0.4' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.43  0 0 0 0 0.4  0 0 0 0.22 0'/></filter><rect width='100%' height='100%' filter='url(%23p)'/></svg>"),
+      rgba(255, 255, 255, 0.1);
+    mix-blend-mode: multiply;
+  }
+  [data-gen='1'] .cp-paper {
+    opacity: 0.55;
+  }
+  [data-gen='2'] .cp-paper {
+    opacity: 1;
+  }
+  [data-gen='1'] .cp-sheet {
+    opacity: 0.94;
+  }
+  [data-gen='2'] .cp-sheet {
+    opacity: 0.86;
+  }
+
+  @media (max-width: 47.99rem) {
+    .cp-grid {
+      columns: 2;
+    }
+    .cp-bar span {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  const root = document.querySelector<HTMLElement>('[data-copier]');
+  root?.querySelectorAll<HTMLButtonElement>('[data-set]').forEach((b) =>
+    b.addEventListener('click', () => {
+      root.dataset.gen = b.dataset.set!;
+      root.querySelectorAll('[data-set]').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    }),
+  );
+</script>

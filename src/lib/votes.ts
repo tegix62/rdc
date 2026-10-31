@@ -1,5 +1,5 @@
 /*
-  VOTES, the page's side - "I dig this" on any piece of the portfolio.
+  VOTES, the page's side - "Vote" on any piece of the portfolio.
   Chris: "one of those tertiary buttons ... that anyone can press ... next
   to the plus and the minus and the shuffle ... a toggle. It would turn on
   an ability to click on things ... they do their usual thing. They expand
@@ -11,20 +11,31 @@
   - The Vote button in the toolbar ([data-vote], both arrangements) turns it
     on and off. On, the address carries ?vote=1, so a link Chris sends -
     "tell me which design you like" - opens with it on.
-  - One "I dig this" button, made here, goes into whichever piece is open:
+  - One "Vote" button, made here, goes into whichever piece is open:
     an expanded tile on the grids (.pf-item.is-expanded), a grown piece on
     All (.wd-piece.is-open). Pressed again, the vote is taken back.
   - Who is who: a random id this browser keeps, and the pieces it dug, so
-    the buttons say "You dig this" on the next visit too. The server's side,
+    the buttons say "Voted" on the next visit too. The server's side,
     and what it keeps and does not, is in functions/api/votes.ts.
   - Spam: on this browser's first vote, Cloudflare Turnstile runs out of
     sight when the site has a key (PUBLIC_TURNSTILE_SITE_KEY); passed once,
     never asked again. Without a key, or if it fails, the vote still goes,
     under the server's tighter limits.
-  - The email: after the first vote has been saved, once, a small box asks
-    for an address for new work. "No thanks" and it never asks again; the
-    vote was already kept either way. It goes to the same list as the blog's
-    sign-up (/api/subscribe, source "votes").
+  - Signing it: after the first vote has been saved, once, a small box
+    offers to put their name on their votes - a name or @handle, a link to
+    their work, shown on the site or just for Chris - and an address for new
+    work, all optional. Chris: "making the votes public or private so that
+    people could leave their name or their username ... and like a link to
+    their work." The name then rides on every vote this browser makes; a
+    public one shows only once Chris has said so (src/lib/endorse.ts). The
+    address goes to the blog's list (/api/subscribe, source "votes"). "No
+    thanks" and it never asks again; the vote was already kept either way.
+  - The names: with Votes on, each piece someone has put their name on says
+    so in a small tag - "@sam voted", "@sam and 2 others" - and the open
+    piece lists them, linked to their work. Asked for (/api/endorse) only
+    when Votes is turned on, never on an ordinary visit. Chris: "little
+    pop-up votes if the vote filter is on that says, like, this person liked
+    this ... I could sort of get endorsements that way."
 
   Browser storage is a convenience here (Chris's own record is the
   database), so every read and write is guarded and the page works without.
@@ -33,7 +44,9 @@
 const KEY = 'rdc-votes';
 const SITE_KEY = (import.meta.env.PUBLIC_TURNSTILE_SITE_KEY as string | undefined)?.trim() || '';
 
-type Saved = {visitor: string; dug: string[]; checked?: boolean; asked?: boolean};
+type Sign = {name: string; link: string; public: boolean};
+type Saved = {visitor: string; dug: string[]; checked?: boolean; asked?: boolean; sign?: Sign};
+type Name = {piece: string; name: string; link: string};
 
 const load = (): Saved => {
   try {
@@ -103,10 +116,66 @@ export function startVotes() {
   button.append(label);
   let current: {el: HTMLElement; id: string} | null = null;
 
+  // Under the button in the open piece: who put their name on it.
+  const by = document.createElement('p');
+  by.className = 'vt-by';
+
   const paint = () => {
     const dug = !!current && state.dug.includes(current.id);
     button.setAttribute('aria-pressed', String(dug));
-    label.textContent = dug ? 'You dig this' : 'I dig this';
+    label.textContent = dug ? 'Voted' : 'Vote';
+    const who = current ? (names.get(current.id) ?? []) : [];
+    by.replaceChildren();
+    if (who.length) {
+      by.append('Voted by ');
+      who.slice(0, 12).forEach((n, i) => {
+        if (i) by.append(i === who.length - 1 || i === 11 ? ' and ' : ', ');
+        by.append(nameEl(n));
+      });
+      if (who.length > 12) by.append(` and ${who.length - 12} more`);
+      if (by.parentElement !== button.parentElement) button.after(by);
+    } else by.remove();
+  };
+
+  // A name, linked to their work when they gave a link. Text only, never markup.
+  const nameEl = (n: Name) => {
+    const el = document.createElement(n.link ? 'a' : 'span');
+    el.textContent = n.name;
+    if (n.link && el instanceof HTMLAnchorElement) {
+      el.href = n.link;
+      el.target = '_blank';
+      el.rel = 'noopener nofollow ugc';
+    }
+    return el;
+  };
+
+  // The names, fetched once, the first time Votes is turned on.
+  const names = new Map<string, Name[]>();
+  let fetched: Promise<void> | null = null;
+  const loadNames = () =>
+    (fetched ??= fetch('/api/endorse')
+      .then((r) => (r.ok ? r.json() : {names: []}))
+      .then((d: {names?: Name[]}) => {
+        for (const n of d.names ?? []) {
+          const list = names.get(n.piece) ?? [];
+          if (!list.some((x) => x.name === n.name)) list.push(n);
+          names.set(n.piece, list);
+        }
+        tag();
+        paint();
+      })
+      .catch(() => {}));
+
+  // A small tag on each piece with names: "@sam voted", "@sam and 2 others".
+  const tag = () => {
+    for (const el of document.querySelectorAll<HTMLElement>('.wd-piece[data-piece], .pf-item[data-piece]')) {
+      const who = names.get(el.dataset.piece!);
+      if (!who?.length || el.querySelector(':scope .vt-tag')) continue;
+      const t = document.createElement('span');
+      t.className = 'vt-tag';
+      t.textContent = who.length === 1 ? `${who[0].name} voted` : `${who[0].name} and ${who.length - 1} other${who.length > 2 ? 's' : ''}`;
+      (el.querySelector<HTMLElement>('.wd-frame') ?? el).append(t);
+    }
   };
 
   // The open piece, in whichever view is showing.
@@ -140,6 +209,7 @@ export function startVotes() {
     if (on) url.searchParams.set('vote', '1');
     else url.searchParams.delete('vote');
     history.replaceState(history.state, '', url);
+    if (on) loadNames();
     place();
   };
   toggles.forEach((t) => t.addEventListener('click', () => setOn(!on)));
@@ -152,6 +222,8 @@ export function startVotes() {
     requestAnimationFrame(() => {
       queued = false;
       place();
+      // A view laid out afresh gets its tags back.
+      if (on && names.size) tag();
     });
   }).observe(document.body, {subtree: true, attributes: true, attributeFilter: ['class']});
 
@@ -169,14 +241,14 @@ export function startVotes() {
       fetch('/api/votes', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({piece: id, visitor: state.visitor, on: dig, ...extra}),
+        body: JSON.stringify({piece: id, visitor: state.visitor, on: dig, ...(state.sign ? {sign: state.sign} : {}), ...extra}),
       }).then(async (res) => ({res, body: (await res.json().catch(() => ({}))) as {ok?: boolean; verified?: boolean}}));
     try {
       // The vote goes at once; the spam check, if this browser has not passed one, runs beside it.
       const {res, body} = await send();
       if (!res.ok || !body.ok) throw new Error('not kept');
       if (body.verified && !state.checked) save((state = {...state, checked: true}));
-      if (first) ask();
+      if (first) ask(id);
       if (dig && !state.checked && SITE_KEY) {
         token().then(async (t) => {
           // Not if the vote was taken back while the check ran.
@@ -211,35 +283,61 @@ export function startVotes() {
     noteTimer = window.setTimeout(() => (n!.hidden = true), 3500);
   };
 
-  // Once, after the first vote is in: an address for new work, or not.
-  const ask = () => {
+  /*
+    Once, after the first vote is in: their name on their votes, and an
+    address for new work - each optional, all in one small box.
+  */
+  const ask = (piece: string) => {
     save((state = {...state, asked: true}));
     const box = document.createElement('form');
     box.className = 'vt-ask';
-    box.setAttribute('aria-label', 'Email for new work');
+    box.setAttribute('aria-label', 'Put your name on it');
     box.innerHTML =
-      '<p class="vt-ask__line">Noted, thanks. Want an email when there is new work?</p>' +
+      '<p class="vt-ask__line">Vote counted. Put your name on it?</p>' +
       '<div class="vt-ask__row">' +
-      '<input class="vt-ask__email" type="email" name="email" required autocomplete="email" placeholder="you@example.com" aria-label="Email address">' +
-      '<button class="vt-ask__yes" type="submit">Sign me up</button>' +
+      '<input class="vt-ask__field" name="name" maxlength="60" autocomplete="nickname" placeholder="Name or @handle" aria-label="Name or handle">' +
+      '<input class="vt-ask__field" name="link" maxlength="200" inputmode="url" autocomplete="url" placeholder="Link to your work (optional)" aria-label="Link to your work">' +
+      '</div>' +
+      '<label class="vt-ask__check"><input type="checkbox" name="public" checked> Show my name beside my votes (Chris sees each one first)</label>' +
+      '<div class="vt-ask__row">' +
+      '<input class="vt-ask__field" type="email" name="email" autocomplete="email" placeholder="Email for new work (optional)" aria-label="Email address">' +
+      '<button class="vt-ask__yes" type="submit">Done</button>' +
       '<button class="vt-ask__no" type="button">No thanks</button>' +
       '</div>' +
-      '<p class="vt-ask__small">Only for new work, now and then. <a href="/privacy-policy">How it is kept</a></p>';
+      '<p class="vt-ask__small">All optional. <a href="/privacy-policy">How it is kept</a></p>';
     document.body.append(box);
     const close = () => box.remove();
     box.querySelector('.vt-ask__no')!.addEventListener('click', close);
     box.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = (box.querySelector('.vt-ask__email') as HTMLInputElement).value.trim();
+      const f = new FormData(box);
+      const name = String(f.get('name') ?? '').trim();
+      const email = String(f.get('email') ?? '').trim();
+      const said: string[] = [];
       try {
-        const res = await fetch('/api/subscribe', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({email, source: 'votes'}),
-        });
-        if (!res.ok) throw new Error();
+        if (name) {
+          const sign: Sign = {name, link: String(f.get('link') ?? '').trim(), public: f.get('public') === 'on'};
+          const res = await fetch('/api/votes', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({piece, visitor: state.visitor, on: true, sign}),
+          });
+          const body = (await res.json().catch(() => ({}))) as {ok?: boolean; signed?: string};
+          if (!res.ok || !body.ok) throw new Error();
+          save((state = {...state, sign}));
+          said.push(body.signed === 'pending' ? 'Your name shows once Chris has seen it.' : body.signed === 'shown' ? 'Your name is on it.' : 'Kept just for Chris.');
+        }
+        if (email) {
+          const res = await fetch('/api/subscribe', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email, source: 'votes'}),
+          });
+          if (!res.ok) throw new Error();
+          said.push("You're on the list.");
+        }
         close();
-        note("You're on the list. Thanks.");
+        note(said.length ? `Thanks. ${said.join(' ')}` : 'Thanks.');
       } catch {
         note('That did not go through. Please try again.');
       }

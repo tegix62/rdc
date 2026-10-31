@@ -22,7 +22,13 @@
   Votes over a limit are answered as if counted and not kept, so there is
   nothing to probe.
 
-  POST /api/votes  {piece, visitor, on, token?}  -> {ok, on, verified}
+  SIGNED. A vote can carry a signature - a name or @handle, a link, public
+  or just for Chris (src/lib/endorse.ts). It belongs to the person, so it
+  rides on every vote they make; a public one shows only after Chris says
+  so from the email it sends him (functions/api/endorse.ts).
+
+  POST /api/votes  {piece, visitor, on, token?, sign?: {name, link, public}}
+                                                  -> {ok, on, verified, signed?}
   GET  /api/votes                                 -> {total, voters, counts: [{id, n}]}
        (public: counts per piece, nothing about anyone; Studio's Picks tool reads it)
 */
@@ -44,12 +50,19 @@ interface D1Database {
 interface Env {
   DB?: D1Database;
   TURNSTILE_SECRET_KEY?: string;
+  // For the email a new public signature sends Chris - the enquiries' own.
+  RESEND_API_KEY?: string;
+  CONTACT_NOTIFY_EMAIL?: string;
+  CONTACT_FROM_EMAIL?: string;
+  ENDORSE_KEY?: string;
 }
 
 interface Context {
   request: Request;
   env: Env;
 }
+
+import {readSign, signLink, escapeHtml} from '../../src/lib/endorse.ts';
 
 const STUDIO = ['https://rumeau-design-co.sanity.studio', 'http://localhost:3333'];
 
@@ -85,6 +98,21 @@ const TABLES = [
   `CREATE TABLE IF NOT EXISTS vote_visitors (
     visitor TEXT PRIMARY KEY,
     checked_at TEXT NOT NULL
+  )`,
+  /*
+    A signature, one per person. status: 'private' (just for Chris),
+    'pending' (public, not yet seen), 'shown' or 'hidden' (his call). day and
+    conn are the same daily-salted connection hash as a vote's - used only to
+    stop one connection mailing Chris a stream of new names.
+  */
+  `CREATE TABLE IF NOT EXISTS vote_signers (
+    visitor TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    link TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL,
+    day TEXT NOT NULL,
+    conn TEXT NOT NULL,
+    signed_at TEXT NOT NULL
   )`,
   `CREATE TABLE IF NOT EXISTS vote_salts (
     day TEXT PRIMARY KEY,
@@ -153,6 +181,8 @@ export const onRequestPost = async ({request, env}: Context): Promise<Response> 
     }
 
     const conn = (await sha256(`${await saltOf(db, day)}:${ip}`)).slice(0, 20);
+    const sign = readSign(body.sign);
+    const signed = sign ? await signAs(db, env, request, {visitor, sign, day, conn, now}) : undefined;
     const limit = checked ? LIMIT.checked : LIMIT.unchecked;
     const today = await db
       .prepare('SELECT COUNT(*) AS n, SUM(CASE WHEN piece = ? THEN 1 ELSE 0 END) AS p FROM votes WHERE day = ? AND conn = ?')
@@ -160,17 +190,86 @@ export const onRequestPost = async ({request, env}: Context): Promise<Response> 
       .first<{n: number; p: number | null}>();
     if ((today?.n ?? 0) >= limit.day || (today?.p ?? 0) >= limit.piece) {
       // Over the limit: answered as counted, not kept.
-      return json(200, {ok: true, on: true, verified: checked});
+      return json(200, {ok: true, on: true, verified: checked, signed});
     }
     await db
       .prepare('INSERT OR IGNORE INTO votes (piece, visitor, day, conn, voted_at) VALUES (?, ?, ?, ?, ?)')
       .bind(piece, visitor, day, conn, now.toISOString())
       .run();
-    return json(200, {ok: true, on: true, verified: checked});
+    return json(200, {ok: true, on: true, verified: checked, signed});
   } catch {
     return json(500, {ok: false, message: 'That did not go through. Please try again.'});
   }
 };
+
+// New public names a connection can put before Chris in a day.
+const SIGN_EMAILS_A_DAY = 3;
+
+/*
+  Keep (or change) a person's signature. A changed public name or link goes
+  back to 'pending' and asks Chris again; an unchanged one keeps his answer.
+  Returns the status the page can tell them.
+*/
+async function signAs(
+  db: D1Database,
+  env: Env,
+  request: Request,
+  {visitor, sign, day, conn, now}: {visitor: string; sign: {name: string; link: string; public: boolean}; day: string; conn: string; now: Date},
+): Promise<string> {
+  const was = await db.prepare('SELECT name, link, status FROM vote_signers WHERE visitor = ?').bind(visitor).first<{name: string; link: string; status: string}>();
+  const same = was && was.name === sign.name && was.link === sign.link;
+  let status: string;
+  if (!sign.public) status = 'private';
+  else if (same && (was.status === 'shown' || was.status === 'hidden' || was.status === 'pending')) status = was.status;
+  else status = 'pending';
+  if (was && same && was.status === status) return status;
+
+  let mail = status === 'pending';
+  if (mail) {
+    const sent = await db
+      .prepare("SELECT COUNT(*) AS n FROM vote_signers WHERE day = ? AND conn = ? AND status = 'pending' AND visitor != ?")
+      .bind(day, conn, visitor)
+      .first<{n: number}>();
+    // Past the day's allowance from this connection: kept as private, not mailed.
+    if ((sent?.n ?? 0) >= SIGN_EMAILS_A_DAY) {
+      status = 'private';
+      mail = false;
+    }
+  }
+  await db
+    .prepare(
+      `INSERT INTO vote_signers (visitor, name, link, status, day, conn, signed_at) VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(visitor) DO UPDATE SET name = excluded.name, link = excluded.link, status = excluded.status, day = excluded.day, conn = excluded.conn, signed_at = excluded.signed_at`,
+    )
+    .bind(visitor, sign.name, sign.link, status, day, conn, now.toISOString())
+    .run();
+  if (mail) await askChris(env, request, visitor, sign).catch(() => {});
+  return status;
+}
+
+// One email per new public name: who, their link, and Show / Keep it off.
+async function askChris(env: Env, request: Request, visitor: string, sign: {name: string; link: string}) {
+  const to = (env.CONTACT_NOTIFY_EMAIL ?? '').trim();
+  const key = (env.RESEND_API_KEY ?? '').trim();
+  if (!to || !key) return;
+  const origin = new URL(request.url).origin;
+  const link = async (act: string) => `${origin}/api/endorse?v=${visitor}&do=${act}&sig=${await signLink(env, visitor, act)}`;
+  const name = escapeHtml(sign.name);
+  const site = sign.link ? `<a href="${escapeHtml(sign.link)}">${escapeHtml(sign.link)}</a>` : 'no link';
+  await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {Authorization: `Bearer ${key}`, 'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      from: env.CONTACT_FROM_EMAIL?.trim() || 'Rumeau Design Co site <onboarding@resend.dev>',
+      to,
+      subject: `${sign.name} wants their name on their votes`,
+      html:
+        `<p><strong>${name}</strong> (${site}) voted on your work and asked for their name to show beside their votes.</p>` +
+        `<p><a href="${await link('show')}">Show it</a> &nbsp;·&nbsp; <a href="${await link('hide')}">Keep it off</a></p>` +
+        `<p style="color:#666">Nothing shows until you choose. You can change your mind later from the same links.</p>`,
+    }),
+  });
+}
 
 export const onRequestGet = async ({request, env}: Context): Promise<Response> => {
   if (!env.DB) return json(503, {message: 'The database is not connected to this deployment.'}, request);

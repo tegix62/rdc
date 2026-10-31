@@ -54,11 +54,11 @@ for (const [screen, viewport] of [['desktop', {width: 1366, height: 900}], ['pho
   await tile.locator('.wd-pic').click()
   await page.waitForTimeout(900)
   const dig = page.locator('.wd-piece.is-open .vt-dig')
-  check(`${screen}, All: the open piece carries "I dig this"`, (await dig.count()) === 1 && /I dig this/i.test(await dig.innerText()), `${await dig.count()}`)
+  check(`${screen}, All: the open piece carries "Vote"`, (await dig.count()) === 1 && /^vote$/i.test((await dig.innerText()).trim()), `${await dig.count()}`)
   await dig.click()
   await page.waitForTimeout(500)
   check(`${screen}, All: pressing it votes for that piece`, sent.length >= 1 && sent[0].piece === id && sent[0].on === true && /^[a-z0-9]{16,40}$/.test(sent[0].visitor), JSON.stringify(sent[0]))
-  check(`${screen}, All: and the piece stays open, saying so`, (await page.locator('.wd-piece.is-open').getAttribute('data-piece')) === id && /You dig this/i.test(await dig.innerText()))
+  check(`${screen}, All: and the piece stays open, saying so`, (await page.locator('.wd-piece.is-open').getAttribute('data-piece')) === id && /voted/i.test(await dig.innerText()))
   const ask = page.locator('.vt-ask')
   check(`${screen}, All: after the first vote, the email is asked for once`, (await ask.count()) === 1)
   const askBox = await ask.boundingBox()
@@ -75,10 +75,10 @@ for (const [screen, viewport] of [['desktop', {width: 1366, height: 900}], ['pho
     await page.locator(`.wd-piece[data-piece="${id}"] .wd-pic`).click()
     await page.waitForTimeout(900)
   }
-  check(`${screen}: the same piece remembers the vote`, /You dig this/i.test((await page.locator('.wd-piece.is-open .vt-dig').innerText().catch(() => '')) || ''))
+  check(`${screen}: the same piece remembers the vote`, /voted/i.test((await page.locator('.wd-piece.is-open .vt-dig').innerText().catch(() => '')) || ''))
   await page.locator('.wd-piece.is-open .vt-dig').click()
   await page.waitForTimeout(400)
-  check(`${screen}: pressed again, the vote is taken back`, sent.at(-1)?.on === false && sent.at(-1)?.piece === id && /I dig this/i.test(await page.locator('.wd-piece.is-open .vt-dig').innerText()), JSON.stringify(sent.at(-1)))
+  check(`${screen}: pressed again, the vote is taken back`, sent.at(-1)?.on === false && sent.at(-1)?.piece === id && /^vote$/i.test((await page.locator('.wd-piece.is-open .vt-dig').innerText()).trim()), JSON.stringify(sent.at(-1)))
   check(`${screen}: and the email is not asked for again`, (await page.locator('.vt-ask').count()) === 0)
   await page.keyboard.press('Escape')
   await page.waitForTimeout(400)
@@ -126,12 +126,79 @@ for (const [screen, viewport] of [['desktop', {width: 1366, height: 900}], ['pho
     await page.waitForTimeout(900)
     await page.locator('.wd-piece.is-open .vt-dig').click()
     await page.waitForTimeout(400)
-    await page.fill('.vt-ask__email', 'someone@example.com')
+    await page.fill('.vt-ask input[name=email]', 'someone@example.com')
     await page.click('.vt-ask__yes')
     await page.waitForTimeout(400)
     check('the email goes to the sign-up list, marked as from votes', subs.length === 1 && subs[0].email === 'someone@example.com' && subs[0].source === 'votes', JSON.stringify(subs))
     check('and the box closes with a thank-you', (await page.locator('.vt-ask').count()) === 0 && /on the list/i.test(await page.locator('.vt-note').innerText()))
   }
+  await context.close()
+}
+
+/*
+  Signed: a fresh browser votes, puts its name on it, and the name rides on
+  its next vote; with Votes on, names from /api/endorse tag their pieces
+  and list under the open piece's button, linked, as text.
+*/
+{
+  const context = await browser.newContext({viewport: {width: 1366, height: 900}})
+  const page = await context.newPage()
+  const errors = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  const sent = []
+  await page.route('**/api/votes', async (route) => {
+    const b = JSON.parse(route.request().postData() || '{}')
+    sent.push(b)
+    await route.fulfill({json: {ok: true, on: b.on !== false, signed: b.sign ? 'pending' : undefined}})
+  })
+  await page.route('**/api/subscribe', (route) => route.fulfill({json: {ok: true}}))
+  await page.goto(`${BASE}/portfolio?view=all&seed=4187`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.waitForTimeout(1500)
+  const pieces = page.locator('.wd-piece[data-piece]:not([hidden]):not(.wd-piece--result)')
+  if (await page.locator('[data-vote]').count()) {
+    const named = await pieces.nth(2).getAttribute('data-piece')
+    await page.route('**/api/endorse', (route) =>
+      route.fulfill({json: {names: [
+        {piece: named, name: '@sam.lee', link: 'https://www.instagram.com/sam.lee/'},
+        {piece: named, name: 'Ana <b>x</b>', link: ''},
+      ]}}),
+    )
+    await page.locator('.pf-group--arrange:not(.is-away) [data-vote]').click()
+    await page.waitForTimeout(500)
+    const tag = await pieces.nth(2).locator('.vt-tag').innerText().catch(() => '')
+    check('Votes on: a piece people signed carries a tag', tag === '@sam.lee and 1 other', tag)
+    check('and the tag is gone when Votes is off', await (async () => {
+      await page.locator('.pf-group--arrange:not(.is-away) [data-vote]').click()
+      await page.waitForTimeout(200)
+      const hidden = !(await pieces.nth(2).locator('.vt-tag').isVisible())
+      await page.locator('.pf-group--arrange:not(.is-away) [data-vote]').click()
+      await page.waitForTimeout(200)
+      return hidden
+    })())
+    await pieces.nth(2).locator('.wd-pic').click()
+    await page.waitForTimeout(900)
+    const by = page.locator('.wd-piece.is-open .vt-by')
+    const byText = await by.innerText().catch(() => '')
+    check('the open piece lists them under its button, the handle linked, markup shown as text', /Voted by @sam\.lee and Ana <b>x<\/b>/.test(byText) && (await by.locator('a[href="https://www.instagram.com/sam.lee/"]').count()) === 1 && (await by.locator('b').count()) === 0, byText)
+
+    await page.locator('.wd-piece.is-open .vt-dig').click()
+    await page.waitForTimeout(400)
+    await page.fill('.vt-ask input[name=name]', '@me.here')
+    await page.fill('.vt-ask input[name=link]', 'mywork.com')
+    await page.click('.vt-ask__yes')
+    await page.waitForTimeout(400)
+    const signed = sent.find((b) => b.sign)
+    check('signing sends the name, link and public choice with the vote', signed?.sign?.name === '@me.here' && signed.sign.link === 'mywork.com' && signed.sign.public === true, JSON.stringify(signed))
+    check('and says it shows once Chris has seen it', /once Chris has seen it/i.test(await page.locator('.vt-note').innerText().catch(() => '')))
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(400)
+    await pieces.nth(5).locator('.wd-pic').click()
+    await page.waitForTimeout(900)
+    await page.locator('.wd-piece.is-open .vt-dig').click()
+    await page.waitForTimeout(300)
+    check('the next vote carries the name too, without asking again', sent.at(-1)?.sign?.name === '@me.here' && (await page.locator('.vt-ask').count()) === 0, JSON.stringify(sent.at(-1)))
+  }
+  check('signed: no script errors', errors.length === 0, errors.join(' | '))
   await context.close()
 }
 

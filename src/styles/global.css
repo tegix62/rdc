@@ -10345,6 +10345,7 @@ a.wd-pic {
   flex-wrap: wrap;
   gap: 0.5rem;
 }
+.vt-ask__field,
 .vt-ask__email {
   flex: 1 1 12rem;
   min-width: 0;
@@ -10371,6 +10372,17 @@ a.wd-pic {
   background: var(--color-white, #fff);
   color: var(--color-navy);
 }
+.vt-ask .vt-ask__row + .vt-ask__row {
+  margin-top: 0.5rem;
+}
+.vt-ask__check {
+  display: flex;
+  gap: 0.45rem;
+  align-items: baseline;
+  margin: 0.55rem 0 0;
+  font-size: 0.875rem;
+  color: var(--color-ink);
+}
 .vt-ask__small {
   margin: 0.55rem 0 0;
   color: var(--color-gray);
@@ -10389,6 +10401,49 @@ a.wd-pic {
   font: 600 0.875rem/1.3 var(--font-heading);
 }
 .vt-note[hidden] {
+  display: none;
+}
+/*
+  Signed votes, with Votes on: a small tag on each piece people put their
+  name on, and the names under the Vote button of the open piece.
+*/
+.vt-tag {
+  display: none;
+}
+.is-voting .vt-tag {
+  position: absolute;
+  z-index: 2;
+  left: 6px;
+  bottom: 6px;
+  display: block;
+  max-width: calc(100% - 12px);
+  overflow: hidden;
+  padding: 0.2rem 0.45rem;
+  background: var(--color-white, #fff);
+  border: 1px solid var(--color-navy);
+  color: var(--color-navy);
+  font: 600 0.6875rem/1.2 var(--font-heading);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+.vt-by {
+  position: absolute;
+  z-index: 3;
+  top: 52px;
+  right: 12px;
+  max-width: min(18rem, calc(100% - 24px));
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  background: var(--color-white, #fff);
+  border: 1px solid var(--color-navy);
+  color: var(--color-ink);
+  font: 500 0.8125rem/1.35 var(--font-heading);
+}
+.vt-by a {
+  color: var(--color-navy);
+}
+.pf-item:not(.is-expanded) .vt-by {
   display: none;
 }
 /* Turnstile's own box, if it ever needs a click; otherwise nothing shows. */

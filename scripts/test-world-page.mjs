@@ -267,22 +267,29 @@ for (const [name, w, h] of [
   check(`${name}: + larger tiles, - smaller, every piece still shown`, mean(bigger) > mean(before) && mean(smaller) < mean(before) && bigger.length === before.length && smaller.length === before.length, `${mean(smaller).toFixed(0)} / ${mean(before).toFixed(0)} / ${mean(bigger).toFixed(0)}px`)
   await page.click('[data-zoom="1"]')
   const seed0 = new URL(page.url()).searchParams.get('seed')
-  // Which pieces sit in the first screen of the world: a shuffle that moves whole clusters changes most of them.
-  const firstScreen = () =>
+  /*
+    Where each piece sits in reading order across the whole world (top, then
+    left). Shuffling inside fixed clusters only moves a piece a few places;
+    moving the clusters themselves moves the average piece about a third of
+    the page. Measured over the whole world, not the first screen, which on a
+    phone is a single cluster or two and so swings from run to run.
+  */
+  const places = () =>
     page.evaluate(() => {
-      const top = document.querySelector('.wd-world')?.getBoundingClientRect().top ?? 0
-      return [...document.querySelectorAll('.wd-piece[data-i]:not([hidden])')]
-        .filter((el) => el.offsetParent !== null && el.getBoundingClientRect().top - top < innerHeight)
-        .map((el) => el.dataset.i)
+      const els = [...document.querySelectorAll('.wd-piece[data-i]:not([hidden])')].filter((el) => el.offsetParent !== null)
+      const at = els.map((el) => ({i: el.dataset.i, r: el.getBoundingClientRect()}))
+      at.sort((a, z) => Math.round(a.r.top / 40) - Math.round(z.r.top / 40) || a.r.left - z.r.left)
+      return Object.fromEntries(at.map((p, n) => [p.i, n]))
     })
-  const dealt = await firstScreen()
+  const dealt = await places()
   await page.click('[data-roll]')
   await page.waitForTimeout(400)
   check(`${name}: Shuffle deals a new world`, new URL(page.url()).searchParams.get('seed') !== seed0, page.url())
   // Chris: "I'd like it to be so that shuffle can actually move the project clusters around".
-  const after = await firstScreen()
-  const kept = after.filter((i) => dealt.includes(i)).length / Math.max(1, Math.max(dealt.length, after.length))
-  check(`${name}: and the clusters themselves move - most of the first screen is other work`, kept < 0.6, `${Math.round(kept * 100)}% of the first screen the same`)
+  const after = await places()
+  const ids = Object.keys(after).filter((i) => i in dealt)
+  const moved = ids.reduce((s, i) => s + Math.abs(after[i] - dealt[i]), 0) / Math.max(1, ids.length) / Math.max(1, ids.length)
+  check(`${name}: and the clusters themselves move - pieces travel across the page, not just within their cluster`, moved > 0.15, `the average piece moved ${Math.round(moved * 100)}% of the page`)
   const k = await page.evaluate(() => Array.from(document.querySelectorAll('.wd-piece')).filter((t) => !t.hidden).findIndex((t) => t.classList.contains('wd-piece--study')))
   await page.locator('.wd-piece:not([hidden]) .wd-pic').nth(k).click({position: {x: 4, y: 4}})
   await page.waitForTimeout(600)

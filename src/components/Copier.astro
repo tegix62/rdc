@@ -13,15 +13,19 @@
       spread;
     - small type the same, far lighter, so it stays easy to read;
     - over the whole document, scrolling with it: paper grain and speckle,
-      the lid's streak down the left, and a screened toner layer that
-      flecks the blacks only;
+      the lid's streak down the left, and toner flecks on the blacks;
     - the page a touch faded.
 
   PERFORMANCE. Nothing here costs anything while the class is off: the
-  filters are referenced only under html.is-copied, and the paper layers
-  are display:none until then - not merely transparent, so they are never
-  composited. On, an SVG filter is drawn per picture, which is why it is a
-  page someone chooses, not a default.
+  filters are referenced only under html.is-copied, and the paper is
+  display:none until then. On, it was slow on a phone (Chris: "feels
+  really slow") - three page-tall layers blended over everything, and noise
+  generated inside every picture's filter, which an iPhone does on the
+  processor. So now: ONE paper layer, plain transparency, no blending; the
+  copied elements go to one ink by their own filters, not a blended layer;
+  and on a phone, pictures get the ink alone (greys, contrast, lifted black)
+  with no generated noise or spread, while headings, buttons and type keep a
+  soft edge. Desktop keeps the full effect.
 
   THE SWITCH. Layout.astro includes this once, on the preview, and the ©
   in the footer is the button ([data-copier-switch]): pressed, the whole
@@ -38,16 +42,20 @@ const {on = false} = Astro.props;
 
 const BLACK = 0.12;
 /*
-  Two sizes of each: the glow is measured in CSS pixels, so the desktop
-  one swallowed a phone's headline in a dark smear (Chris, on a phone:
-  "something about the photocopy mode doesn't look right"). On a narrow
-  screen the `-s` pair is used - about half the spread.
+  The filters. `soft` is a smooth halo, `rough` the noisy toner spread
+  (generated noise - the costly part); either can be left out. Desktop gets
+  both. A phone gets lighter ones: the glow is measured in CSS pixels, so
+  the desktop one swallowed a phone's headline in a dark smear, and the
+  noise is too slow there - pictures get the ink alone (cp-pic-s).
 */
-const FILTERS = [
+type Glow = {r: number; blur: number; dark: number};
+type Filter = {id: string; contrast: number; cut: number; soft?: Glow; rough?: Glow & {freq: number}};
+const FILTERS: Filter[] = [
   {id: 'cp-big', contrast: 1.85, cut: -0.33, soft: {r: 2.6, blur: 3.2, dark: 0.2}, rough: {r: 1.7, blur: 1.1, dark: 0.62, freq: 0.82}},
   {id: 'cp-small', contrast: 1, cut: 0, soft: {r: 0.6, blur: 1.2, dark: 0.09}, rough: {r: 0.35, blur: 0.5, dark: 0.22, freq: 1.1}},
-  {id: 'cp-big-s', contrast: 1.85, cut: -0.33, soft: {r: 1.3, blur: 1.6, dark: 0.16}, rough: {r: 0.8, blur: 0.6, dark: 0.5, freq: 1}},
-  {id: 'cp-small-s', contrast: 1, cut: 0, soft: {r: 0.3, blur: 0.6, dark: 0.06}, rough: {r: 0.2, blur: 0.3, dark: 0.14, freq: 1.3}},
+  {id: 'cp-pic-s', contrast: 1.85, cut: -0.33},
+  {id: 'cp-big-s', contrast: 1.85, cut: -0.33, soft: {r: 0, blur: 1.4, dark: 0.3}},
+  {id: 'cp-small-s', contrast: 1, cut: 0, soft: {r: 0, blur: 0.7, dark: 0.12}},
 ];
 ---
 
@@ -68,29 +76,27 @@ const FILTERS = [
           <feFuncG type="table" tableValues={`${BLACK} 1`} />
           <feFuncB type="table" tableValues={`${BLACK} 1`} />
         </feComponentTransfer>
-        <feMorphology in="SourceAlpha" operator="dilate" radius={f.soft.r} result="softGrown" />
-        <feGaussianBlur in="softGrown" stdDeviation={f.soft.blur} result="softBlur" />
-        <feFlood flood-color="#1f1f1f" flood-opacity={f.soft.dark} result="softInk" />
-        <feComposite in="softInk" in2="softBlur" operator="in" result="halo" />
-        <feMorphology in="SourceAlpha" operator="dilate" radius={f.rough.r} result="grown" />
-        <feGaussianBlur in="grown" stdDeviation={f.rough.blur} result="soft" />
-        <feTurbulence type="fractalNoise" baseFrequency={f.rough.freq} numOctaves="2" seed="7" result="noise" />
-        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 2.4 -0.9" result="grit" />
-        <feComposite in="soft" in2="grit" operator="in" result="rough" />
-        <feFlood flood-color="#1f1f1f" flood-opacity={f.rough.dark} result="roughInk" />
-        <feComposite in="roughInk" in2="rough" operator="in" result="spread" />
+        {f.soft && f.soft.r > 0 && <feMorphology in="SourceAlpha" operator="dilate" radius={f.soft.r} result="softGrown" />}
+        {f.soft && <feGaussianBlur in={f.soft.r > 0 ? 'softGrown' : 'SourceAlpha'} stdDeviation={f.soft.blur} result="softBlur" />}
+        {f.soft && <feFlood flood-color="#1f1f1f" flood-opacity={f.soft.dark} result="softInk" />}
+        {f.soft && <feComposite in="softInk" in2="softBlur" operator="in" result="halo" />}
+        {f.rough && <feMorphology in="SourceAlpha" operator="dilate" radius={f.rough.r} result="grown" />}
+        {f.rough && <feGaussianBlur in="grown" stdDeviation={f.rough.blur} result="soft" />}
+        {f.rough && <feTurbulence type="fractalNoise" baseFrequency={f.rough.freq} numOctaves="2" seed="7" result="noise" />}
+        {f.rough && <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 2.4 -0.9" result="grit" />}
+        {f.rough && <feComposite in="soft" in2="grit" operator="in" result="rough" />}
+        {f.rough && <feFlood flood-color="#1f1f1f" flood-opacity={f.rough.dark} result="roughInk" />}
+        {f.rough && <feComposite in="roughInk" in2="rough" operator="in" result="spread" />}
         <feMerge>
-          <feMergeNode in="halo" />
-          <feMergeNode in="spread" />
+          {f.soft && <feMergeNode in="halo" />}
+          {f.rough && <feMergeNode in="spread" />}
           <feMergeNode in="ink" />
         </feMerge>
       </filter>
     ))}
   </defs>
 </svg>
-<div class="copier-ink" aria-hidden="true"></div>
 <div class="copier-paper" aria-hidden="true"></div>
-<div class="copier-toner" aria-hidden="true"></div>
 
 <style is:global>
   .copier-defs {
@@ -108,83 +114,62 @@ const FILTERS = [
     margin: 0;
     cursor: pointer;
   }
-  .copier-ink,
-  .copier-paper,
-  .copier-toner {
+  .copier-paper {
     display: none;
   }
   /*
-    Over the whole document, scrolling with it: the layers sit on the body
-    and take its box, so they are always exactly as tall as the page. They
-    were once sized from a measurement of the page's height - which counted
-    the layers themselves, so a page that shrank after the first measure
-    (the homepage, settling on a phone) was held open by its own paper.
-    Chris: "on mobile, the page extends very, very long into empty grain."
+    The paper, over the whole document and scrolling with it: one layer on
+    the body, taking its box, so it is always exactly as tall as the page
+    (sized once from a measurement, it held a shrinking page open - "the
+    page extends very, very long into empty grain"). Plain transparency, no
+    blending, so a phone does not re-blend the whole page as it scrolls.
+
+    In it, top to bottom: the lid's streak down the left; toner flecks -
+    white, so they only show on the blacks; dark speckle; paper fibres; a
+    faint warm tint. Each texture is drawn at three times the size it is
+    shown, so a sharp screen gets crisp grain, not a stretched tile.
   */
   html.is-copied body {
     position: relative;
   }
-  html.is-copied .copier-ink,
-  html.is-copied .copier-paper,
-  html.is-copied .copier-toner {
+  html.is-copied .copier-paper {
     display: block;
     position: absolute;
     inset: 0;
     z-index: 1000;
     pointer-events: none;
-  }
-  /*
-    One ink: a grey layer blended by saturation takes the colour out of
-    everything under it - the navy nav, buttons and play marks too, which
-    the filters never reach. A copier cannot keep a colour.
-  */
-  html.is-copied .copier-ink {
-    background: #808080;
-    mix-blend-mode: saturation;
-  }
-  /*
-    The paper. Each texture is drawn at three times the size it is shown
-    and scaled down, so a sharp screen gets crisp grain rather than a small
-    tile stretched up (Chris, on a phone: the grain "looks like it's not as
-    high caliber as the rest of the effect").
-  */
-  html.is-copied .copier-paper {
     opacity: 0.78;
     background:
       linear-gradient(90deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0) 2.2%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='720' height='720'><filter id='t'><feTurbulence type='fractalNoise' baseFrequency='0.2167' numOctaves='2' seed='13'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.95 -0.49'/></filter><rect width='100%' height='100%' filter='url(%23t)'/></svg>"),
       url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='900'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.3833' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 3.2 -1.95'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
       url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='1200'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='0.006 0.2' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.43  0 0 0 0 0.4  0 0 0 0.22 0'/></filter><rect width='100%' height='100%' filter='url(%23p)'/></svg>"),
-      rgba(236, 233, 226, 0.35);
-    background-size: auto, 300px 300px, 600px 600px, auto;
-    mix-blend-mode: multiply;
-  }
-  html.is-copied .copier-toner {
-    opacity: 0.22;
-    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='720' height='720'><filter id='t'><feTurbulence type='fractalNoise' baseFrequency='0.2167' numOctaves='2' seed='13'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 3.4 -1.75'/></filter><rect width='100%' height='100%' filter='url(%23t)'/></svg>");
-    background-size: 240px 240px;
-    mix-blend-mode: screen;
+      rgba(236, 233, 226, 0.12);
+    background-size: auto, 240px 240px, 300px 300px, 600px 600px, auto;
   }
   /*
     What is copied: pictures and headings with the full glow; small type
     with the light one; and - Chris: "the effect should apply to everything
     that we can, like including the buttons ... and like lines between
     sections" - the nav and the footer whole (their links, logo and rules),
-    and every button, card and control whole, its frame with it. Nothing is
-    copied twice: text inside a button or card goes with it, and a button
-    inside a paragraph goes with the button. A button or card that holds a
-    picture (every piece on the portfolio is one), or a list item that does,
-    is left to its picture; a button inside a card goes with the card.
+    and every button, card and control whole, its frame with it. Each goes
+    to one ink by its own filter. Nothing is copied twice: text inside a
+    button or card goes with it, a button inside a paragraph goes with the
+    button, a button inside a card goes with the card, and a button, card or
+    list item holding a picture is left to its picture.
   */
   html.is-copied .site-nav {
     background: transparent;
   }
-  html.is-copied main :is(img, video),
-  html.is-copied main :is(h1, h2, h3, h4):not(:is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select) *),
-  html.is-copied main :is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select):not(:is(p, li, dt, dd, figcaption, td, small, blockquote, label, h1, h2, h3, h4):not(:has(button, .button)) *):not(:is(.wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts) *):not(:has(img, video)),
+  html.is-copied main :is(img, video) {
+    filter: url(#cp-big);
+  }
+  html.is-copied main :is(h1, h2, h3, h4):not(:is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, .wd-jump, .wd-play, .pf-play, .video__play, input, textarea, select) *),
+  html.is-copied main :is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, .wd-jump, .wd-play, .pf-play, .video__play, input, textarea, select):not(:is(p, li, dt, dd, figcaption, td, small, blockquote, label, h1, h2, h3, h4):not(:has(button, .button)) *):not(:is(.wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts) *):not(:has(img, video)),
   html.is-copied .copier-big {
     filter: url(#cp-big);
   }
-  html.is-copied main :is(p, li, dt, dd, figcaption, td, small, blockquote, label):not(:is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select) *):not(:has(button, .button, img, video)),
+  html.is-copied main :is(p, li, dt, dd, figcaption, td, small, blockquote, label):not(:is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, .wd-jump, .wd-play, .pf-play, .video__play, input, textarea, select) *):not(:has(button, .button, img, video)),
   html.is-copied :is(.site-nav, .site-footer),
   html.is-copied .copier-small {
     filter: url(#cp-small);
@@ -192,34 +177,31 @@ const FILTERS = [
   html.is-copied main {
     opacity: 0.94;
   }
-  /* A phone: half the glow, and the grain finer, so it reads as paper, not snow. */
+  /* A phone: the light filters, and the grain finer, so it reads as paper, not snow. */
   @media (max-width: 47.99rem) {
-    html.is-copied main :is(img, video),
-    html.is-copied main :is(h1, h2, h3, h4):not(:is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select) *),
-    html.is-copied main :is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select):not(:is(p, li, dt, dd, figcaption, td, small, blockquote, label, h1, h2, h3, h4):not(:has(button, .button)) *):not(:is(.wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts) *):not(:has(img, video)),
+    html.is-copied main :is(img, video) {
+      filter: url(#cp-pic-s);
+    }
+    html.is-copied main :is(h1, h2, h3, h4):not(:is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, .wd-jump, .wd-play, .pf-play, .video__play, input, textarea, select) *),
+    html.is-copied main :is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, .wd-jump, .wd-play, .pf-play, .video__play, input, textarea, select):not(:is(p, li, dt, dd, figcaption, td, small, blockquote, label, h1, h2, h3, h4):not(:has(button, .button)) *):not(:is(.wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts) *):not(:has(img, video)),
     html.is-copied .copier-big {
       filter: url(#cp-big-s);
     }
-    html.is-copied main :is(p, li, dt, dd, figcaption, td, small, blockquote, label):not(:is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select) *):not(:has(button, .button, img, video)),
+    html.is-copied main :is(p, li, dt, dd, figcaption, td, small, blockquote, label):not(:is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, .wd-jump, .wd-play, .pf-play, .video__play, input, textarea, select) *):not(:has(button, .button, img, video)),
     html.is-copied :is(.site-nav, .site-footer),
     html.is-copied .copier-small {
       filter: url(#cp-small-s);
     }
-
     html.is-copied .copier-paper {
       opacity: 0.6;
-      background-size: auto, 170px 170px, 340px 340px, auto;
-    }
-    html.is-copied .copier-toner {
-      opacity: 0.16;
-      background-size: 140px 140px;
+      background-size: auto, 140px 140px, 170px 170px, 340px 340px, auto;
     }
   }
 </style>
 
 <script>
-  // The paper and toner over the whole document: moved to the body, whose box they take.
-  document.querySelectorAll<HTMLElement>('.copier-ink, .copier-paper, .copier-toner').forEach((l) => document.body.append(l));
+  // The paper over the whole document: moved to the body, whose box it takes.
+  document.querySelectorAll<HTMLElement>('.copier-paper').forEach((l) => document.body.append(l));
 
   // The © in the footer: copied or not, remembered for this visitor.
   const html = document.documentElement;

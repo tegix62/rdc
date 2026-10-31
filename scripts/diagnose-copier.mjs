@@ -38,7 +38,6 @@ for (const [name, viewport] of [['desktop', {width: 1440, height: 900}], ['phone
         paperHeight: paper && Math.round(paper.getBoundingClientRect().height),
         pageHeight: document.documentElement.scrollHeight,
         paperOnBody: paper?.parentElement === document.body,
-        toner: getComputedStyle(document.querySelector('.copier-toner') ?? document.body).opacity,
         smallFilter: getComputedStyle(document.querySelector('.cp-name') ?? document.body).filter,
         paperBg: paper && getComputedStyle(paper).backgroundImage.slice(0, 120),
         filters: [...document.querySelectorAll('filter')].map((f) => f.id),
@@ -99,6 +98,42 @@ for (const [name, viewport] of [['desktop', {width: 1440, height: 900}], ['phone
       }
     })
     await page.screenshot({path: `${OUT}/site-${name}-${tag}.png`})
+  }
+  await page.close()
+}
+/*
+  How it scrolls: a phone with its processor slowed four times (closer to
+  an older iPhone than a CI machine is), scrolling each page for three
+  seconds, copier off and on. Frames a second, and the share of frames
+  that took over 50ms (a visible hitch). Chris: "feels really slow".
+*/
+report.scroll = {}
+for (const copied of ['0', '1']) {
+  const page = await browser.newPage({viewport: {width: 390, height: 844}, deviceScaleFactor: 3, isMobile: true, hasTouch: true})
+  await page.addInitScript((v) => localStorage.setItem('rdc-copied', v), copied)
+  const cdp = await page.context().newCDPSession(page)
+  for (const path of ['/', '/portfolio']) {
+    await page.goto(`${BASE}${path}`, {waitUntil: 'networkidle', timeout: 90_000})
+    await page.waitForTimeout(1500)
+    await cdp.send('Emulation.setCPUThrottlingRate', {rate: 4})
+    const r = await page.evaluate(
+      () =>
+        new Promise((done) => {
+          const times = []
+          const start = performance.now()
+          let last = start
+          const step = (t) => {
+            times.push(t - last)
+            last = t
+            scrollBy(0, 12)
+            if (t - start < 3000) requestAnimationFrame(step)
+            else done({fps: Math.round((times.length / (t - start)) * 1000), slow: Math.round((times.filter((d) => d > 50).length / times.length) * 100)})
+          }
+          requestAnimationFrame(step)
+        }),
+    )
+    await cdp.send('Emulation.setCPUThrottlingRate', {rate: 1})
+    report.scroll[`${path} copier ${copied === '1' ? 'on' : 'off'}`] = `${r.fps} fps, ${r.slow}% of frames over 50ms`
   }
   await page.close()
 }

@@ -113,15 +113,23 @@ const FILTERS = [
   .copier-toner {
     display: none;
   }
+  /*
+    Over the whole document, scrolling with it: the layers sit on the body
+    and take its box, so they are always exactly as tall as the page. They
+    were once sized from a measurement of the page's height - which counted
+    the layers themselves, so a page that shrank after the first measure
+    (the homepage, settling on a phone) was held open by its own paper.
+    Chris: "on mobile, the page extends very, very long into empty grain."
+  */
+  html.is-copied body {
+    position: relative;
+  }
   html.is-copied .copier-ink,
   html.is-copied .copier-paper,
   html.is-copied .copier-toner {
     display: block;
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: var(--copier-h, 100%);
+    inset: 0;
     z-index: 1000;
     pointer-events: none;
   }
@@ -210,12 +218,8 @@ const FILTERS = [
 </style>
 
 <script>
-  // The paper and toner over the whole document: on the body, as tall as the page.
-  const layers = document.querySelectorAll<HTMLElement>('.copier-ink, .copier-paper, .copier-toner');
-  const fit = () => layers.forEach((l) => l.style.setProperty('--copier-h', `${document.documentElement.scrollHeight}px`));
-  layers.forEach((l) => document.body.append(l));
-  fit();
-  new ResizeObserver(fit).observe(document.body);
+  // The paper and toner over the whole document: moved to the body, whose box they take.
+  document.querySelectorAll<HTMLElement>('.copier-ink, .copier-paper, .copier-toner').forEach((l) => document.body.append(l));
 
   // The © in the footer: copied or not, remembered for this visitor.
   const html = document.documentElement;
@@ -228,7 +232,6 @@ const FILTERS = [
         localStorage.setItem('rdc-copied', on ? '1' : '0');
       } catch {}
       show();
-      fit();
     }),
   );
   show();

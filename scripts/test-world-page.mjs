@@ -649,6 +649,15 @@ for (const [name, w, h] of [
       }
     })
     check('copier: pressed, the site is copied, the paper over the whole page', on.copied && on.paper === 'block' && on.tall && /cp-big/.test(on.img), JSON.stringify(on))
+    // Chris: "on mobile, the page extends very, very long into empty grain" - the paper must never make the page taller.
+    for (const [vw, vh] of [[390, 844], [1440, 900]]) {
+      await page.setViewportSize({width: vw, height: vh})
+      await page.goto(`${BASE}/`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+      await page.waitForTimeout(1500)
+      const copied = await page.evaluate(() => ({doc: document.documentElement.scrollHeight, foot: Math.round(document.querySelector('.site-footer').getBoundingClientRect().bottom + scrollY)}))
+      check(`copier, ${vw}px: the page ends at the footer, no empty grain past it`, copied.doc - copied.foot <= 2, JSON.stringify(copied))
+    }
+    await page.setViewportSize({width: 1440, height: 900})
     await page.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60_000})
     await page.waitForTimeout(500)
     check('copier: and still copied on the next page', await page.evaluate(() => document.documentElement.classList.contains('is-copied')))

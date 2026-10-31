@@ -163,8 +163,16 @@ for (const [screen, viewport] of [['desktop', {width: 1366, height: 900}], ['pho
         {piece: named, name: 'Ana <b>x</b>', link: ''},
       ]}}),
     )
+    let endorseHits = 0
+    page.on('request', (r) => r.url().includes('/api/endorse') && endorseHits++)
+    await page.evaluate(() => {
+      const f = window.fetch.bind(window)
+      window.__calls = []
+      window.fetch = (...a) => (window.__calls.push(String(a[0])), f(...a))
+    })
     await page.locator('.pf-group--arrange:not(.is-away) [data-vote]').click()
-    await page.waitForTimeout(500)
+    await page.waitForTimeout(800)
+    console.log('      debug', JSON.stringify(await page.evaluate(() => ({calls: window.__calls, voting: document.documentElement.classList.contains('is-voting'), pieces: document.querySelectorAll('.wd-piece[data-piece]').length}))), 'hits', endorseHits)
     const tag = await pieces.nth(2).locator('.vt-tag').innerText({timeout: 3000}).catch(() => '')
     const seen = await page.evaluate(() => ({tags: document.querySelectorAll('.vt-tag').length, asked: performance.getEntriesByType('resource').filter((e) => e.name.includes('/api/endorse')).map((e) => e.name)}))
     check('Votes on: a piece people signed carries a tag', tag === '@sam.lee and 1 other', `${tag || '(none)'} ${JSON.stringify(seen)} named=${named}`)

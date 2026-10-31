@@ -1,0 +1,290 @@
+---
+/*
+  AN ISSUE - preview only, at /next/issue/latest: the homepage as a
+  seasonal issue. Chris: "Seasonal issues is a good idea. It would take a
+  lot of effort, though." So an issue is as little as it can be: a cover he
+  makes, a number and a season, a few lines, and work he picks - nothing
+  written up per piece (Studio > Issue).
+
+  The newest issue is laid out like a cover and its contents: the cover
+  large with the masthead over it, the contents listed beside it, his note,
+  then the work. Older issues sit at the foot as a row of covers. Until
+  there is an issue, Issue 1 is mocked from what exists - the homepage's
+  lead piece as the cover, the season from today's date, the newest pieces
+  as the work - marked DRAFT.
+
+  Never built for production (getStaticPaths), and noindex.
+*/
+import Layout from '../../../layouts/Layout.astro';
+import Img from '../../../components/Img.astro';
+import {sanityClient} from '../../../lib/sanity';
+import {getSiteSettings, getAllGridItems} from '../../../lib/queries';
+import {tileImage, hasAsset} from '../../../lib/image';
+import {tileHref} from '../../../lib/tiles';
+import {stripStegaKey} from '../../../lib/stega';
+
+export async function getStaticPaths() {
+  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
+  return [{params: {page: 'latest'}}];
+}
+
+const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
+const WORK = `{_id, title, slug, pageType, thumbnail, mainImage, year, client,
+  "parentSlug": parentBrand->slug.current, "parentType": parentBrand->pageType, "parentTitle": parentBrand->title}`;
+
+const issues: any[] = await sanityClient.fetch(`*[_type == "issue"] | order(number desc){..., "work": work[]->${WORK}}`);
+const draft = issues.length === 0;
+
+const season = () => {
+  const d = new Date();
+  const m = d.getUTCMonth();
+  const name = m < 2 || m === 11 ? 'Winter' : m < 5 ? 'Spring' : m < 8 ? 'Summer' : 'Fall';
+  return `${name} ${m === 11 ? d.getUTCFullYear() + 1 : d.getUTCFullYear()}`;
+};
+
+let issue: {number: number; season: string; cover: any; note: string; work: any[]};
+if (!draft) {
+  const i = issues[0];
+  issue = {number: i.number, season: clean(i.season), cover: hasAsset(i.cover) ? i.cover : null, note: stripStegaKey(i.note).trim(), work: (i.work ?? []).filter((w: any) => w && tileImage(w))};
+} else {
+  const settings = await getSiteSettings();
+  const lead = settings?.homeLead?._ref
+    ? await sanityClient.fetch(`*[_id == $id][0]${WORK}`, {id: settings.homeLead._ref})
+    : null;
+  const all = ((await getAllGridItems()) as any[]).filter((w) => tileImage(w));
+  const newest = [...all].sort((a, z) => (z.year ?? 0) - (a.year ?? 0)).slice(0, 8);
+  issue = {
+    number: 1,
+    season: season(),
+    cover: lead && tileImage(lead) ? tileImage(lead) : tileImage(newest[0]),
+    note: '',
+    work: newest,
+  };
+}
+const paragraphs = issue.note ? issue.note.split(/\n{2,}/) : [];
+const past = issues.slice(1).filter((i) => hasAsset(i.cover));
+---
+
+<Layout title={`Issue ${issue.number}, ${issue.season} - Rumeau Design Co`} description="The work, as a seasonal issue." noindex>
+  <article class="is">
+    {draft && (
+      <p class="is-note">
+        DRAFT - no issue made yet, so Issue 1 is mocked from the homepage's lead piece and the newest work. Make one in
+        Studio under Issue.
+      </p>
+    )}
+
+    <div class="is-front">
+      <div class="is-cover">
+        {issue.cover && <Img image={issue.cover} alt={`Cover of issue ${issue.number}`} width={1400} sizes="(min-width: 48rem) 55vw, 100vw" loading="eager" />}
+        <div class="is-mast">
+          <span class="is-name">Rumeau</span>
+          <span class="is-no">No. {String(issue.number).padStart(2, '0')} · {issue.season}</span>
+        </div>
+      </div>
+
+      <div class="is-contents">
+        <h1>Issue {issue.number}</h1>
+        <p class="is-season">{issue.season}</p>
+        {paragraphs.length ? (
+          <div class="is-words">{paragraphs.map((p) => <p>{p}</p>)}</div>
+        ) : (
+          <div class="is-words is-words--draft">
+            <p>DRAFT - A few lines from you: what the season was, what you made, what's next.</p>
+          </div>
+        )}
+        <h2 class="is-in">In this issue</h2>
+        <ol class="is-list">
+          {issue.work.map((w, i) => (
+            <li>
+              <span class="is-page">{String(i + 1).padStart(2, '0')}</span>
+              <a href={tileHref(w) ?? `#w${i}`}>{clean(w.title)}</a>
+              {clean(w.parentTitle || w.client) && <span class="is-for">{clean(w.parentTitle || w.client)}</span>}
+            </li>
+          ))}
+        </ol>
+      </div>
+    </div>
+
+    <ul class="is-work">
+      {issue.work.map((w, i) => (
+        <li id={`w${i}`}>
+          <Img image={tileImage(w)} alt={clean(w.title)} width={900} sizes="(min-width: 48rem) 33vw, 50vw" loading="lazy" />
+          <span><b>{String(i + 1).padStart(2, '0')}</b> {clean(w.title)}</span>
+        </li>
+      ))}
+    </ul>
+
+    {past.length > 0 && (
+      <section class="is-past" aria-label="Past issues">
+        <h2>Past issues</h2>
+        <ul>
+          {past.map((p) => (
+            <li>
+              <Img image={p.cover} alt={`Cover of issue ${p.number}`} width={400} sizes="10rem" loading="lazy" />
+              <span>No. {String(p.number).padStart(2, '0')} · {clean(p.season)}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+  </article>
+</Layout>
+
+<style>
+  .is {
+    max-width: 84rem;
+    margin: 0 auto;
+    padding: var(--space-4, 1.5rem) var(--space-4, 1.5rem) var(--space-6, 4rem);
+  }
+  .is-note {
+    color: #b00;
+    font-size: 0.875rem;
+    margin: 0 0 1rem;
+  }
+  .is-front {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 2.5rem;
+    align-items: start;
+    margin-bottom: 3rem;
+  }
+  .is-cover {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    background: var(--color-navy);
+  }
+  .is-cover :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .is-mast {
+    position: absolute;
+    inset: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 1.25rem;
+    color: #fff;
+    background: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0));
+  }
+  .is-name {
+    font: 800 clamp(3rem, 9vw, 7.5rem) / 0.82 var(--font-heading);
+    letter-spacing: -0.05em;
+    text-transform: uppercase;
+  }
+  .is-no {
+    margin-top: 0.5rem;
+    font: 700 0.8125rem/1 var(--font-heading);
+    letter-spacing: var(--label-track, 0.06em);
+    text-transform: uppercase;
+  }
+  .is-contents h1 {
+    margin: 0;
+    font: 800 clamp(2rem, 4vw, 3rem) / 1 var(--font-heading);
+    letter-spacing: -0.03em;
+    color: var(--color-navy);
+  }
+  .is-season {
+    margin: 0.25rem 0 1.25rem;
+    color: var(--color-gray);
+  }
+  .is-words p {
+    font-size: 1.0625rem;
+    line-height: 1.6;
+  }
+  .is-words--draft {
+    color: var(--color-gray);
+  }
+  .is-in {
+    margin: 1.75rem 0 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--color-navy);
+    font: 700 0.75rem/1 var(--font-heading);
+    letter-spacing: var(--label-track, 0.06em);
+    text-transform: uppercase;
+    color: var(--color-navy);
+  }
+  .is-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .is-list li {
+    display: grid;
+    grid-template-columns: 2.25rem 1fr auto;
+    gap: 0.5rem;
+    align-items: baseline;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .is-page {
+    font: 700 0.8125rem/1 var(--font-heading);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-gray);
+  }
+  .is-list a {
+    color: var(--color-ink);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .is-for {
+    font-size: 0.8125rem;
+    color: var(--color-gray);
+  }
+  .is-work {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .is-work :global(img) {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    background: var(--color-gray-light);
+  }
+  .is-work span {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.875rem;
+  }
+  .is-past h2 {
+    font: 800 1.25rem/1 var(--font-heading);
+    margin: 3rem 0 1rem;
+  }
+  .is-past ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+  }
+  .is-past li {
+    flex: 0 0 10rem;
+  }
+  .is-past :global(img) {
+    display: block;
+    width: 10rem;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+  }
+  .is-past span {
+    font-size: 0.8125rem;
+  }
+  @media (max-width: 47.99rem) {
+    .is-front {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+    .is-work {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>

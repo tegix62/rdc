@@ -35,6 +35,7 @@ const closes = settings?.freeCloses
   ? new Date(`${settings.freeCloses}T12:00:00Z`).toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})
   : '';
 const intro = stripStegaKey(settings?.freeIntro).trim();
+const paragraphs = intro ? intro.split(/\n{2,}/) : [];
 const form = clean(settings?.freeFormUrl) || clean(settings?.contactUrl) || '/contact';
 const past: any[] = settings?.freePast?.length
   ? await sanityClient.fetch(`*[_id in $ids]{_id, title, slug, pageType, thumbnail, mainImage, year}`, {
@@ -48,7 +49,7 @@ const past: any[] = settings?.freePast?.length
     <p class="fo-year">{year}</p>
     <h1>One a year, for free.</h1>
     {intro ? (
-      <div class="fo-words">{intro.split(/\n{2,}/).map((p) => <p>{p}</p>)}</div>
+      <div class="fo-words">{paragraphs.map((p) => <p>{p}</p>)}</div>
     ) : (
       <div class="fo-words fo-words--draft">
         <p>
@@ -64,17 +65,10 @@ const past: any[] = settings?.freePast?.length
     )}
 
     <div class="fo-go">
-      {open ? (
-        <>
-          <a class="button" href={form}>Tell me your story</a>
-          {closes && <p class="fo-when">Stories close {closes}.</p>}
-          {unset && <p class="fo-when"><em>DRAFT - open or closed is Site Settings &gt; Booking &gt; "taking stories now"</em></p>}
-        </>
-      ) : (
-        <p class="fo-when">
-          Not taking stories right now.
-        </p>
-      )}
+      {open && <a class="button" href={form}>Tell me your story</a>}
+      {open && closes && <p class="fo-when">Stories close {closes}.</p>}
+      {open && unset && <p class="fo-when"><em>DRAFT - open or closed is Site Settings &gt; Booking &gt; "taking stories now"</em></p>}
+      {!open && <p class="fo-when">Not taking stories right now.</p>}
     </div>
 
     <dl class="fo-how">

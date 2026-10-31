@@ -20,12 +20,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      # Blank pictures, as every test browser (scripts/test-workflows-no-pictures.mjs):
+      # the copier's look on real pictures was settled with screenshot-pages.
+      - run: echo "NODE_OPTIONS=--import=$GITHUB_WORKSPACE/scripts/lib/test-images-off.mjs" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - run: npm install --no-save playwright@1.56.0
       - run: npx playwright install --with-deps chromium
-      # Real pictures: the effect is on their pixels. They come from R2, so no Function runs.
       - run: node scripts/diagnose-copier.mjs "${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}" /tmp/shots
       - name: Push the pictures to the shots branch
         run: |

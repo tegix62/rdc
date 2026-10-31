@@ -1,6 +1,13 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { getSiteSettings } from '../lib/queries';
+import Copier from '../components/Copier.astro';
+
+/*
+  Lost in the copier: the 404 as a photocopy (src/components/Copier.astro).
+  Chris: "Sure let's do it." Preview first, like everything new.
+*/
+const COPIED = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
 
 const settings = await getSiteSettings();
 const CONTACT_URL = settings?.contactUrl || '/contact';
@@ -22,7 +29,11 @@ const routes = [
 >
   <div class="not-found">
     <p class="not-found__code">404</p>
-    <h1 class="not-found__heading">Nothing here.</h1>
+    {COPIED ? (
+      <h1 class="not-found__heading">Lost in the copier.</h1>
+    ) : (
+      <h1 class="not-found__heading">Nothing here.</h1>
+    )}
     <p class="not-found__body">
       That page has moved or never existed. The work is all still here&ndash;pick a lane.
     </p>
@@ -37,6 +48,7 @@ const routes = [
       Or just <a href={CONTACT_URL}>tell me what you were looking for</a>.
     </p>
   </div>
+  {COPIED && <Copier on />}
 </Layout>
 
 <style>

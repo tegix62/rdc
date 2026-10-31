@@ -1,39 +1,15 @@
 ---
 /*
-  COPIER MODE - preview only, at /next/copier/mode. Chris: "we'd need to
-  introduce like some kind of deeper effect, like doing a slight noisy
-  black outer glow on everything, or giving a minor fade across the whole
-  thing, and then introducing like a paper or a photocopy texture."
-
-  Second pass, after seeing three generations: "one setting that is a
-  halfway point in intensity between the two ... make sure the
-  texture/background spans the whole page ... be mindful of legibility of
-  smaller text ... the black point of everything can get pushed a smidge
-  up, like we don't have pure black ... another texture on top that affects
-  the blacks slightly. The outer glow is effective and should be leaned
-  into. Maybe try a non-noise one combined with noise."
-
-  So one switch, Original / Copied. Copied:
-
-    - pictures to one ink, contrast pushed, and the black point lifted so
-      nothing is pure black (#1f1f1f at the darkest);
-    - round every picture and every heading, two glows: a smooth soft halo
-      of spread toner, and over it the rough noisy one, broken up by grain;
-    - small type (captions, the paragraph) gets the same glow far lighter,
-      so it stays easy to read;
-    - over the whole page, header and footer included, scrolling with it
-      as paper would: paper grain and speckle, a dark streak down the
-      left edge where the lid was open, and a toner layer that flecks the
-      blacks with grey - it only lightens, so the whites are untouched;
-    - the page a touch faded and a fraction crooked.
-
-  SVG filters and CSS only, made in the browser: no texture files. The
-  noise is fixed (one seed), so it does not crawl.
+  COPIER MODE - preview only, at /next/copier/mode: a sample of the
+  portfolio and its words, with the switch. The look itself lives in
+  src/components/Copier.astro, shared with the 404 ("lost in the copier")
+  and, later, the site's secret button - so tuning it here tunes it there.
 
   Never built for production (getStaticPaths), and noindex.
 */
 import Layout from '../../../layouts/Layout.astro';
 import Img from '../../../components/Img.astro';
+import Copier from '../../../components/Copier.astro';
 import {getAllGridItems} from '../../../lib/queries';
 import {tileImage} from '../../../lib/image';
 import {stripStegaKey} from '../../../lib/stega';
@@ -48,97 +24,34 @@ const all = ((await getAllGridItems()) as any[]).filter((it) => tileImage(it));
 // A spread of the work: every few pieces, so it is not all one project.
 const step = Math.max(1, Math.floor(all.length / 12));
 const pieces = all.filter((_, i) => i % step === 0).slice(0, 12);
-
-/*
-  The two filters. `big` for pictures and headings: the full glow. `small`
-  for small type: a quarter of the spread, so letters do not fill in.
-  Halfway between the first pass's "Copy" and "Copy of a copy", glow leaned
-  into. BLACK lifts the darkest ink off pure black.
-*/
-const BLACK = 0.12;
-const FILTERS = [
-  {id: 'cp-big', contrast: 1.85, cut: -0.33, soft: {r: 2.6, blur: 3.2, dark: 0.2}, rough: {r: 1.7, blur: 1.1, dark: 0.62, freq: 0.82}},
-  {id: 'cp-small', contrast: 1, cut: 0, soft: {r: 0.6, blur: 1.2, dark: 0.09}, rough: {r: 0.35, blur: 0.5, dark: 0.22, freq: 1.1}},
-];
 ---
 
 <Layout title="Copier mode - Rumeau Design Co" description="The portfolio, photocopied." noindex>
-  <svg class="cp-defs" aria-hidden="true" width="0" height="0">
-    <defs>
-      {FILTERS.map((f) => (
-        <filter id={f.id} x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
-          {/* One ink, contrast pushed, the black point lifted. */}
-          <feColorMatrix in="SourceGraphic" type="saturate" values="0" result="grey" />
-          <feComponentTransfer in="grey" result="pushed">
-            <feFuncR type="linear" slope={f.contrast} intercept={f.cut} />
-            <feFuncG type="linear" slope={f.contrast} intercept={f.cut} />
-            <feFuncB type="linear" slope={f.contrast} intercept={f.cut} />
-          </feComponentTransfer>
-          <feComponentTransfer in="pushed" result="ink">
-            <feFuncR type="table" tableValues={`${BLACK} 1`} />
-            <feFuncG type="table" tableValues={`${BLACK} 1`} />
-            <feFuncB type="table" tableValues={`${BLACK} 1`} />
-          </feComponentTransfer>
-          {/* The smooth halo: the shape grown and softened, no grain. */}
-          <feMorphology in="SourceAlpha" operator="dilate" radius={f.soft.r} result="softGrown" />
-          <feGaussianBlur in="softGrown" stdDeviation={f.soft.blur} result="softBlur" />
-          <feFlood flood-color="#1f1f1f" flood-opacity={f.soft.dark} result="softInk" />
-          <feComposite in="softInk" in2="softBlur" operator="in" result="halo" />
-          {/* The toner's spread: grown, softened, broken up by noise. */}
-          <feMorphology in="SourceAlpha" operator="dilate" radius={f.rough.r} result="grown" />
-          <feGaussianBlur in="grown" stdDeviation={f.rough.blur} result="soft" />
-          <feTurbulence type="fractalNoise" baseFrequency={f.rough.freq} numOctaves="2" seed="7" result="noise" />
-          <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 2.4 -0.9" result="grit" />
-          <feComposite in="soft" in2="grit" operator="in" result="rough" />
-          <feFlood flood-color="#1f1f1f" flood-opacity={f.rough.dark} result="roughInk" />
-          <feComposite in="roughInk" in2="rough" operator="in" result="spread" />
-          <feMerge>
-            <feMergeNode in="halo" />
-            <feMergeNode in="spread" />
-            <feMergeNode in="ink" />
-          </feMerge>
-        </filter>
-      ))}
-    </defs>
-  </svg>
-
-  <div class="cp" data-copier data-gen="0">
+  <div class="cp">
     <div class="cp-bar" role="group" aria-label="Copier">
-      <button type="button" data-set="0" aria-pressed="true">Original</button>
-      <button type="button" data-set="1" aria-pressed="false">Copied</button>
+      <button type="button" data-copy="off" aria-pressed="true">Original</button>
+      <button type="button" data-copy="on" aria-pressed="false">Copied</button>
     </div>
 
-    <div class="cp-sheet">
-      <header class="cp-head">
-        <h1 class="cp-big">Brand identity &amp; merch, for heritage apparel brands and musicians.</h1>
-        <p class="cp-small">
-          A sample of the portfolio and its words, run through the copier. The pictures, the type and the paper all go
-          together.
-        </p>
-      </header>
-      <ul class="cp-grid">
-        {pieces.map((p) => (
-          <li>
-            <Img image={tileImage(p)} alt={clean(p.title)} width={600} sizes="(min-width: 48rem) 25vw, 50vw" loading="lazy" />
-            <span class="cp-small cp-name">{clean(p.title)}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <header class="cp-head">
+      <h1>Brand identity &amp; merch, for heritage apparel brands and musicians.</h1>
+      <p>A sample of the portfolio and its words, run through the copier. The pictures, the type and the paper all go together.</p>
+    </header>
+    <ul class="cp-grid">
+      {pieces.map((p) => (
+        <li>
+          <Img image={tileImage(p)} alt={clean(p.title)} width={600} sizes="(min-width: 48rem) 25vw, 50vw" loading="lazy" />
+          <span class="cp-name copier-small">{clean(p.title)}</span>
+        </li>
+      ))}
+    </ul>
   </div>
-
-  {/* Over the whole page, fixed: the paper, and the toner that flecks the blacks. */}
-  <div class="cp-paper" aria-hidden="true"></div>
-  <div class="cp-toner" aria-hidden="true"></div>
+  <Copier />
 </Layout>
 
 <style>
-  .cp-defs {
-    position: absolute;
-  }
   .cp {
-    position: relative;
-    padding: var(--space-4, 1.5rem) var(--space-4, 1.5rem) var(--space-6, 4rem);
+    padding: var(--space-4, 1.5rem) 0 var(--space-6, 4rem);
   }
   .cp-bar {
     position: sticky;
@@ -164,10 +77,6 @@ const FILTERS = [
   .cp-bar button[aria-pressed='true'] {
     background: var(--color-navy);
     color: #fff;
-  }
-  .cp-sheet {
-    transform-origin: 50% 0;
-    transition: transform 0.4s, opacity 0.3s;
   }
   .cp-head {
     max-width: 44rem;
@@ -204,66 +113,6 @@ const FILTERS = [
     margin-top: 0.35rem;
     font-size: 0.8125rem;
   }
-
-  /* Copied. */
-  [data-gen='1'] .cp-grid :global(img),
-  [data-gen='1'] .cp-big {
-    filter: url(#cp-big);
-  }
-  [data-gen='1'] .cp-small {
-    filter: url(#cp-small);
-  }
-  /* No pure black anywhere: the type set in the lifted black. */
-  [data-gen='1'] .cp-head h1 {
-    color: #1f1f1f;
-  }
-  [data-gen='1'] .cp-small {
-    color: #2a2a2a;
-  }
-  [data-gen='1'] .cp-sheet {
-    opacity: 0.92;
-    transform: rotate(-0.18deg) translateX(-1px);
-  }
-
-  /*
-    The paper: grain, speckle, a faint fade and the lid's streak - multiplied,
-    so it darkens. Laid over the whole document, not the screen, so it
-    scrolls with the page (Chris, of the fixed first try: "the grain is now
-    static and doesn't scroll with the site"). The script moves both layers
-    to the body and keeps --cp-h at the document's height.
-  */
-  .cp-paper,
-  .cp-toner {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: var(--cp-h, 100%);
-    z-index: 1000;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-  .cp-paper {
-    background:
-      linear-gradient(90deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0) 2.2%),
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.15' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 3.2 -1.95'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='0.012 0.4' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.43  0 0 0 0 0.4  0 0 0 0.22 0'/></filter><rect width='100%' height='100%' filter='url(%23p)'/></svg>"),
-      rgba(236, 233, 226, 0.35);
-    mix-blend-mode: multiply;
-  }
-  /* The toner: pale flecks screened over everything - lighter than the blacks, invisible on the white. */
-  .cp-toner {
-    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='t'><feTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='2' seed='13'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 3.4 -1.75'/></filter><rect width='100%' height='100%' filter='url(%23t)'/></svg>");
-    mix-blend-mode: screen;
-  }
-  :global(html:has([data-copier][data-gen='1'])) .cp-paper {
-    opacity: 0.78;
-  }
-  :global(html:has([data-copier][data-gen='1'])) .cp-toner {
-    opacity: 0.22;
-  }
-
   @media (max-width: 47.99rem) {
     .cp-grid {
       columns: 2;
@@ -272,18 +121,10 @@ const FILTERS = [
 </style>
 
 <script>
-  // The paper and toner over the whole document: on the body, as tall as the page.
-  const layers = document.querySelectorAll<HTMLElement>('.cp-paper, .cp-toner');
-  const fit = () => layers.forEach((l) => l.style.setProperty('--cp-h', `${document.documentElement.scrollHeight}px`));
-  layers.forEach((l) => document.body.append(l));
-  fit();
-  new ResizeObserver(fit).observe(document.body);
-
-  const root = document.querySelector<HTMLElement>('[data-copier]');
-  root?.querySelectorAll<HTMLButtonElement>('[data-set]').forEach((b) =>
+  document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((b) =>
     b.addEventListener('click', () => {
-      root.dataset.gen = b.dataset.set!;
-      root.querySelectorAll('[data-set]').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+      document.documentElement.classList.toggle('is-copied', b.dataset.copy === 'on');
+      document.querySelectorAll('[data-copy]').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
     }),
   );
 </script>

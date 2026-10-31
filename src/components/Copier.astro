@@ -1,0 +1,144 @@
+---
+/*
+  THE COPIER - the whole page as a photocopy, from one class on <html>
+  (`is-copied`). Chris, of copier mode: "Keep. We'll throw it somewhere as
+  a secret button for the site, because it looks sick. We just need to
+  make sure it's not affecting performance." And "Sure let's do it" to the
+  404 being "lost in the copier".
+
+  What "copied" is, as tuned on /next/copier/mode:
+    - pictures and headings to one ink, contrast pushed, the black point
+      lifted (#1f1f1f at the darkest), with two glows round them - a smooth
+      soft halo, lightened at Chris's ask, and over it a rough noisy toner
+      spread;
+    - small type the same, far lighter, so it stays easy to read;
+    - over the whole document, scrolling with it: paper grain and speckle,
+      the lid's streak down the left, and a screened toner layer that
+      flecks the blacks only;
+    - the page a touch faded.
+
+  PERFORMANCE. Nothing here costs anything while the class is off: the
+  filters are referenced only under html.is-copied, and the paper layers
+  are display:none until then - not merely transparent, so they are never
+  composited. On, an SVG filter is drawn per picture, which is why it is a
+  page someone chooses, not a default.
+
+  `on`: copied from the start (the 404). Otherwise a script elsewhere
+  toggles the class.
+*/
+interface Props {
+  on?: boolean;
+}
+const {on = false} = Astro.props;
+
+const BLACK = 0.12;
+const FILTERS = [
+  {id: 'cp-big', contrast: 1.85, cut: -0.33, soft: {r: 2.6, blur: 3.2, dark: 0.2}, rough: {r: 1.7, blur: 1.1, dark: 0.62, freq: 0.82}},
+  {id: 'cp-small', contrast: 1, cut: 0, soft: {r: 0.6, blur: 1.2, dark: 0.09}, rough: {r: 0.35, blur: 0.5, dark: 0.22, freq: 1.1}},
+];
+---
+
+{on && <script is:inline>document.documentElement.classList.add('is-copied');</script>}
+
+<svg class="copier-defs" aria-hidden="true" width="0" height="0">
+  <defs>
+    {FILTERS.map((f) => (
+      <filter id={f.id} x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+        <feColorMatrix in="SourceGraphic" type="saturate" values="0" result="grey" />
+        <feComponentTransfer in="grey" result="pushed">
+          <feFuncR type="linear" slope={f.contrast} intercept={f.cut} />
+          <feFuncG type="linear" slope={f.contrast} intercept={f.cut} />
+          <feFuncB type="linear" slope={f.contrast} intercept={f.cut} />
+        </feComponentTransfer>
+        <feComponentTransfer in="pushed" result="ink">
+          <feFuncR type="table" tableValues={`${BLACK} 1`} />
+          <feFuncG type="table" tableValues={`${BLACK} 1`} />
+          <feFuncB type="table" tableValues={`${BLACK} 1`} />
+        </feComponentTransfer>
+        <feMorphology in="SourceAlpha" operator="dilate" radius={f.soft.r} result="softGrown" />
+        <feGaussianBlur in="softGrown" stdDeviation={f.soft.blur} result="softBlur" />
+        <feFlood flood-color="#1f1f1f" flood-opacity={f.soft.dark} result="softInk" />
+        <feComposite in="softInk" in2="softBlur" operator="in" result="halo" />
+        <feMorphology in="SourceAlpha" operator="dilate" radius={f.rough.r} result="grown" />
+        <feGaussianBlur in="grown" stdDeviation={f.rough.blur} result="soft" />
+        <feTurbulence type="fractalNoise" baseFrequency={f.rough.freq} numOctaves="2" seed="7" result="noise" />
+        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 2.4 -0.9" result="grit" />
+        <feComposite in="soft" in2="grit" operator="in" result="rough" />
+        <feFlood flood-color="#1f1f1f" flood-opacity={f.rough.dark} result="roughInk" />
+        <feComposite in="roughInk" in2="rough" operator="in" result="spread" />
+        <feMerge>
+          <feMergeNode in="halo" />
+          <feMergeNode in="spread" />
+          <feMergeNode in="ink" />
+        </feMerge>
+      </filter>
+    ))}
+  </defs>
+</svg>
+<div class="copier-paper" aria-hidden="true"></div>
+<div class="copier-toner" aria-hidden="true"></div>
+
+<style is:global>
+  .copier-defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+  }
+  .copier-paper,
+  .copier-toner {
+    display: none;
+  }
+  html.is-copied .copier-paper,
+  html.is-copied .copier-toner {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: var(--copier-h, 100%);
+    z-index: 1000;
+    pointer-events: none;
+  }
+  html.is-copied .copier-paper {
+    opacity: 0.78;
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0) 2.2%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.15' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 3.2 -1.95'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='0.012 0.4' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.43  0 0 0 0 0.4  0 0 0 0.22 0'/></filter><rect width='100%' height='100%' filter='url(%23p)'/></svg>"),
+      rgba(236, 233, 226, 0.35);
+    mix-blend-mode: multiply;
+  }
+  html.is-copied .copier-toner {
+    opacity: 0.22;
+    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='t'><feTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='2' seed='13'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 3.4 -1.75'/></filter><rect width='100%' height='100%' filter='url(%23t)'/></svg>");
+    mix-blend-mode: screen;
+  }
+  /* Pictures and headings: the full glow. Small type: the light one. */
+  html.is-copied main img,
+  html.is-copied main video,
+  html.is-copied main h1,
+  html.is-copied main h2,
+  html.is-copied .copier-big {
+    filter: url(#cp-big);
+  }
+  html.is-copied main :is(p, li, dt, dd, figcaption, td, small),
+  html.is-copied .copier-small {
+    filter: url(#cp-small);
+  }
+  /* A list item holding a picture: the picture carries its own filter. */
+  html.is-copied main li:has(img) {
+    filter: none;
+  }
+  html.is-copied main {
+    opacity: 0.94;
+  }
+</style>
+
+<script>
+  // The paper and toner over the whole document: on the body, as tall as the page.
+  const layers = document.querySelectorAll<HTMLElement>('.copier-paper, .copier-toner');
+  const fit = () => layers.forEach((l) => l.style.setProperty('--copier-h', `${document.documentElement.scrollHeight}px`));
+  layers.forEach((l) => document.body.append(l));
+  fit();
+  new ResizeObserver(fit).observe(document.body);
+</script>

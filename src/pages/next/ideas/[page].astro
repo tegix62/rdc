@@ -14,81 +14,27 @@ export async function getStaticPaths() {
   return [{params: {page: 'all'}}];
 }
 
+/*
+  Chris's calls, 31 October 2026 - the full list, with his words, is
+  IDEAS.md at the root of the repository. This page links what can be seen.
+*/
 const ideas = [
-  {
-    name: 'Currently, and the commission tickets',
-    href: '/',
-    what: 'Under the homepage intro: "Currently: ..." and the next season\'s slots as numbered tickets, the taken ones stamped.',
-    needs: 'Site Settings > Homepage > "Currently" line; Site Settings > Booking > the slots.',
-  },
-  {
-    name: 'Votes, signed',
-    href: '/portfolio?view=all&vote=1',
-    what: 'The button says Vote. After a first vote, people can put their name or @handle and a link on it, public or just for you. Public names email you first; with Votes on, approved names tag the pieces.',
-    needs: 'Votes need the database connected to the preview in Cloudflare (Pages > Settings > Bindings > D1, name DB). And a line in the privacy policy, for your review.',
-  },
-  {
-    name: 'The road',
-    href: '/next/road/map',
-    what: 'Your freelance years as a map you walk down by scrolling; headings now in Friend (?type=plain to compare).',
-    needs: 'Stops in Studio under The road. Landmark drawings when you have them.',
-  },
-  {
-    name: 'Friend, where it works',
-    href: '/next/friend/specimen',
-    what: 'Friend beside the site\'s type in five places, with the site\'s own words.',
-    needs: 'Your eye: which places, if any.',
-  },
-  {
-    name: 'Shapes by type',
-    href: '/next/shapes/compare',
-    what: 'The same pieces as uploaded, and shaped by their Asset Type - shirts 4:5, records square, sheets and videos wide. A switch flips between them.',
-    needs: 'Your eye. Pieces with no Asset Type are outlined in red.',
-  },
-  {
-    name: 'The yearly free one',
-    href: '/next/free/one',
-    what: 'Once a year, one band or small business, designed for free and shown start to finish.',
-    needs: 'Site Settings > Booking: the year, open or not, your words, where stories go.',
-  },
-  {
-    name: 'The register',
-    href: '/next/register/runs',
-    what: 'Every run of merch and prints as a numbered ledger: for whom, what, how many, how it went.',
-    needs: 'Runs in Studio under Register run. Until then, the merch pieces stand in.',
-  },
-  {
-    name: 'In the wild',
-    href: '/next/sightings/wild',
-    what: 'Your work out in the world. Strangers just tag #rumeauinthewild or email you; you add the ones you like.',
-    needs: 'Photos in Studio under Sighting - yours count.',
-  },
-  {
-    name: 'An issue',
-    href: '/next/issue/latest',
-    what: 'The work as a seasonal issue: a cover with the masthead, the contents, a note, the pieces.',
-    needs: 'An Issue in Studio: number, season, cover, a few lines, the work.',
-  },
-  {
-    name: 'Copier mode',
-    href: '/next/copier/mode',
-    what: 'Original, copy, copy of a copy: a noisy black glow on everything, a fade, paper and toner, a crooked page.',
-    needs: 'Your eye. If it works, it could replace the print mode on the portfolio.',
-  },
-  {
-    name: 'Candlelight',
-    href: '/next/candle/light',
-    what: 'DumpStat in a dark room, by a small warm light you carry. For the dismal fantasy page, if that happens.',
-    needs: 'Nothing.',
-  },
+  {name: 'Copier mode', href: '/next/copier/mode', what: 'Kept - to become a secret button on the site.', needs: 'Where the button goes.'},
+  {name: 'Lost in the copier (404)', href: '/this-page-does-not-exist', what: 'The 404 as a photocopy.', needs: 'Say live when happy.'},
+  {name: 'Signed votes', href: '/portfolio?view=all&vote=1', what: 'Shelved for now - back very soon.', needs: 'The D1 DB binding on the preview; the privacy policy line.'},
+  {name: 'The road', href: '/next/road/map', what: 'To develop: the illustrated, modular pieces.', needs: 'Drawings and stops in Studio.'},
+  {name: 'Friend, where it works', href: '/next/friend/specimen', what: 'Shelved - good in spots, not fully working yet.', needs: 'Nothing now.'},
+  {name: 'The yearly free one', href: '/next/free/one', what: 'Shelved.', needs: 'Nothing now.'},
+  {name: 'The register', href: '/next/register/runs', what: 'Shelved - maybe folded into each case study instead.', needs: 'Nothing now.'},
+  {name: 'An issue', href: '/next/issue/latest', what: 'Shelved.', needs: 'Nothing now.'},
 ];
 ---
 
-<Layout title="Tonight's ideas - Rumeau Design Co" description="Everything tried on the preview overnight." noindex>
+<Layout title="The ideas, sorted - Rumeau Design Co" description="The ideas tried on the preview, sorted." noindex>
   <div class="id">
     <header class="id-head">
-      <h1>Tonight's ideas</h1>
-      <p>Everything tried on the preview overnight, one link each. Nothing here is live.</p>
+      <h1>The ideas, sorted</h1>
+      <p>What can be seen of them, after Chris's calls on 31 October. The full list is IDEAS.md. Nothing here is live.</p>
     </header>
     <ol class="id-list">
       {ideas.map((i, n) => (

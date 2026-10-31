@@ -568,7 +568,7 @@ for (const [name, w, h] of [
   ['desktop', 1440, 900],
   ['phone', 390, 844],
 ]) {
-  for (const path of ['/next/ideas/all', '/next/friend/specimen', '/next/shapes/compare', '/next/free/one', '/next/register/runs', '/next/sightings/wild', '/next/issue/latest', '/next/copier/mode', '/next/candle/light']) {
+  for (const path of ['/next/ideas/all', '/next/friend/specimen', '/next/free/one', '/next/register/runs', '/next/issue/latest', '/next/copier/mode']) {
     const page = await browser.newPage({viewport: {width: w, height: h}})
     const errors = []
     page.on('pageerror', (e) => errors.push(e.message))

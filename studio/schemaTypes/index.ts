@@ -1,7 +1,6 @@
 import tag from './tag'
 import roadStop from './roadStop'
 import printRun from './printRun'
-import sighting from './sighting'
 import issue from './issue'
 import page from './page'
 import caseStudy from './caseStudy'
@@ -19,7 +18,6 @@ export const schemaTypes = [
   tag,
   roadStop,
   printRun,
-  sighting,
   issue,
   ...caseStudySectionTypes,
 ]

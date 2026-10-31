@@ -176,12 +176,12 @@ const critters = new Critters({
     Rules for a state the page only reaches once a script runs. critters
     keeps, of a page's own inline <style>, only the rules that match the
     page as built - so a rule for a state set later by its script was
-    dropped, and the switch did nothing: copier mode's generations, the
-    shapes compare, candlelight's "every candle", the road's walker and its
-    reached stops (found when Chris said copier mode was "not doing
-    anything"). Each such state is named here.
+    dropped, and the switch did nothing - found when Chris said copier mode
+    was "not doing anything". Each such state is named here: the copier
+    (html.is-copied, src/components/Copier.astro) and the road's walker and
+    its reached stops.
   */
-  allowRules: [/\[data-gen=/, /\[data-shapes=/, /\.is-lit\b/, /\.is-reached\b/, /\.is-drawn\b/],
+  allowRules: [/\.is-copied\b/, /\.is-reached\b/, /\.is-drawn\b/],
   compress: true,
   logLevel: 'info',
 });

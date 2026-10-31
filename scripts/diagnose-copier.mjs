@@ -23,15 +23,14 @@ for (const [name, viewport] of [['desktop', {width: 1440, height: 900}], ['phone
   await page.waitForTimeout(1500)
   report[name] = {errors}
   for (const gen of ['0', '1']) {
-    await page.click(`[data-set="${gen}"]`)
+    await page.click(`[data-copy="${gen === '1' ? 'on' : 'off'}"]`)
     await page.waitForTimeout(700)
     report[name][`gen${gen}`] = await page.evaluate(() => {
-      const root = document.querySelector('[data-copier]')
       const img = document.querySelector('.cp-grid img')
       const h1 = document.querySelector('.cp-head h1')
-      const paper = document.querySelector('.cp-paper')
+      const paper = document.querySelector('.copier-paper')
       return {
-        gen: root?.getAttribute('data-gen'),
+        gen: document.documentElement.classList.contains('is-copied') ? '1' : '0',
         imgFilter: img && getComputedStyle(img).filter,
         h1Filter: h1 && getComputedStyle(h1).filter,
         paperOpacity: paper && getComputedStyle(paper).opacity,
@@ -39,13 +38,13 @@ for (const [name, viewport] of [['desktop', {width: 1440, height: 900}], ['phone
         paperHeight: paper && Math.round(paper.getBoundingClientRect().height),
         pageHeight: document.documentElement.scrollHeight,
         paperOnBody: paper?.parentElement === document.body,
-        toner: getComputedStyle(document.querySelector('.cp-toner') ?? document.body).opacity,
+        toner: getComputedStyle(document.querySelector('.copier-toner') ?? document.body).opacity,
         smallFilter: getComputedStyle(document.querySelector('.cp-name') ?? document.body).filter,
         paperBg: paper && getComputedStyle(paper).backgroundImage.slice(0, 120),
         filters: [...document.querySelectorAll('filter')].map((f) => f.id),
         sheetsWithCp: [...document.styleSheets].flatMap((s) => {
           try {
-            return [...s.cssRules].map((r) => r.cssText).filter((t) => t.includes('data-gen'))
+            return [...s.cssRules].map((r) => r.cssText).filter((t) => t.includes('is-copied'))
           } catch {
             return []
           }

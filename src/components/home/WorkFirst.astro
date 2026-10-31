@@ -103,15 +103,16 @@ const finalLine = clean(settings?.finalCtaLine) || clean(settings?.finalCtaHeadi
     <div class="tk" aria-label={`Commission slots${slots.season ? `, ${slots.season}` : ''}: ${left} of ${slots.total} open`}>
       <p class="tk__head">
         {slots.season || 'Next season'}: {left ? `${left} of ${slots.total} open` : 'all taken'}
-        {slots.draft && <em> DRAFT - set Site Settings &gt; Booking</em>}
+        {slots.draft && <em> DRAFT - Site Settings &gt; Booking</em>}
       </p>
       <ol class="tk__row">
-        {Array.from({length: slots.total}, (_, i) => (
-          <li class:list={['tk__ticket', i < slots.taken && 'is-taken']}>
-            <span class="tk__no">No. {String(i + 1).padStart(2, '0')}</span>
-            {i < slots.taken ? <span class="tk__stamp">Taken</span> : <a class="tk__claim" href={contactUrl}>Claim</a>}
-          </li>
-        ))}
+        {Array.from({length: slots.total}, (_, i) =>
+          i < slots.taken ? (
+            <li class="tk__ticket is-taken"><span class="tk__no">{String(i + 1).padStart(2, '0')}</span><span class="tk__stamp">Taken</span></li>
+          ) : (
+            <li class="tk__ticket"><a class="tk__no" href={contactUrl} aria-label={`Claim slot ${i + 1}`}>{String(i + 1).padStart(2, '0')}</a></li>
+          ),
+        )}
       </ol>
       {(slots.note || !left) && <p class="tk__note">{slots.note || 'The next season opens soon.'}</p>}
     </div>

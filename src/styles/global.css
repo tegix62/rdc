@@ -8924,11 +8924,15 @@ a.pf-btn {
   with a perforated end; a taken one is stamped at an angle.
 */
 .tk {
-  margin: var(--space-3) 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+  margin: var(--space-2) 0 0;
 }
 .tk__head {
-  margin: 0 0 0.5rem;
-  font: 700 0.8125rem/1.2 var(--font-heading);
+  margin: 0;
+  font: 700 0.75rem/1.2 var(--font-heading);
   letter-spacing: var(--label-track, 0.06em);
   text-transform: uppercase;
   color: var(--color-navy);
@@ -8945,36 +8949,38 @@ a.pf-btn {
   margin: 0;
   padding: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
 }
 .tk__ticket {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  width: 6.25rem;
-  height: 3.75rem;
-  padding: 0.4rem 0.55rem 0.4rem 0.75rem;
-  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 1.75rem;
   border: 1.5px solid var(--color-navy);
   background: var(--color-white);
   /* The notch of a stub ticket, bitten out of its left edge. */
-  -webkit-mask: radial-gradient(circle at 0 50%, transparent 0.4rem, #000 0.42rem);
-  mask: radial-gradient(circle at 0 50%, transparent 0.4rem, #000 0.42rem);
+  -webkit-mask: radial-gradient(circle at 0 50%, transparent 0.3rem, #000 0.32rem);
+  mask: radial-gradient(circle at 0 50%, transparent 0.3rem, #000 0.32rem);
   overflow: hidden;
 }
 .tk__no {
   font: 700 0.75rem/1 var(--font-heading);
+  font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
   color: var(--color-navy);
+  text-decoration: none;
 }
-.tk__claim {
-  align-self: flex-start;
-  font: 700 0.6875rem/1 var(--font-heading);
-  letter-spacing: var(--label-track, 0.06em);
-  text-transform: uppercase;
-  color: var(--color-navy);
+a.tk__no::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+.tk__ticket:not(.is-taken):hover {
+  background: var(--color-navy);
+}
+.tk__ticket:not(.is-taken):hover .tk__no {
+  color: var(--color-white);
 }
 .tk__ticket.is-taken {
   background: var(--color-gray-light);
@@ -8984,26 +8990,26 @@ a.pf-btn {
 }
 .tk__stamp {
   position: absolute;
-  right: 0.3rem;
-  bottom: 0.45rem;
-  padding: 0.1rem 0.35rem;
-  border: 2px solid #b3261e;
+  inset: auto -2px 1px auto;
+  padding: 0 0.15rem;
+  border: 1.5px solid #b3261e;
   color: #b3261e;
-  font: 800 0.75rem/1 var(--font-heading);
+  background: color-mix(in srgb, var(--color-white) 70%, transparent);
+  font: 800 0.5rem/1.2 var(--font-heading);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  transform: rotate(-12deg);
-  opacity: 0.85;
+  transform: rotate(-14deg);
 }
 .tk__note {
-  margin: 0.5rem 0 0;
-  font-size: 0.875rem;
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.8125rem;
   color: var(--color-gray);
 }
 
 .wf-band__now {
   max-width: 46ch;
-  margin: var(--space-2) 0 0;
+  margin: 0.4rem 0 0;
   font-size: 0.9375rem;
   line-height: 1.45;
   color: var(--color-gray);

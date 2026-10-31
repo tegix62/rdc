@@ -1,0 +1,19 @@
+name: Check pictures come from R2
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to check'
+        default: 'https://rumeaudesign.co'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Pictures from R2
+        run: node scripts/check-r2-live.mjs "${{ inputs.base_url || 'https://rumeaudesign.co' }}"

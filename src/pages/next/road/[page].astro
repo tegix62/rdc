@@ -138,7 +138,7 @@ const firstYear = stops.find((s) => s.year)?.year ?? 2019;
               {s.newYear && <span class="rd-year">{s.year ?? 'Undated'}</span>}
               <span class={`rd-mark${s.landmark ? ' rd-mark--drawn' : ''}`} data-mark>
                 {s.landmark ? (
-                  <Img image={s.landmark} alt="" width={240} sizes="120px" loading="lazy" />
+                  <Img image={s.landmark} field="landmark (Road stop)" alt="" width={240} sizes="120px" loading="lazy" />
                 ) : s.status === 'closed' ? (
                   <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
                     <path d="M4 20V9l4-3v4l3-2v12M14 20v-7l3-2 3 2v7M2 20h20" />
@@ -168,10 +168,10 @@ const firstYear = stops.find((s) => s.year)?.year ?? 2019;
                     <li>
                       {w.href ? (
                         <a href={w.href}>
-                          <Img image={w.image} alt={w.title} width={320} sizes="(min-width: 48rem) 9rem, 22vw" loading="lazy" />
+                          <Img image={w.image} field="image (Road stop work)" alt={w.title} width={320} sizes="(min-width: 48rem) 9rem, 22vw" loading="lazy" />
                         </a>
                       ) : (
-                        <Img image={w.image} alt={w.title} width={320} sizes="(min-width: 48rem) 9rem, 22vw" loading="lazy" />
+                        <Img image={w.image} field="image (Road stop work)" alt={w.title} width={320} sizes="(min-width: 48rem) 9rem, 22vw" loading="lazy" />
                       )}
                     </li>
                   ))}

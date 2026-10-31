@@ -40,7 +40,7 @@ const pieces = all.filter((_, i) => i % step === 0).slice(0, 12);
     <ul class="cp-grid">
       {pieces.map((p) => (
         <li>
-          <Img image={tileImage(p)} alt={clean(p.title)} width={600} sizes="(min-width: 48rem) 25vw, 50vw" loading="lazy" />
+          <Img image={tileImage(p)} field="Grid Thumbnail (copier sample)" alt={clean(p.title)} width={600} sizes="(min-width: 48rem) 25vw, 50vw" loading="lazy" />
           <span class="cp-name copier-small">{clean(p.title)}</span>
         </li>
       ))}

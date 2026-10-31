@@ -76,7 +76,7 @@ const past = issues.slice(1).filter((i) => hasAsset(i.cover));
 
     <div class="is-front">
       <div class="is-cover">
-        {issue.cover && <Img image={issue.cover} alt={`Cover of issue ${issue.number}`} width={1400} sizes="(min-width: 48rem) 55vw, 100vw" loading="eager" />}
+        {issue.cover && <Img image={issue.cover} field="cover (Issue cover)" alt={`Cover of issue ${issue.number}`} width={1400} sizes="(min-width: 48rem) 55vw, 100vw" loading="eager" />}
         <div class="is-mast">
           <span class="is-name">Rumeau</span>
           <span class="is-no">No. {String(issue.number).padStart(2, '0')} · {issue.season}</span>
@@ -109,7 +109,7 @@ const past = issues.slice(1).filter((i) => hasAsset(i.cover));
     <ul class="is-work">
       {issue.work.map((w, i) => (
         <li id={`w${i}`}>
-          <Img image={tileImage(w)} alt={clean(w.title)} width={900} sizes="(min-width: 48rem) 33vw, 50vw" loading="lazy" />
+          <Img image={tileImage(w)} field="Grid Thumbnail (issue)" alt={clean(w.title)} width={900} sizes="(min-width: 48rem) 33vw, 50vw" loading="lazy" />
           <span><b>{String(i + 1).padStart(2, '0')}</b> {clean(w.title)}</span>
         </li>
       ))}
@@ -121,7 +121,7 @@ const past = issues.slice(1).filter((i) => hasAsset(i.cover));
         <ul>
           {past.map((p) => (
             <li>
-              <Img image={p.cover} alt={`Cover of issue ${p.number}`} width={400} sizes="10rem" loading="lazy" />
+              <Img image={p.cover} field="cover (Issue cover, past)" alt={`Cover of issue ${p.number}`} width={400} sizes="10rem" loading="lazy" />
               <span>No. {String(p.number).padStart(2, '0')} · {clean(p.season)}</span>
             </li>
           ))}

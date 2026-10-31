@@ -108,9 +108,9 @@ const made = rows.reduce((n, r) => n + (r.edition ?? 0), 0);
             <td class="rg-no">{String(r.no).padStart(3, '0')}</td>
             <td class="rg-pic">
               {r.image && (r.href ? (
-                <a href={r.href}><Img image={r.image} alt="" width={160} sizes="4rem" loading="lazy" /></a>
+                <a href={r.href}><Img image={r.image} field="image (Register run)" alt="" width={160} sizes="4rem" loading="lazy" /></a>
               ) : (
-                <Img image={r.image} alt="" width={160} sizes="4rem" loading="lazy" />
+                <Img image={r.image} field="image (Register run)" alt="" width={160} sizes="4rem" loading="lazy" />
               ))}
             </td>
             <td class="rg-title">{r.title}</td>

@@ -87,7 +87,7 @@ const past: any[] = settings?.freePast?.length
           {past.map((p) => (
             <li>
               <a href={tileHref(p) ?? '#'}>
-                {tileImage(p) && <Img image={tileImage(p)} alt={clean(p.title)} width={600} sizes="(min-width: 48rem) 20rem, 50vw" loading="lazy" />}
+                {tileImage(p) && <Img image={tileImage(p)} field="Grid Thumbnail (free one)" alt={clean(p.title)} width={600} sizes="(min-width: 48rem) 20rem, 50vw" loading="lazy" />}
                 <span>{clean(p.title)}{p.year ? `, ${p.year}` : ''}</span>
               </a>
             </li>

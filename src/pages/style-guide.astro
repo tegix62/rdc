@@ -78,6 +78,30 @@ const uploaded = await sanityClient.fetch<{mp4?: string; webm?: string} | null>(
 );
 
 const blockFixtures = [
+  /*
+    The Grid block (Process trial): every size once, a picture shown whole,
+    and two blocks of words among the pictures.
+  */
+  {
+    _type: 'gridSection',
+    _key: 'grid-every-size',
+    heading: 'Grid: every size, pictures and words',
+    tiles: [
+      {_type: 'gridWords', _key: 'w1', size: 'medium', text: [
+        {_type: 'block', _key: 'h', style: 'h3', markDefs: [], children: [{_type: 'span', _key: 's', text: 'Where it started', marks: []}]},
+        {_type: 'block', _key: 'p', style: 'normal', markDefs: [], children: [{_type: 'span', _key: 's', text: 'A block of words sits on the same grid as the pictures, at a size picked for it.', marks: []}]},
+      ]},
+      {_type: 'gridPicture', _key: 'a', size: 'large', image: {...ref(STATIC_IMAGE), alt: 'Large'}, caption: 'Large'},
+      {_type: 'gridPicture', _key: 'b', size: 'small', image: {...ref(STATIC_IMAGE), alt: 'Small'}, caption: 'Small'},
+      {_type: 'gridPicture', _key: 'c', size: 'small', image: {...ref(ANIMATED_GIF_B), alt: 'Small, whole'}, whole: true, caption: 'Small, shown whole'},
+      {_type: 'gridPicture', _key: 'd', size: 'tall', image: {...ref(STATIC_IMAGE), alt: 'Tall'}, caption: 'Tall'},
+      {_type: 'gridPicture', _key: 'e', size: 'wide', image: {...ref(STATIC_IMAGE), alt: 'Wide'}, caption: 'Wide'},
+      {_type: 'gridWords', _key: 'w2', size: 'small', text: [
+        {_type: 'block', _key: 'p', style: 'normal', markDefs: [], children: [{_type: 'span', _key: 's', text: 'A small one fills a gap.', marks: []}]},
+      ]},
+      {_type: 'gridPicture', _key: 'f', size: 'full', image: {...ref(STATIC_IMAGE), alt: 'Full'}, caption: 'Full'},
+    ],
+  },
   {
     _type: 'mediaRowSection',
     _key: 'row-three-animated',

@@ -450,6 +450,7 @@ export default defineType({
         {type: 'achievementsSection'},
         {type: 'videoHeroSection'},
         {type: 'aestheticRangeSection'},
+        {type: 'gridSection'},
         {type: 'twoUpSection', title: 'Two Images (use Media Row)'},
         {type: 'threeUpSection', title: 'Three Images (use Media Row)'},
         {type: 'imageTextSection', title: 'Image + Text (use Media + Text)'},

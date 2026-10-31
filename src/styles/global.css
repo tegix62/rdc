@@ -10708,3 +10708,74 @@ a.wd-pic {
     transition: none;
   }
 }
+
+/*
+  GRID - the Grid block (Sections.astro, gridSection): pictures and words in
+  picked sizes on twelve columns, six on a phone. A picture fills its tile,
+  cropped round its hotspot, unless it is marked whole.
+*/
+.grid-band__grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-flow: dense;
+  gap: 8px;
+}
+.grid-band__heading {
+  margin: 0 0 var(--space-2);
+}
+.grid-band__tile {
+  margin: 0;
+  min-width: 0;
+}
+.grid-band__tile--small { grid-column: span 3; --ratio: 1 / 1; }
+.grid-band__tile--medium { grid-column: span 4; --ratio: 1 / 1; }
+.grid-band__tile--large { grid-column: span 6; --ratio: 1 / 1; }
+.grid-band__tile--wide { grid-column: span 8; --ratio: 16 / 9; }
+.grid-band__tile--tall { grid-column: span 4; --ratio: 3 / 4; }
+.grid-band__tile--full { grid-column: 1 / -1; --ratio: 16 / 9; }
+.grid-band__tile img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: var(--ratio);
+  object-fit: cover;
+  object-position: var(--at, 50% 50%);
+  background: var(--color-gray-light);
+}
+.grid-band__tile.is-whole img {
+  object-fit: contain;
+}
+.grid-band__tile figcaption {
+  margin-top: 0.35rem;
+  font-size: 0.8125rem;
+  color: var(--color-gray);
+}
+/* Words: a block of type in its tile, set against the pictures' edges. */
+.grid-band__words {
+  align-self: start;
+  padding: var(--space-2) var(--space-2) var(--space-2) 0;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+}
+.grid-band__words h3 {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-heading);
+  font-size: clamp(1.375rem, 1rem + 1.2vw, 2rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--color-navy);
+}
+.grid-band__words p {
+  margin: 0 0 0.75rem;
+}
+@media (max-width: 47.99rem) {
+  .grid-band__grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .grid-band__tile--small,
+  .grid-band__tile--medium,
+  .grid-band__tile--tall { grid-column: span 3; }
+  .grid-band__tile--large,
+  .grid-band__tile--wide,
+  .grid-band__words { grid-column: 1 / -1; }
+}

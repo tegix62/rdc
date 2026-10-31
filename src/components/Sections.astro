@@ -8,7 +8,7 @@ import Img from './Img.astro';
 import { renderPortableText } from '../lib/portableText';
 import { captionHtml, captionText } from '../lib/caption';
 import Video from './Video.astro';
-import { imageDimensions } from '../lib/image';
+import { imageDimensions, hotspotPosition, hasAsset } from '../lib/image';
 import StripRule from './StripRule.astro';
 import { plateRowFill, singlePlateFill, fullPlateFill, fillWarning, FILLS, type Fill } from '../lib/measure';
 import { stripStegaKey } from '../lib/stega';
@@ -425,6 +425,16 @@ function rowStyle(images: any[]): string {
   return `--row-ar:${sum.toFixed(4)};--row-n:${present.length}`;
 }
 
+
+// The Grid block's tiles: the widest each size is ever drawn, for a picture's sizes.
+const GRID_TILE_SIZES: Record<string, string> = {
+  small: '(min-width: 48rem) 25vw, 50vw',
+  medium: '(min-width: 48rem) 34vw, 50vw',
+  large: '(min-width: 48rem) 50vw, 100vw',
+  wide: '(min-width: 48rem) 67vw, 100vw',
+  tall: '(min-width: 48rem) 34vw, 50vw',
+  full: '100vw',
+};
 ---
 
 {/*
@@ -1065,6 +1075,36 @@ function rowStyle(images: any[]): string {
               );
             })}
           </ul>
+        </div>
+      );
+    }
+    case 'gridSection': {
+      /*
+        GRID - pictures and words on one grid, each in a picked size
+        (studio/schemaTypes/caseStudySections.ts). Twelve columns, six on a
+        phone, packed densely so a small tile fills a gap. Nothing happens
+        on a click.
+      */
+      const tiles = (section.tiles ?? []).filter((t: any) =>
+        t._type === 'gridPicture' ? hasAsset(t.image) : t._type === 'gridWords' && t.text?.length,
+      );
+      if (!tiles.length) return null;
+      const size = (t: any) => (['small', 'medium', 'large', 'wide', 'tall', 'full'].includes(stripStegaKey(t.size)) ? stripStegaKey(t.size) : 'medium');
+      return (
+        <div class="work-section grid-band">
+          {section.heading && <h2 class="t-h3 grid-band__heading">{section.heading}</h2>}
+          <div class="grid-band__grid">
+            {tiles.map((t: any, i: number) =>
+              t._type === 'gridPicture' ? (
+                <figure class:list={['grid-band__tile', `grid-band__tile--${size(t)}`, t.whole && 'is-whole']} style={hotspotPosition(t.image) ? `--at:${hotspotPosition(t.image)}` : undefined}>
+                  <Img image={t.image} field={`gridSection → tiles[${i}].image`} width={size(t) === 'full' ? 2400 : 1400} sizes={GRID_TILE_SIZES[size(t)]} />
+                  {t.caption && <figcaption>{t.caption}</figcaption>}
+                </figure>
+              ) : (
+                <div class:list={['grid-band__tile', 'grid-band__words', `grid-band__tile--${size(t)}`]} set:html={renderPortableText(t.text)} />
+              ),
+            )}
+          </div>
         </div>
       );
     }

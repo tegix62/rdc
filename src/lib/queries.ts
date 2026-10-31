@@ -96,7 +96,7 @@ export function getBlogPosts() {
 
 export function getBlogPost(slug: string) {
   return sanityClient.fetch(
-    `*[_type == "blogPost" && slug.current == $slug][0]`,
+    `*[_type == "blogPost" && slug.current == $slug][0]{..., ${SECTIONS}}`,
     { slug },
   );
 }

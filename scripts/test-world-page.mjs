@@ -586,6 +586,41 @@ for (const [name, w, h] of [
 }
 
 /*
+  The Grid block (Process trial), on the style guide's fixtures: every size
+  on twelve columns (six on a phone), nothing over anything, nothing wider
+  than the screen.
+*/
+for (const [name, w, h] of [
+  ['desktop', 1440, 900],
+  ['phone', 390, 844],
+]) {
+  const page = await browser.newPage({viewport: {width: w, height: h}})
+  const res = await page.goto(`${BASE}/style-guide`, {waitUntil: 'domcontentloaded', timeout: 60_000}).catch(() => null)
+  const band = page.locator('.grid-band').first()
+  if (!res?.ok() || !(await band.count())) {
+    console.log(`skip  ${name}, grid block: not on this site`)
+    await page.close()
+    continue
+  }
+  await band.scrollIntoViewIfNeeded()
+  await page.waitForTimeout(400)
+  const g = await band.evaluate((b) => {
+    const rs = [...b.querySelectorAll('.grid-band__tile')].map((t) => t.getBoundingClientRect())
+    const grid = b.querySelector('.grid-band__grid').getBoundingClientRect()
+    let overlap = 0
+    for (let a = 0; a < rs.length; a++)
+      for (let z = a + 1; z < rs.length; z++) {
+        const A = rs[a], Z = rs[z]
+        if (Math.min(A.right, Z.right) - Math.max(A.left, Z.left) > 1 && Math.min(A.bottom, Z.bottom) - Math.max(A.top, Z.top) > 1) overlap++
+      }
+    const full = b.querySelector('.grid-band__tile--full')?.getBoundingClientRect()
+    return {tiles: rs.length, overlap, fullSpans: full ? Math.abs(full.width - grid.width) < 2 : false, wide: document.documentElement.scrollWidth > innerWidth + 1}
+  })
+  check(`${name}, grid block: every tile on the grid, none over another, full spans it`, g.tiles >= 8 && g.overlap === 0 && g.fullSpans && !g.wide, JSON.stringify(g))
+  await page.close()
+}
+
+/*
   The copier's secret switch (preview): the footer's © copies the whole
   site, the paper over the page, and it stays copied on the next page
   until pressed again.

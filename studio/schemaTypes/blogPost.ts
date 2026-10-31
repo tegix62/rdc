@@ -78,6 +78,29 @@ export default defineType({
       type: 'array',
       of: [{type: 'block'}, imageSpec()],
     }),
+    /*
+      PROCESS (trial): the page builder under a post's words, so a Process
+      post can lay out sketches, rejects and finals - Chris: "maybe blog
+      posts just get CSS grids and page building features to make them more
+      dynamic ... sounds good to try it out but potentially roll back".
+      Shown on the preview only (BLOG_BLOCKS in src/pages/blog/[slug].astro);
+      removing this field and that switch rolls it back.
+    */
+    defineField({
+      name: 'sections',
+      title: 'Page Builder (trial, preview only) - after the words',
+      type: 'array',
+      description: 'Blocks under the post: Grid for pictures and words in sizes, Media Row, Full Image, Text. Shows on the preview only for now.',
+      options: {modal: {type: 'dialog', width: 'auto'}},
+      of: [
+        {type: 'gridSection'},
+        {type: 'fullImageSection'},
+        {type: 'mediaRowSection'},
+        {type: 'mediaTextSection'},
+        {type: 'textSection'},
+        {type: 'videoSection'},
+      ],
+    }),
   ],
   /*
     Three fields removed here, all confirmed read by nothing in src/:

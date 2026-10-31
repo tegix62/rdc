@@ -632,6 +632,107 @@ export const mediaTextSection = defineType({
   },
 })
 
+/*
+  GRID - pictures and blocks of words on one grid, each in a size picked
+  from a short list. For Process posts first (Chris: "maybe blog posts just
+  get CSS grids and page building features to make them more dynamic") and
+  usable in a case study too. A trial: "sounds good to try it out but
+  potentially roll back".
+
+  Deliberately does nothing on a click - the Moments mock opened tiles and
+  Chris found "we weren't able to ... give purpose to clicking on a sketch".
+  Here a tile is only where it sits and how big it is.
+*/
+const GRID_SIZES = [
+  {title: 'Small - a quarter across', value: 'small'},
+  {title: 'Medium - a third across', value: 'medium'},
+  {title: 'Large - half across', value: 'large'},
+  {title: 'Wide - two thirds across, landscape', value: 'wide'},
+  {title: 'Tall - a third across, portrait', value: 'tall'},
+  {title: 'Full - all the way across', value: 'full'},
+]
+const gridPicture = defineType({
+  name: 'gridPicture',
+  title: 'Picture',
+  type: 'object',
+  fields: [
+    imageSpec({name: 'image', title: 'Picture'}),
+    defineField({name: 'size', title: 'Size', type: 'string', options: {list: GRID_SIZES}, initialValue: 'medium'}),
+    defineField({
+      name: 'whole',
+      title: 'Show it whole (no crop)',
+      type: 'boolean',
+      initialValue: false,
+      description: 'For a mark or a sheet that must not lose its edges. Left off, the picture fills its tile, cropped round its hotspot.',
+    }),
+    defineField({name: 'caption', title: 'Caption (optional)', type: 'string'}),
+  ],
+  preview: {
+    select: {media: 'image', size: 'size', caption: 'caption'},
+    prepare: ({media, size, caption}) => ({title: caption || 'Picture', subtitle: size, media}),
+  },
+})
+const gridWords = defineType({
+  name: 'gridWords',
+  title: 'Words',
+  type: 'object',
+  fields: [
+    defineField({
+      name: 'text',
+      title: 'Words',
+      type: 'array',
+      of: [
+        {
+          type: 'block',
+          styles: [
+            {title: 'Normal', value: 'normal'},
+            {title: 'Large', value: 'h3'},
+          ],
+          lists: [],
+          marks: {
+            decorators: [{title: 'Bold', value: 'strong'}, {title: 'Italic', value: 'em'}],
+            annotations: [
+              {
+                name: 'link',
+                type: 'object',
+                title: 'Link',
+                fields: [{name: 'href', type: 'url', title: 'URL', validation: (Rule: any) => Rule.uri({scheme: ['http', 'https', 'mailto']}).required()}],
+              },
+            ],
+          },
+        },
+      ],
+    }),
+    defineField({name: 'size', title: 'Size', type: 'string', options: {list: GRID_SIZES}, initialValue: 'medium'}),
+  ],
+  preview: {
+    select: {text: 'text', size: 'size'},
+    prepare: ({text, size}) => ({
+      title: (text?.[0]?.children ?? []).map((c: any) => c.text).join('').slice(0, 60) || 'Words',
+      subtitle: size,
+    }),
+  },
+})
+export const gridSection = defineType({
+  name: 'gridSection',
+  title: 'Grid (pictures and words, sized)',
+  type: 'object',
+  fields: [
+    defineField({name: 'heading', title: 'Heading (optional)', type: 'string'}),
+    defineField({
+      name: 'tiles',
+      title: 'Tiles',
+      type: 'array',
+      description: 'In reading order. They pack onto the grid left to right, filling gaps where a smaller tile fits.',
+      of: [{type: 'gridPicture'}, {type: 'gridWords'}],
+    }),
+  ],
+  preview: {
+    select: {heading: 'heading', tiles: 'tiles'},
+    prepare: ({heading, tiles}) => ({title: heading || 'Grid', subtitle: `${tiles?.length ?? 0} tiles`}),
+  },
+})
+
 export const caseStudySectionTypes = [
   fullImageSection,
   twoUpSection,
@@ -649,4 +750,7 @@ export const caseStudySectionTypes = [
   mediaVideo,
   mediaRowSection,
   mediaTextSection,
+  gridPicture,
+  gridWords,
+  gridSection,
 ]

@@ -4,6 +4,7 @@ import Img from '../../components/Img.astro';
 import EmailCapture from '../../components/EmailCapture.astro';
 import ReadingBar from '../../components/ReadingBar.astro';
 import PostCard from '../../components/PostCard.astro';
+import Sections from '../../components/Sections.astro';
 import { sanityClient } from '../../lib/sanity';
 import { getBlogPost, getOtherBlogPosts, getRelatedWork, getSiteSettings } from '../../lib/queries';
 import { socialCardUrl, fileUrl, archiveCard } from '../../lib/image';
@@ -35,6 +36,12 @@ const morePosts = await getOtherBlogPosts(slug!);
 const relatedWork = await getRelatedWork(post.category);
 const audioUrl = fileUrl(post.audioNarration);
 const time = readingTime(post.body);
+/*
+  PROCESS (trial): a post's Page Builder blocks under its words - the Grid
+  block above all. Chris: "sounds good to try it out but potentially roll
+  back." Preview only; false (and the blogPost.sections field) rolls it back.
+*/
+const BLOG_BLOCKS = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
 ---
 
 <Layout
@@ -78,6 +85,12 @@ const time = readingTime(post.body);
 
     {post.body?.length > 0 && (
       <div class="prose" set:html={renderPortableText(post.body)} />
+    )}
+
+    {BLOG_BLOCKS && post.sections?.length > 0 && (
+      <div class="blog-blocks">
+        <Sections sections={post.sections} where={`/blog/${post.slug?.current ?? post.title}`} />
+      </div>
     )}
   </article>
 

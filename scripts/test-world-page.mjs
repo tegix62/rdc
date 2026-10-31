@@ -561,6 +561,31 @@ for (const [name, w, h] of [
 }
 
 /*
+  Tonight's preview pages (/next/ideas/all lists them): each loads, throws
+  nothing, and fits a phone's width.
+*/
+for (const [name, w, h] of [
+  ['desktop', 1440, 900],
+  ['phone', 390, 844],
+]) {
+  for (const path of ['/next/ideas/all', '/next/friend/specimen', '/next/shapes/compare', '/next/free/one', '/next/register/runs', '/next/sightings/wild', '/next/issue/latest', '/next/copier/mode', '/next/candle/light']) {
+    const page = await browser.newPage({viewport: {width: w, height: h}})
+    const errors = []
+    page.on('pageerror', (e) => errors.push(e.message))
+    const res = await page.goto(`${BASE}${path}`, {waitUntil: 'domcontentloaded', timeout: 60_000}).catch(() => null)
+    if (!res?.ok()) {
+      console.log(`skip  ${name}, ${path}: not on this site (preview only)`)
+      await page.close()
+      continue
+    }
+    await page.waitForTimeout(500)
+    const got = await page.evaluate(() => ({h1: document.querySelector('h1')?.textContent?.trim() ?? '', wide: document.documentElement.scrollWidth > innerWidth + 1}))
+    check(`${name}, ${path}: loads, no script errors, fits the screen`, got.h1 && !got.wide && errors.length === 0, `${got.h1}${got.wide ? ' WIDER THAN THE SCREEN' : ''}${errors.length ? ` | ${errors.join(' | ')}` : ''}`)
+    await page.close()
+  }
+}
+
+/*
   The road (preview, /next/road/map): a path drawn through every stop that
   never runs over a stop's words or pictures, and a walker that goes down
   it as the page scrolls, reaching the stops it passes.

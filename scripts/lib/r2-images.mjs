@@ -20,6 +20,8 @@
   outside letters, digits and , . - is left on /img/.
 */
 
+import {tileGrid, QUALITY as TILE_QUALITY} from '../../src/lib/loupeGrid.mjs'
+
 export const HOST = 'https://img.rumeaudesign.co'
 const SAFE = /^[A-Za-z0-9,.-]*$/
 const PATH = /^images\/8337vjtf\/production\/[A-Za-z0-9._-]+$/
@@ -116,4 +118,45 @@ export function rewritePictures(html, have) {
     return (p.escaped ? url.split('/').join('\\/') : url) + p.trail
   })
   return {html: out, moved, kept}
+}
+
+/*
+  THE MAGNIFIER'S PATCHES. Each magnifier on a page (a figure with
+  data-loupe, data-scan, data-w, data-h) asks for its scan in fixed patches
+  (src/lib/loupeGrid.mjs). Every patch is copied like any picture - same
+  key rule, so the address the magnifier builds from data-r2 is the key -
+  and once all of a scan's are in, the figure is marked data-r2 with the
+  scan's path and the magnifier asks R2 first.
+*/
+const LOUPE = /<figure\b[^>]*\bdata-scan="\/img\/v2\/([^"?]+)"[^>]*>/g
+const attr = (tag, name) => tag.match(new RegExp(`\\s${name}="([^"]*)"`))?.[1]
+
+export function findScans(html) {
+  const out = []
+  for (const m of html.matchAll(LOUPE)) {
+    const tag = m[0]
+    const path = m[1]
+    const w = Number(attr(tag, 'data-w'))
+    const h = Number(attr(tag, 'data-h'))
+    if (!/\sdata-loupe[\s=>]/.test(tag) || !w || !h || !keyFor(path, '')) continue
+    const patches = tileGrid(w, h).map((t) => {
+      const query = `rect=${t.x},${t.y},${t.w},${t.h}&fm=webp&q=${TILE_QUALITY}`
+      return {path, query, key: keyFor(path, query)}
+    })
+    out.push({path, w, h, patches})
+  }
+  return out
+}
+
+/** The page with each magnifier whose patches are all in `have` marked data-r2; {html, marked}. */
+export function markScans(html, have) {
+  let marked = 0
+  const out = html.replace(LOUPE, (tag, path) => {
+    if (/\sdata-r2=/.test(tag)) return tag
+    const scan = findScans(tag)[0]
+    if (!scan || !scan.patches.every((p) => have.has(p.key))) return tag
+    marked++
+    return tag.replace(/\sdata-scan="/, ` data-r2="${path}" data-scan="`)
+  })
+  return {html: out, marked}
 }

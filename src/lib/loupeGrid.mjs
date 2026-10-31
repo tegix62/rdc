@@ -31,6 +31,17 @@ export const QUALITY = 80
 export const tileUrl = (base, x, y, w, h) =>
   `${base}?rect=${x},${y},${w},${h}&fm=webp&q=${QUALITY}`
 
+/*
+  The same patch as stored in R2 (scripts/lib/r2-images.mjs: the query
+  becomes part of the path). The build copies every patch of a scan there
+  and marks the magnifier data-r2 with the scan's path once all are in; a
+  patch from R2 runs no Function, so hovering costs nothing against the
+  daily count. tileUrl stays the fallback.
+*/
+export const TILE_HOST = 'https://img.rumeaudesign.co'
+export const tileR2Url = (path, x, y, w, h) =>
+  `${TILE_HOST}/v2/rect_${x},${y},${w},${h}~fm_webp~q_${QUALITY}/${path}`
+
 /** Every patch of a W x H scan, row by row, edge patches clipped to fit. */
 export function tileGrid(W, H) {
   const out = []

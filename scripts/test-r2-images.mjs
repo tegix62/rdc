@@ -4,7 +4,8 @@
 
   Usage: node scripts/test-r2-images.mjs
 */
-import {keyFor, queryOfKey, findPictures, rewritePictures, HOST} from './lib/r2-images.mjs'
+import {keyFor, queryOfKey, findPictures, rewritePictures, findScans, markScans, HOST} from './lib/r2-images.mjs'
+import {tileR2Url, tileGrid} from '../src/lib/loupeGrid.mjs'
 
 let failures = 0
 const check = (name, ok, detail = '') => {
@@ -37,6 +38,18 @@ check('one not in R2 keeps its /img/ address', out.includes(`/img/v2/${P}?w=900&
 // The magnifier adds ?rect=... to it; R2 would ignore that and send the whole scan.
 check('a scan in data-scan stays on /img/ even when its key is in R2', out.includes(`data-scan="/img/v2/${P}"`))
 check('counted', moved === 4 && kept === 2, `moved ${moved}, kept ${kept}`)
+
+// The magnifier's patches: copied under the same keys the page builds from data-r2.
+const loupe = `<figure class="loupe" data-loupe="" data-mode="window" data-scan="/img/v2/${P}" data-w="1100" data-h="600" tabindex="0">`
+const scans = findScans(loupe + '<button data-scan="/img/v2/' + P + '" data-px-w="1100">')
+check('a magnifier\'s scan is found, with a patch for every square of its grid - not actual size\'s button', scans.length === 1 && scans[0].patches.length === tileGrid(1100, 600).length, `${scans.length} scan(s), ${scans[0]?.patches.length} patches`)
+const edge = scans[0].patches.at(-1)
+check('a patch\'s key is the address the magnifier asks R2 for', `${HOST}/${edge.key}` === tileR2Url(P, 1024, 512, 76, 88), `${edge.key}`)
+const most = new Set(scans[0].patches.slice(1).map((p) => p.key))
+check('not marked while a patch is missing', markScans(loupe, most).marked === 0)
+const all = markScans(loupe, new Set(scans[0].patches.map((p) => p.key)))
+check('marked data-r2 with its path once all are in, data-scan left alone', all.marked === 1 && all.html.includes(`data-r2="${P}" data-scan="/img/v2/${P}"`), all.html)
+check('and not marked twice', markScans(all.html, new Set(scans[0].patches.map((p) => p.key))).marked === 0)
 
 console.log(failures ? `\n${failures} check(s) failed.` : '\nall checks passed')
 process.exit(failures ? 1 : 0)

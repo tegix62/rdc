@@ -20,7 +20,7 @@
 */
 import {readdir, readFile, writeFile} from 'node:fs/promises'
 import path from 'node:path'
-import {findPictures, keyFor, rewritePictures} from './lib/r2-images.mjs'
+import {findPictures, findScans, keyFor, markScans, rewritePictures} from './lib/r2-images.mjs'
 
 const DIST = process.argv[2] ?? 'dist'
 const BUCKET = 'rdc-images'
@@ -96,6 +96,14 @@ for await (const file of htmlFiles(DIST)) {
     if (key && !wanted.has(key)) wanted.set(key, p)
   }
 }
+// Then the magnifiers' patches - after the pictures, so a capped build
+// copies what every visitor sees first.
+const pictures = wanted.size
+for (const file of files) {
+  for (const scan of findScans(await readFile(file, 'utf8')))
+    for (const p of scan.patches) if (p.key && !wanted.has(p.key)) wanted.set(p.key, p)
+}
+console.log(`[r2-images] ${wanted.size - pictures} magnifier patches`)
 const missing = [...wanted.keys()].filter((k) => !have.has(k))
 console.log(`[r2-images] ${wanted.size} pictures in the pages; ${wanted.size - missing.length} already in R2, ${missing.length} to copy (at most ${MAX} this build)`)
 
@@ -149,11 +157,15 @@ if (sample) {
 // 3. Point the pages at what is in R2.
 let moved = 0
 let kept = 0
+let marked = 0
 for (const file of files) {
   const before = await readFile(file, 'utf8')
   const r = rewritePictures(before, have)
-  if (r.moved) await writeFile(file, r.html)
+  const l = markScans(r.html, have)
+  if (r.moved || l.marked) await writeFile(file, l.html)
   moved += r.moved
   kept += r.kept
+  marked += l.marked
 }
 console.log(`[r2-images] ${moved} picture address(es) now load from img.rumeaudesign.co; ${kept} still through /img/`)
+console.log(`[r2-images] ${marked} magnifier(s) take their patches from R2`)

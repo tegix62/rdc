@@ -278,7 +278,7 @@ const web = hasScan ? webFrom(scan!.url!) : plainFrom(image);
 </style>
 
 <script>
-  import {TILE, tileUrl} from '../lib/loupeGrid.mjs';
+  import {TILE, tileUrl, tileR2Url} from '../lib/loupeGrid.mjs';
 
   for (const fig of document.querySelectorAll<HTMLElement>('[data-loupe]')) {
     const img = fig.querySelector<HTMLImageElement>('.loupe__img')!;
@@ -287,6 +287,8 @@ const web = hasScan ? webFrom(scan!.url!) : plainFrom(image);
     // This piece's own readout, not the page's first: a series page holds many.
     const readout = fig.parentElement?.querySelector<HTMLElement>('[data-loupe-mag]') ?? null;
     const base = fig.dataset.scan!;
+    // Set by the build once every patch of this scan is in R2.
+    const r2 = fig.dataset.r2;
     const W = Number(fig.dataset.w);
     const H = Number(fig.dataset.h);
     const cols = Math.ceil(W / TILE);
@@ -384,19 +386,25 @@ const web = hasScan ? webFrom(scan!.url!) : plainFrom(image);
         t!.classList.add('is-in');
         t!.style.opacity = '1';
       };
-      // A patch that fails would leave a permanently soft spot: two retries
-      // on the same URL (so a warmed copy is still what is asked for), then
-      // the soft picture beneath stands in.
+      // A patch that fails would leave a permanently soft spot: from R2 that
+      // fails, the same patch through /img/; there, two retries on the same
+      // URL (so a warmed copy is still what is asked for), then the soft
+      // picture beneath stands in.
       let tries = 0;
       const url = tileUrl(base, x, y, Number(t.dataset.w), Number(t.dataset.h));
+      const first = r2 ? tileR2Url(r2, x, y, Number(t.dataset.w), Number(t.dataset.h)) : url;
       t.onerror = () => {
+        if (t!.src === first && first !== url) {
+          t!.src = url;
+          return;
+        }
         if (tries++ >= 2) return;
         setTimeout(() => {
           t!.removeAttribute('src');
           t!.src = url;
         }, 400 * tries);
       };
-      t.src = url;
+      t.src = first;
       layer.appendChild(t);
       tiles.set(i, t);
       while (tiles.size > CAP) {

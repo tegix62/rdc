@@ -21,8 +21,8 @@
       of spread toner, and over it the rough noisy one, broken up by grain;
     - small type (captions, the paragraph) gets the same glow far lighter,
       so it stays easy to read;
-    - over the whole page, header and footer included, and fixed so it
-      never scrolls away: paper grain and speckle, a dark streak down the
+    - over the whole page, header and footer included, scrolling with it
+      as paper would: paper grain and speckle, a dark streak down the
       left edge where the lid was open, and a toner layer that flecks the
       blacks with grey - it only lightens, so the whites are untouched;
     - the page a touch faded and a fraction crooked.
@@ -57,8 +57,8 @@ const pieces = all.filter((_, i) => i % step === 0).slice(0, 12);
 */
 const BLACK = 0.12;
 const FILTERS = [
-  {id: 'cp-big', contrast: 1.85, cut: -0.33, soft: {r: 2.6, blur: 3.2, dark: 0.32}, rough: {r: 1.7, blur: 1.1, dark: 0.62, freq: 0.82}},
-  {id: 'cp-small', contrast: 1, cut: 0, soft: {r: 0.6, blur: 1.2, dark: 0.14}, rough: {r: 0.35, blur: 0.5, dark: 0.22, freq: 1.1}},
+  {id: 'cp-big', contrast: 1.85, cut: -0.33, soft: {r: 2.6, blur: 3.2, dark: 0.2}, rough: {r: 1.7, blur: 1.1, dark: 0.62, freq: 0.82}},
+  {id: 'cp-small', contrast: 1, cut: 0, soft: {r: 0.6, blur: 1.2, dark: 0.09}, rough: {r: 0.35, blur: 0.5, dark: 0.22, freq: 1.1}},
 ];
 ---
 
@@ -225,11 +225,20 @@ const FILTERS = [
     transform: rotate(-0.18deg) translateX(-1px);
   }
 
-  /* The paper: grain, speckle, a faint fade and the lid's streak - multiplied, so it darkens. */
+  /*
+    The paper: grain, speckle, a faint fade and the lid's streak - multiplied,
+    so it darkens. Laid over the whole document, not the screen, so it
+    scrolls with the page (Chris, of the fixed first try: "the grain is now
+    static and doesn't scroll with the site"). The script moves both layers
+    to the body and keeps --cp-h at the document's height.
+  */
   .cp-paper,
   .cp-toner {
-    position: fixed;
-    inset: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: var(--cp-h, 100%);
     z-index: 1000;
     pointer-events: none;
     opacity: 0;
@@ -263,6 +272,13 @@ const FILTERS = [
 </style>
 
 <script>
+  // The paper and toner over the whole document: on the body, as tall as the page.
+  const layers = document.querySelectorAll<HTMLElement>('.cp-paper, .cp-toner');
+  const fit = () => layers.forEach((l) => l.style.setProperty('--cp-h', `${document.documentElement.scrollHeight}px`));
+  layers.forEach((l) => document.body.append(l));
+  fit();
+  new ResizeObserver(fit).observe(document.body);
+
   const root = document.querySelector<HTMLElement>('[data-copier]');
   root?.querySelectorAll<HTMLButtonElement>('[data-set]').forEach((b) =>
     b.addEventListener('click', () => {

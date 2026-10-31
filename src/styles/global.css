@@ -8928,7 +8928,11 @@ a.pf-btn {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem 0.75rem;
-  margin: var(--space-2) 0 0;
+  margin: 0.75rem 0 0;
+}
+/* With the tickets and Currently line above them (preview), the buttons sit a step closer. */
+.wf-band__now + .wf-band__go {
+  margin-top: var(--space-2);
 }
 .tk__head {
   margin: 0;

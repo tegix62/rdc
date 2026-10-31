@@ -157,32 +157,27 @@ for (const [screen, viewport] of [['desktop', {width: 1366, height: 900}], ['pho
   const pieces = page.locator('.wd-piece[data-piece]:not([hidden]):not(.wd-piece--result)')
   if (await page.locator('[data-vote]').count()) {
     const named = await pieces.nth(2).getAttribute('data-piece')
-    await page.route('**/api/endorse', (route) =>
-      route.fulfill({json: {names: [
-        {piece: named, name: '@sam.lee', link: 'https://www.instagram.com/sam.lee/'},
-        {piece: named, name: 'Ana <b>x</b>', link: ''},
-      ]}}),
-    )
-    let endorseHits = 0
-    page.on('request', (r) => r.url().includes('/api/endorse') && endorseHits++)
-    await page.evaluate(() => {
+    /*
+      The names, handed to the page's own fetch. A page.route for this GET
+      was not consulted on the preview (the request reached the real
+      endpoint, which answered with none), while the POSTs above were - so
+      the stand-in names go in under the route rather than through it.
+    */
+    await page.evaluate((id) => {
       const f = window.fetch.bind(window)
-      window.__calls = []
-      window.fetch = (...a) => (window.__calls.push(String(a[0])), f(...a))
-    })
+      const names = [
+        {piece: id, name: '@sam.lee', link: 'https://www.instagram.com/sam.lee/'},
+        {piece: id, name: 'Ana <b>x</b>', link: ''},
+      ]
+      window.fetch = (u, o) =>
+        String(u).includes('/api/endorse')
+          ? Promise.resolve(new Response(JSON.stringify({names}), {headers: {'content-type': 'application/json'}}))
+          : f(u, o)
+    }, named)
     await page.locator('.pf-group--arrange:not(.is-away) [data-vote]').click()
     await page.waitForTimeout(800)
-    console.log('      debug', JSON.stringify(await page.evaluate(async (id) => ({
-      calls: window.__calls,
-      voting: document.documentElement.classList.contains('is-voting'),
-      pieces: document.querySelectorAll('.wd-piece[data-piece]').length,
-      same: document.querySelectorAll(`[data-piece="${id}"]`).length,
-      answer: await fetch('/api/endorse').then((r) => r.text()).catch((e) => String(e)),
-      tags: document.querySelectorAll('.vt-tag').length,
-    }), named)), 'hits', endorseHits)
     const tag = await pieces.nth(2).locator('.vt-tag').innerText({timeout: 3000}).catch(() => '')
-    const seen = await page.evaluate(() => ({tags: document.querySelectorAll('.vt-tag').length, asked: performance.getEntriesByType('resource').filter((e) => e.name.includes('/api/endorse')).map((e) => e.name)}))
-    check('Votes on: a piece people signed carries a tag', tag === '@sam.lee and 1 other', `${tag || '(none)'} ${JSON.stringify(seen)} named=${named}`)
+    check('Votes on: a piece people signed carries a tag', tag === '@sam.lee and 1 other', tag || '(none)')
     check('and the tag is gone when Votes is off', await (async () => {
       await page.locator('.pf-group--arrange:not(.is-away) [data-vote]').click()
       await page.waitForTimeout(200)

@@ -76,6 +76,22 @@ const tagline = clean(settings?.tagline) || 'Brand identity & merch design for h
 */
 const CURRENTLY = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
 const nowLine = clean(settings?.nowLine);
+/*
+  COMMISSION SLOTS as a ticket drop (Site Settings > Booking): a numbered
+  ticket per slot, the taken ones stamped. Preview only, beside Currently;
+  left out until a season and a count are set, except on the preview where
+  a DRAFT row shows what it would look like.
+*/
+const slotsTotal = Number(settings?.slotsTotal) || 0;
+const slots = {
+  season: clean(settings?.slotsSeason),
+  total: slotsTotal || 5,
+  taken: Math.min(Number(settings?.slotsTaken) || 0, slotsTotal || 5),
+  note: clean(settings?.slotsNote),
+  draft: !slotsTotal || !clean(settings?.slotsSeason),
+};
+if (slots.draft) slots.taken = 2;
+const left = slots.total - slots.taken;
 // His own closing words from Site Settings, or none - no sentence written for him.
 const finalLine = clean(settings?.finalCtaLine) || clean(settings?.finalCtaHeading).replace(/:\s*$/, '');
 ---
@@ -83,6 +99,23 @@ const finalLine = clean(settings?.finalCtaLine) || clean(settings?.finalCtaHeadi
 <section class="wf-band">
   <h1 class="wf-band__line">{tagline}</h1>
   <p class="wf-band__who">{bioText}</p>
+  {CURRENTLY && (
+    <div class="tk" aria-label={`Commission slots${slots.season ? `, ${slots.season}` : ''}: ${left} of ${slots.total} open`}>
+      <p class="tk__head">
+        {slots.season || 'Next season'}: {left ? `${left} of ${slots.total} open` : 'all taken'}
+        {slots.draft && <em> DRAFT - set Site Settings &gt; Booking</em>}
+      </p>
+      <ol class="tk__row">
+        {Array.from({length: slots.total}, (_, i) => (
+          <li class:list={['tk__ticket', i < slots.taken && 'is-taken']}>
+            <span class="tk__no">No. {String(i + 1).padStart(2, '0')}</span>
+            {i < slots.taken ? <span class="tk__stamp">Taken</span> : <a class="tk__claim" href={contactUrl}>Claim</a>}
+          </li>
+        ))}
+      </ol>
+      {(slots.note || !left) && <p class="tk__note">{slots.note || 'The next season opens soon.'}</p>}
+    </div>
+  )}
   {CURRENTLY && (
     <p class="wf-band__now">
       Currently: {nowLine || <em>write this line in Studio, Site Settings &gt; Homepage &gt; "Currently" line</em>}

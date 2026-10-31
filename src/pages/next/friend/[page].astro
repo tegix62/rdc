@@ -1,0 +1,203 @@
+---
+/*
+  FRIEND, WHERE IT WORKS - preview only, at /next/friend/specimen. Chris: "I
+  really like Friend as a typeface, but you'd have to show me something
+  where it works." The whole homepage in it was "too transformational for
+  this website right now", so this tries it in five contained places, each
+  beside the type the site uses now, with the site's real words:
+
+    1  the homepage's opening line
+    2  a project's title and its one result
+    3  a year, as the road map shows them
+    4  a museum label's title
+    5  the Currently line and the slot tickets' heading
+
+  Friend (Simon Walker) is Chris's licensed font, fetched for preview builds
+  only (scripts/fetch-fonts.mjs) and never committed. If it is missing the
+  right-hand column falls back to Georgia, and the page says so.
+
+  Never built for production (getStaticPaths), and noindex.
+*/
+import Layout from '../../../layouts/Layout.astro';
+import {getSiteSettings, getCaseStudies} from '../../../lib/queries';
+import {stripStegaKey} from '../../../lib/stega';
+
+export async function getStaticPaths() {
+  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
+  return [{params: {page: 'specimen'}}];
+}
+
+const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
+const settings = await getSiteSettings();
+const studies: any[] = await getCaseStudies();
+const study =
+  studies.filter((s) => typeof s.orderRank === 'string').sort((a, z) => (a.orderRank < z.orderRank ? -1 : 1))[0] ?? studies[0];
+const proof = (settings?.proofStats ?? []).map((p: any) => clean(p.stat)).find(Boolean) || '22% increase';
+
+const rows = [
+  {
+    name: 'The homepage, first line',
+    kind: 'band',
+    text: clean(settings?.tagline) || 'Brand identity & merch design for heritage apparel brands.',
+  },
+  {name: 'A project title', kind: 'title', text: clean(study?.title) || 'Chateau Seven', small: clean(study?.client) || clean(study?.headline)},
+  {name: 'A result', kind: 'stat', text: proof},
+  {name: 'A year on the road map', kind: 'year', text: '2019'},
+  {name: "A piece's label", kind: 'label', text: clean(study?.title) || 'Two Point Oh', small: 'Screenprint on cotton, 2023'},
+  {
+    name: 'Currently, and the tickets',
+    kind: 'small',
+    text: `Currently: ${clean(settings?.nowLine) || 'lettering a run of tour posters. Booking from January.'}`,
+    small: `${clean(settings?.slotsSeason) || 'Spring 2027'}: 3 of 5 open`,
+  },
+];
+---
+
+<Layout title="Friend, where it works - Rumeau Design Co" description="Friend beside the site's type, in five places." noindex>
+  <div class="fs">
+    <header class="fs-head">
+      <h1>Friend, where it works</h1>
+      <p>
+        Five places on the site, each in the type it uses now and in Friend, with the site's own words. Pick the ones that
+        feel right and leave the rest; none of them changes anything else.
+      </p>
+      <p class="fs-missing" hidden>Friend didn't load on this build, so the right-hand column is in Georgia.</p>
+    </header>
+
+    <div class="fs-cols" aria-hidden="true">
+      <span>Now</span>
+      <span>In Friend</span>
+    </div>
+
+    {rows.map((r) => (
+      <section class={`fs-row fs-row--${r.kind}`}>
+        <h2 class="fs-name">{r.name}</h2>
+        <div class="fs-pair">
+          <div class="fs-now">
+            <p class="fs-text">{r.text}</p>
+            {r.small && <p class="fs-small">{r.small}</p>}
+          </div>
+          <div class="fs-friend">
+            <p class="fs-text">{r.text}</p>
+            {r.small && <p class="fs-small">{r.small}</p>}
+          </div>
+        </div>
+      </section>
+    ))}
+  </div>
+</Layout>
+
+<style is:global>
+  @font-face {
+    font-family: 'Friend';
+    src: url(/fonts/licensed/Friend-Regular.woff2) format('woff2'), url(/fonts/licensed/Friend-Regular.otf) format('opentype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+</style>
+
+<style>
+  .fs {
+    padding: var(--space-5, 3rem) var(--space-4, 1.5rem) var(--space-6, 4rem);
+    max-width: 84rem;
+    margin: 0 auto;
+  }
+  .fs-head {
+    max-width: 40rem;
+    margin-bottom: 2.5rem;
+  }
+  .fs-head h1 {
+    font: 800 clamp(2rem, 5vw, 3.25rem) / 1 var(--font-heading);
+    letter-spacing: -0.03em;
+    margin: 0 0 1rem;
+  }
+  .fs-missing {
+    color: #b00;
+  }
+  .fs-cols,
+  .fs-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+  }
+  .fs-cols {
+    font: 700 0.75rem/1 var(--font-heading);
+    letter-spacing: var(--label-track, 0.06em);
+    text-transform: uppercase;
+    color: var(--color-gray);
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .fs-row {
+    padding: 2rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .fs-name {
+    margin: 0 0 1rem;
+    font: 500 0.8125rem/1 var(--font-body);
+    color: var(--color-gray);
+  }
+  .fs-text,
+  .fs-small {
+    margin: 0;
+    color: var(--color-navy);
+  }
+  .fs-small {
+    margin-top: 0.5rem;
+    color: var(--color-gray);
+    font-size: 0.9375rem;
+  }
+
+  /* Now: the site's type, as each place sets it today. */
+  .fs-now .fs-text {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.02;
+  }
+  /* Friend: uppercase, one weight, tracking easing off as it gets smaller - as approved on the homepage trial. */
+  .fs-friend .fs-text {
+    font-family: 'Friend', Georgia, serif;
+    font-weight: 400;
+    text-transform: uppercase;
+    font-synthesis: none;
+    line-height: 0.86;
+  }
+
+  .fs-row--band .fs-text { font-size: clamp(1.75rem, 1rem + 3.2vw, 3.5rem); }
+  .fs-row--band .fs-friend .fs-text { font-size: clamp(2rem, 1.1rem + 3.6vw, 4rem); letter-spacing: -0.01em; }
+  .fs-row--title .fs-text { font-size: clamp(2rem, 1.4rem + 2.4vw, 3.75rem); }
+  .fs-row--title .fs-friend .fs-text { letter-spacing: -0.005em; }
+  .fs-row--stat .fs-text { font-size: clamp(2.5rem, 1.5rem + 4vw, 5.5rem); }
+  .fs-row--stat .fs-friend .fs-text { letter-spacing: -0.01em; }
+  .fs-row--year .fs-text { font-size: clamp(3rem, 2rem + 4vw, 6rem); }
+  .fs-row--year .fs-friend .fs-text { letter-spacing: -0.015em; line-height: 0.8; }
+  .fs-row--label .fs-text { font-size: 1.375rem; }
+  .fs-row--label .fs-friend .fs-text { letter-spacing: 0.02em; line-height: 1; }
+  .fs-row--small .fs-text { font-size: 1rem; font-weight: 500; letter-spacing: 0; line-height: 1.4; }
+  .fs-row--small .fs-now .fs-text { font-family: var(--font-body); }
+  .fs-row--small .fs-friend .fs-text { font-size: 1.125rem; letter-spacing: 0.03em; line-height: 1.1; }
+
+  @media (max-width: 47.99rem) {
+    .fs-cols { display: none; }
+    .fs-pair { grid-template-columns: 1fr; gap: 1.25rem; }
+    .fs-friend { padding-top: 1.25rem; border-top: 1px dashed var(--color-border); }
+    .fs-friend::before {
+      content: 'In Friend';
+      display: block;
+      margin-bottom: 0.5rem;
+      font: 700 0.6875rem/1 var(--font-heading);
+      letter-spacing: var(--label-track, 0.06em);
+      text-transform: uppercase;
+      color: var(--color-gray);
+    }
+  }
+</style>
+
+<script>
+  // Say so when Friend did not come with this build.
+  document.fonts.load('1em Friend').then((faces) => {
+    if (!faces.length) document.querySelector<HTMLElement>('.fs-missing')!.hidden = false;
+  });
+</script>

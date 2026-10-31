@@ -15,6 +15,7 @@ export default defineType({
   groups: [
     {name: 'brand', title: 'Brand & contact', default: true},
     {name: 'homepage', title: 'Homepage'},
+    {name: 'booking', title: 'Booking'},
     {name: 'footer', title: 'Footer'},
     {name: 'seo', title: 'Search'},
   ],
@@ -497,6 +498,88 @@ export default defineType({
     }),
 
     // --- Footer ------------------------------------------------------------
+    // --- Booking (preview) ----------------------------------------------------
+    /*
+      COMMISSION SLOTS, shown as a row of numbered tickets with the taken ones
+      stamped. Chris liked "commission slots as a ticket drop". On the
+      preview homepage for now.
+    */
+    defineField({
+      name: 'slotsSeason',
+      title: 'Commission slots - which season',
+      type: 'string',
+      group: 'booking',
+      description: 'As it reads: "Spring 2027". Left empty, the tickets are left out.',
+    }),
+    defineField({
+      name: 'slotsTotal',
+      title: 'Commission slots - how many',
+      type: 'number',
+      group: 'booking',
+      validation: (Rule) => Rule.integer().min(1).max(12),
+    }),
+    defineField({
+      name: 'slotsTaken',
+      title: 'Commission slots - how many are taken',
+      type: 'number',
+      group: 'booking',
+      validation: (Rule) => Rule.integer().min(0).max(12),
+    }),
+    defineField({
+      name: 'slotsNote',
+      title: 'Commission slots - a line under them (optional)',
+      type: 'string',
+      group: 'booking',
+      description: 'e.g. "Summer opens in May." Shown when all are taken, or always if you like.',
+    }),
+    /*
+      THE YEARLY FREE ONE: once a year a band or small business tells their
+      story, and one is designed for free, start to finish, on the site.
+      Chris: "not a bad idea". Its page is /next/free/one on the preview.
+    */
+    defineField({
+      name: 'freeYear',
+      title: 'The free one - which year',
+      type: 'number',
+      group: 'booking',
+      validation: (Rule) => Rule.integer().min(2026).max(2100),
+    }),
+    defineField({
+      name: 'freeOpen',
+      title: 'The free one - taking stories now',
+      type: 'boolean',
+      group: 'booking',
+      initialValue: false,
+    }),
+    defineField({
+      name: 'freeCloses',
+      title: 'The free one - stories close on (optional)',
+      type: 'date',
+      group: 'booking',
+    }),
+    defineField({
+      name: 'freeIntro',
+      title: 'The free one - in your words',
+      type: 'text',
+      rows: 4,
+      group: 'booking',
+      description: 'Why you do it and who it is for. Left empty, the page shows a DRAFT version to react to.',
+    }),
+    defineField({
+      name: 'freeFormUrl',
+      title: 'The free one - where stories are sent (optional)',
+      type: 'url',
+      group: 'booking',
+      description: 'A Tally form, say. Left empty, the button goes to your contact page.',
+    }),
+    defineField({
+      name: 'freePast',
+      title: 'The free one - past picks',
+      type: 'array',
+      group: 'booking',
+      of: [{type: 'reference', to: [{type: 'caseStudy'}]}],
+    }),
+
     defineField({
       name: 'footerText',
       title: 'Footer blurb',

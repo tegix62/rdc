@@ -8919,6 +8919,88 @@ a.pf-btn {
   line-height: 1.45;
   color: var(--color-ink);
 }
+/*
+  COMMISSION SLOTS as tickets (preview) - see WorkFirst.astro. Stub tickets
+  with a perforated end; a taken one is stamped at an angle.
+*/
+.tk {
+  margin: var(--space-3) 0 0;
+}
+.tk__head {
+  margin: 0 0 0.5rem;
+  font: 700 0.8125rem/1.2 var(--font-heading);
+  letter-spacing: var(--label-track, 0.06em);
+  text-transform: uppercase;
+  color: var(--color-navy);
+}
+.tk__head em {
+  font-style: normal;
+  color: #b00;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+.tk__row {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tk__ticket {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 6.25rem;
+  height: 3.75rem;
+  padding: 0.4rem 0.55rem 0.4rem 0.75rem;
+  box-sizing: border-box;
+  border: 1.5px solid var(--color-navy);
+  background: var(--color-white);
+  /* The notch of a stub ticket, bitten out of its left edge. */
+  -webkit-mask: radial-gradient(circle at 0 50%, transparent 0.4rem, #000 0.42rem);
+  mask: radial-gradient(circle at 0 50%, transparent 0.4rem, #000 0.42rem);
+  overflow: hidden;
+}
+.tk__no {
+  font: 700 0.75rem/1 var(--font-heading);
+  letter-spacing: 0.04em;
+  color: var(--color-navy);
+}
+.tk__claim {
+  align-self: flex-start;
+  font: 700 0.6875rem/1 var(--font-heading);
+  letter-spacing: var(--label-track, 0.06em);
+  text-transform: uppercase;
+  color: var(--color-navy);
+}
+.tk__ticket.is-taken {
+  background: var(--color-gray-light);
+}
+.tk__ticket.is-taken .tk__no {
+  color: var(--color-gray);
+}
+.tk__stamp {
+  position: absolute;
+  right: 0.3rem;
+  bottom: 0.45rem;
+  padding: 0.1rem 0.35rem;
+  border: 2px solid #b3261e;
+  color: #b3261e;
+  font: 800 0.75rem/1 var(--font-heading);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: rotate(-12deg);
+  opacity: 0.85;
+}
+.tk__note {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: var(--color-gray);
+}
+
 .wf-band__now {
   max-width: 46ch;
   margin: var(--space-2) 0 0;

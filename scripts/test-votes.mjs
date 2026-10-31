@@ -165,8 +165,9 @@ for (const [screen, viewport] of [['desktop', {width: 1366, height: 900}], ['pho
     )
     await page.locator('.pf-group--arrange:not(.is-away) [data-vote]').click()
     await page.waitForTimeout(500)
-    const tag = await pieces.nth(2).locator('.vt-tag').innerText().catch(() => '')
-    check('Votes on: a piece people signed carries a tag', tag === '@sam.lee and 1 other', tag)
+    const tag = await pieces.nth(2).locator('.vt-tag').innerText({timeout: 3000}).catch(() => '')
+    const seen = await page.evaluate(() => ({tags: document.querySelectorAll('.vt-tag').length, asked: performance.getEntriesByType('resource').filter((e) => e.name.includes('/api/endorse')).map((e) => e.name)}))
+    check('Votes on: a piece people signed carries a tag', tag === '@sam.lee and 1 other', `${tag || '(none)'} ${JSON.stringify(seen)} named=${named}`)
     check('and the tag is gone when Votes is off', await (async () => {
       await page.locator('.pf-group--arrange:not(.is-away) [data-vote]').click()
       await page.waitForTimeout(200)
@@ -178,7 +179,7 @@ for (const [screen, viewport] of [['desktop', {width: 1366, height: 900}], ['pho
     await pieces.nth(2).locator('.wd-pic').click()
     await page.waitForTimeout(900)
     const by = page.locator('.wd-piece.is-open .vt-by')
-    const byText = await by.innerText().catch(() => '')
+    const byText = await by.innerText({timeout: 3000}).catch(() => '')
     check('the open piece lists them under its button, the handle linked, markup shown as text', /Voted by @sam\.lee and Ana <b>x<\/b>/.test(byText) && (await by.locator('a[href="https://www.instagram.com/sam.lee/"]').count()) === 1 && (await by.locator('b').count()) === 0, byText)
 
     await page.locator('.wd-piece.is-open .vt-dig').click()

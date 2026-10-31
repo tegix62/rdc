@@ -1,0 +1,191 @@
+---
+/*
+  THE YEARLY FREE ONE - preview only, at /next/free/one. Once a year a band
+  or small business tells their story, and one is designed for free, start
+  to finish, documented on the site. Chris: "The yearly free one you
+  suggested in an earlier message is not a bad idea."
+
+  Everything on it is Site Settings > Booking: the year, whether stories are
+  being taken, when they close, his words, where stories go (a Tally form,
+  or the contact page), and past picks. Left empty, the words are a DRAFT
+  to react to, marked as such.
+
+  Never built for production (getStaticPaths), and noindex.
+*/
+import Layout from '../../../layouts/Layout.astro';
+import Img from '../../../components/Img.astro';
+import {getSiteSettings} from '../../../lib/queries';
+import {sanityClient} from '../../../lib/sanity';
+import {tileImage} from '../../../lib/image';
+import {tileHref} from '../../../lib/tiles';
+import {stripStegaKey} from '../../../lib/stega';
+
+export async function getStaticPaths() {
+  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
+  return [{params: {page: 'one'}}];
+}
+
+const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
+const settings = await getSiteSettings();
+const year = Number(settings?.freeYear) || new Date().getFullYear() + 1;
+// Never set: shown open, so the button can be seen, with a note saying where the switch is.
+const unset = settings?.freeOpen === undefined || settings?.freeOpen === null;
+const open = unset || Boolean(settings?.freeOpen);
+const closes = settings?.freeCloses
+  ? new Date(`${settings.freeCloses}T12:00:00Z`).toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'})
+  : '';
+const intro = stripStegaKey(settings?.freeIntro).trim();
+const form = clean(settings?.freeFormUrl) || clean(settings?.contactUrl) || '/contact';
+const past: any[] = settings?.freePast?.length
+  ? await sanityClient.fetch(`*[_id in $ids]{_id, title, slug, pageType, thumbnail, mainImage, year}`, {
+      ids: settings.freePast.map((r: any) => r._ref),
+    })
+  : [];
+---
+
+<Layout title={`The free one, ${year} - Rumeau Design Co`} description="Once a year, one band or small business, designed for free." noindex>
+  <article class="fo">
+    <p class="fo-year">{year}</p>
+    <h1>One a year, for free.</h1>
+    {intro ? (
+      <div class="fo-words">{intro.split(/\n{2,}/).map((p) => <p>{p}</p>)}</div>
+    ) : (
+      <div class="fo-words fo-words--draft">
+        <p>
+          DRAFT - Once a year I take on one project for nothing: a band about to put out their first record, a shop
+          that's been on the corner for thirty years and never had a sign worth the name, a small outfit doing good work
+          with no budget for how it looks.
+        </p>
+        <p>
+          Tell me who you are and why now. I'll read every one, pick one, and make it start to finish - and the whole
+          thing goes up here, sketches and all.
+        </p>
+      </div>
+    )}
+
+    <div class="fo-go">
+      {open ? (
+        <>
+          <a class="button" href={form}>Tell me your story</a>
+          {closes && <p class="fo-when">Stories close {closes}.</p>}
+          {unset && <p class="fo-when"><em>DRAFT - open or closed is Site Settings &gt; Booking &gt; "taking stories now"</em></p>}
+        </>
+      ) : (
+        <p class="fo-when">
+          Not taking stories right now.
+        </p>
+      )}
+    </div>
+
+    <dl class="fo-how">
+      <dt>Who it's for</dt>
+      <dd>Bands, makers and small businesses who couldn't otherwise hire a designer.</dd>
+      <dt>What you get</dt>
+      <dd>The work your story needs most: a mark, a record sleeve, a run of shirts, a sign.</dd>
+      <dt>What I ask</dt>
+      <dd>That you use it, and that I can show how it was made.</dd>
+    </dl>
+
+    {past.length > 0 && (
+      <section class="fo-past" aria-label="Past picks">
+        <h2>Past picks</h2>
+        <ul>
+          {past.map((p) => (
+            <li>
+              <a href={tileHref(p) ?? '#'}>
+                {tileImage(p) && <Img image={tileImage(p)} alt={clean(p.title)} width={600} sizes="(min-width: 48rem) 20rem, 50vw" loading="lazy" />}
+                <span>{clean(p.title)}{p.year ? `, ${p.year}` : ''}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+  </article>
+</Layout>
+
+<style>
+  .fo {
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: var(--space-6, 4rem) var(--space-4, 1.5rem);
+  }
+  .fo-year {
+    margin: 0;
+    font: 800 clamp(4rem, 16vw, 9rem) / 0.8 var(--font-heading);
+    letter-spacing: -0.05em;
+    color: var(--color-navy);
+  }
+  .fo h1 {
+    margin: 0.75rem 0 1.5rem;
+    font: 800 clamp(1.75rem, 4vw, 2.5rem) / 1.05 var(--font-heading);
+    letter-spacing: -0.03em;
+  }
+  .fo-words p {
+    font-size: 1.125rem;
+    line-height: 1.6;
+  }
+  .fo-words--draft {
+    color: var(--color-gray);
+  }
+  .fo-go {
+    margin: 2rem 0;
+  }
+  .fo-when {
+    color: var(--color-gray);
+  }
+  .fo-when em {
+    font-style: normal;
+    color: #b00;
+  }
+  .fo-how {
+    display: grid;
+    grid-template-columns: 9rem 1fr;
+    gap: 0.75rem 1.25rem;
+    padding: 1.25rem 0;
+    border-top: 2px solid var(--color-navy);
+    border-bottom: 2px solid var(--color-navy);
+  }
+  .fo-how dt {
+    font: 700 0.8125rem/1.5 var(--font-heading);
+    letter-spacing: var(--label-track, 0.06em);
+    text-transform: uppercase;
+    color: var(--color-navy);
+  }
+  .fo-how dd {
+    margin: 0;
+    line-height: 1.5;
+  }
+  .fo-past h2 {
+    font: 800 1.25rem/1 var(--font-heading);
+    margin: 2.5rem 0 1rem;
+  }
+  .fo-past ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .fo-past img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+  }
+  .fo-past span {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.875rem;
+  }
+  @media (max-width: 40rem) {
+    .fo-how {
+      grid-template-columns: 1fr;
+      gap: 0.25rem;
+    }
+    .fo-how dd {
+      margin-bottom: 0.75rem;
+    }
+  }
+</style>

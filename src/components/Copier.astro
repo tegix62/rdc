@@ -164,25 +164,22 @@ const FILTERS = [
     and every button, card and control whole, its frame with it. Nothing is
     copied twice: text inside a button or card goes with it, and a button
     inside a paragraph goes with the button. A button or card that holds a
-    picture (every piece on the portfolio is one) is left to its picture.
+    picture (every piece on the portfolio is one), or a list item that does,
+    is left to its picture; a button inside a card goes with the card.
   */
   html.is-copied .site-nav {
     background: transparent;
   }
   html.is-copied main :is(img, video),
   html.is-copied main :is(h1, h2, h3, h4):not(:is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select) *),
-  html.is-copied main :is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select):not(:is(p, li, dt, dd, figcaption, td, small, blockquote, label, h1, h2, h3, h4):not(:has(button, .button)) *):not(:has(img, video)),
+  html.is-copied main :is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select):not(:is(p, li, dt, dd, figcaption, td, small, blockquote, label, h1, h2, h3, h4):not(:has(button, .button)) *):not(:is(.wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts) *):not(:has(img, video)),
   html.is-copied .copier-big {
     filter: url(#cp-big);
   }
-  html.is-copied main :is(p, li, dt, dd, figcaption, td, small, blockquote, label):not(:is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select) *):not(:has(button, .button)),
+  html.is-copied main :is(p, li, dt, dd, figcaption, td, small, blockquote, label):not(:is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select) *):not(:has(button, .button, img, video)),
   html.is-copied :is(.site-nav, .site-footer),
   html.is-copied .copier-small {
     filter: url(#cp-small);
-  }
-  /* A list item holding a picture: the picture carries its own filter. */
-  html.is-copied main li:has(img) {
-    filter: none;
   }
   html.is-copied main {
     opacity: 0.94;
@@ -191,18 +188,14 @@ const FILTERS = [
   @media (max-width: 47.99rem) {
     html.is-copied main :is(img, video),
     html.is-copied main :is(h1, h2, h3, h4):not(:is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select) *),
-    html.is-copied main :is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select):not(:is(p, li, dt, dd, figcaption, td, small, blockquote, label, h1, h2, h3, h4):not(:has(button, .button)) *):not(:has(img, video)),
+    html.is-copied main :is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select):not(:is(p, li, dt, dd, figcaption, td, small, blockquote, label, h1, h2, h3, h4):not(:has(button, .button)) *):not(:is(.wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts) *):not(:has(img, video)),
     html.is-copied .copier-big {
       filter: url(#cp-big-s);
     }
-    html.is-copied main :is(p, li, dt, dd, figcaption, td, small, blockquote, label):not(:is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select) *):not(:has(button, .button)),
+    html.is-copied main :is(p, li, dt, dd, figcaption, td, small, blockquote, label):not(:is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select) *):not(:has(button, .button, img, video)),
     html.is-copied :is(.site-nav, .site-footer),
     html.is-copied .copier-small {
       filter: url(#cp-small-s);
-    }
-    /* A list item holding a picture: the picture carries its own filter. */
-    html.is-copied main li:has(img) {
-      filter: none;
     }
 
     html.is-copied .copier-paper {

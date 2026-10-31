@@ -1,0 +1,39 @@
+name: Diagnose copier mode
+
+# Pictures of /next/copier/mode at each generation, with what the browser
+# applied, pushed to the `shots` branch so a session that cannot reach the
+# site can read them back.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+
+permissions:
+  contents: write
+
+jobs:
+  shoot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save playwright@1.56.0
+      - run: npx playwright install --with-deps chromium
+      # Real pictures: the effect is on their pixels. They come from R2, so no Function runs.
+      - run: node scripts/diagnose-copier.mjs "${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}" /tmp/shots
+      - name: Push the pictures to the shots branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git checkout --orphan shots
+          git rm -rfq .
+          cp /tmp/shots/* .
+          git add -- *.png report.json
+          git commit -qm "Copier mode at each generation"
+          git push -f origin shots

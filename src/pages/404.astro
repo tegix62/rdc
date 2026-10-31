@@ -1,7 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { getSiteSettings } from '../lib/queries';
-import Copier from '../components/Copier.astro';
 
 /*
   Lost in the copier: the 404 as a photocopy (src/components/Copier.astro).
@@ -48,7 +47,8 @@ const routes = [
       Or just <a href={CONTACT_URL}>tell me what you were looking for</a>.
     </p>
   </div>
-  {COPIED && <Copier on />}
+  {/* Copied from the start; the layout carries the copier itself (preview). */}
+  {COPIED && <script is:inline>document.documentElement.classList.add('is-copied');</script>}
 </Layout>
 
 <style>

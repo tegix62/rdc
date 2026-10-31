@@ -2,14 +2,14 @@
 /*
   COPIER MODE - preview only, at /next/copier/mode: a sample of the
   portfolio and its words, with the switch. The look itself lives in
-  src/components/Copier.astro, shared with the 404 ("lost in the copier")
-  and, later, the site's secret button - so tuning it here tunes it there.
+  src/components/Copier.astro, carried by the layout on the preview and
+  shared with the 404 ("lost in the copier") and the site's secret button,
+  the © in the footer - so tuning it here tunes it there.
 
   Never built for production (getStaticPaths), and noindex.
 */
 import Layout from '../../../layouts/Layout.astro';
 import Img from '../../../components/Img.astro';
-import Copier from '../../../components/Copier.astro';
 import {getAllGridItems} from '../../../lib/queries';
 import {tileImage} from '../../../lib/image';
 import {stripStegaKey} from '../../../lib/stega';
@@ -46,7 +46,6 @@ const pieces = all.filter((_, i) => i % step === 0).slice(0, 12);
       ))}
     </ul>
   </div>
-  <Copier />
 </Layout>
 
 <style>
@@ -124,6 +123,7 @@ const pieces = all.filter((_, i) => i % step === 0).slice(0, 12);
   document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((b) =>
     b.addEventListener('click', () => {
       document.documentElement.classList.toggle('is-copied', b.dataset.copy === 'on');
+      document.querySelectorAll('[data-copier-switch]').forEach((s) => s.setAttribute('aria-pressed', String(b.dataset.copy === 'on')));
       document.querySelectorAll('[data-copy]').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
     }),
   );

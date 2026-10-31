@@ -10,15 +10,16 @@ back to these. Preview pages for shelved ideas stay at their `/next/` addresses
 - **Copier mode as a secret button.** "Keep. We'll throw it somewhere as a
   secret button for the site, because it looks sick. We just need to make sure
   it's not affecting performance." The look is `src/components/Copier.astro`
-  (one class on `<html>`, `is-copied`; costs nothing while off). Where the
-  button goes is still to decide. Demo: `/next/copier/mode`.
+  (one class on `<html>`, `is-copied`; costs nothing while off). The button is
+  the footer's © ("Yeah sure put the copier button there"), remembered per
+  visitor. On the preview. Demo: `/next/copier/mode`.
 - **Lost in the copier: the 404.** "Sure let's do it." On the preview; live
   when Chris says.
 - **Loop video block for case studies.** Silent process loops, full width, like
   Andrea Trabucco-Campos's site. "Yes this would be great. I'd likely host on
   R2 or Vimeo."
-- **Result tiles in the All view.** "Result tiles are great yes." Built
-  (preview); live when Chris says.
+- **Result tiles in the All view.** "Result tiles are great yes ... put em
+  live." Live already (since the "go live with all of that" batch).
 - **Credits.** "I do need to credit more people but I think I'll just do rich
   text on the blue band section." Chris's own content work.
 
@@ -33,7 +34,8 @@ back to these. Preview pages for shelved ideas stay at their `/next/` addresses
 - **Process.** From B-sides: "we're close to doing something like this. I'd call
   it 'Process' and have it be a button or maybe just an extra blog post. Maybe
   blog posts just get CSS grids and page building features to make them more
-  dynamic."
+  dynamic." Then: "sounds good to try it out but potentially roll back" -
+  being tried on the preview.
 
 ## Shelved (pinned, come back to)
 
@@ -61,7 +63,6 @@ back to these. Preview pages for shelved ideas stay at their `/next/` addresses
 - Dismal fantasy page.
 - Card backs with foil / printed decks. "Needs more intensive development."
 - The Archive as its own page. "Might just be repetitive."
-- The Moments grid as the case study layout (see the chat of 31 October).
 
 ## Not now
 
@@ -71,7 +72,8 @@ back to these. Preview pages for shelved ideas stay at their `/next/` addresses
 
 ## Scrapped
 
-- Shapes by type. Sightings / in the wild ("Hashtags are obsolete").
+- The Moments grid ("looks like a mess to me, we weren't able to organize it
+  or give purpose to clicking on a sketch"). Shapes by type. Sightings / in the wild ("Hashtags are obsolete").
   Candlelight. Copier texture on zine and flyer projects. Sketch-to-final drag.
   Trading card for clients. The People page. The motion experiments (Wall,
   Paste-up, Glide, constellation lines).

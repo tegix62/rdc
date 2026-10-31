@@ -586,6 +586,47 @@ for (const [name, w, h] of [
 }
 
 /*
+  The copier's secret switch (preview): the footer's © copies the whole
+  site, the paper over the page, and it stays copied on the next page
+  until pressed again.
+*/
+{
+  const page = await browser.newPage({viewport: {width: 1440, height: 900}})
+  const errors = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  await page.goto(`${BASE}/about`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+  await page.waitForTimeout(800)
+  const sw = page.locator('[data-copier-switch]')
+  if (!(await sw.count())) {
+    console.log('skip  copier switch: not on this site (preview only)')
+  } else {
+    const looks = await sw.evaluate((b) => ({text: b.textContent.trim(), font: getComputedStyle(b).fontSize === getComputedStyle(b.parentElement).fontSize}))
+    check('copier: the footer © is the switch, and looks like a ©', looks.text === '©' && looks.font, JSON.stringify(looks))
+    await sw.click()
+    await page.waitForTimeout(300)
+    const on = await page.evaluate(() => {
+      const paper = document.querySelector('.copier-paper')
+      return {
+        copied: document.documentElement.classList.contains('is-copied'),
+        paper: paper ? getComputedStyle(paper).display : 'none',
+        tall: paper ? Math.abs(paper.getBoundingClientRect().height - document.documentElement.scrollHeight) < 2 : false,
+        img: getComputedStyle(document.querySelector('main img') ?? document.body).filter,
+      }
+    })
+    check('copier: pressed, the site is copied, the paper over the whole page', on.copied && on.paper === 'block' && on.tall && /cp-big/.test(on.img), JSON.stringify(on))
+    await page.goto(`${BASE}/portfolio`, {waitUntil: 'domcontentloaded', timeout: 60_000})
+    await page.waitForTimeout(500)
+    check('copier: and still copied on the next page', await page.evaluate(() => document.documentElement.classList.contains('is-copied')))
+    await page.locator('[data-copier-switch]').click()
+    await page.waitForTimeout(300)
+    const off = await page.evaluate(() => ({copied: document.documentElement.classList.contains('is-copied'), paper: getComputedStyle(document.querySelector('.copier-paper')).display}))
+    check('copier: pressed again, back to the original, nothing drawn', !off.copied && off.paper === 'none', JSON.stringify(off))
+  }
+  check('copier: no script errors', errors.length === 0, errors.join(' | '))
+  await page.close()
+}
+
+/*
   The road (preview, /next/road/map): a path drawn through every stop that
   never runs over a stop's words or pictures, and a walker that goes down
   it as the page scrolls, reaching the stops it passes.

@@ -23,8 +23,13 @@
   composited. On, an SVG filter is drawn per picture, which is why it is a
   page someone chooses, not a default.
 
-  `on`: copied from the start (the 404). Otherwise a script elsewhere
-  toggles the class.
+  THE SWITCH. Layout.astro includes this once, on the preview, and the ©
+  in the footer is the button ([data-copier-switch]): pressed, the whole
+  site is copied, and stays so for that visitor from page to page
+  (localStorage, and a line in Layout's <head> sets the class before the
+  page paints). The 404 is copied from the start.
+
+  `on`: copied from the start (the 404, if ever used without the layout's).
 */
 interface Props {
   on?: boolean;
@@ -84,6 +89,16 @@ const FILTERS = [
     width: 0;
     height: 0;
   }
+  /* The ©, looking exactly like the © it was. */
+  .copier-switch {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+  }
   .copier-paper,
   .copier-toner {
     display: none;
@@ -141,4 +156,20 @@ const FILTERS = [
   layers.forEach((l) => document.body.append(l));
   fit();
   new ResizeObserver(fit).observe(document.body);
+
+  // The © in the footer: copied or not, remembered for this visitor.
+  const html = document.documentElement;
+  const switches = document.querySelectorAll<HTMLButtonElement>('[data-copier-switch]');
+  const show = () => switches.forEach((b) => b.setAttribute('aria-pressed', String(html.classList.contains('is-copied'))));
+  switches.forEach((b) =>
+    b.addEventListener('click', () => {
+      const on = html.classList.toggle('is-copied');
+      try {
+        localStorage.setItem('rdc-copied', on ? '1' : '0');
+      } catch {}
+      show();
+      fit();
+    }),
+  );
+  show();
 </script>

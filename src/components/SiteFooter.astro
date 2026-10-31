@@ -48,13 +48,15 @@ import { groupWorkByCategory } from '../lib/siteIndex';
 interface Props {
   siteName: string;
   legalName: string;
+  /** The © is the copier's secret switch (src/components/Copier.astro). */
+  copier?: boolean;
   footerText?: string;
   logo?: any;
   socialLinks?: any[];
   contactUrl: string;
 }
 
-const { siteName, legalName, footerText, logo, socialLinks, contactUrl } = Astro.props;
+const { siteName, legalName, footerText, logo, socialLinks, contactUrl, copier = false } = Astro.props;
 
 const SECTIONS = [
   { label: 'Portfolio', href: '/portfolio' },
@@ -185,7 +187,14 @@ const idFor = (name: string) => 'site-index-' + categorySlug(name).replace(/[^a-
   </nav>
 
   <div class="wrap site-footer__bottom">
-    <p>&copy; {new Date().getFullYear()} {legalName}. All rights reserved.</p>
+    <p>
+      {copier ? (
+        <button type="button" class="copier-switch" data-copier-switch aria-pressed="false" aria-label="Photocopy the site">&copy;</button>
+      ) : (
+        <>&copy;</>
+      )}{' '}
+      {new Date().getFullYear()} {legalName}. All rights reserved.
+    </p>
     <a href="/privacy-policy">Privacy Policy</a>
     {/*
       Nothing linked here before this - the page existed only at its direct

@@ -11,6 +11,7 @@ import VisualEditing from '../components/VisualEditing.astro';
 import MetaPixel from '../components/MetaPixel.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import PageDeck from '../components/PageDeck.astro';
+import Copier from '../components/Copier.astro';
 import { buildGraph, serialise, type SiteContext } from '../lib/structuredData';
 import { stripStega as clean } from '../lib/stega';
 import { PLAIN } from '../lib/plain';
@@ -255,6 +256,13 @@ const structuredDataContext: SiteContext = {
   settings,
 };
 const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) ?? []);
+/*
+  THE COPIER, the site's secret button: the © in the footer photocopies the
+  whole site (src/components/Copier.astro), remembered for that visitor.
+  Chris: "Keep. We'll throw it somewhere as a secret button" - "Yeah sure put
+  the copier button there". Preview first.
+*/
+const COPIER = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
 ---
 
 <!doctype html>
@@ -387,6 +395,14 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
       costs and the consent question it does not answer.
     */}
     <MetaPixel id={settings?.metaPixelId} />
+    {/* Copied on an earlier page: copied before this one paints, not after. */}
+    {COPIER && (
+      <script is:inline>
+        try {
+          if (localStorage.getItem('rdc-copied') === '1') document.documentElement.classList.add('is-copied');
+        } catch {}
+      </script>
+    )}
   </head>
   <body>
     {/*
@@ -466,7 +482,9 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
       logo={settings?.logo}
       socialLinks={settings?.socialLinks}
       contactUrl={CONTACT_URL}
+      copier={COPIER}
     />
+    {COPIER && <Copier />}
     <style is:global>
       /*
         Ported from Webflow: makes casually lifting an image awkward.

@@ -23,6 +23,8 @@ const PATHS = (process.argv[4] ?? '/').split(',').map((p) => p.trim()).filter(Bo
 const DEVICES = [
   ['desktop', 1440, 900],
   ['phone', 390, 844],
+  // Chris's own phone, the size his screenshots come in at.
+  ['phone-large', 430, 932],
 ]
 
 mkdirSync(OUT, {recursive: true})

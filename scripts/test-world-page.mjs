@@ -861,9 +861,15 @@ for (const [name, w, h] of [
       if (!f || !h1) return null
       const a = f.getBoundingClientRect()
       const t = h1.getBoundingClientRect()
-      return {right: Math.round(a.right), inside: a.right <= innerWidth + 1 && a.left >= 0, beside: a.left >= t.left + t.width * 0.4, loaded: f.complete}
+      // Chris: "larger while keeping the type nice" - the headline's lines, and the headline clear of the face.
+      const range = document.createRange()
+      range.selectNodeContents(h1)
+      const lines = new Set([...range.getClientRects()].map((r) => Math.round(r.top))).size
+      const widest = Math.max(...[...range.getClientRects()].map((r) => r.right))
+      return {right: Math.round(a.right), width: Math.round(a.width), lines, clear: widest <= a.left, inside: a.right <= innerWidth + 1 && a.left >= 0, beside: a.left >= t.left + t.width * 0.4, loaded: f.complete}
     })
     if (face) check(`${name}, work-first homepage: the face beside the headline, on the right, on screen`, face.inside && face.beside, JSON.stringify(face))
+    if (face && w < 700) check(`${name}, work-first homepage: the face larger, the headline still four lines and clear of it`, face.width >= 108 && face.lines <= 4 && face.clear, JSON.stringify(face))
     check(`${name}, work-first homepage: one heading, the field starting in the first screen`, hp.h1.length === 1 && hp.fieldTop !== null && hp.fieldTop < h * 0.6, JSON.stringify({h1: hp.h1, fieldTop: hp.fieldTop}))
     check(`${name}, work-first homepage: a curated field with its results and videos, and the foot`, hp.pieces > 20 && hp.results > 0 && hp.videos > 0 && hp.foot && !hp.wide, JSON.stringify(hp))
     check(`${name}, work-first homepage: no seed in its address`, !/seed=/.test(hp.url), hp.url)

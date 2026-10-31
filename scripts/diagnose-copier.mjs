@@ -22,7 +22,7 @@ for (const [name, viewport] of [['desktop', {width: 1440, height: 900}], ['phone
   await page.goto(`${BASE}/next/copier/mode`, {waitUntil: 'networkidle', timeout: 90_000})
   await page.waitForTimeout(1500)
   report[name] = {errors}
-  for (const gen of ['0', '1', '2']) {
+  for (const gen of ['0', '1']) {
     await page.click(`[data-set="${gen}"]`)
     await page.waitForTimeout(700)
     report[name][`gen${gen}`] = await page.evaluate(() => {
@@ -35,6 +35,9 @@ for (const [name, viewport] of [['desktop', {width: 1440, height: 900}], ['phone
         imgFilter: img && getComputedStyle(img).filter,
         h1Filter: h1 && getComputedStyle(h1).filter,
         paperOpacity: paper && getComputedStyle(paper).opacity,
+        paperPosition: paper && getComputedStyle(paper).position,
+        toner: getComputedStyle(document.querySelector('.cp-toner') ?? document.body).opacity,
+        smallFilter: getComputedStyle(document.querySelector('.cp-name') ?? document.body).filter,
         paperBg: paper && getComputedStyle(paper).backgroundImage.slice(0, 120),
         filters: [...document.querySelectorAll('filter')].map((f) => f.id),
         sheetsWithCp: [...document.styleSheets].flatMap((s) => {
@@ -47,6 +50,12 @@ for (const [name, viewport] of [['desktop', {width: 1440, height: 900}], ['phone
       }
     })
     await page.screenshot({path: `${OUT}/copier-${name}-gen${gen}.png`})
+    if (gen === '1') {
+      await page.evaluate(() => scrollTo(0, document.body.scrollHeight))
+      await page.waitForTimeout(800)
+      await page.screenshot({path: `${OUT}/copier-${name}-gen1-foot.png`})
+      await page.evaluate(() => scrollTo(0, 0))
+    }
   }
   await page.close()
 }

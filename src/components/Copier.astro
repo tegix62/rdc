@@ -134,29 +134,48 @@ const FILTERS = [
     background: #808080;
     mix-blend-mode: saturation;
   }
+  /*
+    The paper. Each texture is drawn at three times the size it is shown
+    and scaled down, so a sharp screen gets crisp grain rather than a small
+    tile stretched up (Chris, on a phone: the grain "looks like it's not as
+    high caliber as the rest of the effect").
+  */
   html.is-copied .copier-paper {
     opacity: 0.78;
     background:
       linear-gradient(90deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0) 2.2%),
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.15' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 3.2 -1.95'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='0.012 0.4' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.43  0 0 0 0 0.4  0 0 0 0.22 0'/></filter><rect width='100%' height='100%' filter='url(%23p)'/></svg>"),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='900'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.3833' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 3.2 -1.95'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='1200'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='0.006 0.2' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.43  0 0 0 0 0.4  0 0 0 0.22 0'/></filter><rect width='100%' height='100%' filter='url(%23p)'/></svg>"),
       rgba(236, 233, 226, 0.35);
+    background-size: auto, 300px 300px, 600px 600px, auto;
     mix-blend-mode: multiply;
   }
   html.is-copied .copier-toner {
     opacity: 0.22;
-    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='t'><feTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='2' seed='13'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 3.4 -1.75'/></filter><rect width='100%' height='100%' filter='url(%23t)'/></svg>");
+    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='720' height='720'><filter id='t'><feTurbulence type='fractalNoise' baseFrequency='0.2167' numOctaves='2' seed='13'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 3.4 -1.75'/></filter><rect width='100%' height='100%' filter='url(%23t)'/></svg>");
+    background-size: 240px 240px;
     mix-blend-mode: screen;
   }
-  /* Pictures and headings: the full glow. Small type: the light one. */
-  html.is-copied main img,
-  html.is-copied main video,
-  html.is-copied main h1,
-  html.is-copied main h2,
+  /*
+    What is copied: pictures and headings with the full glow; small type
+    with the light one; and - Chris: "the effect should apply to everything
+    that we can, like including the buttons ... and like lines between
+    sections" - the nav and the footer whole (their links, logo and rules),
+    and every button, card and control whole, its frame with it. Nothing is
+    copied twice: text inside a button or card goes with it, and a button
+    inside a paragraph goes with the button.
+  */
+  html.is-copied .site-nav {
+    background: transparent;
+  }
+  html.is-copied main :is(img, video),
+  html.is-copied main :is(h1, h2, h3, h4):not(:is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select) *),
+  html.is-copied main :is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select):not(:is(p, li, dt, dd, figcaption, td, small, blockquote, label, h1, h2, h3, h4):not(:has(button, .button)) *),
   html.is-copied .copier-big {
     filter: url(#cp-big);
   }
-  html.is-copied main :is(p, li, dt, dd, figcaption, td, small),
+  html.is-copied main :is(p, li, dt, dd, figcaption, td, small, blockquote, label):not(:is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select) *):not(:has(button, .button)),
+  html.is-copied :is(.site-nav, .site-footer),
   html.is-copied .copier-small {
     filter: url(#cp-small);
   }
@@ -169,20 +188,22 @@ const FILTERS = [
   }
   /* A phone: half the glow, and the grain finer, so it reads as paper, not snow. */
   @media (max-width: 47.99rem) {
-    html.is-copied main img,
-    html.is-copied main video,
-    html.is-copied main h1,
-    html.is-copied main h2,
+    html.is-copied main :is(img, video),
+    html.is-copied main :is(h1, h2, h3, h4):not(:is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select) *),
+    html.is-copied main :is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select):not(:is(p, li, dt, dd, figcaption, td, small, blockquote, label, h1, h2, h3, h4):not(:has(button, .button)) *),
     html.is-copied .copier-big {
       filter: url(#cp-big-s);
     }
-    html.is-copied main :is(p, li, dt, dd, figcaption, td, small),
+    html.is-copied main :is(p, li, dt, dd, figcaption, td, small, blockquote, label):not(:is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select) *):not(:has(button, .button)),
+    html.is-copied :is(.site-nav, .site-footer),
     html.is-copied .copier-small {
       filter: url(#cp-small-s);
     }
+    /* A list item holding a picture: the picture carries its own filter. */
     html.is-copied main li:has(img) {
       filter: none;
     }
+
     html.is-copied .copier-paper {
       opacity: 0.6;
       background-size: auto, 170px 170px, 340px 340px, auto;

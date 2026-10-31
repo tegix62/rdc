@@ -69,11 +69,25 @@ for (const [name, viewport] of [['desktop', {width: 1440, height: 900}], ['phone
     await page.goto(`${BASE}${path}`, {waitUntil: 'networkidle', timeout: 90_000})
     await page.waitForTimeout(1500)
     const tag = path === '/' ? 'home' : 'portfolio'
-    report[`${name}-${tag}`] = await page.evaluate(() => ({
-      copied: document.documentElement.classList.contains('is-copied'),
-      navColour: getComputedStyle(document.querySelector('.site-nav a') ?? document.body).color,
-      h1Filter: getComputedStyle(document.querySelector('main h1') ?? document.body).filter,
-    }))
+    report[`${name}-${tag}`] = await page.evaluate(() => {
+      const f = (sel) => {
+        const el = document.querySelector(sel)
+        return el ? getComputedStyle(el).filter : '(none on page)'
+      }
+      return {
+        copied: document.documentElement.classList.contains('is-copied'),
+        nav: f('.site-nav'),
+        footer: f('.site-footer'),
+        h1: f('main h1'),
+        button: f('main .button'),
+        // Copied once: a filtered element with a filtered ancestor inside main is a double.
+        doubles: [...document.querySelectorAll('main *')].filter((el) => {
+          if (getComputedStyle(el).filter === 'none') return false
+          for (let p = el.parentElement; p && p.tagName !== 'MAIN'; p = p.parentElement) if (getComputedStyle(p).filter !== 'none') return true
+          return false
+        }).length,
+      }
+    })
     await page.screenshot({path: `${OUT}/site-${name}-${tag}.png`})
   }
   await page.close()

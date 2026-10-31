@@ -26,7 +26,7 @@ import Img from '../Img.astro';
 import LandsView from '../portfolio/LandsView.astro';
 import {getAllGridItems} from '../../lib/queries';
 import {cleanKey, tileHref} from '../../lib/tiles';
-import {tileImage, backgroundUrl} from '../../lib/image';
+import {tileImage, backgroundUrl, hasAsset} from '../../lib/image';
 import {stripStegaKey} from '../../lib/stega';
 
 interface Props {
@@ -84,6 +84,16 @@ const tagline = clean(settings?.tagline) || 'Brand identity & merch design for h
 const CURRENTLY = false;
 const nowLine = clean(settings?.nowLine);
 /*
+  YOUR FACE BY THE HEADLINE (Site Settings > Homepage), the foot's portrait
+  if that is empty. Chris: "float my ... selfie somewhere next to where the
+  H1 heading is ... probably on the right side ... I already like where the
+  header is as is." So the headline does not move: on a wide screen the face
+  takes a column to its right; on a phone it floats at the right and the
+  headline wraps round it. Preview first.
+*/
+const FACE = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+const face = FACE ? (hasAsset(settings?.headFace) ? settings.headFace : hasAsset(settings?.portrait) ? settings.portrait : null) : null;
+/*
   COMMISSION SLOTS as a ticket drop (Site Settings > Booking): a numbered
   ticket per slot, the taken ones stamped. Preview only, beside Currently;
   left out until a season and a count are set, except on the preview where
@@ -103,7 +113,8 @@ const left = slots.total - slots.taken;
 const finalLine = clean(settings?.finalCtaLine) || clean(settings?.finalCtaHeading).replace(/:\s*$/, '');
 ---
 
-<section class="wf-band">
+<section class:list={['wf-band', face && 'wf-band--face']}>
+  {face && <Img class="wf-band__face" image={face} field="headFace (Your face by the headline)" alt="Chris Rumeau" width={640} sizes="(max-width: 40rem) 7rem, 16rem" loading="eager" />}
   <h1 class="wf-band__line">{tagline}</h1>
   <p class="wf-band__who">{bioText}</p>
   {CURRENTLY && (

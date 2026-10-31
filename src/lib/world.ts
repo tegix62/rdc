@@ -113,6 +113,12 @@ export interface WorldOptions {
   focus?: number | null;
   /** The row it was on when opened, so its set opens about there. */
   focusRow?: number;
+  /**
+   * Lands: a shuffled world - the projects' sets in the seed's order, case
+   * studies and loose work mixed, instead of the curated order (case studies
+   * first, as dragged in Studio). Each set still gathers whole.
+   */
+  shuffled?: boolean;
   /** Lay pieces by colour (`tone`) rather than the seed's order. */
   sort?: 'seed' | 'colour';
   /** Lands: rows to a cell's width (2: half-height rows, so boxes follow their pictures' shapes). Rows, `r` and `ch` are then in these. */
@@ -611,10 +617,22 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
   // Case studies in the order he dragged them into in Studio, any unplaced after.
   const study = (k: string) => (groups.get(k)!.some((i) => pieces[i].own) ? 0 : 1);
   const placeOf = (k: string) => Math.min(...groups.get(k)!.map((i) => pieces[i].order ?? Infinity));
+  /*
+    SHUFFLED: Chris, of the Shuffle button - "it still keeps all the projects,
+    their clusters, as sorted. I'd like it to be so that shuffle can actually
+    move the project clusters around". The curated order only ever let the
+    seed break ties, so a shuffle re-laid each set but never moved one. A
+    shuffled world takes the sets in the seed's order outright; the first,
+    unshuffled world keeps the curated one.
+  */
+  const shuffled = o.shuffled && o.sort !== 'colour';
   keys.sort(
     (a, z) =>
-      (o.sort === 'colour' ? toneOf(a) - toneOf(z) : study(a) - study(z) || (placeOf(a) === placeOf(z) ? 0 : placeOf(a) < placeOf(z) ? -1 : 1)) ||
-      rank.get(a)! - rank.get(z)!,
+      (shuffled
+        ? 0
+        : o.sort === 'colour'
+          ? toneOf(a) - toneOf(z)
+          : study(a) - study(z) || (placeOf(a) === placeOf(z) ? 0 : placeOf(a) < placeOf(z) ? -1 : 1)) || rank.get(a)! - rank.get(z)!,
   );
   /*
     The loose work dealt a category at a time - Chris agreed: the loose
@@ -622,7 +640,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     the sets with no case study take turns by category (as the portfolio
     deals its projects), in the seed's order within each.
   */
-  if (o.sort !== 'colour' && (o.tune?.deal ?? true)) {
+  if (!shuffled && o.sort !== 'colour' && (o.tune?.deal ?? true)) {
     const firstLoose = keys.findIndex((k) => study(k) === 1);
     if (firstLoose >= 0) {
       const loose = keys.slice(firstLoose);

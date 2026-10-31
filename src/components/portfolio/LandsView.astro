@@ -480,7 +480,9 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
 
   const q = new URLSearchParams(location.search);
   const mode = (['heights', 'biomes'].includes(q.get('mode') ?? '') ? q.get('mode') : 'lands') as WorldMode;
-  let seed = Number(q.get('seed')) || 4187;
+  // The curated world's seed: the one the page opens on, and the homepage's.
+  const FIRST_SEED = 4187;
+  let seed = Number(q.get('seed')) || FIRST_SEED;
   // Simple is the default; ?v=rules is the version with the stiffer rules, to compare (lib/world.ts, SIMPLE).
   const simple = q.get('v') !== 'rules';
   // Shown, or kept out of sight while another view of the portfolio is (see
@@ -614,7 +616,8 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       named.hidden = false;
       tiles[focus!].querySelector('.wd-frame')!.insertBefore(named, tiles[focus!].querySelector('.wd-jump'));
     }
-    const out = generateWorld(sub, {cols, mode, seed, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow}});
+    // Any other seed is a shuffle: the projects' sets move, not only their pieces (lib/world.ts, SHUFFLED).
+    const out = generateWorld(sub, {cols, mode, seed, shuffled: !data.home && seed !== FIRST_SEED, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow}});
     last = {out, subset};
     const sets = inPlace ? setsOf(sub) : [];
     const fam = new Set(

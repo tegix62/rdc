@@ -267,9 +267,22 @@ for (const [name, w, h] of [
   check(`${name}: + larger tiles, - smaller, every piece still shown`, mean(bigger) > mean(before) && mean(smaller) < mean(before) && bigger.length === before.length && smaller.length === before.length, `${mean(smaller).toFixed(0)} / ${mean(before).toFixed(0)} / ${mean(bigger).toFixed(0)}px`)
   await page.click('[data-zoom="1"]')
   const seed0 = new URL(page.url()).searchParams.get('seed')
+  // Which pieces sit in the first screen of the world: a shuffle that moves whole clusters changes most of them.
+  const firstScreen = () =>
+    page.evaluate(() => {
+      const top = document.querySelector('.wd-world')?.getBoundingClientRect().top ?? 0
+      return [...document.querySelectorAll('.wd-piece[data-i]:not([hidden])')]
+        .filter((el) => el.offsetParent !== null && el.getBoundingClientRect().top - top < innerHeight)
+        .map((el) => el.dataset.i)
+    })
+  const dealt = await firstScreen()
   await page.click('[data-roll]')
   await page.waitForTimeout(400)
   check(`${name}: Shuffle deals a new world`, new URL(page.url()).searchParams.get('seed') !== seed0, page.url())
+  // Chris: "I'd like it to be so that shuffle can actually move the project clusters around".
+  const after = await firstScreen()
+  const kept = after.filter((i) => dealt.includes(i)).length / Math.max(1, Math.max(dealt.length, after.length))
+  check(`${name}: and the clusters themselves move - most of the first screen is other work`, kept < 0.6, `${Math.round(kept * 100)}% of the first screen the same`)
   const k = await page.evaluate(() => Array.from(document.querySelectorAll('.wd-piece')).filter((t) => !t.hidden).findIndex((t) => t.classList.contains('wd-piece--study')))
   await page.locator('.wd-piece:not([hidden]) .wd-pic').nth(k).click({position: {x: 4, y: 4}})
   await page.waitForTimeout(600)
@@ -834,6 +847,16 @@ for (const [name, w, h] of [
       console.log('(the work-first homepage is not on this site - skipped)')
       break
     }
+    // Chris: "float my ... selfie ... next to where the H1 heading is ... on the right side ... I already like where the header is as is."
+    const face = await page.evaluate(() => {
+      const f = document.querySelector('.wf-band__face')
+      const h1 = document.querySelector('.wf-band__line')
+      if (!f || !h1) return null
+      const a = f.getBoundingClientRect()
+      const t = h1.getBoundingClientRect()
+      return {right: Math.round(a.right), inside: a.right <= innerWidth + 1 && a.left >= 0, beside: a.left >= t.left + t.width * 0.4, loaded: f.complete}
+    })
+    if (face) check(`${name}, work-first homepage: the face beside the headline, on the right, on screen`, face.inside && face.beside, JSON.stringify(face))
     check(`${name}, work-first homepage: one heading, the field starting in the first screen`, hp.h1.length === 1 && hp.fieldTop !== null && hp.fieldTop < h * 0.6, JSON.stringify({h1: hp.h1, fieldTop: hp.fieldTop}))
     check(`${name}, work-first homepage: a curated field with its results and videos, and the foot`, hp.pieces > 20 && hp.results > 0 && hp.videos > 0 && hp.foot && !hp.wide, JSON.stringify(hp))
     check(`${name}, work-first homepage: no seed in its address`, !/seed=/.test(hp.url), hp.url)

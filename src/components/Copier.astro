@@ -163,14 +163,15 @@ const FILTERS = [
     sections" - the nav and the footer whole (their links, logo and rules),
     and every button, card and control whole, its frame with it. Nothing is
     copied twice: text inside a button or card goes with it, and a button
-    inside a paragraph goes with the button.
+    inside a paragraph goes with the button. A button or card that holds a
+    picture (every piece on the portfolio is one) is left to its picture.
   */
   html.is-copied .site-nav {
     background: transparent;
   }
   html.is-copied main :is(img, video),
   html.is-copied main :is(h1, h2, h3, h4):not(:is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select) *),
-  html.is-copied main :is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select):not(:is(p, li, dt, dd, figcaption, td, small, blockquote, label, h1, h2, h3, h4):not(:has(button, .button)) *),
+  html.is-copied main :is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select):not(:is(p, li, dt, dd, figcaption, td, small, blockquote, label, h1, h2, h3, h4):not(:has(button, .button)) *):not(:has(img, video)),
   html.is-copied .copier-big {
     filter: url(#cp-big);
   }
@@ -190,7 +191,7 @@ const FILTERS = [
   @media (max-width: 47.99rem) {
     html.is-copied main :is(img, video),
     html.is-copied main :is(h1, h2, h3, h4):not(:is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select) *),
-    html.is-copied main :is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select):not(:is(p, li, dt, dd, figcaption, td, small, blockquote, label, h1, h2, h3, h4):not(:has(button, .button)) *),
+    html.is-copied main :is(button, .button, .pf-btn, .wd-result, .wd-card, .wf-foot__words, .proof-card, .final-cta__card, .pf-card__result, .hx-rows, .more-posts, .wd-go-play, .wd-add, .vt-dig, input, textarea, select):not(:is(p, li, dt, dd, figcaption, td, small, blockquote, label, h1, h2, h3, h4):not(:has(button, .button)) *):not(:has(img, video)),
     html.is-copied .copier-big {
       filter: url(#cp-big-s);
     }

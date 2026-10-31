@@ -81,11 +81,21 @@ for (const [name, viewport] of [['desktop', {width: 1440, height: 900}], ['phone
         h1: f('main h1'),
         button: f('main .button'),
         // Copied once: a filtered element with a filtered ancestor inside main is a double.
-        doubles: [...document.querySelectorAll('main *')].filter((el) => {
-          if (getComputedStyle(el).filter === 'none') return false
-          for (let p = el.parentElement; p && p.tagName !== 'MAIN'; p = p.parentElement) if (getComputedStyle(p).filter !== 'none') return true
-          return false
-        }).length,
+        doubles: (() => {
+          const name = (el) => `${el.tagName.toLowerCase()}${el.classList[0] ? '.' + el.classList[0] : ''}`
+          const found = []
+          for (const el of document.querySelectorAll('main *')) {
+            if (getComputedStyle(el).filter === 'none') continue
+            for (let p = el.parentElement; p && p.tagName !== 'MAIN'; p = p.parentElement)
+              if (getComputedStyle(p).filter !== 'none') {
+                found.push(`${name(p)} > ${name(el)}`)
+                break
+              }
+          }
+          const kinds = {}
+          found.forEach((k) => (kinds[k] = (kinds[k] ?? 0) + 1))
+          return {count: found.length, kinds}
+        })(),
       }
     })
     await page.screenshot({path: `${OUT}/site-${name}-${tag}.png`})

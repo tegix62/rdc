@@ -260,9 +260,10 @@ const graph = buildGraph(structuredDataContext, jsonLd?.(structuredDataContext) 
   THE COPIER, the site's secret button: the © in the footer photocopies the
   whole site (src/components/Copier.astro), remembered for that visitor.
   Chris: "Keep. We'll throw it somewhere as a secret button" - "Yeah sure put
-  the copier button there". Preview first.
+  the copier button there". SHIPPED (Chris: "live", 1 November 2026);
+  false takes the switch and the look off.
 */
-const COPIER = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+const COPIER = true;
 ---
 
 <!doctype html>

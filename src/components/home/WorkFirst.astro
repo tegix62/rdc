@@ -90,9 +90,10 @@ const nowLine = clean(settings?.nowLine);
   H1 heading is ... probably on the right side ... I already like where the
   header is as is." So the headline does not move: on a wide screen the face
   takes a column to its right; on a phone it floats at the right and the
-  headline wraps round it. Preview first.
+  headline sits beside it, the face taking the room the headline leaves.
+  SHIPPED (Chris: "live", 1 November 2026); false takes it off.
 */
-const FACE = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+const FACE = true;
 const MUNICIPAL_SELFIE = {_type: 'image', asset: {_type: 'reference', _ref: 'image-c74769e63b77e501e3b7bd233664d25e36508d80-1900x1900-webp'}};
 const face = FACE ? (hasAsset(settings?.headFace) ? settings.headFace : MUNICIPAL_SELFIE) : null;
 /*

@@ -4,9 +4,9 @@ import { getSiteSettings } from '../lib/queries';
 
 /*
   Lost in the copier: the 404 as a photocopy (src/components/Copier.astro).
-  Chris: "Sure let's do it." Preview first, like everything new.
+  Chris: "Sure let's do it." SHIPPED (Chris: "live", 1 November 2026).
 */
-const COPIED = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+const COPIED = true;
 
 const settings = await getSiteSettings();
 const CONTACT_URL = settings?.contactUrl || '/contact';

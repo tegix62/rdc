@@ -39,9 +39,10 @@ const time = readingTime(post.body);
 /*
   PROCESS (trial): a post's Page Builder blocks under its words - the Grid
   block above all. Chris: "sounds good to try it out but potentially roll
-  back." Preview only; false (and the blogPost.sections field) rolls it back.
+  back." SHIPPED (Chris: "live", 1 November 2026); false (and the
+  blogPost.sections field) rolls it back.
 */
-const BLOG_BLOCKS = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+const BLOG_BLOCKS = true;
 ---
 
 <Layout

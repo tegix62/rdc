@@ -12,9 +12,9 @@ back to these. Preview pages for shelved ideas stay at their `/next/` addresses
   it's not affecting performance." The look is `src/components/Copier.astro`
   (one class on `<html>`, `is-copied`; costs nothing while off). The button is
   the footer's © ("Yeah sure put the copier button there"), remembered per
-  visitor. On the preview. Demo: `/next/copier/mode`.
-- **Lost in the copier: the 404.** "Sure let's do it." On the preview; live
-  when Chris says.
+  visitor. Live since 1 November 2026. Demo: `/next/copier/mode`.
+- **Lost in the copier: the 404.** "Sure let's do it." Live since 1 November
+  2026.
 - **Loop video block for case studies.** Silent process loops, full width, like
   Andrea Trabucco-Campos's site. "Yes this would be great. I'd likely host on
   R2 or Vimeo."
@@ -35,7 +35,9 @@ back to these. Preview pages for shelved ideas stay at their `/next/` addresses
   it 'Process' and have it be a button or maybe just an extra blog post. Maybe
   blog posts just get CSS grids and page building features to make them more
   dynamic." Then: "sounds good to try it out but potentially roll back" -
-  being tried on the preview.
+  live since 1 November 2026 (the Grid block, and Page Builder blocks under
+  a blog post's words). Rolling back is `BLOG_BLOCKS = false` in
+  `src/pages/blog/[slug].astro`.
 
 ## Shelved (pinned, come back to)
 

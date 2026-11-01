@@ -588,7 +588,7 @@ for (const [name, w, h] of [
   ['desktop', 1440, 900],
   ['phone', 390, 844],
 ]) {
-  for (const path of ['/next/ideas/all', '/next/friend/specimen', '/next/free/one', '/next/register/runs', '/next/issue/latest', '/next/copier/mode']) {
+  for (const path of ['/next/ideas/all', '/next/friend/specimen', '/next/free/one', '/next/register/runs', '/next/issue/latest', '/next/copier/mode', '/next/letters/name']) {
     const page = await browser.newPage({viewport: {width: w, height: h}})
     const errors = []
     page.on('pageerror', (e) => errors.push(e.message))
@@ -603,6 +603,33 @@ for (const [name, w, h] of [
     check(`${name}, ${path}: loads, no script errors, fits the screen`, got.h1 && !got.wide && errors.length === 0, `${got.h1}${got.wide ? ' WIDER THAN THE SCREEN' : ''}${errors.length ? ` | ${errors.join(' | ')}` : ''}`)
     await page.close()
   }
+}
+
+/*
+  Start with your name (preview): typing sets the name a letter at a time -
+  a cut letter or, until there is one, a stand-in - word by word, and the
+  address keeps the name so it can be sent on.
+*/
+{
+  const page = await browser.newPage({viewport: {width: 390, height: 844}})
+  const errors = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  const res = await page.goto(`${BASE}/next/letters/name`, {waitUntil: 'domcontentloaded', timeout: 60_000}).catch(() => null)
+  if (!res?.ok()) console.log('skip  letters: not on this site (preview only)')
+  else {
+    await page.fill('#ln-input', 'Two Point Oh')
+    await page.waitForTimeout(300)
+    const got = await page.evaluate(() => ({
+      words: document.querySelectorAll('#ln-set .ln-word').length,
+      glyphs: document.querySelectorAll('#ln-set .ln-word > *').length,
+      name: new URL(location.href).searchParams.get('name'),
+      wide: document.documentElement.scrollWidth > innerWidth + 1,
+    }))
+    check('letters: a typed name is set word by word, a letter per character, kept in the address', got.words === 3 && got.glyphs === 10 && got.name === 'Two Point Oh' && !got.wide && errors.length === 0, JSON.stringify({...got, errors}))
+    await page.click('#ln-again')
+    check('letters: another hand, no script errors', errors.length === 0, errors.join(' | '))
+  }
+  await page.close()
 }
 
 /*

@@ -2,6 +2,7 @@ import tag from './tag'
 import roadStop from './roadStop'
 import printRun from './printRun'
 import issue from './issue'
+import letterCut from './letterCut'
 import page from './page'
 import caseStudy from './caseStudy'
 import blogPost from './blogPost'
@@ -19,5 +20,6 @@ export const schemaTypes = [
   roadStop,
   printRun,
   issue,
+  letterCut,
   ...caseStudySectionTypes,
 ]

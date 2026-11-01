@@ -39,6 +39,12 @@ back to these. Preview pages for shelved ideas stay at their `/next/` addresses
   a blog post's words). Rolling back is `BLOG_BLOCKS = false` in
   `src/pages/blog/[slug].astro`.
 
+- **Start with your name.** A visitor types their name and it is set in
+  letters cut from Chris's real work. "We can try number one, but it does
+  feel like more of a gimmick ... we'll roll it back if we need to." On the
+  preview at `/next/letters/name`; letters are cut in Studio's Letters tool.
+  Rolling back: the `letterCut` type, the Letters tool, `src/pages/next/letters/`.
+
 ## Shelved (pinned, come back to)
 
 - **"What I'm up to" / Currently line.** "Good try but shelve it. I do like a

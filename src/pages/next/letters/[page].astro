@@ -1,0 +1,240 @@
+---
+/*
+  START WITH YOUR NAME - preview only, at /next/letters/name: a visitor types
+  their name or their band's, and it is set in letters cut from Chris's real
+  work, with the projects they came from named underneath and the way to
+  ask for it drawn properly. Chris: "We can try number one ... we'll roll it
+  back if we need to."
+
+  The letters are Letter documents (studio/schemaTypes/letterCut.ts), cut in
+  Studio's Letters tool. A character with no letter cut yet is set in the
+  site's type in a dashed box, so the page works from the first letter.
+
+  Never built for production (getStaticPaths), and noindex. Rolling back:
+  delete this folder, the Letter type and the Letters tool.
+*/
+import Layout from '../../../layouts/Layout.astro';
+import {sanityClient} from '../../../lib/sanity';
+import {getSiteSettings} from '../../../lib/queries';
+import {imageUrl} from '../../../lib/image';
+import {stripStegaKey} from '../../../lib/stega';
+
+export async function getStaticPaths() {
+  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
+  return [{params: {page: 'name'}}];
+}
+
+const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
+const settings = await getSiteSettings();
+const CONTACT_URL = settings?.contactUrl || '/contact';
+
+const raw: any[] = await sanityClient.fetch(
+  `*[_type == "letterCut" && defined(image.asset) && !(_id in path("drafts.**"))]{char, image, "from": from->title}`,
+);
+
+// The picture's own size is in its reference: image-<hash>-<w>x<h>-<ext>.
+const sizeOf = (ref: string) => {
+  const m = /-(\d+)x(\d+)-\w+$/.exec(ref ?? '');
+  return m ? {w: Number(m[1]), h: Number(m[2])} : null;
+};
+
+const letters = raw
+  .map((l) => {
+    const size = sizeOf(l.image?.asset?._ref);
+    const k = l.image?.crop ?? {left: 0, right: 0, top: 0, bottom: 0};
+    const src = imageUrl(l.image)?.height(300).url();
+    if (!size || !src || !l.char) return null;
+    const w = size.w * (1 - k.left - k.right);
+    const h = size.h * (1 - k.top - k.bottom);
+    return {c: String(l.char), src, r: Math.round((w / h) * 1000) / 1000, from: clean(l.from)};
+  })
+  .filter(Boolean);
+const count = new Set(letters.map((l: any) => l.c.toUpperCase())).size;
+---
+
+<Layout title="Start with your name - Rumeau Design Co" description="Your name, in letters cut from real work." noindex>
+  <div class="ln">
+    <header class="ln-head">
+      <h1>Start with your name</h1>
+      <p>Type your name or your band's. It's set in letters cut from real jobs: posters, shirts, marks.</p>
+    </header>
+
+    <label class="ln-field">
+      <span class="ln-label">Your name</span>
+      <input type="text" id="ln-input" maxlength="24" autocomplete="off" spellcheck="false" value="Rumeau" />
+    </label>
+
+    <div class="ln-set" id="ln-set" aria-live="polite"></div>
+
+    <div class="ln-under">
+      <button type="button" class="ln-again" id="ln-again">Another hand</button>
+      <p class="ln-from" id="ln-from"></p>
+    </div>
+
+    <a class="button ln-go" id="ln-go" href={CONTACT_URL}>Want it drawn properly?</a>
+
+    {letters.length === 0 ? (
+      <p class="ln-note">No letters cut yet - in Studio, Letters. Until then, every letter is a stand-in.</p>
+    ) : (
+      <p class="ln-note">{letters.length} letters cut, {count} different. Dashed ones are stand-ins, not cut yet.</p>
+    )}
+  </div>
+  <script type="application/json" id="ln-data" set:html={JSON.stringify(letters)} />
+</Layout>
+
+<style>
+  .ln {
+    max-width: 64rem;
+    margin: 0 auto;
+    padding: var(--space-5, 3rem) var(--space-3, 1.5rem) var(--space-6, 4rem);
+  }
+  .ln-head h1 {
+    margin: 0 0 0.5rem;
+    font: 800 clamp(2.25rem, 6vw, 3.75rem) / 0.95 var(--font-heading);
+    letter-spacing: -0.035em;
+    color: var(--color-navy);
+  }
+  .ln-head p {
+    max-width: 40ch;
+    margin: 0 0 1.5rem;
+    line-height: 1.5;
+  }
+  .ln-field {
+    display: grid;
+    gap: 0.35rem;
+    max-width: 24rem;
+  }
+  .ln-label {
+    font: 700 0.875rem/1.2 var(--font-heading);
+    color: var(--color-navy);
+  }
+  .ln-field input {
+    font: 600 1.25rem/1.2 var(--font-heading);
+    padding: 0.6rem 0.75rem;
+    border: 2px solid var(--color-navy);
+    border-radius: 0;
+    color: var(--color-navy);
+    background: #fff;
+    width: 100%;
+  }
+  .ln-set {
+    --lh: clamp(3.25rem, 11vw, 8.5rem);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: calc(var(--lh) * 0.04);
+    row-gap: calc(var(--lh) * 0.2);
+    min-height: var(--lh);
+    margin: 2rem 0 1rem;
+  }
+  .ln-word {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: calc(var(--lh) * 0.04);
+    margin-right: calc(var(--lh) * 0.3);
+  }
+  .ln-set img {
+    display: block;
+    height: var(--lh);
+    width: auto;
+    background: #fff;
+  }
+  .ln-stand {
+    display: grid;
+    place-items: center;
+    height: var(--lh);
+    min-width: calc(var(--lh) * 0.55);
+    padding: 0 calc(var(--lh) * 0.06);
+    border: 2px dashed var(--color-border, #ccd);
+    font: 800 calc(var(--lh) * 0.72) / 1 var(--font-heading);
+    color: var(--color-gray, #889);
+  }
+  .ln-under {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .ln-again {
+    font: 700 0.875rem/1 var(--font-heading);
+    padding: 0.5rem 0.8rem;
+    border: 2px solid var(--color-navy);
+    background: #fff;
+    color: var(--color-navy);
+    cursor: pointer;
+  }
+  .ln-from {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--color-gray);
+  }
+  .ln-note {
+    margin-top: 2rem;
+    font-size: 0.8125rem;
+    color: var(--color-gray);
+  }
+</style>
+
+<script>
+  type L = {c: string; src: string; r: number; from: string};
+  const all: L[] = JSON.parse(document.getElementById('ln-data')?.textContent || '[]');
+  const input = document.getElementById('ln-input') as HTMLInputElement;
+  const set = document.getElementById('ln-set')!;
+  const fromLine = document.getElementById('ln-from')!;
+  let hand = 0;
+
+  // Exact case first, then the other case: an a can stand for an A.
+  const byChar = new Map<string, L[]>();
+  for (const l of all) byChar.set(l.c, [...(byChar.get(l.c) ?? []), l]);
+  const choices = (c: string) => byChar.get(c) ?? byChar.get(c.toUpperCase()) ?? byChar.get(c.toLowerCase()) ?? [];
+
+  const q = new URLSearchParams(location.search).get('name');
+  if (q) input.value = q.slice(0, 24);
+
+  function draw() {
+    const name = input.value;
+    set.replaceChildren();
+    const used = new Map<string, number>();
+    const from = new Set<string>();
+    for (const word of name.split(/\s+/).filter(Boolean)) {
+      const w = document.createElement('span');
+      w.className = 'ln-word';
+      for (const c of word) {
+        const list = choices(c);
+        // A repeated letter gets a different cut each time it can.
+        const n = used.get(c.toUpperCase()) ?? 0;
+        used.set(c.toUpperCase(), n + 1);
+        if (list.length) {
+          const l = list[(n + hand) % list.length];
+          const img = document.createElement('img');
+          img.src = l.src;
+          img.alt = c;
+          img.style.aspectRatio = String(l.r);
+          w.append(img);
+          if (l.from) from.add(l.from);
+        } else {
+          const s = document.createElement('span');
+          s.className = 'ln-stand';
+          s.textContent = c;
+          s.title = 'Not cut yet';
+          w.append(s);
+        }
+      }
+      set.append(w);
+    }
+    set.setAttribute('aria-label', name);
+    fromLine.textContent = from.size ? `Letters from ${[...from].join(', ')}.` : '';
+    const u = new URL(location.href);
+    if (name.trim()) u.searchParams.set('name', name.trim());
+    else u.searchParams.delete('name');
+    history.replaceState(null, '', u);
+  }
+
+  input.addEventListener('input', draw);
+  document.getElementById('ln-again')?.addEventListener('click', () => {
+    hand++;
+    draw();
+  });
+  draw();
+</script>

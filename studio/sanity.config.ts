@@ -9,6 +9,7 @@ import {altTextTool} from './tools/AltTextTool'
 import {bulkSketchTool} from './tools/BulkSketchTool'
 import {fontsTool} from './tools/FontsTool'
 import {picksTool} from './tools/PicksTool'
+import {lettersTool} from './tools/LettersTool'
 
 // Which site the Presentation tab loads in its preview panel.
 //
@@ -110,5 +111,5 @@ export default defineConfig({
     one asset at a time. Appended to the default tools - Structure, Vision
     and Presentation all stay where they are.
   */
-  tools: (prev) => [...prev, altTextTool, bulkSketchTool, picksTool, fontsTool],
+  tools: (prev) => [...prev, altTextTool, bulkSketchTool, picksTool, fontsTool, lettersTool],
 })

@@ -88,6 +88,10 @@ jobs:
       # before the build, because it is the build this protects.
       - run: node scripts/test-image-guards.mjs
 
+      # The Letters tool's shape finder (studio/tools/letters/detect.ts), on
+      # drawn-up pictures. No network.
+      - run: node scripts/test-letters-detect.mjs
+
       # The <head> strings and the post dates. Nothing on the page shows whether
       # these came out right - a <title> reading "Rumeau Design Co | Rumeau
       # Design Co", or 13 project pages sharing one meta description, looks

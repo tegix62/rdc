@@ -164,9 +164,15 @@ check('every page has a meta description', noDesc.length === 0, report(noDesc))
   The homepage and /portfolio are allowed to share nothing - they are checked
   the same as the rest. A duplicate here is a finding, not noise.
 */
+/*
+  /hello is the original homepage kept as a landing page for links Chris
+  sends: out of search on purpose (noindex, like check-production-build.mjs
+  NOINDEX_ALLOWED), so sharing the homepage's description costs nothing.
+*/
+const LANDING = new Set(['/hello'])
 const byDescription = new Map()
 for (const d of docs) {
-  if (!d.description) continue
+  if (!d.description || LANDING.has(d.route)) continue
   const list = byDescription.get(d.description) ?? []
   list.push(d.route)
   byDescription.set(d.description, list)
@@ -336,7 +342,7 @@ if (IS_PREVIEW) {
 } else {
   const leaked = docs.filter((d) => INTERNAL.has(d.route) && !/noindex/i.test(d.robots ?? ''))
   check('internal pages are noindexed', leaked.length === 0, report(leaked))
-  const hidden = docs.filter((d) => !INTERNAL.has(d.route) && !VIEWS.has(d.route) && d.route !== '/404' && /noindex/i.test(d.robots ?? ''))
+  const hidden = docs.filter((d) => !INTERNAL.has(d.route) && !VIEWS.has(d.route) && !LANDING.has(d.route) && d.route !== '/404' && /noindex/i.test(d.robots ?? ''))
   check('no real page is accidentally noindexed', hidden.length === 0, report(hidden))
 }
 

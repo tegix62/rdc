@@ -1,4 +1,5 @@
 import {defineField, defineType} from 'sanity'
+import {imageSpec} from './imageFields'
 
 /*
   A LETTER, cut from Chris's real work - for "type your name in my letters"
@@ -24,14 +25,14 @@ export default defineType({
       description: 'The one character it is: A, g, 7, &.',
       validation: (Rule) => Rule.required().max(1),
     }),
-    defineField({
-      name: 'image',
-      title: 'Picture',
-      type: 'image',
-      options: {hotspot: true},
-      description: 'The scan it is cut from; the crop is the letter.',
-      validation: (Rule) => Rule.required(),
-    }),
+    defineField(
+      imageSpec({
+        name: 'image',
+        title: 'Picture',
+        description: 'The scan it is cut from; the crop is the letter.',
+        validation: (Rule: any) => Rule.required(),
+      }) as any,
+    ),
     defineField({
       name: 'from',
       title: 'From',

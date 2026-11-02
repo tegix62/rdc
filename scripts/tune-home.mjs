@@ -21,25 +21,24 @@ const STEPS = {desktop: [20, 17, 14, 12, 10], phone: [10, 9, 8, 7, 6]}
 
 // As LandsView's draw(): the same columns, widest piece and floors.
 export function layout(width, phone, rule = {}) {
-  const cols = phone ? 12 : STEPS.desktop[2]
+  const cols = (phone ? STEPS.phone : STEPS.desktop)[2]
   const maxSpan = phone ? (cols > STEPS.phone[2] ? Math.floor(cols / 2) : Math.ceil(cols / 2)) : Math.round(cols * 0.3)
   const cell = width / cols
   const kr = 2
-  // As draw() sizes the apparel mix (data.mix).
+  // As draw() sizes the apparel mix (data.mix): on a phone the original mosaic with three touches.
+  const merch = (p) => p.cat === 'merch-apparel'
+  const base = (p) => (p.kind === 'result' ? (phone ? Math.max(2, maxSpan - 1) : 2) : phone && p.photo ? 2 : 1)
   const sub = data.pieces.map((p) => ({
     ...p,
-    big: rule.big ? rule.big(p, {phone, maxSpan}) : p.big,
+    ...(phone ? {weight: merch(p) ? 1 : 0.4} : {}),
+    ...(rule.big ? {big: rule.big(p, {phone, maxSpan})} : {}),
     least: rule.least
       ? rule.least(p, {phone, maxSpan})
-      : p.merchBig
-        ? phone ? maxSpan : maxSpan - 1
-        : p.kind === 'result'
-          ? phone ? Math.max(2, maxSpan - 1) : 2
-          : phone ? (p.photo ? 2 : 1) : 2,
+      : phone
+        ? merch(p) ? Math.max(2, base(p)) : base(p)
+        : p.merchBig ? maxSpan - 1 : 2,
   }))
-  // A phone: composed, as draw() does it.
-  const compose = phone ? {hero: sub.map((p, k) => (p.merchBig ? k : -1)).filter((k) => k >= 0)} : undefined
-  const res = generateWorld(sub, {cols, mode: 'lands', seed: 4187, shuffled: false, maxSpan, rowsPerCell: kr, focus: null, focusRow: 0, card: null, tune: {simple: true, tallMarks: data.grow, compose}})
+  const res = generateWorld(sub, {cols, mode: 'lands', seed: 4187, shuffled: false, maxSpan, rowsPerCell: kr, focus: null, focusRow: 0, card: null, tune: {simple: true, tallMarks: data.grow}})
   const rects = res.placed.map((q) => ({i: q.i, x: q.c * cell, y: (q.r * cell) / kr, w: q.cw * cell, h: (q.ch * cell) / kr}))
   return {rects, cell}
 }

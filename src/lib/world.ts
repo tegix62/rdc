@@ -124,7 +124,7 @@ export interface WorldOptions {
   /** Lands: rows to a cell's width (2: half-height rows, so boxes follow their pictures' shapes). Rows, `r` and `ch` are then in these. */
   rowsPerCell?: number;
   /** Lands: weights for how a set's pieces gather (for tuning; the defaults are the chosen ones). */
-  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean; simple?: boolean; floor?: number; curve?: number; capDrop?: number; tallMarks?: boolean; compose?: {hero: number[]}};
+  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean; simple?: boolean; floor?: number; curve?: number; capDrop?: number; tallMarks?: boolean};
   /** Lands: room for the opened project's card, beside the opened piece. */
   card?: {cw: number; ch: number} | null;
 }
@@ -380,7 +380,6 @@ export function generateWorld(pieces: WorldPiece[], o: WorldOptions): WorldResul
   const focus = o.focus ?? null;
   const family = focus === null ? [] : pieces.map((_, i) => i).filter((i) => sets[i] === sets[focus]);
   if (o.mode === 'biomes') return biomes(pieces, o, maxSpan, sets, focus, family);
-  if (o.mode === 'lands' && o.tune?.compose) return composed(pieces, o, sets, family, new Set(o.tune.compose.hero));
   if (o.mode === 'lands') return lands(pieces, o, maxSpan, sets, focus, family);
   return flow(pieces, o, maxSpan, sets, focus, family);
 }
@@ -604,109 +603,6 @@ function biomes(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: st
   the project's card beside it, at about the row it was on; the rest flows
   round it as before.
 */
-/*
-  COMPOSED - the homepage's apparel mix on a phone, as designed blocks.
-  Chris, after the lands and a first-fit packer both read as clunky: "maybe we have the clusters ...
-  arranged in a particular way for the sake of the home page ... and
-  anything that is merch or apparel is ... allowed to be larger" - and he
-  chose this: each project a block, its best garment two thirds of the
-  width with the rest of its pieces stacked beside it, the blocks taking
-  turns left and right, its result full width under it. Nothing is left to
-  chance, so nothing leaves a hole: every box in a row is cut to the row's
-  height and the picture sits inside it.
-
-  On twelve columns: the garment 8, the stack 4. More than three other
-  pieces and the rest go in a row under the block, shared evenly. A project
-  of one piece pairs with the next such project, half and half.
-*/
-function composed(pieces: WorldPiece[], o: WorldOptions, sets: string[], family: number[], heroes: Set<number>): WorldResult {
-  const cols = o.cols;
-  const kr = Math.max(1, Math.round(o.rowsPerCell ?? 1));
-  const tall = (i: number, cw: number) => Math.max(1, Math.round((cw * kr) / (pieces[i].w / pieces[i].h || 1)));
-  const groups = new Map<string, number[]>();
-  sets.forEach((k, i) => groups.set(k, [...(groups.get(k) ?? []), i]));
-  const keys = [...groups.keys()];
-  const rank = new Map(order(keys.length, o.seed).map((k, n) => [keys[k], n]));
-  const study = (k: string) => (groups.get(k)!.some((i) => pieces[i].own || (pieces[i].order ?? 0) < 0) ? 0 : 1);
-  const placeOf = (k: string) => Math.min(...groups.get(k)!.map((i) => pieces[i].order ?? Infinity));
-  keys.sort((a, z) => study(a) - study(z) || (placeOf(a) === placeOf(z) ? 0 : placeOf(a) < placeOf(z) ? -1 : 1) || rank.get(a)! - rank.get(z)!);
-
-  const placed: WorldPlaced[] = [];
-  let r = 0;
-  let side = 0;
-  // A row of pieces cut to one height (the tallest's natural height, capped).
-  const row = (list: number[], widths: number[]) => {
-    // The row's height splits the difference between its pictures' own, so the short one is not left in a well of white.
-    const hs = list.map((i, k) => tall(i, widths[k]));
-    const h = Math.min(Math.round((Math.max(...hs) + Math.min(...hs)) / 2), Math.round(((cols * kr) / list.length) * 1.1));
-    let c = 0;
-    list.forEach((i, k) => {
-      placed.push({i, c, r, cw: widths[k], ch: h});
-      c += widths[k];
-    });
-    r += h;
-  };
-  const even = (n: number) => Array.from({length: n}, (_, k) => Math.floor((cols * (k + 1)) / n) - Math.floor((cols * k) / n));
-  let single: number | null = null;
-  const flushSingle = () => {
-    if (single === null) return;
-    row([single], [cols]);
-    single = null;
-  };
-  for (const k of keys) {
-    const list = groups.get(k)!;
-    const results = list.filter((i) => pieces[i].kind === 'result');
-    const work = list.filter((i) => pieces[i].kind !== 'result');
-    if (work.length === 1) {
-      // Two projects of one piece share a row.
-      if (single === null) single = work[0];
-      else {
-        row([single, work[0]], even(2));
-        single = null;
-      }
-    } else if (work.length > 1) {
-      flushSingle();
-      const hero = work.find((i) => heroes.has(i)) ?? work.find((i) => pieces[i].kind === 'merch-apparel') ?? work[0];
-      const rest = work.filter((i) => i !== hero);
-      const stack = rest.length <= 3 ? rest : rest.slice(0, 2);
-      const under = rest.slice(stack.length);
-      const hw = Math.round((cols * 2) / 3);
-      const sw = cols - hw;
-      const H = Math.min(tall(hero, hw), Math.round(hw * kr * 1.3));
-      const heroC = side % 2 === 0 ? 0 : sw;
-      const stackC = side % 2 === 0 ? hw : 0;
-      placed.push({i: hero, c: heroC, r, cw: hw, ch: H});
-      // The stack shares the garment's height, each in proportion to its own.
-      const want = stack.map((i) => tall(i, sw));
-      const sum = want.reduce((a, b) => a + b, 0) || 1;
-      let y = r;
-      stack.forEach((i, n) => {
-        const ch = n === stack.length - 1 ? r + H - y : Math.max(1, Math.round((want[n] * H) / sum));
-        placed.push({i, c: stackC, r: y, cw: sw, ch});
-        y += ch;
-      });
-      r += H;
-      side++;
-      for (let n = 0; n < under.length; n += 4) {
-        const part = under.slice(n, n + 4);
-        row(part, even(part.length));
-      }
-    }
-    if (results.length) {
-      flushSingle();
-      // A result is words: full width, a band's height, not its card's shape blown up.
-      for (const i of results) {
-        const h = Math.round(cols * kr * 0.32);
-        placed.push({i, c: 0, r, cw: cols, ch: h});
-        r += h;
-      }
-    }
-  }
-  flushSingle();
-  placed.sort((a, z) => a.i - z.i);
-  return {placed, cols, rows: r, labels: [], family};
-}
-
 function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: string[], focus: number | null, family: number[]): WorldResult {
   const groups = new Map<string, number[]>();
   sets.forEach((k, i) => groups.set(k, [...(groups.get(k) ?? []), i]));

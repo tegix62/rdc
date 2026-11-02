@@ -549,9 +549,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       : // Full-bleed on a wide screen too, as the portfolio grid is (Chris: "on desktop, can we make the view full-bleed?").
         world.parentElement!.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
     const steps = phone ? STEPS.phone : STEPS.desktop;
-    // The apparel mix on a phone is composed on twelve columns (lib/world.ts, COMPOSED).
-    const composeNow = !!data.mix && phone && mode === 'lands';
-    let cols = composeNow ? 12 : steps[zoom];
+    let cols = steps[zoom];
     /*
       A phone's widest piece: half the columns, rounded down from the default
       up (finer grids) and up from it down (coarser ones), so - never allows
@@ -570,22 +568,33 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     const subset = data.pieces.map((_, i) => i);
     if (focus !== null && !subset.includes(focus)) focus = null;
     // A result tile as wide as a case study may be on a phone (a step under the widest), two cells on a wide screen, so its number reads.
+    const mixPhone = !!data.mix && phone;
+    const merchHere = (i: number) => data.pieces[i].cat === 'merch-apparel';
     const sub = subset.map((i) => ({
       ...data.pieces[i],
       /*
-        THE APPAREL MIX's sizes, tuned offline on its own pieces
-        (scripts/tune-home.mjs): garment shots half the screen on a phone,
-        three of fourteen columns on a wide one, everything else at least
-        two there - no piece forced big, so nothing leaves a strip beside
-        it. Holes over the visible field: 16% -> about 5% wide, under 2% on
-        a phone.
+        THE APPAREL MIX ON A PHONE: the original mosaic, three touches only.
+        Chris: "the mosaic slash original look should work. It should just
+        take particular tweaks." Tried side by side offline on the field's
+        own pieces (scripts/tune-home.mjs) - every firmer rule (garments
+        forced to half the screen, a packer, set blocks) went blocky and
+        left white. So: a garment never under two columns, the other work a
+        little less ground than the merch, and the projects' own pieces
+        (mostly marks) not held big, as they are elsewhere - held big, the
+        marks outsized the merch.
       */
-      least: data.mix
-        ? (data.pieces[i] as any).merchBig
-          ? phone ? maxSpan : maxSpan - 1
-          : data.pieces[i].kind === 'result'
-            ? phone ? Math.max(2, maxSpan - 1) : 2
-            : phone ? (data.pieces[i].photo ? 2 : 1) : 2
+      ...(mixPhone ? {weight: merchHere(i) ? 1 : 0.4} : {}),
+      least: mixPhone && merchHere(i)
+        ? Math.max(2, data.pieces[i].photo ? 2 : 1)
+        : data.mix && !phone
+        ? /*
+            A wide screen, tuned offline the same way: garment shots three
+            of fourteen columns, everything else at least two - no piece
+            forced big, so nothing leaves a strip beside it.
+          */
+          (data.pieces[i] as any).merchBig
+          ? maxSpan - 1
+          : data.pieces[i].kind === 'result' ? 2 : 2
         :
         data.pieces[i].kind === 'result'
           ? phone ? Math.max(2, maxSpan - 1) : 2
@@ -654,13 +663,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       tiles[focus!].querySelector('.wd-frame')!.insertBefore(named, tiles[focus!].querySelector('.wd-jump'));
     }
     // Any other seed is a shuffle: the projects' sets move, not only their pieces (lib/world.ts, SHUFFLED).
-    /*
-      The apparel mix on a phone is COMPOSED (lib/world.ts): each project a
-      block, its best garment two thirds wide, the rest stacked beside it.
-      Chris chose it after the lands and a packer both read as clunky.
-    */
-    const compose = composeNow ? {hero: sub.map((p, k) => ((p as any).merchBig ? k : -1)).filter((k) => k >= 0)} : undefined;
-    const out = generateWorld(sub, {cols, mode, seed, shuffled: !data.home && seed !== FIRST_SEED, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow, compose}});
+    const out = generateWorld(sub, {cols, mode, seed, shuffled: !data.home && seed !== FIRST_SEED, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow}});
     last = {out, subset};
     const sets = inPlace ? setsOf(sub) : [];
     const fam = new Set(
@@ -678,7 +681,6 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
 
     world.classList.toggle('has-focus', focus !== null);
     world.classList.toggle('is-grow', grow);
-    world.classList.toggle('is-composed', composeNow);
     world.style.width = `${width}px`;
     if (phone) world.style.marginLeft = `${EDGE - (world.parentElement!.getBoundingClientRect().left + parseFloat(pad.paddingLeft))}px`;
     world.style.height = `${Math.ceil(out.rows * rowH)}px`;
@@ -700,8 +702,6 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       t.classList.toggle('is-open', i === focus);
       t.classList.toggle('is-sibling', fam.has(i));
       t.classList.toggle('is-small', p.cw * cell < 150);
-      // Composed: the piece leading its block carries the project's bar, not the small mark in the stack.
-      t.classList.toggle('is-lead', composeNow && p.cw * cell >= width * 0.6);
       t.classList.toggle('is-tiny', p.cw * cell < 90);
       const img = t.querySelector('img');
       if (img) img.sizes = `${Math.ceil(p.cw * cell)}px`;

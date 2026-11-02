@@ -386,10 +386,12 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
               {href && (
                 <a class="wd-jump" href={href} aria-label={[barOf(it), (count[href] ?? 0) > 1 ? `${count[href]} pieces` : null].filter(Boolean).join(' - ')}>
                   <span class="wd-jump__label">{barOf(it)}</span>
-                  {(count[href] ?? 0) > 1 && (
+                  {(count[href] ?? 0) > 1 ? (
                     <span class="wd-jump__count">
-                      {DOT} {count[href]} pieces
+                      <span class="wd-jump__sep">{DOT} </span>{count[href]} pieces
                     </span>
+                  ) : (
+                    <span class="wd-jump__one" aria-hidden="true">Project</span>
                   )}
                   <span class="wd-jump__arrow" aria-hidden="true">&rarr;</span>
                 </a>

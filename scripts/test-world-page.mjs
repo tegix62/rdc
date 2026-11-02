@@ -794,12 +794,12 @@ for (const [name, w, h] of [
     })
     check('credits: the opened project shows its people, where it has any', named.any === 0 || named.inside || named.names === 0, JSON.stringify(named))
     check('results: no script errors', errors.length === 0, errors.join(' | '))
-    // The plain pass (preview): the result tiles in the testimonial cards' style, the buttons with weight underneath, no arrow after a label.
+    // The plain pass (preview): the result tiles in the testimonial cards' style, the buttons with weight underneath, no arrow after a label - and none in the corner chip, which says its piece count (Chris: "weren't arrows something we were getting rid of or replacing?").
     const plain = await page.evaluate(() => {
       if (!document.documentElement.hasAttribute('data-plain')) return null
       const r = document.querySelector('.wd-piece--result .wd-result')
       const cs = r ? getComputedStyle(r) : null
-      const jump = Array.from(document.querySelectorAll('.wd-piece.is-open .wd-jump__arrow, .wd-piece:not(.wd-piece--study) .wd-jump__arrow')).filter((a) => a.getBoundingClientRect().width > 0).length
+      const jump = Array.from(document.querySelectorAll('.wd-jump__arrow')).filter((a) => a.getBoundingClientRect().width > 0).length
       const b = document.querySelector('.button')
       return {foot: cs?.borderBottomWidth, bg: cs?.backgroundColor, arrow: !!r?.querySelector('.wd-result__go'), jump, button: b ? getComputedStyle(b).borderBottomWidth : null}
     })

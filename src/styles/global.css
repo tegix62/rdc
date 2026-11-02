@@ -8414,6 +8414,27 @@ html.realsize-open {
   align-self: flex-start;
   margin: 0.35rem 0 0;
 }
+/*
+  The corner chip says what is behind it, not an arrow (Chris: "weren't
+  arrows something we were getting rid of or replacing?"): the piece count,
+  as the bar on a bigger tile reads it - "5 pieces" - or "Project" for a
+  project of one. Preview first, with the rest of the plain pass.
+*/
+.wd-jump__one {
+  display: none;
+}
+:root[data-plain] .wd-piece--study.is-small:not(.is-open) :is(.wd-jump__count, .wd-jump__one) {
+  display: inline;
+  opacity: 1;
+  font-weight: 600;
+}
+:root[data-plain] .wd-piece--study.is-small:not(.is-open) :is(.wd-jump__arrow, .wd-jump__sep) {
+  display: none;
+}
+:root[data-plain] .wd-piece--study.is-small:not(.is-open) .wd-jump {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.6875rem;
+}
 /* A tile too small for a corner mark to leave room to tap the picture: none. */
 .wd-piece--study.is-tiny:not(.is-open) .wd-jump {
   display: none;

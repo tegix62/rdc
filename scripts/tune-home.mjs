@@ -37,7 +37,9 @@ export function layout(width, phone, rule = {}) {
           ? phone ? Math.max(2, maxSpan - 1) : 2
           : phone ? (p.photo ? 2 : 1) : 2,
   }))
-  const res = generateWorld(sub, {cols, mode: 'lands', seed: 4187, shuffled: false, maxSpan, rowsPerCell: kr, focus: null, focusRow: 0, card: null, tune: {simple: true, tallMarks: data.grow}})
+  // A phone: packed, as draw() does it.
+  const pack = phone ? Object.fromEntries(sub.map((p, k) => [k, p.merchBig || p.kind === 'result' ? Math.ceil(cols / 2) : Math.ceil(cols / 4)])) : undefined
+  const res = generateWorld(sub, {cols, mode: 'lands', seed: 4187, shuffled: false, maxSpan, rowsPerCell: kr, focus: null, focusRow: 0, card: null, tune: {simple: true, tallMarks: data.grow, pack}})
   const rects = res.placed.map((q) => ({i: q.i, x: q.c * cell, y: (q.r * cell) / kr, w: q.cw * cell, h: (q.ch * cell) / kr}))
   return {rects, cell}
 }

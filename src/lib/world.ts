@@ -124,7 +124,7 @@ export interface WorldOptions {
   /** Lands: rows to a cell's width (2: half-height rows, so boxes follow their pictures' shapes). Rows, `r` and `ch` are then in these. */
   rowsPerCell?: number;
   /** Lands: weights for how a set's pieces gather (for tuning; the defaults are the chosen ones). */
-  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean; simple?: boolean; floor?: number; curve?: number; capDrop?: number; tallMarks?: boolean};
+  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean; simple?: boolean; floor?: number; curve?: number; capDrop?: number; tallMarks?: boolean; pack?: {[i: number]: number | [number, number]}};
   /** Lands: room for the opened project's card, beside the opened piece. */
   card?: {cw: number; ch: number} | null;
 }
@@ -380,6 +380,7 @@ export function generateWorld(pieces: WorldPiece[], o: WorldOptions): WorldResul
   const focus = o.focus ?? null;
   const family = focus === null ? [] : pieces.map((_, i) => i).filter((i) => sets[i] === sets[focus]);
   if (o.mode === 'biomes') return biomes(pieces, o, maxSpan, sets, focus, family);
+  if (o.mode === 'lands' && o.tune?.pack) return packed(pieces, o, sets, family, o.tune.pack);
   if (o.mode === 'lands') return lands(pieces, o, maxSpan, sets, focus, family);
   return flow(pieces, o, maxSpan, sets, focus, family);
 }
@@ -603,6 +604,64 @@ function biomes(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: st
   the project's card beside it, at about the row it was on; the rest flows
   round it as before.
 */
+/*
+  PACKED - the homepage's apparel mix on a phone. Chris, of the lands there:
+  "it kind of messed up", "still needs adjusting", "we're doin worse now".
+  The lands are made for the whole portfolio; with the homepage's two dozen
+  pieces their patches and ground left holes whatever the sizes. Here every
+  piece has a set width (`widths`, in columns), takes its own picture's
+  height, and goes in order - the sets as lands orders them, each set's
+  pieces together - into the FIRST place it fits, top to bottom, left to
+  right, so a later small piece fills the gap a tall one left.
+*/
+function packed(pieces: WorldPiece[], o: WorldOptions, sets: string[], family: number[], widths: {[i: number]: number | [number, number]}): WorldResult {
+  const kr = Math.max(1, Math.round(o.rowsPerCell ?? 1));
+  const groups = new Map<string, number[]>();
+  sets.forEach((k, i) => groups.set(k, [...(groups.get(k) ?? []), i]));
+  const keys = [...groups.keys()];
+  const rank = new Map(order(keys.length, o.seed).map((k, n) => [keys[k], n]));
+  const study = (k: string) => (groups.get(k)!.some((i) => pieces[i].own || (pieces[i].order ?? 0) < 0) ? 0 : 1);
+  const placeOf = (k: string) => Math.min(...groups.get(k)!.map((i) => pieces[i].order ?? Infinity));
+  keys.sort((a, z) => study(a) - study(z) || (placeOf(a) === placeOf(z) ? 0 : placeOf(a) < placeOf(z) ? -1 : 1) || rank.get(a)! - rank.get(z)!);
+  // A set may fill gaps back to where the set before it started, no higher -
+  // so the sets keep their order down the page and their pieces near each other.
+  const seq = keys.flatMap((k) => groups.get(k)!);
+  const startOf = new Map<string, number>();
+  let floor = 0;
+  let lastSet = '';
+  const used: number[][] = [];
+  const free = (c: number, r: number, cw: number, ch: number) => {
+    for (let y = r; y < r + ch; y++) for (let x = c; x < c + cw; x++) if (used[y]?.[x]) return false;
+    return true;
+  };
+  const placed: WorldPlaced[] = [];
+  for (const i of seq) {
+    const p = pieces[i];
+    if (sets[i] !== lastSet) {
+      if (lastSet) floor = startOf.get(lastSet) ?? floor;
+      lastSet = sets[i];
+    }
+    // A range of widths: whichever lets it sit highest, the wider on a tie - so a small piece fills the gap it finds.
+    const want = widths[i] ?? 1;
+    const [lo, hi] = (Array.isArray(want) ? want : [want, want]).map((w) => Math.max(1, Math.min(o.cols, Math.round(w))));
+    let at: {c: number; r: number; cw: number; ch: number} | null = null;
+    // Even steps when both ends are even (2 or 4 of 8): an odd width leaves a one-column sliver.
+    const step = lo % 2 === 0 && hi % 2 === 0 ? 2 : 1;
+    for (let cw = hi; cw >= lo; cw -= step) {
+      const ch = p.rows ?? Math.max(1, Math.round((cw * kr) / (p.w / p.h || 1)));
+      let got: {c: number; r: number} | null = null;
+      for (let r = floor; !got && (!at || r < at.r); r++) for (let c = 0; c + cw <= o.cols && !got; c++) if (free(c, r, cw, ch)) got = {c, r};
+      if (got && (!at || got.r < at.r)) at = {...got, cw, ch};
+    }
+    const {cw, ch} = at!;
+    if (!startOf.has(sets[i])) startOf.set(sets[i], at!.r);
+    for (let y = at!.r; y < at!.r + ch; y++) for (let x = at!.c; x < at!.c + cw; x++) (used[y] ??= [])[x] = 1;
+    placed.push({i, c: at!.c, r: at!.r, cw, ch});
+  }
+  placed.sort((a, z) => a.i - z.i);
+  return {placed, cols: o.cols, rows: used.length, labels: [], family};
+}
+
 function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: string[], focus: number | null, family: number[]): WorldResult {
   const groups = new Map<string, number[]>();
   sets.forEach((k, i) => groups.set(k, [...(groups.get(k) ?? []), i]));

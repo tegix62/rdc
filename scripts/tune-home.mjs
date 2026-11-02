@@ -25,18 +25,17 @@ export function layout(width, phone, rule = {}) {
   const maxSpan = phone ? (cols > STEPS.phone[2] ? Math.floor(cols / 2) : Math.ceil(cols / 2)) : Math.round(cols * 0.3)
   const cell = width / cols
   const kr = 2
+  // As draw() sizes the apparel mix (data.mix).
   const sub = data.pieces.map((p) => ({
     ...p,
-    big: rule.big ? rule.big(p, {phone, maxSpan}) : p.big || (!phone && !!p.merchBig),
+    big: rule.big ? rule.big(p, {phone, maxSpan}) : p.big,
     least: rule.least
       ? rule.least(p, {phone, maxSpan})
-      : p.kind === 'result'
-        ? phone ? Math.max(2, maxSpan - 1) : 2
-        : p.kind === 'video' || p.video
-          ? 2
-          : phone && p.merchBig
-            ? maxSpan
-            : phone && p.photo ? 2 : 1,
+      : p.merchBig
+        ? phone ? maxSpan : maxSpan - 1
+        : p.kind === 'result'
+          ? phone ? Math.max(2, maxSpan - 1) : 2
+          : phone ? (p.photo ? 2 : 1) : 2,
   }))
   const res = generateWorld(sub, {cols, mode: 'lands', seed: 4187, shuffled: false, maxSpan, rowsPerCell: kr, focus: null, focusRow: 0, card: null, tune: {simple: true, tallMarks: data.grow}})
   const rects = res.placed.map((q) => ({i: q.i, x: q.c * cell, y: (q.r * cell) / kr, w: q.cw * cell, h: (q.ch * cell) / kr}))
@@ -61,6 +60,6 @@ export function measure(rects, width, height) {
 if (import.meta.url === `file://${process.argv[1]}`) {
   for (const [name, w, h, phone] of [['phone 430', 430 - 4, 932, true], ['phone 390', 390 - 4, 844, true], ['desktop', 1440, 900, false]]) {
     const {rects} = layout(w, phone)
-    console.log(name, JSON.stringify(measure(rects, w, h - 400)))
+    console.log(name, JSON.stringify(measure(rects, w, h * 0.75)))
   }
 }

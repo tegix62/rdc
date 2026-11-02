@@ -155,10 +155,9 @@ const pieces = all.map((it, i) => {
     // On the homepage's apparel mix the projects' own pieces (mostly marks) give way to the merch.
     big: (isProject(it) && !lead) || !!it.heroTile,
     /*
-      The homepage's simple garment shots: big on a wide screen. Not on a
-      phone - a phone has too few columns for two big pieces side by side,
-      so each left a hole beside it (Chris, on his phone: "it kind of messed
-      up"). There the weights below do the favouring.
+      The homepage's simple garment shots, sized up in draw() (THE APPAREL
+      MIX's sizes) - not forced big, which left a hole beside each one
+      (Chris, on his phone: "it kind of messed up").
     */
     merchBig: !!lead && isMerchPiece(it) && merchPlacement(it) === 'lead',
     // The homepage's lead clusters come before every case study (world.ts lands()).
@@ -342,7 +341,7 @@ videos.forEach((v) =>
     weight: VIDEO_WEIGHT,
   }),
 );
-const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name})), grow, picks: picks ?? null, home: !!home};
+const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name})), grow, picks: picks ?? null, home: !!home, mix: !!lead};
 ---
 
 <div class="wd pf-pane" data-pane="all">
@@ -493,7 +492,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   import {seedOf} from '../../lib/cluster';
 
   type P = WorldPiece & {id: string; slug: string | null; title: string; cat: string; photo: boolean};
-  const data: {pieces: P[]; names: Record<string, string>; filters: {value: string; name: string}[]; grow: boolean; picks: {code: string; kind: 'pitch' | 'picks' | 'vote'} | null; home: boolean} = JSON.parse(
+  const data: {pieces: P[]; names: Record<string, string>; filters: {value: string; name: string}[]; grow: boolean; picks: {code: string; kind: 'pitch' | 'picks' | 'vote'} | null; home: boolean; mix?: boolean} = JSON.parse(
     document.getElementById('wd-data')!.textContent!,
   );
   const world = document.querySelector<HTMLElement>('.wd-world')!;
@@ -571,22 +570,27 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     // A result tile as wide as a case study may be on a phone (a step under the widest), two cells on a wide screen, so its number reads.
     const sub = subset.map((i) => ({
       ...data.pieces[i],
-      big: data.pieces[i].big || (!phone && !!(data.pieces[i] as any).merchBig),
-      least:
+      /*
+        THE APPAREL MIX's sizes, tuned offline on its own pieces
+        (scripts/tune-home.mjs): garment shots half the screen on a phone,
+        three of fourteen columns on a wide one, everything else at least
+        two there - no piece forced big, so nothing leaves a strip beside
+        it. Holes over the visible field: 16% -> about 5% wide, under 2% on
+        a phone.
+      */
+      least: data.mix
+        ? (data.pieces[i] as any).merchBig
+          ? phone ? maxSpan : maxSpan - 1
+          : data.pieces[i].kind === 'result'
+            ? phone ? Math.max(2, maxSpan - 1) : 2
+            : phone ? (data.pieces[i].photo ? 2 : 1) : 2
+        :
         data.pieces[i].kind === 'result'
           ? phone ? Math.max(2, maxSpan - 1) : 2
           : // A video: the cells a 16:9 still needs to fill its box. Two: a floor, not a size - at three every video sat on it, one size again.
             mode === 'lands' && (data.pieces[i].kind === 'video' || (data.pieces[i] as any).video)
             ? 2
-            : /*
-                The homepage's garment shots on a phone: a step under the
-                widest, so two still sit side by side (Chris: "still needs
-                adjusting" - without it a cut-out tee could drop to a single
-                column while the marks around it stayed big).
-              */
-              phone && (data.pieces[i] as any).merchBig
-              ? maxSpan // half the screen: two garments to a row, no strip left over (Chris: "mobile is still struggling here")
-              : phone && mode === 'lands' && data.pieces[i].photo ? 2 : 1,
+            : phone && mode === 'lands' && data.pieces[i].photo ? 2 : 1,
     }));
 
     /*

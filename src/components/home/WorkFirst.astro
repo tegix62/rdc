@@ -24,8 +24,9 @@
 */
 import Img from '../Img.astro';
 import LandsView from '../portfolio/LandsView.astro';
+import Lookbook, {type LookCluster} from './Lookbook.astro';
 import {getAllGridItems} from '../../lib/queries';
-import {cleanKey, tileHref, merchPlacement} from '../../lib/tiles';
+import {cleanKey, tileHref, merchPlacement, treatmentOf} from '../../lib/tiles';
 import {tileImage, backgroundUrl, hasAsset} from '../../lib/image';
 import {stripStegaKey} from '../../lib/stega';
 
@@ -34,8 +35,10 @@ interface Props {
   contactUrl: string;
   bioText: string;
   featured: any[];
+  /** The lookbook in place of the field (preview, /next/home/lookbook). */
+  look?: boolean;
 }
-const {settings, contactUrl, bioText, featured} = Astro.props;
+const {settings, contactUrl, bioText, featured, look} = Astro.props;
 const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
 const idOf = (it: any) => cleanKey(it?._id).replace(/^drafts\./, '');
 
@@ -103,6 +106,42 @@ if (APPAREL_MIX) for (const list of sets.values()) {
     if (apparel && at >= 0) lead[idOf(it)] = at;
   }
 }
+/*
+  THE LOOKBOOK's clusters (Lookbook.astro): the apparel projects in LEAD's
+  order, then any other project with merch; each led by its simple garment
+  shot (or its first merch, or its own piece), with up to three others -
+  merch first - and its result from Site Settings' proof stats.
+*/
+const norm = (h: unknown) => String(stripStegaKey(h) ?? '').replace(/\/+$/, '');
+const proof = ((settings?.proofStats ?? []) as any[]).map((r) => {
+  const [stat, ...more] = clean(r.stat).split(' ');
+  const lower = more.map((w) => (/^[A-Z0-9]{2,}$/.test(w) ? w : w.toLowerCase())).join(' ');
+  return {stat, rest: [lower, clean(r.rest)].filter(Boolean).join(' '), href: norm(r.href)};
+});
+// A photograph fills its panel; a cut-out or a mark sits in it (as the field tells them apart).
+const lookPiece = (it: any) => ({item: it, title: clean(it.title), photo: it.tileOpaque !== false && treatmentOf(it) !== 'mark'});
+const clusters: LookCluster[] = look
+  ? [...sets.entries()]
+      .map(([k, list]) => ({k, list, at: Math.max(-1, ...list.map(leadOf))}))
+      .filter(({list, at}) => at >= 0 || list.some(isMerch))
+      .sort((a, z) => (a.at < 0 ? 99 : a.at) - (z.at < 0 ? 99 : z.at))
+      .map(({k, list}) => {
+        const own = list.find((it) => cleanKey(it.pageType) === 'Case Study');
+        const merch = list.filter(isMerch).sort((a, z) => merchFirst(a) - merchFirst(z));
+        const hero = merch[0] ?? own ?? list[0];
+        const rest = [...merch.slice(1), ...list.filter((it) => !isMerch(it) && it !== hero)];
+        const href = k.startsWith('/work/') ? k : null;
+        const result = href ? proof.find((r) => r.href === norm(href)) ?? null : null;
+        return {
+          name: clean(own?.title) || clean(list[0]?.parentTitle) || clean(list[0]?.title),
+          href,
+          count: list.length,
+          hero: lookPiece(hero),
+          more: rest.slice(0, 3).map(lookPiece),
+          result: result && result.stat ? {stat: result.stat, rest: result.rest} : null,
+        };
+      })
+  : [];
 /*
   The curation before the apparel mix, as live: every project's own piece
   and up to PER more of its pieces, in the portfolio's order.
@@ -213,12 +252,21 @@ const finalLine = clean(settings?.finalCtaLine) || clean(settings?.finalCtaHeadi
   </div>
 </section>
 
-<section class="pf-section wf-field" aria-label="The work">
+<section class:list={['pf-section', look ? 'wf-look' : 'wf-field']} aria-label="The work">
   {/* The field asks which pane is shown; here it is the only one. */}
   <script is:inline>document.documentElement.dataset.pfPane = 'all';</script>
-  <LandsView only={[...only]} lead={APPAREL_MIX ? lead : undefined} home />
-  {/* The field fades out under this, so it reads as going on - and the way on is a button. */}
-  <p class="wf-field__more"><a class="button" href="/portfolio?view=all">See all the work</a></p>
+  {look ? (
+    <>
+      <Lookbook clusters={clusters} />
+      <p class="wf-look__more"><a class="button" href="/portfolio?view=all">See all the work</a></p>
+    </>
+  ) : (
+    <>
+      <LandsView only={[...only]} lead={APPAREL_MIX ? lead : undefined} home />
+      {/* The field fades out under this, so it reads as going on - and the way on is a button. */}
+      <p class="wf-field__more"><a class="button" href="/portfolio?view=all">See all the work</a></p>
+    </>
+  )}
 </section>
 
 <section class="wf-foot" style={sheet ? `--wf-sheet: url(${sheet})` : undefined}>

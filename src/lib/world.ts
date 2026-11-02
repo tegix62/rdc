@@ -615,7 +615,8 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
   // As the portfolio grid deals: the case studies' sets first (Chris: "Make
   // case studies the first to appear"); by colour, colour decides instead.
   // Case studies in the order he dragged them into in Studio, any unplaced after.
-  const study = (k: string) => (groups.get(k)!.some((i) => pieces[i].own) ? 0 : 1);
+  // A set the homepage puts first (order below 0) counts as one, case study or not.
+  const study = (k: string) => (groups.get(k)!.some((i) => pieces[i].own || (pieces[i].order ?? 0) < 0) ? 0 : 1);
   const placeOf = (k: string) => Math.min(...groups.get(k)!.map((i) => pieces[i].order ?? Infinity));
   /*
     SHUFFLED: Chris, of the Shuffle button - "it still keeps all the projects,

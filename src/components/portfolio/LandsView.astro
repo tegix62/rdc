@@ -68,8 +68,10 @@ interface Props {
   picks?: {code: string; kind: 'pitch' | 'picks' | 'vote'};
   /** The homepage's field (src/pages/index.astro): no seed in the address. */
   home?: boolean;
+  /** The homepage's apparel clusters, first and in this order (piece id -> place). */
+  lead?: Record<string, number>;
 }
-const {only, picks, home} = Astro.props as Props;
+const {only, picks, home, lead} = Astro.props as Props;
 const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
 const idOf = (it: any) => cleanKey(it._id).replace(/^drafts\./, '');
 const all: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)) && (!only || only.includes(idOf(it))));
@@ -150,7 +152,8 @@ const pieces = all.map((it, i) => {
       less ground than the piece it supports.
     */
     big: isProject(it) || !!it.heroTile,
-    order: isProject(it) && typeof it.orderRank === 'string' ? ranks.indexOf(it.orderRank) : undefined,
+    // The homepage's lead clusters come before every case study (world.ts lands()).
+    order: lead && idOf(it) in lead ? -100 + lead[idOf(it)] : isProject(it) && typeof it.orderRank === 'string' ? ranks.indexOf(it.orderRank) : undefined,
     // A photograph, collage or anything else filling its frame - which on a
     // phone needs more than the smallest size to be told apart; a mark on
     // transparency reads at any size.
@@ -283,7 +286,8 @@ playing.forEach((v, i) => {
   Chris has made them all grid items since ("I added these all as grid
   items, so you can take out the ones you added").
 */
-const bare: any[] = WITH_REST && !picks && (!only || home) ? await getVideoGridItems() : [];
+// On the homepage, only the videos picked for it (Chris: the apparel mix).
+const bare: any[] = WITH_REST && !picks && (!only || home) ? ((await getVideoGridItems()) as any[]).filter((it) => !home || only!.includes(idOf(it))) : [];
 const videos = (
   await Promise.all([
     ...bare.map(async (it) => {

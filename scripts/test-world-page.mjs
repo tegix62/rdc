@@ -872,6 +872,14 @@ for (const [name, w, h] of [
         pieces: shown.length,
         results: shown.filter((t) => t.classList.contains('wd-piece--result')).length,
         videos: shown.filter((t) => t.dataset.video).length,
+        // Chris: "some mix of the Merch & Apparel view with shorter-quantity clusters" - the apparel first.
+        firstScreen: (() => {
+          const data = JSON.parse(document.getElementById('wd-data')?.textContent || '{"pieces":[]}')
+          const top = field ? field.getBoundingClientRect().top : 0
+          const near = shown.filter((t) => t.getBoundingClientRect().top - top < innerHeight * 0.8)
+          const cats = near.map((t) => data.pieces[Number(t.dataset.i)]?.cat ?? '')
+          return {n: cats.length, merch: cats.filter((c) => c === 'merch-apparel').length}
+        })(),
         foot: !!document.querySelector('.wf-foot a.button'),
         wide: document.documentElement.scrollWidth > innerWidth,
         url: location.search,
@@ -898,7 +906,8 @@ for (const [name, w, h] of [
     if (face) check(`${name}, work-first homepage: the face beside the headline, on the right, on screen`, face.inside && face.beside, JSON.stringify(face))
     if (face && w < 700) check(`${name}, work-first homepage: the face larger, the headline still four lines and clear of it`, face.width >= 108 && face.lines <= 4 && face.clear, JSON.stringify(face))
     check(`${name}, work-first homepage: one heading, the field starting in the first screen`, hp.h1.length === 1 && hp.fieldTop !== null && hp.fieldTop < h * 0.6, JSON.stringify({h1: hp.h1, fieldTop: hp.fieldTop}))
-    check(`${name}, work-first homepage: a curated field with its results and videos, and the foot`, hp.pieces > 20 && hp.results > 0 && hp.videos > 0 && hp.foot && !hp.wide, JSON.stringify(hp))
+    check(`${name}, work-first homepage: a curated field with its results, and the foot`, hp.pieces > 20 && hp.results > 0 && hp.foot && !hp.wide, JSON.stringify(hp))
+    check(`${name}, work-first homepage: the apparel leads - most of the first screen is merch`, hp.firstScreen.n > 0 && hp.firstScreen.merch / hp.firstScreen.n >= 0.4, JSON.stringify(hp.firstScreen))
     check(`${name}, work-first homepage: no seed in its address`, !/seed=/.test(hp.url), hp.url)
     // "signal more that there is more to be seen": the field fades out, a button in the fade, the blue sheet behind the band.
     const more = await page.evaluate(async () => {

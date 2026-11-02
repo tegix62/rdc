@@ -25,7 +25,7 @@
 import Img from '../Img.astro';
 import LandsView from '../portfolio/LandsView.astro';
 import {getAllGridItems} from '../../lib/queries';
-import {cleanKey, tileHref} from '../../lib/tiles';
+import {cleanKey, tileHref, merchPlacement} from '../../lib/tiles';
 import {tileImage, backgroundUrl, hasAsset} from '../../lib/image';
 import {stripStegaKey} from '../../lib/stega';
 
@@ -40,21 +40,55 @@ const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
 const idOf = (it: any) => cleanKey(it?._id).replace(/^drafts\./, '');
 
 /*
-  The curated part: every project's own piece and up to PER more of its
-  pieces, in the portfolio's order, and the Homepage Work Grid picks.
+  THE APPAREL MIX. Chris, thinking about professional clients: "maybe the
+  homepage view should be some mix of the Merch & Apparel view with
+  shorter-quantity clusters. Chateau Seven is my best apparel job to date.
+  I'm also working with BalloonShop/Star Cadet currently ... Two Point Oh is
+  a band but that shirt sold really well. DumpStat ran a merch line briefly
+  that was profitable."
+
+  So the field leads with the apparel work, in LEAD's order, and every
+  cluster is short:
+    - a project with merch: its own piece and up to SHORT more, the simple
+      garment shots first, then the alternates, then the rest of its work
+      (its marks) - LEAD_SHORT for Chateau Seven, the best of it;
+    - loose merch (no case study yet - BalloonShop, Star Cadet): up to SHORT;
+    - every other project: its own piece and one more, so the range shows
+      without taking over;
+    - plus whatever Chris picks in Site Settings' Homepage Work Grid.
+  The band videos stay in the All view (only picked ones come here).
 */
-const PER = 7;
+const LEAD = ['Chateau Seven', 'Two Point Oh', 'DumpStat', 'BalloonShop', 'Star Cadet'];
+const SHORT = 4;
+const LEAD_SHORT = 6;
+const OTHER = 1;
+const squash = (s: unknown) => clean(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+const leadOf = (it: any) => {
+  const names = [it.parentTitle, it.title, it.client].map(squash).filter(Boolean);
+  return LEAD.findIndex((n) => names.some((s) => s.startsWith(squash(n))));
+};
+const isMerch = (it: any) => cleanKey(it.category) === 'Merch & Apparel';
+const merchFirst = (it: any) => (isMerch(it) ? (merchPlacement(it) === 'lead' ? 0 : 1) : 2);
+
 const items: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it));
-const taken = new Map<string, number>();
 const only = new Set<string>(featured.map(idOf).filter(Boolean));
+const lead: Record<string, number> = {};
+const sets = new Map<string, any[]>();
 for (const it of items) {
-  const href = tileHref(it);
-  if (!href) continue;
-  const study = cleanKey(it.pageType) === 'Case Study';
-  const n = taken.get(href) ?? 0;
-  if (study || n < PER) {
+  const k = tileHref(it) ?? (leadOf(it) >= 0 && isMerch(it) ? `lead:${leadOf(it)}` : null);
+  if (k) sets.set(k, [...(sets.get(k) ?? []), it]);
+}
+for (const list of sets.values()) {
+  const own = list.filter((it) => cleanKey(it.pageType) === 'Case Study');
+  const rest = list.filter((it) => cleanKey(it.pageType) !== 'Case Study');
+  const apparel = list.some(isMerch);
+  const at = Math.max(-1, ...list.map(leadOf));
+  const cap = !apparel ? OTHER : LEAD[at] === 'Chateau Seven' ? LEAD_SHORT : SHORT;
+  // Stable sort: the portfolio's order within each kind.
+  const picked = [...own, ...rest.map((it, n) => ({it, n})).sort((a, z) => merchFirst(a.it) - merchFirst(z.it) || a.n - z.n).slice(0, cap).map(({it}) => it)];
+  for (const it of picked) {
     only.add(idOf(it));
-    if (!study) taken.set(href, n + 1);
+    if (apparel && at >= 0) lead[idOf(it)] = at;
   }
 }
 /*
@@ -152,7 +186,7 @@ const finalLine = clean(settings?.finalCtaLine) || clean(settings?.finalCtaHeadi
 <section class="pf-section wf-field" aria-label="The work">
   {/* The field asks which pane is shown; here it is the only one. */}
   <script is:inline>document.documentElement.dataset.pfPane = 'all';</script>
-  <LandsView only={[...only]} home />
+  <LandsView only={[...only]} lead={lead} home />
   {/* The field fades out under this, so it reads as going on - and the way on is a button. */}
   <p class="wf-field__more"><a class="button" href="/portfolio?view=all">See all the work</a></p>
 </section>

@@ -8443,6 +8443,37 @@ html.realsize-open {
 :root[data-plain] .wf-field .wd-piece--study.is-small:not(.is-open) .wd-jump {
   display: none;
 }
+/*
+  The homepage composed on a phone (lib/world.ts, COMPOSED): the project's
+  bar goes under the garment that leads its block, full width of it - not
+  on the small mark in the stack, where it covered the picture.
+*/
+.wd-world.is-composed .wd-piece--study:not(.is-lead, .is-open) .wd-jump {
+  display: none;
+}
+.wd-world.is-composed .wd-piece.is-lead:not(.is-open) .wd-jump {
+  display: flex;
+  position: static;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.625rem;
+  background: var(--color-navy);
+  color: var(--color-white, #fff);
+  text-decoration: none;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  line-height: 1.2;
+  letter-spacing: var(--label-track, 0.06em);
+  text-transform: uppercase;
+}
+.wd-world.is-composed .wd-piece.is-lead:not(.is-open) :is(.wd-jump__label, .wd-jump__count, .wd-jump__sep) {
+  display: inline;
+}
+.wd-world.is-composed .wd-piece.is-lead:not(.is-open) :is(.wd-jump__one, .wd-jump__arrow) {
+  display: none;
+}
 /* A tile too small for a corner mark to leave room to tap the picture: none. */
 .wd-piece--study.is-tiny:not(.is-open) .wd-jump {
   display: none;

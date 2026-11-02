@@ -678,6 +678,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
 
     world.classList.toggle('has-focus', focus !== null);
     world.classList.toggle('is-grow', grow);
+    world.classList.toggle('is-composed', composeNow);
     world.style.width = `${width}px`;
     if (phone) world.style.marginLeft = `${EDGE - (world.parentElement!.getBoundingClientRect().left + parseFloat(pad.paddingLeft))}px`;
     world.style.height = `${Math.ceil(out.rows * rowH)}px`;
@@ -698,8 +699,9 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       t.style.height = `${p.ch * rowH - gap}px`;
       t.classList.toggle('is-open', i === focus);
       t.classList.toggle('is-sibling', fam.has(i));
-      // In a composed block the stack is a third of a phone: still room for its project's bar.
-      t.classList.toggle('is-small', p.cw * cell < (composeNow ? 120 : 150));
+      t.classList.toggle('is-small', p.cw * cell < 150);
+      // Composed: the piece leading its block carries the project's bar, not the small mark in the stack.
+      t.classList.toggle('is-lead', composeNow && p.cw * cell >= width * 0.6);
       t.classList.toggle('is-tiny', p.cw * cell < 90);
       const img = t.querySelector('img');
       if (img) img.sizes = `${Math.ceil(p.cw * cell)}px`;

@@ -76,6 +76,7 @@ const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
 const idOf = (it: any) => cleanKey(it._id).replace(/^drafts\./, '');
 const all: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)) && (!only || only.includes(idOf(it))));
 const isProject = (it: any) => cleanKey(it.pageType) === 'Case Study';
+const isMerchPiece = (it: any) => cleanKey(it.category) === 'Merch & Apparel';
 
 // The portfolio's categories and filters (portfolio.astro, CATEGORY_FILTER).
 const CATEGORY_FILTER: Record<string, string> = {
@@ -151,15 +152,22 @@ const pieces = all.map((it, i) => {
       alternate merch shot, or a piece hung off another (a close-up), takes
       less ground than the piece it supports.
     */
-    big: isProject(it) || !!it.heroTile,
+    big: isProject(it) || !!it.heroTile || (!!lead && isMerchPiece(it) && merchPlacement(it) === 'lead'),
     // The homepage's lead clusters come before every case study (world.ts lands()).
     order: lead && idOf(it) in lead ? -100 + lead[idOf(it)] : isProject(it) && typeof it.orderRank === 'string' ? ranks.indexOf(it.orderRank) : undefined,
     // A photograph, collage or anything else filling its frame - which on a
     // phone needs more than the smallest size to be told apart; a mark on
     // transparency reads at any size.
     photo: it.tileOpaque !== false && treatmentOf(it) !== 'mark',
-    weight:
-      cleanKey(it.category) === 'Merch & Apparel' && merchPlacement(it) === 'later' ? 0.45 : it.pieceParent ? 0.6 : 1,
+    /*
+      On the homepage's apparel mix the merch is favoured outright - Chris:
+      "make the grid favor sizing the shirts / merch much higher": the simple
+      garment shots are big (above), the alternates take full ground, and
+      the other work around them steps down.
+    */
+    weight: lead
+      ? isMerchPiece(it) ? 1 : isProject(it) ? 1 : 0.55
+      : cleanKey(it.category) === 'Merch & Apparel' && merchPlacement(it) === 'later' ? 0.45 : it.pieceParent ? 0.6 : 1,
   };
 });
 /*

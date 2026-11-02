@@ -883,6 +883,9 @@ for (const [name, w, h] of [
           // Chris: "make the grid favor sizing the shirts / merch much higher" - their average area against the rest.
           const area = (list) => (list.length ? Math.round(list.reduce((s, t) => s + t.getBoundingClientRect().width * t.getBoundingClientRect().height, 0) / list.length) : 0)
           const isMerch = (t) => data.pieces[Number(t.dataset.i)]?.cat === 'merch-apparel'
+          // Against the other work of projects that have merch: one with none yet (Chateau Seven) keeps its full size on purpose.
+          const withMerch = new Set(data.pieces.filter((p) => p.cat === 'merch-apparel').map((p) => p.project).filter(Boolean))
+          const otherWork = (t) => !isMerch(t) && withMerch.has(data.pieces[Number(t.dataset.i)]?.project)
           // Chris, on his phone: "it kind of messed up" - big shirts leaving holes. How much of the field's first two screens the pieces cover.
           const fr = field.getBoundingClientRect()
           // The part of the field a reader sees before its fade: a screen and a half.
@@ -904,7 +907,7 @@ for (const [name, w, h] of [
           const early = shown.filter((t) => t.getBoundingClientRect().top - top < innerHeight * 1.5)
           const areaOf = (l) => l.reduce((s, t) => s + t.getBoundingClientRect().width * t.getBoundingClientRect().height, 0)
           const merchShare = Math.round((areaOf(early.filter(isMerch)) / Math.max(1, areaOf(early))) * 100) / 100
-          return {merchShare, n: cats.length, merch: cats.filter((c) => c === 'merch-apparel').length, merchArea: area(shown.filter(isMerch)), otherArea: area(shown.filter((t) => !isMerch(t))), cover: Math.round((covered / (fr.width * span)) * 100) / 100, holes: Math.round((holes / Math.max(1, pts)) * 1000) / 10}
+          return {merchShare, n: cats.length, merch: cats.filter((c) => c === 'merch-apparel').length, merchArea: area(shown.filter(isMerch)), otherArea: area(shown.filter(otherWork)), cover: Math.round((covered / (fr.width * span)) * 100) / 100, holes: Math.round((holes / Math.max(1, pts)) * 1000) / 10}
         })(),
         foot: !!document.querySelector('.wf-foot a.button'),
         wide: document.documentElement.scrollWidth > innerWidth,

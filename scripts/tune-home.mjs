@@ -27,11 +27,13 @@ export function layout(width, phone, rule = {}) {
   const kr = 2
   // As draw() sizes the apparel mix (data.mix): on a phone the original mosaic with three touches.
   const merch = (p) => p.cat === 'merch-apparel'
+  const withMerch = new Set(data.pieces.filter(merch).map((p) => p.project).filter(Boolean))
   const base = (p) => (p.kind === 'result' ? (phone ? Math.max(2, maxSpan - 1) : 2) : phone && p.photo ? 2 : 1)
   const sub = data.pieces.map((p) => ({
     ...p,
-    ...(phone ? {weight: merch(p) ? 1 : 0.4} : {}),
+    ...(phone ? {weight: merch(p) || (p.project && !withMerch.has(p.project)) ? 1 : 0.4} : {}),
     ...(rule.big ? {big: rule.big(p, {phone, maxSpan})} : {}),
+    ...(rule.weight ? {weight: rule.weight(p, {phone, maxSpan})} : {}),
     least: rule.least
       ? rule.least(p, {phone, maxSpan})
       : phone

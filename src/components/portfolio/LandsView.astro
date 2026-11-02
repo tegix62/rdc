@@ -570,6 +570,9 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     // A result tile as wide as a case study may be on a phone (a step under the widest), two cells on a wide screen, so its number reads.
     const mixPhone = !!data.mix && phone;
     const merchHere = (i: number) => data.pieces[i].cat === 'merch-apparel';
+    // A project with no merch shots yet (Chateau Seven) keeps its full ground: it is apparel work, its pieces are just marks so far.
+    const withMerch = new Set(data.pieces.filter((p) => p.cat === 'merch-apparel').map((p) => p.project).filter(Boolean));
+    const fullGround = (i: number) => merchHere(i) || (!!data.pieces[i].project && !withMerch.has(data.pieces[i].project));
     const sub = subset.map((i) => ({
       ...data.pieces[i],
       /*
@@ -583,7 +586,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
         (mostly marks) not held big, as they are elsewhere - held big, the
         marks outsized the merch.
       */
-      ...(mixPhone ? {weight: merchHere(i) ? 1 : 0.4} : {}),
+      ...(mixPhone ? {weight: fullGround(i) ? 1 : 0.4} : {}),
       least: mixPhone && merchHere(i)
         ? Math.max(2, data.pieces[i].photo ? 2 : 1)
         : data.mix && !phone

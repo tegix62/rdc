@@ -929,6 +929,8 @@ for (const [name, w, h] of [
     if (face && w < 700) check(`${name}, work-first homepage: the face larger, the headline still four lines and clear of it`, face.width >= 108 && face.lines <= 4 && face.clear, JSON.stringify(face))
     check(`${name}, work-first homepage: one heading, the field starting in the first screen`, hp.h1.length === 1 && hp.fieldTop !== null && hp.fieldTop < h * 0.6, JSON.stringify({h1: hp.h1, fieldTop: hp.fieldTop}))
     check(`${name}, work-first homepage: a curated field with its results, and the foot`, hp.pieces > 20 && hp.results > 0 && hp.foot && !hp.wide, JSON.stringify(hp))
+    // The field's pieces, for tuning the layout offline (scripts/tune-home.mjs).
+    if (PREVIEW_HOME && w < 700) console.log('HOME-DATA ' + (await page.evaluate(() => document.getElementById('wd-data')?.textContent ?? '')))
     if (PREVIEW_HOME) check(`${name}, work-first homepage: the apparel leads - most of the first screen is merch`, hp.firstScreen.n > 0 && hp.firstScreen.merch / hp.firstScreen.n >= 0.4, JSON.stringify(hp.firstScreen))
     if (PREVIEW_HOME) check(`${name}, work-first homepage: the merch sized up - bigger on average than the other work`, hp.firstScreen.merchArea > hp.firstScreen.otherArea * 1.3, JSON.stringify(hp.firstScreen))
     check(`${name}, work-first homepage: the field packed, no big holes - the pieces cover most of its first two screens, under 4% of it a gap`, hp.firstScreen.cover >= 0.6 && hp.firstScreen.holes <= 4, JSON.stringify(hp.firstScreen))

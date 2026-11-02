@@ -166,7 +166,7 @@ const pieces = all.map((it, i) => {
       the other work around them steps down.
     */
     weight: lead
-      ? isMerchPiece(it) ? 1 : isProject(it) ? 1 : 0.55
+      ? isMerchPiece(it) || isProject(it) || idOf(it) in lead ? 1 : 0.55
       : cleanKey(it.category) === 'Merch & Apparel' && merchPlacement(it) === 'later' ? 0.45 : it.pieceParent ? 0.6 : 1,
   };
 });

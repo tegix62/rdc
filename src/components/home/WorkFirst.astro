@@ -83,8 +83,10 @@ for (const it of items) {
 if (APPAREL_MIX) for (const list of sets.values()) {
   const own = list.filter((it) => cleanKey(it.pageType) === 'Case Study');
   const rest = list.filter((it) => cleanKey(it.pageType) !== 'Case Study');
-  const apparel = list.some(isMerch);
   const at = Math.max(-1, ...list.map(leadOf));
+  // The projects Chris named are apparel work whatever their pieces are filed
+  // under - Chateau Seven's are Brand Identity in Studio.
+  const apparel = at >= 0 || list.some(isMerch);
   const cap = !apparel ? OTHER : LEAD[at] === 'Chateau Seven' ? LEAD_SHORT : SHORT;
   // Stable sort: the portfolio's order within each kind.
   const picked = [...own, ...rest.map((it, n) => ({it, n})).sort((a, z) => merchFirst(a.it) - merchFirst(z.it) || a.n - z.n).slice(0, cap).map(({it}) => it)];

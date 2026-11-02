@@ -549,7 +549,9 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       : // Full-bleed on a wide screen too, as the portfolio grid is (Chris: "on desktop, can we make the view full-bleed?").
         world.parentElement!.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
     const steps = phone ? STEPS.phone : STEPS.desktop;
-    let cols = steps[zoom];
+    // The apparel mix on a phone is composed on twelve columns (lib/world.ts, COMPOSED).
+    const composeNow = !!data.mix && phone && mode === 'lands';
+    let cols = composeNow ? 12 : steps[zoom];
     /*
       A phone's widest piece: half the columns, rounded down from the default
       up (finer grids) and up from it down (coarser ones), so - never allows
@@ -653,13 +655,12 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     }
     // Any other seed is a shuffle: the projects' sets move, not only their pieces (lib/world.ts, SHUFFLED).
     /*
-      The apparel mix on a phone is PACKED (lib/world.ts), not laid as lands:
-      garments and results half the screen, everything else a quarter, each
-      into the first place it fits. Chris, on the lands there: "we're doin
-      worse now". Tried offline on its own pieces (scripts/tune-home.mjs).
+      The apparel mix on a phone is COMPOSED (lib/world.ts): each project a
+      block, its best garment two thirds wide, the rest stacked beside it.
+      Chris chose it after the lands and a packer both read as clunky.
     */
-    const pack = data.mix && phone && mode === 'lands' ? Object.fromEntries(sub.map((p, k) => [k, (p as any).merchBig || p.kind === 'result' ? Math.ceil(cols / 2) : Math.ceil(cols / 4)])) : undefined;
-    const out = generateWorld(sub, {cols, mode, seed, shuffled: !data.home && seed !== FIRST_SEED, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow, pack}});
+    const compose = composeNow ? {hero: sub.map((p, k) => ((p as any).merchBig ? k : -1)).filter((k) => k >= 0)} : undefined;
+    const out = generateWorld(sub, {cols, mode, seed, shuffled: !data.home && seed !== FIRST_SEED, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow, compose}});
     last = {out, subset};
     const sets = inPlace ? setsOf(sub) : [];
     const fam = new Set(
@@ -697,7 +698,8 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       t.style.height = `${p.ch * rowH - gap}px`;
       t.classList.toggle('is-open', i === focus);
       t.classList.toggle('is-sibling', fam.has(i));
-      t.classList.toggle('is-small', p.cw * cell < 150);
+      // In a composed block the stack is a third of a phone: still room for its project's bar.
+      t.classList.toggle('is-small', p.cw * cell < (composeNow ? 120 : 150));
       t.classList.toggle('is-tiny', p.cw * cell < 90);
       const img = t.querySelector('img');
       if (img) img.sizes = `${Math.ceil(p.cw * cell)}px`;

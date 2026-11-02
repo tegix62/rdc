@@ -901,7 +901,9 @@ for (const [name, w, h] of [
               pts++
               if (!rects.some((r) => x > r.left - 30 && x < r.right + 30 && y > r.top - 30 && y < r.bottom + 30)) holes++
             }
-          return {n: cats.length, merch: cats.filter((c) => c === 'merch-apparel').length, merchArea: area(shown.filter(isMerch)), otherArea: area(shown.filter((t) => !isMerch(t))), cover: Math.round((covered / (fr.width * span)) * 100) / 100, holes: Math.round((holes / Math.max(1, pts)) * 1000) / 10}
+          // Composed (a phone): the garments that lead their blocks, two thirds of the field wide.
+          const heroes = shown.filter((t) => isMerch(t) && t.getBoundingClientRect().width >= fr.width * 0.6).length
+          return {heroes, n: cats.length, merch: cats.filter((c) => c === 'merch-apparel').length, merchArea: area(shown.filter(isMerch)), otherArea: area(shown.filter((t) => !isMerch(t))), cover: Math.round((covered / (fr.width * span)) * 100) / 100, holes: Math.round((holes / Math.max(1, pts)) * 1000) / 10}
         })(),
         foot: !!document.querySelector('.wf-foot a.button'),
         wide: document.documentElement.scrollWidth > innerWidth,
@@ -934,6 +936,7 @@ for (const [name, w, h] of [
     if (PREVIEW_HOME && w < 700) console.log('HOME-DATA ' + (await page.evaluate(() => document.getElementById('wd-data')?.textContent ?? '')))
     if (PREVIEW_HOME) check(`${name}, work-first homepage: the apparel leads - most of the first screen is merch`, hp.firstScreen.n > 0 && hp.firstScreen.merch / hp.firstScreen.n >= 0.4, JSON.stringify(hp.firstScreen))
     if (PREVIEW_HOME) check(`${name}, work-first homepage: the merch sized up - bigger on average than the other work`, hp.firstScreen.merchArea > hp.firstScreen.otherArea * 1.3, JSON.stringify(hp.firstScreen))
+    if (PREVIEW_HOME && w < 700) check(`${name}, work-first homepage: composed - garments lead their projects' blocks at two thirds of the width`, hp.firstScreen.heroes >= 4, JSON.stringify(hp.firstScreen))
     check(`${name}, work-first homepage: the field packed, no big holes - the pieces cover most of its first screen and a half, under 6% of it a gap`, hp.firstScreen.cover >= 0.6 && hp.firstScreen.holes <= 6, JSON.stringify(hp.firstScreen))
     check(`${name}, work-first homepage: no seed in its address`, !/seed=/.test(hp.url), hp.url)
     // "signal more that there is more to be seen": the field fades out, a button in the fade, the blue sheet behind the band.

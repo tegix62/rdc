@@ -883,7 +883,15 @@ for (const [name, w, h] of [
           // Chris: "make the grid favor sizing the shirts / merch much higher" - their average area against the rest.
           const area = (list) => (list.length ? Math.round(list.reduce((s, t) => s + t.getBoundingClientRect().width * t.getBoundingClientRect().height, 0) / list.length) : 0)
           const isMerch = (t) => data.pieces[Number(t.dataset.i)]?.cat === 'merch-apparel'
-          return {n: cats.length, merch: cats.filter((c) => c === 'merch-apparel').length, merchArea: area(shown.filter(isMerch)), otherArea: area(shown.filter((t) => !isMerch(t)))}
+          // Chris, on his phone: "it kind of messed up" - big shirts leaving holes. How much of the field's first two screens the pieces cover.
+          const fr = field.getBoundingClientRect()
+          const span = Math.min(fr.height, innerHeight * 2)
+          const covered = shown.reduce((s, t) => {
+            const r = t.getBoundingClientRect()
+            const h = Math.max(0, Math.min(r.bottom, fr.top + span) - Math.max(r.top, fr.top))
+            return s + h * r.width
+          }, 0)
+          return {n: cats.length, merch: cats.filter((c) => c === 'merch-apparel').length, merchArea: area(shown.filter(isMerch)), otherArea: area(shown.filter((t) => !isMerch(t))), cover: Math.round((covered / (fr.width * span)) * 100) / 100}
         })(),
         foot: !!document.querySelector('.wf-foot a.button'),
         wide: document.documentElement.scrollWidth > innerWidth,
@@ -913,7 +921,8 @@ for (const [name, w, h] of [
     check(`${name}, work-first homepage: one heading, the field starting in the first screen`, hp.h1.length === 1 && hp.fieldTop !== null && hp.fieldTop < h * 0.6, JSON.stringify({h1: hp.h1, fieldTop: hp.fieldTop}))
     check(`${name}, work-first homepage: a curated field with its results, and the foot`, hp.pieces > 20 && hp.results > 0 && hp.foot && !hp.wide, JSON.stringify(hp))
     if (PREVIEW_HOME) check(`${name}, work-first homepage: the apparel leads - most of the first screen is merch`, hp.firstScreen.n > 0 && hp.firstScreen.merch / hp.firstScreen.n >= 0.4, JSON.stringify(hp.firstScreen))
-    if (PREVIEW_HOME) check(`${name}, work-first homepage: the merch sized up - bigger on average than the other work`, hp.firstScreen.merchArea > hp.firstScreen.otherArea * 1.3, JSON.stringify(hp.firstScreen))
+    if (PREVIEW_HOME) check(`${name}, work-first homepage: the merch sized up - bigger on average than the other work`, hp.firstScreen.merchArea > hp.firstScreen.otherArea * (w < 700 ? 1.1 : 1.3), JSON.stringify(hp.firstScreen))
+    check(`${name}, work-first homepage: the field packed, no big holes - the pieces cover most of its first two screens`, hp.firstScreen.cover >= 0.6, JSON.stringify(hp.firstScreen))
     check(`${name}, work-first homepage: no seed in its address`, !/seed=/.test(hp.url), hp.url)
     // "signal more that there is more to be seen": the field fades out, a button in the fade, the blue sheet behind the band.
     const more = await page.evaluate(async () => {

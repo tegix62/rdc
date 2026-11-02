@@ -152,7 +152,14 @@ const pieces = all.map((it, i) => {
       alternate merch shot, or a piece hung off another (a close-up), takes
       less ground than the piece it supports.
     */
-    big: isProject(it) || !!it.heroTile || (!!lead && isMerchPiece(it) && merchPlacement(it) === 'lead'),
+    big: isProject(it) || !!it.heroTile,
+    /*
+      The homepage's simple garment shots: big on a wide screen. Not on a
+      phone - a phone has too few columns for two big pieces side by side,
+      so each left a hole beside it (Chris, on his phone: "it kind of messed
+      up"). There the weights below do the favouring.
+    */
+    merchBig: !!lead && isMerchPiece(it) && merchPlacement(it) === 'lead',
     // The homepage's lead clusters come before every case study (world.ts lands()).
     order: lead && idOf(it) in lead ? -100 + lead[idOf(it)] : isProject(it) && typeof it.orderRank === 'string' ? ranks.indexOf(it.orderRank) : undefined,
     // A photograph, collage or anything else filling its frame - which on a
@@ -561,6 +568,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     // A result tile as wide as a case study may be on a phone (a step under the widest), two cells on a wide screen, so its number reads.
     const sub = subset.map((i) => ({
       ...data.pieces[i],
+      big: data.pieces[i].big || (!phone && !!(data.pieces[i] as any).merchBig),
       least:
         data.pieces[i].kind === 'result'
           ? phone ? Math.max(2, maxSpan - 1) : 2

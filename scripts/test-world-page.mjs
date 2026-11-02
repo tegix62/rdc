@@ -891,7 +891,16 @@ for (const [name, w, h] of [
             const h = Math.max(0, Math.min(r.bottom, fr.top + span) - Math.max(r.top, fr.top))
             return s + h * r.width
           }, 0)
-          return {n: cats.length, merch: cats.filter((c) => c === 'merch-apparel').length, merchArea: area(shown.filter(isMerch)), otherArea: area(shown.filter((t) => !isMerch(t))), cover: Math.round((covered / (fr.width * span)) * 100) / 100}
+          // Holes: points in the first two screens more than 30px from every piece - white space a reader sees as a gap, not a gutter.
+          const rects = shown.map((t) => t.getBoundingClientRect())
+          let pts = 0
+          let holes = 0
+          for (let y = fr.top + 10; y < fr.top + span; y += 10)
+            for (let x = fr.left + 10; x < fr.right - 10; x += 10) {
+              pts++
+              if (!rects.some((r) => x > r.left - 30 && x < r.right + 30 && y > r.top - 30 && y < r.bottom + 30)) holes++
+            }
+          return {n: cats.length, merch: cats.filter((c) => c === 'merch-apparel').length, merchArea: area(shown.filter(isMerch)), otherArea: area(shown.filter((t) => !isMerch(t))), cover: Math.round((covered / (fr.width * span)) * 100) / 100, holes: Math.round((holes / Math.max(1, pts)) * 1000) / 10}
         })(),
         foot: !!document.querySelector('.wf-foot a.button'),
         wide: document.documentElement.scrollWidth > innerWidth,
@@ -922,7 +931,7 @@ for (const [name, w, h] of [
     check(`${name}, work-first homepage: a curated field with its results, and the foot`, hp.pieces > 20 && hp.results > 0 && hp.foot && !hp.wide, JSON.stringify(hp))
     if (PREVIEW_HOME) check(`${name}, work-first homepage: the apparel leads - most of the first screen is merch`, hp.firstScreen.n > 0 && hp.firstScreen.merch / hp.firstScreen.n >= 0.4, JSON.stringify(hp.firstScreen))
     if (PREVIEW_HOME) check(`${name}, work-first homepage: the merch sized up - bigger on average than the other work`, hp.firstScreen.merchArea > hp.firstScreen.otherArea * 1.3, JSON.stringify(hp.firstScreen))
-    check(`${name}, work-first homepage: the field packed, no big holes - the pieces cover most of its first two screens`, hp.firstScreen.cover >= 0.6, JSON.stringify(hp.firstScreen))
+    check(`${name}, work-first homepage: the field packed, no big holes - the pieces cover most of its first two screens, under 4% of it a gap`, hp.firstScreen.cover >= 0.6 && hp.firstScreen.holes <= 4, JSON.stringify(hp.firstScreen))
     check(`${name}, work-first homepage: no seed in its address`, !/seed=/.test(hp.url), hp.url)
     // "signal more that there is more to be seen": the field fades out, a button in the fade, the blue sheet behind the band.
     const more = await page.evaluate(async () => {

@@ -585,7 +585,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
                 column while the marks around it stayed big).
               */
               phone && (data.pieces[i] as any).merchBig
-              ? Math.max(2, maxSpan - 1)
+              ? maxSpan // half the screen: two garments to a row, no strip left over (Chris: "mobile is still struggling here")
               : phone && mode === 'lands' && data.pieces[i].photo ? 2 : 1,
     }));
 

@@ -8435,6 +8435,14 @@ html.realsize-open {
   padding: 0.35rem 0.5rem;
   font-size: 0.6875rem;
 }
+/*
+  On the homepage's field no chip on a small tile at all: the count covered
+  the small marks (Chris, on his phone: "mobile is still struggling here"),
+  and tapping a piece opens it with its project's bar anyway.
+*/
+:root[data-plain] .wf-field .wd-piece--study.is-small:not(.is-open) .wd-jump {
+  display: none;
+}
 /* A tile too small for a corner mark to leave room to tap the picture: none. */
 .wd-piece--study.is-tiny:not(.is-open) .wd-jump {
   display: none;

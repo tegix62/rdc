@@ -70,6 +70,8 @@ const leadOf = (it: any) => {
 const isMerch = (it: any) => cleanKey(it.category) === 'Merch & Apparel';
 const merchFirst = (it: any) => (isMerch(it) ? (merchPlacement(it) === 'lead' ? 0 : 1) : 2);
 
+// Preview first; false (or production) keeps the old curation below.
+const APPAREL_MIX = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
 const items: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it));
 const only = new Set<string>(featured.map(idOf).filter(Boolean));
 const lead: Record<string, number> = {};
@@ -78,7 +80,7 @@ for (const it of items) {
   const k = tileHref(it) ?? (leadOf(it) >= 0 && isMerch(it) ? `lead:${leadOf(it)}` : null);
   if (k) sets.set(k, [...(sets.get(k) ?? []), it]);
 }
-for (const list of sets.values()) {
+if (APPAREL_MIX) for (const list of sets.values()) {
   const own = list.filter((it) => cleanKey(it.pageType) === 'Case Study');
   const rest = list.filter((it) => cleanKey(it.pageType) !== 'Case Study');
   const apparel = list.some(isMerch);
@@ -89,6 +91,24 @@ for (const list of sets.values()) {
   for (const it of picked) {
     only.add(idOf(it));
     if (apparel && at >= 0) lead[idOf(it)] = at;
+  }
+}
+/*
+  The curation before the apparel mix, as live: every project's own piece
+  and up to PER more of its pieces, in the portfolio's order.
+*/
+const PER = 7;
+if (!APPAREL_MIX) {
+  const taken = new Map<string, number>();
+  for (const it of items) {
+    const href = tileHref(it);
+    if (!href) continue;
+    const study = cleanKey(it.pageType) === 'Case Study';
+    const n = taken.get(href) ?? 0;
+    if (study || n < PER) {
+      only.add(idOf(it));
+      if (!study) taken.set(href, n + 1);
+    }
   }
 }
 /*
@@ -186,7 +206,7 @@ const finalLine = clean(settings?.finalCtaLine) || clean(settings?.finalCtaHeadi
 <section class="pf-section wf-field" aria-label="The work">
   {/* The field asks which pane is shown; here it is the only one. */}
   <script is:inline>document.documentElement.dataset.pfPane = 'all';</script>
-  <LandsView only={[...only]} lead={lead} home />
+  <LandsView only={[...only]} lead={APPAREL_MIX ? lead : undefined} home />
   {/* The field fades out under this, so it reads as going on - and the way on is a button. */}
   <p class="wf-field__more"><a class="button" href="/portfolio?view=all">See all the work</a></p>
 </section>

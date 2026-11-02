@@ -17,6 +17,8 @@
 import {chromium} from 'playwright'
 
 const BASE = (process.argv[2] ?? 'https://preview.rumeau-design-co.pages.dev').replace(/\/$/, '')
+// The apparel mix on the homepage is preview-only for now (WorkFirst.astro, APPAREL_MIX).
+const PREVIEW_HOME = /preview\./.test(BASE)
 let failures = 0
 const check = (name, ok, detail = '') => {
   if (!ok) failures++
@@ -907,7 +909,7 @@ for (const [name, w, h] of [
     if (face && w < 700) check(`${name}, work-first homepage: the face larger, the headline still four lines and clear of it`, face.width >= 108 && face.lines <= 4 && face.clear, JSON.stringify(face))
     check(`${name}, work-first homepage: one heading, the field starting in the first screen`, hp.h1.length === 1 && hp.fieldTop !== null && hp.fieldTop < h * 0.6, JSON.stringify({h1: hp.h1, fieldTop: hp.fieldTop}))
     check(`${name}, work-first homepage: a curated field with its results, and the foot`, hp.pieces > 20 && hp.results > 0 && hp.foot && !hp.wide, JSON.stringify(hp))
-    check(`${name}, work-first homepage: the apparel leads - most of the first screen is merch`, hp.firstScreen.n > 0 && hp.firstScreen.merch / hp.firstScreen.n >= 0.4, JSON.stringify(hp.firstScreen))
+    if (PREVIEW_HOME) check(`${name}, work-first homepage: the apparel leads - most of the first screen is merch`, hp.firstScreen.n > 0 && hp.firstScreen.merch / hp.firstScreen.n >= 0.4, JSON.stringify(hp.firstScreen))
     check(`${name}, work-first homepage: no seed in its address`, !/seed=/.test(hp.url), hp.url)
     // "signal more that there is more to be seen": the field fades out, a button in the fade, the blue sheet behind the band.
     const more = await page.evaluate(async () => {

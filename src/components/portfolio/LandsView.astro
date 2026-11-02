@@ -286,8 +286,8 @@ playing.forEach((v, i) => {
   Chris has made them all grid items since ("I added these all as grid
   items, so you can take out the ones you added").
 */
-// On the homepage, only the videos picked for it (Chris: the apparel mix).
-const bare: any[] = WITH_REST && !picks && (!only || home) ? ((await getVideoGridItems()) as any[]).filter((it) => !home || only!.includes(idOf(it))) : [];
+// With the apparel mix, only the videos picked for the homepage.
+const bare: any[] = WITH_REST && !picks && (!only || home) ? ((await getVideoGridItems()) as any[]).filter((it) => !lead || only!.includes(idOf(it))) : [];
 const videos = (
   await Promise.all([
     ...bare.map(async (it) => {

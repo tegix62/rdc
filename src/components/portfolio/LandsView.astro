@@ -152,7 +152,8 @@ const pieces = all.map((it, i) => {
       alternate merch shot, or a piece hung off another (a close-up), takes
       less ground than the piece it supports.
     */
-    big: isProject(it) || !!it.heroTile,
+    // On the homepage's apparel mix the projects' own pieces (mostly marks) give way to the merch.
+    big: (isProject(it) && !lead) || !!it.heroTile,
     /*
       The homepage's simple garment shots: big on a wide screen. Not on a
       phone - a phone has too few columns for two big pieces side by side,
@@ -173,7 +174,7 @@ const pieces = all.map((it, i) => {
       the other work around them steps down.
     */
     weight: lead
-      ? isMerchPiece(it) || isProject(it) || idOf(it) in lead ? 1 : 0.55
+      ? isMerchPiece(it) ? 1 : isProject(it) || idOf(it) in lead ? 0.75 : 0.5
       : cleanKey(it.category) === 'Merch & Apparel' && merchPlacement(it) === 'later' ? 0.45 : it.pieceParent ? 0.6 : 1,
   };
 });
@@ -575,7 +576,15 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
           : // A video: the cells a 16:9 still needs to fill its box. Two: a floor, not a size - at three every video sat on it, one size again.
             mode === 'lands' && (data.pieces[i].kind === 'video' || (data.pieces[i] as any).video)
             ? 2
-            : phone && mode === 'lands' && data.pieces[i].photo ? 2 : 1,
+            : /*
+                The homepage's garment shots on a phone: a step under the
+                widest, so two still sit side by side (Chris: "still needs
+                adjusting" - without it a cut-out tee could drop to a single
+                column while the marks around it stayed big).
+              */
+              phone && (data.pieces[i] as any).merchBig
+              ? Math.max(2, maxSpan - 1)
+              : phone && mode === 'lands' && data.pieces[i].photo ? 2 : 1,
     }));
 
     /*

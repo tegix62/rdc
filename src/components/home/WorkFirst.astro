@@ -89,7 +89,14 @@ if (APPAREL_MIX) for (const list of sets.values()) {
   const apparel = at >= 0 || list.some(isMerch);
   const cap = !apparel ? OTHER : LEAD[at] === 'Chateau Seven' ? LEAD_SHORT : SHORT;
   // Stable sort: the portfolio's order within each kind.
-  const picked = [...own, ...rest.map((it, n) => ({it, n})).sort((a, z) => merchFirst(a.it) - merchFirst(z.it) || a.n - z.n).slice(0, cap).map(({it}) => it)];
+  // An apparel cluster is its merch: one other piece beside it at most
+  // (Two Point Oh's posters were crowding its shirt), unless it has no merch
+  // shots yet - then its own work, so it still shows.
+  const merchN = rest.filter(isMerch).length;
+  const sorted = rest.map((it, n) => ({it, n})).sort((a, z) => merchFirst(a.it) - merchFirst(z.it) || a.n - z.n).map(({it}) => it);
+  const others = apparel && merchN ? 1 : cap;
+  const chosen = [...sorted.filter(isMerch), ...sorted.filter((it) => !isMerch(it)).slice(0, others)].slice(0, cap);
+  const picked = [...own, ...chosen];
   for (const it of picked) {
     only.add(idOf(it));
     if (apparel && at >= 0) lead[idOf(it)] = at;

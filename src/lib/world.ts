@@ -498,6 +498,10 @@ function refine(pieces: WorldPiece[], out: WorldResult, sets: string[]): WorldRe
       if (kinds || (pieces[p.i].kind === 'merch-apparel') !== (pieces[q.i].kind === 'merch-apparel')) continue;
       if (sets[p.i] === sets[q.i] || (loose(a) && loose(b))) pairs.push([a, b]);
     }
+  // In an order of the pieces themselves, not of where they sit in the list,
+  // so a new grid item elsewhere doesn't change which swaps are tried first.
+  const key = (k: number) => pieces[placed[k].i].id ?? pieces[placed[k].i].title ?? String(placed[k].i);
+  pairs.sort((x, y) => hashKey(0, key(x[0]) + '|' + key(x[1])) - hashKey(0, key(y[0]) + '|' + key(y[1])));
   let cost = artNeighbours(pieces, placed, out.cols);
   for (let round = 0; round < 3; round++) {
     let better = false;

@@ -608,6 +608,44 @@ for (const [name, w, h] of [
 }
 
 /*
+  More like this (preview): an opened piece's button gathers its kin into
+  one set at the top of the world, says so in a bar, keeps it in the
+  address, and Back to everything undoes it.
+*/
+{
+  const page = await browser.newPage({viewport: {width: 1440, height: 900}})
+  const errors = []
+  page.on('pageerror', (e) => errors.push(e.message))
+  await page.goto(`${BASE}/portfolio?view=all`, {waitUntil: 'domcontentloaded', timeout: 60_000}).catch(() => null)
+  await page.waitForTimeout(1500)
+  const k = await page.evaluate(() => [...document.querySelectorAll('.wd-piece:not([hidden]):not(.wd-piece--result)')].findIndex((t) => t.getBoundingClientRect().top > 300))
+  if (k < 0) console.log('skip  more like this: no piece to open')
+  else {
+    await page.locator('.wd-piece:not([hidden]):not(.wd-piece--result) .wd-pic').nth(k).click({position: {x: 6, y: 6}})
+    await page.waitForTimeout(700)
+    const btn = page.locator('.wd-piece.is-open .wd-like')
+    if (!(await btn.count())) console.log('skip  more like this: not on this site (preview only)')
+    else {
+      await btn.click()
+      await page.waitForTimeout(900)
+      const got = await page.evaluate(() => {
+        const bar = document.querySelector('.wd-likebar')
+        const open = document.querySelector('.wd-piece.is-open')
+        const world = document.querySelector('.wd-world')
+        const lit = [...document.querySelectorAll('.wd-piece.is-sibling')].length
+        return {bar: !!bar && !bar.hidden && /More like/.test(bar.textContent), like: new URL(location.href).searchParams.get('like'), top: open && world ? Math.round(open.getBoundingClientRect().top - world.getBoundingClientRect().top) : null, lit}
+      })
+      check('more like this: its kin gathered at the top of the world, said in a bar, kept in the address', got.bar && !!got.like && got.top !== null && got.top < 900 && got.lit >= 3, JSON.stringify(got))
+      await page.click('.wd-likebar__back')
+      await page.waitForTimeout(700)
+      const back = await page.evaluate(() => ({bar: !document.querySelector('.wd-likebar') || document.querySelector('.wd-likebar').hidden, like: new URL(location.href).searchParams.get('like')}))
+      check('more like this: Back to everything undoes it, no script errors', back.bar && !back.like && errors.length === 0, JSON.stringify({...back, errors}))
+    }
+  }
+  await page.close()
+}
+
+/*
   Start with your name (preview): typing sets the name a letter at a time -
   a cut letter or, until there is one, a stand-in - word by word, and the
   address keeps the name so it can be sent on.

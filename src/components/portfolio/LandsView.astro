@@ -137,7 +137,8 @@ const previews: Record<string, string> = Object.fromEntries(
   the garment fills its box - it reads bigger, and the mosaic packs closer.
   Only where it saves something (the box at least 8% smaller).
 */
-const TRIM = import.meta.env.PUBLIC_IS_PREVIEW === 'true' && !picks;
+// Off: the page's own test ("no picture cut down - each shown whole") caught 2 of 114 cut by it, as the first trim did. Kept for a cleaner outline later.
+const TRIM = false as boolean;
 const maskBoxes: ([number, number, number, number] | null)[] = all.map(() => null);
 const box = all.map((it, i) => {
   const full = {x0: 0, y0: 0, x1: 1, y1: 1};

@@ -2,7 +2,8 @@
   TRACE THE PIECES' SHAPES - for the lands engine's shape-aware packing and
   visual weight (lib/world.ts; Chris: "Let's give these ideas a shot!").
 
-  For every grid item's tile picture, once: its outline as a 12 x 12 grid of
+  For every grid item's tile picture, once: its colour (hue and how coloured,
+  for More like this), its outline as a 12 x 12 grid of
   where its ink is (only a picture with transparency has empty corners
   another piece can tuck into), and how heavy it looks - the share of it
   that is dark ink, 0 to 1 - so the engine can give a light line drawing a
@@ -37,7 +38,8 @@ const have = existsSync(OUT) ? JSON.parse(readFileSync(OUT, 'utf8')) : {}
 let fetched = 0
 let failed = 0
 for (const a of seen.values()) {
-  if (have[a._id]) continue
+  // Traced before colour was: again, for its hue.
+  if (have[a._id] && typeof have[a._id].h === 'number') continue
   if (/\.gif($|\?)/.test(a.url)) continue
   try {
     const r = await fetch(`${a.url}?w=48&h=48&fit=max&fm=png`)
@@ -47,17 +49,36 @@ for (const a of seen.values()) {
     const cells = new Array(G * G).fill(0)
     const counts = new Array(G * G).fill(0)
     let ink = 0
+    // Its colour: the hue of its coloured pixels (a circular mean, by saturation) and how coloured it is.
+    let hx = 0
+    let hy = 0
+    let sat = 0
     for (let y = 0; y < h; y++)
       for (let x = 0; x < w; x++) {
         const p = (y * w + x) * 4
         const alpha = data[p + 3] / 255
         const lum = (0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2]) / 255
         ink += alpha * (1 - lum)
+        const [R, G2, B] = [data[p] / 255, data[p + 1] / 255, data[p + 2] / 255]
+        const mx = Math.max(R, G2, B)
+        const mn = Math.min(R, G2, B)
+        const sv = mx ? (mx - mn) / mx : 0
+        if (alpha > 0.5 && mx > 0.08) {
+          let hue = 0
+          if (mx !== mn) hue = mx === R ? ((G2 - B) / (mx - mn)) % 6 : mx === G2 ? (B - R) / (mx - mn) + 2 : (R - G2) / (mx - mn) + 4
+          const a = (hue * 60 * Math.PI) / 180
+          hx += Math.cos(a) * sv
+          hy += Math.sin(a) * sv
+          sat += sv
+        }
         const c = Math.min(G - 1, Math.floor((x / w) * G)) + Math.min(G - 1, Math.floor((y / h) * G)) * G
         cells[c] += alpha
         counts[c]++
       }
     const entry = {k: Math.round((ink / (w * h)) * 100) / 100}
+    const n = w * h
+    entry.s = Math.round((sat / n) * 100) / 100
+    entry.h = Math.round(((Math.atan2(hy, hx) * 180) / Math.PI + 360) % 360)
     // Only a picture with transparency has corners to give: its cells with any real ink.
     if (a.alpha && !a.opaque) {
       let bits = ''

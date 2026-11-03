@@ -9108,11 +9108,6 @@ a.tk__no::after {
     padding: var(--space-3) 0 var(--space-2);
   }
 }
-.wf-look__more {
-  display: flex;
-  justify-content: center;
-  margin: 0 0 var(--space-5, 3rem);
-}
 .wf-field {
   padding-top: var(--space-2);
   padding-bottom: var(--space-4);

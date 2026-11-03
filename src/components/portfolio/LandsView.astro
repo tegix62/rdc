@@ -76,7 +76,15 @@ const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
 const idOf = (it: any) => cleanKey(it._id).replace(/^drafts\./, '');
 const all: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)) && (!only || only.includes(idOf(it))));
 const isProject = (it: any) => cleanKey(it.pageType) === 'Case Study';
-const isMerchPiece = (it: any) => cleanKey(it.category) === 'Merch & Apparel';
+/*
+  The homepage's apparel mix (WorkFirst, lead): within each project Chris
+  named, its own piece, then its garments, then the rest - the engine lays
+  a set's pieces in this order, so the merch leads the cluster.
+*/
+if (lead) {
+  const rankOf = (it: any) => (!(idOf(it) in lead) ? 0 : isProject(it) ? 0 : cleanKey(it.category) === 'Merch & Apparel' ? 1 : 2);
+  all.splice(0, all.length, ...all.map((it, n) => ({it, n})).sort((a, z) => rankOf(a.it) - rankOf(z.it) || a.n - z.n).map(({it}) => it));
+}
 
 // The portfolio's categories and filters (portfolio.astro, CATEGORY_FILTER).
 const CATEGORY_FILTER: Record<string, string> = {
@@ -152,29 +160,15 @@ const pieces = all.map((it, i) => {
       alternate merch shot, or a piece hung off another (a close-up), takes
       less ground than the piece it supports.
     */
-    // On the homepage's apparel mix the projects' own pieces (mostly marks) give way to the merch.
-    big: (isProject(it) && !lead) || !!it.heroTile,
-    /*
-      The homepage's simple garment shots, sized up in draw() (THE APPAREL
-      MIX's sizes) - not forced big, which left a hole beside each one
-      (Chris, on his phone: "it kind of messed up").
-    */
-    merchBig: !!lead && isMerchPiece(it) && merchPlacement(it) === 'lead',
+    big: isProject(it) || !!it.heroTile,
     // The homepage's lead clusters come before every case study (world.ts lands()).
     order: lead && idOf(it) in lead ? -100 + lead[idOf(it)] : isProject(it) && typeof it.orderRank === 'string' ? ranks.indexOf(it.orderRank) : undefined,
     // A photograph, collage or anything else filling its frame - which on a
     // phone needs more than the smallest size to be told apart; a mark on
     // transparency reads at any size.
     photo: it.tileOpaque !== false && treatmentOf(it) !== 'mark',
-    /*
-      On the homepage's apparel mix the merch is favoured outright - Chris:
-      "make the grid favor sizing the shirts / merch much higher": the simple
-      garment shots are big (above), the alternates take full ground, and
-      the other work around them steps down.
-    */
-    weight: lead
-      ? isMerchPiece(it) ? 1 : isProject(it) || idOf(it) in lead ? 0.75 : 0.5
-      : cleanKey(it.category) === 'Merch & Apparel' && merchPlacement(it) === 'later' ? 0.45 : it.pieceParent ? 0.6 : 1,
+    weight:
+      cleanKey(it.category) === 'Merch & Apparel' && merchPlacement(it) === 'later' ? 0.45 : it.pieceParent ? 0.6 : 1,
   };
 });
 /*
@@ -301,8 +295,7 @@ playing.forEach((v, i) => {
   Chris has made them all grid items since ("I added these all as grid
   items, so you can take out the ones you added").
 */
-// With the apparel mix, only the videos picked for the homepage.
-const bare: any[] = WITH_REST && !picks && (!only || home) ? ((await getVideoGridItems()) as any[]).filter((it) => !lead || only!.includes(idOf(it))) : [];
+const bare: any[] = WITH_REST && !picks && (!only || home) ? await getVideoGridItems() : [];
 const videos = (
   await Promise.all([
     ...bare.map(async (it) => {
@@ -341,7 +334,7 @@ videos.forEach((v) =>
     weight: VIDEO_WEIGHT,
   }),
 );
-const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name})), grow, picks: picks ?? null, home: !!home, mix: !!lead};
+const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name})), grow, picks: picks ?? null, home: !!home};
 ---
 
 <div class="wd pf-pane" data-pane="all">
@@ -492,7 +485,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   import {seedOf} from '../../lib/cluster';
 
   type P = WorldPiece & {id: string; slug: string | null; title: string; cat: string; photo: boolean};
-  const data: {pieces: P[]; names: Record<string, string>; filters: {value: string; name: string}[]; grow: boolean; picks: {code: string; kind: 'pitch' | 'picks' | 'vote'} | null; home: boolean; mix?: boolean} = JSON.parse(
+  const data: {pieces: P[]; names: Record<string, string>; filters: {value: string; name: string}[]; grow: boolean; picks: {code: string; kind: 'pitch' | 'picks' | 'vote'} | null; home: boolean} = JSON.parse(
     document.getElementById('wd-data')!.textContent!,
   );
   const world = document.querySelector<HTMLElement>('.wd-world')!;
@@ -568,37 +561,9 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     const subset = data.pieces.map((_, i) => i);
     if (focus !== null && !subset.includes(focus)) focus = null;
     // A result tile as wide as a case study may be on a phone (a step under the widest), two cells on a wide screen, so its number reads.
-    const mixPhone = !!data.mix && phone;
-    const merchHere = (i: number) => data.pieces[i].cat === 'merch-apparel';
-    // A project with no merch shots yet (Chateau Seven) keeps its full ground: it is apparel work, its pieces are just marks so far.
-    const withMerch = new Set(data.pieces.filter((p) => p.cat === 'merch-apparel').map((p) => p.project).filter(Boolean));
-    const fullGround = (i: number) => merchHere(i) || (!!data.pieces[i].project && !withMerch.has(data.pieces[i].project));
     const sub = subset.map((i) => ({
       ...data.pieces[i],
-      /*
-        THE APPAREL MIX ON A PHONE: the original mosaic, three touches only.
-        Chris: "the mosaic slash original look should work. It should just
-        take particular tweaks." Tried side by side offline on the field's
-        own pieces (scripts/tune-home.mjs) - every firmer rule (garments
-        forced to half the screen, a packer, set blocks) went blocky and
-        left white. So: a garment never under two columns, the other work a
-        little less ground than the merch, and the projects' own pieces
-        (mostly marks) not held big, as they are elsewhere - held big, the
-        marks outsized the merch.
-      */
-      ...(mixPhone ? {weight: fullGround(i) ? 1 : 0.4} : {}),
-      least: mixPhone && merchHere(i)
-        ? Math.max(2, data.pieces[i].photo ? 2 : 1)
-        : data.mix && !phone
-        ? /*
-            A wide screen, tuned offline the same way: garment shots three
-            of fourteen columns, everything else at least two - no piece
-            forced big, so nothing leaves a strip beside it.
-          */
-          (data.pieces[i] as any).merchBig
-          ? maxSpan - 1
-          : data.pieces[i].kind === 'result' ? 2 : 2
-        :
+      least:
         data.pieces[i].kind === 'result'
           ? phone ? Math.max(2, maxSpan - 1) : 2
           : // A video: the cells a 16:9 still needs to fill its box. Two: a floor, not a size - at three every video sat on it, one size again.

@@ -590,7 +590,7 @@ for (const [name, w, h] of [
   ['desktop', 1440, 900],
   ['phone', 390, 844],
 ]) {
-  for (const path of ['/next/ideas/all', '/next/friend/specimen', '/next/free/one', '/next/register/runs', '/next/issue/latest', '/next/copier/mode', '/next/letters/name', '/next/home/lookbook']) {
+  for (const path of ['/next/ideas/all', '/next/friend/specimen', '/next/free/one', '/next/register/runs', '/next/issue/latest', '/next/copier/mode', '/next/letters/name']) {
     const page = await browser.newPage({viewport: {width: w, height: h}})
     const errors = []
     page.on('pageerror', (e) => errors.push(e.message))
@@ -939,8 +939,7 @@ for (const [name, w, h] of [
     // The field's pieces, for tuning the layout offline (scripts/tune-home.mjs).
     if (PREVIEW_HOME && w < 700) console.log('HOME-DATA ' + (await page.evaluate(() => document.getElementById('wd-data')?.textContent ?? '')))
     // By area, over a screen and a half: Chateau Seven leads with its marks until its garment shots are in.
-    if (PREVIEW_HOME) check(`${name}, work-first homepage: the apparel leads - merch takes the most room early on`, hp.firstScreen.merchShare >= 0.4, JSON.stringify(hp.firstScreen))
-    if (PREVIEW_HOME) check(`${name}, work-first homepage: the merch sized up - bigger on average than the other work`, hp.firstScreen.merchArea > hp.firstScreen.otherArea * 1.3, JSON.stringify(hp.firstScreen))
+    if (PREVIEW_HOME) check(`${name}, work-first homepage: the apparel leads - merch a good share of the room early on`, hp.firstScreen.merchShare >= 0.3, JSON.stringify(hp.firstScreen))
     check(`${name}, work-first homepage: the field packed, no big holes - the pieces cover most of its first screen and a half, under 6% of it a gap (8% wide, where the lands are left as they were)`, hp.firstScreen.cover >= 0.6 && hp.firstScreen.holes <= (w < 700 ? 6 : 8), JSON.stringify(hp.firstScreen))
     check(`${name}, work-first homepage: no seed in its address`, !/seed=/.test(hp.url), hp.url)
     // "signal more that there is more to be seen": the field fades out, a button in the fade, the blue sheet behind the band.

@@ -25,20 +25,13 @@ export function layout(width, phone, rule = {}) {
   const maxSpan = phone ? (cols > STEPS.phone[2] ? Math.floor(cols / 2) : Math.ceil(cols / 2)) : Math.round(cols * 0.3)
   const cell = width / cols
   const kr = 2
-  // As draw() sizes the apparel mix (data.mix): on a phone the original mosaic with three touches.
-  const merch = (p) => p.cat === 'merch-apparel'
-  const withMerch = new Set(data.pieces.filter(merch).map((p) => p.project).filter(Boolean))
-  const base = (p) => (p.kind === 'result' ? (phone ? Math.max(2, maxSpan - 1) : 2) : phone && p.photo ? 2 : 1)
+  // As draw(): the original mosaic's floors, any rule given on top (the apparel mix only orders the pieces).
+  const base = (p) => (p.kind === 'result' ? (phone ? Math.max(2, maxSpan - 1) : 2) : p.kind === 'video' || p.video ? 2 : phone && p.photo ? 2 : 1)
   const sub = data.pieces.map((p) => ({
     ...p,
-    ...(phone ? {weight: merch(p) || (p.project && !withMerch.has(p.project)) ? 1 : 0.4} : {}),
     ...(rule.big ? {big: rule.big(p, {phone, maxSpan})} : {}),
     ...(rule.weight ? {weight: rule.weight(p, {phone, maxSpan})} : {}),
-    least: rule.least
-      ? rule.least(p, {phone, maxSpan})
-      : phone
-        ? merch(p) ? Math.max(2, base(p)) : base(p)
-        : p.merchBig ? maxSpan - 1 : 2,
+    least: rule.least ? rule.least(p, {phone, maxSpan}) : base(p),
   }))
   const res = generateWorld(sub, {cols, mode: 'lands', seed: 4187, shuffled: false, maxSpan, rowsPerCell: kr, focus: null, focusRow: 0, card: null, tune: {simple: true, tallMarks: data.grow}})
   const rects = res.placed.map((q) => ({i: q.i, x: q.c * cell, y: (q.r * cell) / kr, w: q.cw * cell, h: (q.ch * cell) / kr}))

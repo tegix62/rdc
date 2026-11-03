@@ -24,9 +24,8 @@
 */
 import Img from '../Img.astro';
 import LandsView from '../portfolio/LandsView.astro';
-import Lookbook, {type LookCluster} from './Lookbook.astro';
 import {getAllGridItems} from '../../lib/queries';
-import {cleanKey, tileHref, merchPlacement, treatmentOf} from '../../lib/tiles';
+import {cleanKey, tileHref} from '../../lib/tiles';
 import {tileImage, backgroundUrl, hasAsset} from '../../lib/image';
 import {stripStegaKey} from '../../lib/stega';
 
@@ -35,129 +34,56 @@ interface Props {
   contactUrl: string;
   bioText: string;
   featured: any[];
-  /** The lookbook in place of the field (preview, /next/home/lookbook). */
-  look?: boolean;
 }
-const {settings, contactUrl, bioText, featured, look} = Astro.props;
+const {settings, contactUrl, bioText, featured} = Astro.props;
 const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
 const idOf = (it: any) => cleanKey(it?._id).replace(/^drafts\./, '');
 
 /*
-  THE APPAREL MIX. Chris, thinking about professional clients: "maybe the
-  homepage view should be some mix of the Merch & Apparel view with
-  shorter-quantity clusters. Chateau Seven is my best apparel job to date.
-  I'm also working with BalloonShop/Star Cadet currently ... Two Point Oh is
-  a band but that shirt sold really well. DumpStat ran a merch line briefly
-  that was profitable."
-
-  So the field leads with the apparel work, in LEAD's order, and every
-  cluster is short:
-    - a project with merch: its own piece and up to SHORT more, the simple
-      garment shots first, then the alternates, then the rest of its work
-      (its marks) - LEAD_SHORT for Chateau Seven, the best of it;
-    - loose merch (no case study yet - BalloonShop, Star Cadet): up to SHORT;
-    - every other project: its own piece and one more, so the range shows
-      without taking over;
-    - plus whatever Chris picks in Site Settings' Homepage Work Grid.
-  The band videos stay in the All view (only picked ones come here).
+  THE APPAREL MIX - the projects Chris named for professional clients, first.
+  Chris: "Chateau Seven is my best apparel job to date. I'm also working with
+  BalloonShop/Star Cadet currently ... Two Point Oh is a band but that shirt
+  sold really well. DumpStat ran a merch line briefly that was profitable."
 */
 // Adelante second - Chris: "the Adelante Barbell Club thing was largely apparel project, so that could go up there as well" (and its $3,500 first day).
 const LEAD = ['Chateau Seven', 'Adelante Barbell Club', 'Two Point Oh', 'DumpStat', 'BalloonShop', 'Star Cadet'];
-const SHORT = 4;
-const LEAD_SHORT = 6;
-const OTHER = 1;
 const squash = (s: unknown) => clean(s).toLowerCase().replace(/[^a-z0-9]/g, '');
 const leadOf = (it: any) => {
   const names = [it.parentTitle, it.title, it.client].map(squash).filter(Boolean);
   return LEAD.findIndex((n) => names.some((s) => s.startsWith(squash(n))));
 };
 const isMerch = (it: any) => cleanKey(it.category) === 'Merch & Apparel';
-const merchFirst = (it: any) => (isMerch(it) ? (merchPlacement(it) === 'lead' ? 0 : 1) : 2);
 
-// Preview first; false (or production) keeps the old curation below.
+/*
+  The curation, as live: every project's own piece and up to PER more of
+  its pieces, in the portfolio's order, plus the Homepage Work Grid picks -
+  that many pieces is what lets the field read as a mosaic. Chris, after a
+  week of shorter clusters and size rules on the preview: "this mosaic is
+  looking as clunky as the several past tries". With two dozen pieces there
+  was nothing small to fill round the big ones, whatever the sizes.
+
+  THE APPAREL MIX (preview) changes the order only: the projects Chris named
+  first, in LEAD's order (LandsView, lead), and each one's merch first among
+  its pieces - so its PER are its garments before its posters.
+*/
 const APPAREL_MIX = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+const PER = 7;
 const items: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it));
 const only = new Set<string>(featured.map(idOf).filter(Boolean));
 const lead: Record<string, number> = {};
 const sets = new Map<string, any[]>();
 for (const it of items) {
-  const k = tileHref(it) ?? (leadOf(it) >= 0 && isMerch(it) ? `lead:${leadOf(it)}` : null);
-  if (k) sets.set(k, [...(sets.get(k) ?? []), it]);
+  const href = tileHref(it);
+  if (href) sets.set(href, [...(sets.get(href) ?? []), it]);
 }
-if (APPAREL_MIX) for (const list of sets.values()) {
+for (const list of sets.values()) {
+  const at = APPAREL_MIX ? Math.max(-1, ...list.map(leadOf)) : -1;
   const own = list.filter((it) => cleanKey(it.pageType) === 'Case Study');
   const rest = list.filter((it) => cleanKey(it.pageType) !== 'Case Study');
-  const at = Math.max(-1, ...list.map(leadOf));
-  // The projects Chris named are apparel work whatever their pieces are filed
-  // under - Chateau Seven's are Brand Identity in Studio.
-  const apparel = at >= 0 || list.some(isMerch);
-  const cap = !apparel ? OTHER : LEAD[at] === 'Chateau Seven' ? LEAD_SHORT : SHORT;
-  // Stable sort: the portfolio's order within each kind.
-  // An apparel cluster is its merch: one other piece beside it at most
-  // (Two Point Oh's posters were crowding its shirt), unless it has no merch
-  // shots yet - then its own work, so it still shows.
-  const merchN = rest.filter(isMerch).length;
-  const sorted = rest.map((it, n) => ({it, n})).sort((a, z) => merchFirst(a.it) - merchFirst(z.it) || a.n - z.n).map(({it}) => it);
-  const others = apparel && merchN ? 1 : cap;
-  const chosen = [...sorted.filter(isMerch), ...sorted.filter((it) => !isMerch(it)).slice(0, others)].slice(0, cap);
-  const picked = [...own, ...chosen];
-  for (const it of picked) {
+  const ordered = at >= 0 ? [...rest.filter(isMerch), ...rest.filter((it) => !isMerch(it))] : rest;
+  for (const it of [...own, ...ordered.slice(0, PER)]) {
     only.add(idOf(it));
-    if (apparel && at >= 0) lead[idOf(it)] = at;
-  }
-}
-/*
-  THE LOOKBOOK's clusters (Lookbook.astro): the apparel projects in LEAD's
-  order, then any other project with merch; each led by its simple garment
-  shot (or its first merch, or its own piece), with up to three others -
-  merch first - and its result from Site Settings' proof stats.
-*/
-const norm = (h: unknown) => String(stripStegaKey(h) ?? '').replace(/\/+$/, '');
-const proof = ((settings?.proofStats ?? []) as any[]).map((r) => {
-  const [stat, ...more] = clean(r.stat).split(' ');
-  const lower = more.map((w) => (/^[A-Z0-9]{2,}$/.test(w) ? w : w.toLowerCase())).join(' ');
-  return {stat, rest: [lower, clean(r.rest)].filter(Boolean).join(' '), href: norm(r.href)};
-});
-// A photograph fills its panel; a cut-out or a mark sits in it (as the field tells them apart).
-const lookPiece = (it: any) => ({item: it, title: clean(it.title), photo: it.tileOpaque !== false && treatmentOf(it) !== 'mark'});
-const clusters: LookCluster[] = look
-  ? [...sets.entries()]
-      .map(([k, list]) => ({k, list, at: Math.max(-1, ...list.map(leadOf))}))
-      .filter(({list, at}) => at >= 0 || list.some(isMerch))
-      .sort((a, z) => (a.at < 0 ? 99 : a.at) - (z.at < 0 ? 99 : z.at))
-      .map(({k, list}) => {
-        const own = list.find((it) => cleanKey(it.pageType) === 'Case Study');
-        const merch = list.filter(isMerch).sort((a, z) => merchFirst(a) - merchFirst(z));
-        const hero = merch[0] ?? own ?? list[0];
-        const rest = [...merch.slice(1), ...list.filter((it) => !isMerch(it) && it !== hero)];
-        const href = k.startsWith('/work/') ? k : null;
-        const result = href ? proof.find((r) => r.href === norm(href)) ?? null : null;
-        return {
-          name: clean(own?.title) || clean(list[0]?.parentTitle) || clean(list[0]?.title),
-          href,
-          count: list.length,
-          hero: lookPiece(hero),
-          more: rest.slice(0, 3).map(lookPiece),
-          result: result && result.stat ? {stat: result.stat, rest: result.rest} : null,
-        };
-      })
-  : [];
-/*
-  The curation before the apparel mix, as live: every project's own piece
-  and up to PER more of its pieces, in the portfolio's order.
-*/
-const PER = 7;
-if (!APPAREL_MIX) {
-  const taken = new Map<string, number>();
-  for (const it of items) {
-    const href = tileHref(it);
-    if (!href) continue;
-    const study = cleanKey(it.pageType) === 'Case Study';
-    const n = taken.get(href) ?? 0;
-    if (study || n < PER) {
-      only.add(idOf(it));
-      if (!study) taken.set(href, n + 1);
-    }
+    if (at >= 0) lead[idOf(it)] = at;
   }
 }
 /*
@@ -252,21 +178,12 @@ const finalLine = clean(settings?.finalCtaLine) || clean(settings?.finalCtaHeadi
   </div>
 </section>
 
-<section class:list={['pf-section', look ? 'wf-look' : 'wf-field']} aria-label="The work">
+<section class="pf-section wf-field" aria-label="The work">
   {/* The field asks which pane is shown; here it is the only one. */}
   <script is:inline>document.documentElement.dataset.pfPane = 'all';</script>
-  {look ? (
-    <>
-      <Lookbook clusters={clusters} />
-      <p class="wf-look__more"><a class="button" href="/portfolio?view=all">See all the work</a></p>
-    </>
-  ) : (
-    <>
-      <LandsView only={[...only]} lead={APPAREL_MIX ? lead : undefined} home />
-      {/* The field fades out under this, so it reads as going on - and the way on is a button. */}
-      <p class="wf-field__more"><a class="button" href="/portfolio?view=all">See all the work</a></p>
-    </>
-  )}
+  <LandsView only={[...only]} lead={APPAREL_MIX ? lead : undefined} home />
+  {/* The field fades out under this, so it reads as going on - and the way on is a button. */}
+  <p class="wf-field__more"><a class="button" href="/portfolio?view=all">See all the work</a></p>
 </section>
 
 <section class="wf-foot" style={sheet ? `--wf-sheet: url(${sheet})` : undefined}>

@@ -8443,6 +8443,55 @@ html.realsize-open {
 :root[data-plain] .wf-field .wd-piece--study.is-small:not(.is-open) .wd-jump {
   display: none;
 }
+/*
+  MORE LIKE THIS (preview): the button on an opened piece, drawn as the
+  project's bar but open, and the bar over the world while it is on.
+*/
+.wd-like {
+  flex: 0 0 auto;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.625rem;
+  border: 2px solid var(--color-navy);
+  background: #fff;
+  color: var(--color-navy);
+  font: 700 0.75rem / 1.2 var(--font-heading);
+  letter-spacing: var(--label-track, 0.06em);
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+}
+.wd-like:hover,
+.wd-like:focus-visible {
+  background: color-mix(in srgb, var(--color-navy) 6%, #fff);
+}
+.wd-likebar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin: 0 0 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 2px solid var(--color-navy);
+  border-bottom-width: 5px;
+  background: #fff;
+}
+.wd-likebar[hidden] {
+  display: none;
+}
+.wd-likebar__say {
+  margin: 0;
+  font: 800 1rem / 1.2 var(--font-heading);
+  color: var(--color-navy);
+}
+.wd-likebar__back {
+  padding: 0.4rem 0.7rem;
+  border: 0;
+  background: var(--color-navy);
+  color: #fff;
+  font: 700 0.8125rem / 1 var(--font-heading);
+  cursor: pointer;
+}
 /* A tile too small for a corner mark to leave room to tap the picture: none. */
 .wd-piece--study.is-tiny:not(.is-open) .wd-jump {
   display: none;

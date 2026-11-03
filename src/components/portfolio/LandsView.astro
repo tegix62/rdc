@@ -152,6 +152,8 @@ const pieces = all.map((it, i) => {
     parent: it.pieceParent ? cleanKey(it.pieceParent) : null,
     title: clean(it.title),
     cat: CATEGORY_FILTER[cleanKey(it.category)] ?? '',
+    // What it physically is (Asset Type): the strongest likeness for More like this.
+    type: cleanKey(it.assetType) || undefined,
     // For the engine to deal the loose work across categories.
     kind: CATEGORY_FILTER[cleanKey(it.category)] ?? '',
     // A mark set as one by hand: it brings its own air, so it takes a step less ground.
@@ -353,10 +355,14 @@ const SEARCH = import.meta.env.PUBLIC_IS_PREVIEW === 'true' && !picks;
 */
 if (SEARCH)
   all.forEach((it, i) => {
-    const shape = (shapes as Record<string, {k: number; m?: string}>)[refOf(it) ?? ''];
+    const shape = (shapes as Record<string, {k: number; m?: string; h?: number; s?: number}>)[refOf(it) ?? ''];
     if (!shape) return;
     (pieces[i] as any).ink = shape.k;
     if (shape.m) (pieces[i] as any).mask = shape.m;
+    if (typeof (shape as any).h === 'number') {
+      (pieces[i] as any).hue = (shape as any).h;
+      (pieces[i] as any).sat = (shape as any).s;
+    }
   });
 /*
   Chris's own say, from Studio (the tile's Size in the mosaic and Pin to the
@@ -542,7 +548,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   import {generateWorld, landsInput, searchWorld, setsOf, type WorldMode, type WorldPiece, type WorldResult} from '../../lib/world';
   import {seedOf} from '../../lib/cluster';
 
-  type P = WorldPiece & {id: string; slug: string | null; title: string; cat: string; photo: boolean};
+  type P = WorldPiece & {id: string; slug: string | null; title: string; cat: string; photo: boolean; type?: string; hue?: number; sat?: number};
   const data: {pieces: P[]; names: Record<string, string>; filters: {value: string; name: string}[]; grow: boolean; picks: {code: string; kind: 'pitch' | 'picks' | 'vote'} | null; home: boolean; pre?: Record<number, {placed: number[][]; rows: number}>; search?: boolean} = JSON.parse(
     document.getElementById('wd-data')!.textContent!,
   );
@@ -562,6 +568,45 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   // while it is the one shown.
   const shown = () => document.documentElement.dataset.pfPane === 'all';
   let focus: number | null = null;
+  /*
+    MORE LIKE THIS (preview, with the search). An opened piece's "More like
+    this" gathers its kin from across every project - the same kind of
+    thing, the same category, the same colour and weight - into one set at
+    the top of the world, around it. Chris liked it: "I liked 2, 3, 4, 6".
+    ?like=<slug> keeps it in the address; Back to everything undoes it.
+  */
+  let like: number | null = null;
+  const KIN = 9;
+  const likeness = (a: P, b: P) => {
+    let n = 0;
+    if (a.type && a.type === b.type) n += 3;
+    if (a.cat && a.cat === b.cat) n += 2;
+    if (!!a.mark === !!b.mark) n += 0.5;
+    if (!!a.photo === !!b.photo) n += 0.5;
+    if (typeof a.ink === 'number' && typeof b.ink === 'number') n += 1 - Math.abs(a.ink - b.ink);
+    if (typeof a.hue === 'number' && typeof b.hue === 'number') {
+      const grey = (a.sat ?? 0) < 0.08 && (b.sat ?? 0) < 0.08;
+      if (grey) n += 1.5;
+      else if ((a.sat ?? 0) > 0.12 && (b.sat ?? 0) > 0.12) {
+        const d = Math.min(Math.abs(a.hue - b.hue), 360 - Math.abs(a.hue - b.hue)) / 180;
+        n += 1.5 * (1 - d);
+      }
+    }
+    // Across clients first: a piece of its own project counts a little less.
+    if (a.project && a.project === b.project) n -= 0.5;
+    return n;
+  };
+  const kinOf = (i: number) =>
+    data.pieces
+      .map((p, k) => ({k, n: k === i ? Infinity : p.kind === 'result' || (p.kind === 'video') !== (data.pieces[i].kind === 'video') ? -Infinity : likeness(data.pieces[i], p)}))
+      .filter((x) => x.n > -Infinity)
+      .sort((a, z) => z.n - a.n)
+      .slice(0, KIN + 1)
+      .map((x) => x.k);
+  const likeBar = document.createElement('div');
+  likeBar.className = 'wd-likebar';
+  likeBar.hidden = true;
+  world.before(likeBar);
   let focusRow = 0;
   let pushed = false;
   let last: {out: WorldResult; subset: number[]} | null = null;
@@ -619,7 +664,10 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     const subset = data.pieces.map((_, i) => i);
     if (focus !== null && !subset.includes(focus)) focus = null;
     // Each piece's floor in cells (lib/world.ts, landsInput - the build uses the same).
-    const sub = landsInput(subset.map((i) => data.pieces[i]), phone, maxSpan, mode);
+    const plain = landsInput(subset.map((i) => data.pieces[i]), phone, maxSpan, mode);
+    // More like this: its kin one set, first.
+    const kin = like === null ? null : new Set(kinOf(like));
+    const sub = kin ? plain.map((p, k) => (kin.has(subset[k]) ? {...p, project: `like:${keyOf(like!)}`, parent: null, order: -300, own: subset[k] === like} : p)) : plain;
 
     /*
       The opened project's block of type, measured at the width it will
@@ -681,16 +729,52 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     }
     // Any other seed is a shuffle: the projects' sets move, not only their pieces (lib/world.ts, SHUFFLED).
     // The build's best layout for this grid, when the page is as it opens (THE BEST LAYOUT, FOUND AT BUILD).
-    const found = mode === 'lands' && simple && seed === FIRST_SEED && zoom === 2 ? data.pre?.[cols] : undefined;
+    const found = mode === 'lands' && simple && seed === FIRST_SEED && zoom === 2 && like === null ? data.pre?.[cols] : undefined;
     const opts = {cols, mode, seed, shuffled: !data.home && seed !== FIRST_SEED, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow, settle: !!data.search}};
     // Another zoom of the first world: a quick search here, so every step is as well laid as the one the build found.
-    const quick = !found && data.search && mode === 'lands' && simple && seed === FIRST_SEED;
+    const quick = !found && data.search && mode === 'lands' && simple && (seed === FIRST_SEED || like !== null);
     const out: WorldResult = found
       ? {placed: found.placed.map(([i, c, r, cw, ch]) => ({i, c, r, cw, ch})), cols, rows: found.rows, labels: [], family: []}
       : quick
         ? searchWorld(sub, opts, {tries: 12, firstRows: Math.round(innerHeight / rowH), weights: data.home ? {merch: 1, heavy: 1} : {heavy: 1}}).out
         : generateWorld(sub, opts);
     last = {out, subset};
+    // MORE LIKE THIS: the bar over the world while it is on, the button on an opened piece.
+    likeBar.hidden = like === null;
+    if (like !== null && likeBar.dataset.for !== String(like)) {
+      likeBar.dataset.for = String(like);
+      likeBar.replaceChildren();
+      const say = document.createElement('p');
+      say.className = 'wd-likebar__say';
+      say.textContent = `More like ${data.pieces[like].title}`;
+      const back = document.createElement('button');
+      back.type = 'button';
+      back.className = 'wd-likebar__back';
+      back.textContent = 'Back to everything';
+      back.addEventListener('click', () => {
+        like = null;
+        likeBar.dataset.for = '';
+        draw();
+      });
+      likeBar.append(say, back);
+    }
+    world.querySelectorAll('.wd-like').forEach((el) => el.remove());
+    if (data.search && mode === 'lands' && focus !== null && focus !== like && data.pieces[focus].kind !== 'result') {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'wd-like';
+      b.textContent = 'More like this';
+      const i = focus;
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        like = i;
+        draw();
+        const top = world.getBoundingClientRect().top + scrollY - 96;
+        scrollTo({top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
+      });
+      const frame = tiles[focus].querySelector('.wd-frame')!;
+      frame.insertBefore(b, frame.querySelector('.wd-jump'));
+    }
     const sets = inPlace ? setsOf(sub) : [];
     const fam = new Set(
       inPlace
@@ -952,6 +1036,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     const url = new URL(location.href);
     const set = (k: string, v: string | null) => (v ? url.searchParams.set(k, v) : url.searchParams.delete(k));
     set('open', focus === null ? null : keyOf(focus));
+    set('like', like === null ? null : keyOf(like));
     // The homepage's field is the one world it always is: no seed in its address.
     set('seed', data.home ? null : String(seed));
     set('mode', mode === 'lands' ? null : mode);
@@ -1243,6 +1328,9 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   // Arriving on a shared link: the view at once, the piece opened in it.
   const arrive = shown() ? q.get('open') : null;
   const arriving = arrive ? data.pieces.findIndex((p) => p.slug === arrive || p.id === arrive) : -1;
+  const likeKey = data.search && shown() ? q.get('like') : null;
+  const liked = likeKey ? data.pieces.findIndex((p) => p.slug === likeKey || p.id === likeKey) : -1;
+  if (liked >= 0) like = liked;
   draw();
   if (arriving >= 0) open(arriving, false);
 

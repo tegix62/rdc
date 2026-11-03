@@ -464,7 +464,7 @@ if (SEARCH) {
     // A screen's rows at this grid: a phone's cell is an eighth of ~420px on half-height rows, a wide screen's a fourteenth of ~1440px.
     const firstRows = phone ? 24 : 14;
     const input = landsInput(pieces as any[], phone, maxSpan);
-    const opts = {cols, mode: 'lands' as const, seed: 4187, shuffled: false, maxSpan, rowsPerCell: 2, focus: null, focusRow: 0, card: null, tune: {simple: true, tallMarks: grow, settle: true, stable: true, varyWidth: phone}};
+    const opts = {cols, mode: 'lands' as const, seed: 4187, shuffled: false, maxSpan, rowsPerCell: 2, focus: null, focusRow: 0, card: null, tune: {simple: true, tallMarks: grow, settle: true, stable: true, varyWidth: phone, looseBelow: phone ? 24 : 14}};
     /*
       The scorecard: no gaps, the merch's room on the homepage, heavy pieces
       apart, and - Chris: "predictable 'rivers' or samey spots" - long
@@ -841,7 +841,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     // Any other seed is a shuffle: the projects' sets move, not only their pieces (lib/world.ts, SHUFFLED).
     // The build's best layout for this grid, when the page is as it opens (THE BEST LAYOUT, FOUND AT BUILD).
     const found = mode === 'lands' && simple && seed === FIRST_SEED && zoom === 2 && like === null && !audience ? data.pre?.[cols] : undefined;
-    const opts = {cols, mode, seed, shuffled: !data.home && seed !== FIRST_SEED, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow, settle: !!data.search, stable: !!data.search, varyWidth: !!data.search && phone}};
+    const opts = {cols, mode, seed, shuffled: !data.home && seed !== FIRST_SEED, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow, settle: !!data.search, stable: !!data.search, varyWidth: !!data.search && phone, looseBelow: Math.round(innerHeight / rowH)}};
     // Another zoom of the first world: a quick search here, so every step is as well laid as the one the build found.
     const quick = !found && data.search && mode === 'lands' && simple && (seed === FIRST_SEED || like !== null);
     const out: WorldResult = found

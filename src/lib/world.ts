@@ -130,7 +130,7 @@ export interface WorldOptions {
   /** Lands: rows to a cell's width (2: half-height rows, so boxes follow their pictures' shapes). Rows, `r` and `ch` are then in these. */
   rowsPerCell?: number;
   /** Lands: weights for how a set's pieces gather (for tuning; the defaults are the chosen ones). */
-  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean; simple?: boolean; floor?: number; curve?: number; capDrop?: number; tallMarks?: boolean; settle?: boolean; stable?: boolean; varyWidth?: boolean};
+  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean; simple?: boolean; floor?: number; curve?: number; capDrop?: number; tallMarks?: boolean; settle?: boolean; stable?: boolean; varyWidth?: boolean; looseBelow?: number};
   /** Lands: room for the opened project's card, beside the opened piece. */
   card?: {cw: number; ch: number} | null;
 }
@@ -1149,6 +1149,18 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     */
     const sameyOn = !!o.tune?.stable;
     const samey = (q: WorldPlaced) => placed.some((x) => x.c === q.c && x.cw === q.cw && Math.abs(x.r + x.ch - q.r) < 0.5);
+    /*
+      A LOOSE PIECE KEEPS ITS DISTANCE (preview: tune.stable). Chris: "the
+      telemetry wordmark is in the top left on portfolio with Two Point Oh
+      stuff" - a piece of no project (The Service Club's TELEMETRY) filled
+      a gap inside Two Point Oh's set and read as its work. Over the first
+      screen a piece with no project may not touch a project's piece; it
+      takes a gap of its own.
+    */
+    const loose = !p.project;
+    // Over the first screen (`looseBelow` rows), where a reader takes the sets in; further down loose pieces fill the gaps as before.
+    const band = o.tune?.looseBelow ?? 0;
+    const intrudes = (q: WorldPlaced) => loose && sameyOn && q.r < band && placed.some((x) => !!pieces[x.i].project && touches(q, x));
     for (let k = cursor; k < seq.length && (seen < 48 || !best); k++) {
       const at = seq[k];
       if (grid.used[at] !== -1) continue;
@@ -1183,11 +1195,12 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
       const q = pick;
       first ??= q;
       if (plain) {
-        if (!sameyOn || !samey(q)) return q;
-        if (seen >= 24) return first;
+        if (!intrudes(q) && (!sameyOn || !samey(q))) return q;
+        if (seen >= 48 && !intrudes(first)) return first;
         continue;
       }
       if (kin.length === 0) {
+        if (intrudes(q)) continue;
         // A set's first piece: the skip-th spot with room round it for the set.
         if (room(q) >= Math.min(q.cw + q.ch + 2, 2 * (setSize.get(sets[i]) ?? 1))) {
           if (roomy++ === skip) return q;

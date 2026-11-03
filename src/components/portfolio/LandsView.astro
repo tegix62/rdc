@@ -57,6 +57,7 @@ import {clusterCard} from '../../lib/clusterCard';
 import {parseCreditLines} from '../../lib/credits';
 import {DOT} from '../../lib/plain';
 import {landsGrid, landsInput, searchWorld} from '../../lib/world';
+import shapes from '../../data/shapes.json';
 
 
 /*
@@ -345,6 +346,18 @@ videos.forEach((v) =>
   out on the page as before.
 */
 const SEARCH = import.meta.env.PUBLIC_IS_PREVIEW === 'true' && !picks;
+/*
+  Each picture's traced shape and visual weight (scripts/trace-shapes.mjs,
+  src/data/shapes.json): the ink's 12 x 12 mask, for SETTLE, and how heavy it
+  looks, for VISUAL WEIGHT (lib/world.ts). Preview only, with the search.
+*/
+if (SEARCH)
+  all.forEach((it, i) => {
+    const shape = (shapes as Record<string, {k: number; m?: string}>)[refOf(it) ?? ''];
+    if (!shape) return;
+    (pieces[i] as any).ink = shape.k;
+    if (shape.m) (pieces[i] as any).mask = shape.m;
+  });
 const pre: Record<number, {placed: number[][]; rows: number}> = {};
 if (SEARCH) {
   for (const phone of [true, false]) {
@@ -353,13 +366,13 @@ if (SEARCH) {
     const firstRows = phone ? 24 : 14;
     const best = searchWorld(
       landsInput(pieces as any[], phone, maxSpan),
-      {cols, mode: 'lands', seed: 4187, shuffled: false, maxSpan, rowsPerCell: 2, focus: null, focusRow: 0, card: null, tune: {simple: true, tallMarks: grow}},
-      {tries: home ? 300 : 150, firstRows, weights: home ? {merch: 1} : {}},
+      {cols, mode: 'lands', seed: 4187, shuffled: false, maxSpan, rowsPerCell: 2, focus: null, focusRow: 0, card: null, tune: {simple: true, tallMarks: grow, settle: true}},
+      {tries: home ? 300 : 150, firstRows, weights: home ? {merch: 1, heavy: 1} : {heavy: 1}},
     );
     pre[cols] = {placed: best.out.placed.map((q) => [q.i, q.c, q.r, q.cw, q.ch]), rows: Math.max(0, ...best.out.placed.map((q) => q.r + q.ch))};
   }
 }
-const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name})), grow, picks: picks ?? null, home: !!home, pre};
+const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name})), grow, picks: picks ?? null, home: !!home, pre, search: SEARCH};
 ---
 
 <div class="wd pf-pane" data-pane="all">
@@ -506,11 +519,11 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
 </div>
 
 <script>
-  import {generateWorld, landsInput, setsOf, type WorldMode, type WorldPiece, type WorldResult} from '../../lib/world';
+  import {generateWorld, landsInput, searchWorld, setsOf, type WorldMode, type WorldPiece, type WorldResult} from '../../lib/world';
   import {seedOf} from '../../lib/cluster';
 
   type P = WorldPiece & {id: string; slug: string | null; title: string; cat: string; photo: boolean};
-  const data: {pieces: P[]; names: Record<string, string>; filters: {value: string; name: string}[]; grow: boolean; picks: {code: string; kind: 'pitch' | 'picks' | 'vote'} | null; home: boolean; pre?: Record<number, {placed: number[][]; rows: number}>} = JSON.parse(
+  const data: {pieces: P[]; names: Record<string, string>; filters: {value: string; name: string}[]; grow: boolean; picks: {code: string; kind: 'pitch' | 'picks' | 'vote'} | null; home: boolean; pre?: Record<number, {placed: number[][]; rows: number}>; search?: boolean} = JSON.parse(
     document.getElementById('wd-data')!.textContent!,
   );
   const world = document.querySelector<HTMLElement>('.wd-world')!;
@@ -649,9 +662,14 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     // Any other seed is a shuffle: the projects' sets move, not only their pieces (lib/world.ts, SHUFFLED).
     // The build's best layout for this grid, when the page is as it opens (THE BEST LAYOUT, FOUND AT BUILD).
     const found = mode === 'lands' && simple && seed === FIRST_SEED && zoom === 2 ? data.pre?.[cols] : undefined;
+    const opts = {cols, mode, seed, shuffled: !data.home && seed !== FIRST_SEED, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow, settle: !!data.search}};
+    // Another zoom of the first world: a quick search here, so every step is as well laid as the one the build found.
+    const quick = !found && data.search && mode === 'lands' && simple && seed === FIRST_SEED;
     const out: WorldResult = found
       ? {placed: found.placed.map(([i, c, r, cw, ch]) => ({i, c, r, cw, ch})), cols, rows: found.rows, labels: [], family: []}
-      : generateWorld(sub, {cols, mode, seed, shuffled: !data.home && seed !== FIRST_SEED, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow}});
+      : quick
+        ? searchWorld(sub, opts, {tries: 12, firstRows: Math.round(innerHeight / rowH), weights: data.home ? {merch: 1, heavy: 1} : {heavy: 1}}).out
+        : generateWorld(sub, opts);
     last = {out, subset};
     const sets = inPlace ? setsOf(sub) : [];
     const fam = new Set(

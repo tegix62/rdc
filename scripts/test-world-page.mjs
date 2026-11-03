@@ -795,6 +795,10 @@ for (const [name, w, h] of [
     check('credits: the opened project shows its people, where it has any', named.any === 0 || named.inside || named.names === 0, JSON.stringify(named))
     check('results: no script errors', errors.length === 0, errors.join(' | '))
     // The plain pass (preview): the result tiles in the testimonial cards' style, the buttons with weight underneath, no arrow after a label - and none in the corner chip, which says its piece count (Chris: "weren't arrows something we were getting rid of or replacing?").
+    // Off the tile it clicked: the pointer resting on it is its hover colour, not its own.
+    await page.mouse.move(1, 1)
+    await page.evaluate(() => document.activeElement?.blur?.())
+    await page.waitForTimeout(300)
     const plain = await page.evaluate(() => {
       if (!document.documentElement.hasAttribute('data-plain')) return null
       const r = document.querySelector('.wd-piece--result .wd-result')

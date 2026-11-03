@@ -93,6 +93,10 @@ export interface WorldPiece {
   weight?: number;
   /** A piece that should stand out - a case study, a hero tile: never small. */
   big?: boolean;
+  /** Where its ink is, 12 x 12, as hex (src/data/shapes.json) - only a picture with transparency has one. */
+  mask?: string;
+  /** How heavy it looks, 0-1: the share of it that is dark ink (src/data/shapes.json). */
+  ink?: number;
   /** The fewest cells wide it may be, in lands (a photograph on a phone, so it can be told apart). */
   least?: number;
   /** A case study's place in the order Chris dragged the projects into in Studio. */
@@ -124,7 +128,7 @@ export interface WorldOptions {
   /** Lands: rows to a cell's width (2: half-height rows, so boxes follow their pictures' shapes). Rows, `r` and `ch` are then in these. */
   rowsPerCell?: number;
   /** Lands: weights for how a set's pieces gather (for tuning; the defaults are the chosen ones). */
-  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean; simple?: boolean; floor?: number; curve?: number; capDrop?: number; tallMarks?: boolean};
+  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean; simple?: boolean; floor?: number; curve?: number; capDrop?: number; tallMarks?: boolean; settle?: boolean};
   /** Lands: room for the opened project's card, beside the opened piece. */
   card?: {cw: number; ch: number} | null;
 }
@@ -390,6 +394,12 @@ export function landsGrid(phone: boolean, zoom = 2) {
 export function landsInput<T extends WorldPiece & {photo?: boolean; video?: unknown}>(pieces: T[], phone: boolean, maxSpan: number, mode: WorldMode = 'lands'): T[] {
   return pieces.map((p) => ({
     ...p,
+    /*
+      VISUAL WEIGHT: a light line drawing a little more ground, a dense dark
+      photograph a little less, so they feel the same size (a piece's ink is
+      traced into src/data/shapes.json; without one, as before).
+    */
+    ...(typeof p.ink === 'number' ? {weight: (p.weight ?? 1) * Math.min(1.15, Math.max(0.75, 1.2 - 0.5 * p.ink))} : {}),
     least:
       p.kind === 'result'
         ? phone ? Math.max(2, maxSpan - 1) : 2
@@ -397,6 +407,65 @@ export function landsInput<T extends WorldPiece & {photo?: boolean; video?: unkn
           ? 2
           : phone && mode === 'lands' && p.photo ? 2 : 1,
   }));
+}
+
+/*
+  SETTLE - shape-aware packing. Every piece is a box, but a cut-out shirt's
+  box has empty corners. With each transparent picture's ink traced (its
+  12 x 12 mask), each piece, from the top down, rises while its ink would
+  touch no other piece's ink - tucking into the corners above it - so the
+  page reads as a collage laid by hand rather than a grid of boxes. A piece
+  with no mask counts as solid. Nothing moves sideways, so sets keep their
+  columns; only the rows above close up.
+*/
+function inkCells(p: WorldPiece, cw: number, ch: number): Uint8Array {
+  const cells = new Uint8Array(cw * ch);
+  if (!p.mask || p.mask.length < 36) return cells.fill(1);
+  const bit = (x: number, y: number) => (parseInt(p.mask![(y * 12 + x) >> 2], 16) >> (3 - ((y * 12 + x) & 3))) & 1;
+  for (let y = 0; y < ch; y++)
+    for (let x = 0; x < cw; x++) {
+      const bx0 = Math.floor((x * 12) / cw);
+      const bx1 = Math.max(bx0, Math.ceil(((x + 1) * 12) / cw) - 1);
+      const by0 = Math.floor((y * 12) / ch);
+      const by1 = Math.max(by0, Math.ceil(((y + 1) * 12) / ch) - 1);
+      let on = 0;
+      for (let by = by0; by <= by1 && !on; by++) for (let bx = bx0; bx <= bx1 && !on; bx++) on = bit(bx, by);
+      cells[y * cw + x] = on;
+    }
+  return cells;
+}
+function settle(pieces: WorldPiece[], out: WorldResult): WorldResult {
+  const cols = out.cols;
+  const placed = out.placed.map((q) => ({...q}));
+  const ink = placed.map((q) => inkCells(pieces[q.i], q.cw, q.ch));
+  const rows = Math.max(1, ...placed.map((q) => q.r + q.ch)) + 1;
+  const owner = new Int32Array(cols * rows).fill(-1);
+  const stamp = (k: number, v: number) => {
+    const q = placed[k];
+    for (let y = 0; y < q.ch; y++) for (let x = 0; x < q.cw; x++) if (ink[k][y * q.cw + x]) owner[(q.r + y) * cols + q.c + x] = v;
+  };
+  placed.forEach((_, k) => stamp(k, k));
+  const clear = (k: number, r: number) => {
+    const q = placed[k];
+    for (let y = 0; y < q.ch; y++)
+      for (let x = 0; x < q.cw; x++) {
+        if (!ink[k][y * q.cw + x]) continue;
+        const o = owner[(r + y) * cols + q.c + x];
+        if (o !== -1 && o !== k) return false;
+      }
+    return true;
+  };
+  const byTop = placed.map((_, k) => k).sort((a, z) => placed[a].r - placed[z].r || placed[a].c - placed[z].c);
+  for (const k of byTop) {
+    let r = placed[k].r;
+    while (r > 0 && clear(k, r - 1)) r--;
+    if (r !== placed[k].r) {
+      stamp(k, -1);
+      placed[k].r = r;
+      stamp(k, k);
+    }
+  }
+  return {...out, placed, rows: Math.max(0, ...placed.map((q) => q.r + q.ch))};
 }
 
 /*
@@ -416,6 +485,7 @@ export function landsInput<T extends WorldPiece & {photo?: boolean; video?: unkn
     - height: a taller page for the same pieces, a small cost.
 */
 export interface WorldScore {
+  heavy: number;
   holes: number;
   firstHoles: number;
   merch: number;
@@ -424,6 +494,7 @@ export interface WorldScore {
   total: number;
 }
 export interface ScoreWeights {
+  heavy?: number;
   holes?: number;
   first?: number;
   merch?: number;
@@ -472,15 +543,27 @@ export function scoreWorld(pieces: WorldPiece[], out: WorldResult, firstRows: nu
     const y1 = Math.max(...list.map((q) => q.r + q.ch));
     spread += Math.max(0, (x1 - x0) * (y1 - y0) / list.reduce((s, q) => s + area(q), 0) - 1.6);
   }
+  // Heavy pieces side by side (both dark and dense): they clump into one loud corner.
+  let heavy = 0;
+  const loud = out.placed.filter((q) => (pieces[q.i].ink ?? 0) > 0.45);
+  for (let a = 0; a < loud.length; a++)
+    for (let b = a + 1; b < loud.length; b++) {
+      const p = loud[a];
+      const q = loud[b];
+      const touchX = p.c <= q.c + q.cw && q.c <= p.c + p.cw;
+      const touchY = p.r <= q.r + q.ch && q.r <= p.r + p.ch;
+      if (touchX && touchY) heavy++;
+    }
   const cells = cols * judged;
   const r = {
+    heavy: heavy / Math.max(1, out.placed.length),
     holes: holes / cells,
     firstHoles: firstHoles / Math.max(1, cols * Math.min(firstRows, judged)),
     merch: firstArea ? merchArea / firstArea : 0,
     spread: spread / Math.max(1, bySet.size),
     height: bottom / Math.max(1, Math.sqrt(out.placed.reduce((s, q) => s + area(q), 0) / cols) * Math.sqrt(cols)),
   };
-  const total = (w.holes ?? 4) * r.holes + (w.first ?? 4) * r.firstHoles - (w.merch ?? 0) * r.merch + (w.spread ?? 0.5) * r.spread + (w.height ?? 0.3) * r.height;
+  const total = (w.heavy ?? 0) * r.heavy + (w.holes ?? 4) * r.holes + (w.first ?? 4) * r.firstHoles - (w.merch ?? 0) * r.merch + (w.spread ?? 0.5) * r.spread + (w.height ?? 0.3) * r.height;
   return {...r, total};
 }
 
@@ -508,7 +591,10 @@ export function generateWorld(pieces: WorldPiece[], o: WorldOptions): WorldResul
   const focus = o.focus ?? null;
   const family = focus === null ? [] : pieces.map((_, i) => i).filter((i) => sets[i] === sets[focus]);
   if (o.mode === 'biomes') return biomes(pieces, o, maxSpan, sets, focus, family);
-  if (o.mode === 'lands') return lands(pieces, o, maxSpan, sets, focus, family);
+  if (o.mode === 'lands') {
+    const out = lands(pieces, o, maxSpan, sets, focus, family);
+    return o.tune?.settle && focus === null ? settle(pieces, out) : out;
+  }
   return flow(pieces, o, maxSpan, sets, focus, family);
 }
 

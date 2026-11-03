@@ -486,6 +486,7 @@ function settle(pieces: WorldPiece[], out: WorldResult): WorldResult {
 */
 export interface WorldScore {
   heavy: number;
+  shrink: number;
   holes: number;
   firstHoles: number;
   merch: number;
@@ -495,13 +496,14 @@ export interface WorldScore {
 }
 export interface ScoreWeights {
   heavy?: number;
+  shrink?: number;
   holes?: number;
   first?: number;
   merch?: number;
   spread?: number;
   height?: number;
 }
-export function scoreWorld(pieces: WorldPiece[], out: WorldResult, firstRows: number, w: ScoreWeights = {}): WorldScore {
+export function scoreWorld(pieces: WorldPiece[], out: WorldResult, firstRows: number, w: ScoreWeights = {}, baseArea = 0): WorldScore {
   const cols = out.cols;
   const bottom = Math.max(1, ...out.placed.map((q) => q.r + q.ch));
   // The last rows are ragged by nature (and fade on the homepage): judge the page above them.
@@ -555,15 +557,18 @@ export function scoreWorld(pieces: WorldPiece[], out: WorldResult, firstRows: nu
       if (touchX && touchY) heavy++;
     }
   const cells = cols * judged;
+  // No winning by shrinking: pieces smaller on average than the plain layout's cost (small pieces leave fewer gaps, and every video sat at its floor).
+  const meanArea = out.placed.reduce((s, q) => s + area(q), 0) / Math.max(1, out.placed.length);
   const r = {
     heavy: heavy / Math.max(1, out.placed.length),
+    shrink: baseArea ? Math.max(0, 1 - meanArea / baseArea) : 0,
     holes: holes / cells,
     firstHoles: firstHoles / Math.max(1, cols * Math.min(firstRows, judged)),
     merch: firstArea ? merchArea / firstArea : 0,
     spread: spread / Math.max(1, bySet.size),
     height: bottom / Math.max(1, Math.sqrt(out.placed.reduce((s, q) => s + area(q), 0) / cols) * Math.sqrt(cols)),
   };
-  const total = (w.heavy ?? 0) * r.heavy + (w.holes ?? 4) * r.holes + (w.first ?? 4) * r.firstHoles - (w.merch ?? 0) * r.merch + (w.spread ?? 0.5) * r.spread + (w.height ?? 0.3) * r.height;
+  const total = (w.shrink ?? 3) * r.shrink + (w.heavy ?? 0) * r.heavy + (w.holes ?? 4) * r.holes + (w.first ?? 4) * r.firstHoles - (w.merch ?? 0) * r.merch + (w.spread ?? 0.5) * r.spread + (w.height ?? 0.3) * r.height;
   return {...r, total};
 }
 
@@ -575,10 +580,13 @@ export function scoreWorld(pieces: WorldPiece[], out: WorldResult, firstRows: nu
 */
 export function searchWorld(pieces: WorldPiece[], o: WorldOptions, s: {tries: number; firstRows: number; weights?: ScoreWeights}): {out: WorldResult; seed: number; score: WorldScore} {
   let best: {out: WorldResult; seed: number; score: WorldScore} | null = null;
+  let baseArea = 0;
   for (let k = 0; k < Math.max(1, s.tries); k++) {
     const seed = o.seed + k * 7919;
     const out = generateWorld(pieces, {...o, seed});
-    const score = scoreWorld(pieces, out, s.firstRows, s.weights);
+    // The first try is the plain layout: its pieces' average size is the bar.
+    if (k === 0) baseArea = out.placed.reduce((n, q) => n + q.cw * q.ch, 0) / Math.max(1, out.placed.length);
+    const score = scoreWorld(pieces, out, s.firstRows, s.weights, baseArea);
     if (!best || score.total < best.score.total) best = {out, seed, score};
   }
   return best!;

@@ -373,6 +373,134 @@ const blockWidth = (pieces: WorldPiece[], list: number[], spanOf: (i: number) =>
   return Math.min(cols, Math.max(widest, Math.ceil(Math.sqrt(cells * 1.25))));
 };
 
+/*
+  THE LANDS' GRID AND FLOORS, shared by the page (LandsView's draw) and the
+  build (its precomputed layouts), so both lay out the same pieces the same
+  way. Columns by step (zoom 2 is the default: 8 on a phone, 14 wide); the
+  widest piece; and each piece's floor in cells - a result as wide as a case
+  study may be on a phone, two cells wide; a video two (what a 16:9 still
+  needs); a photograph two on a phone, to be told apart.
+*/
+export const LANDS_STEPS = {desktop: [20, 17, 14, 12, 10], phone: [10, 9, 8, 7, 6]};
+export function landsGrid(phone: boolean, zoom = 2) {
+  const cols = (phone ? LANDS_STEPS.phone : LANDS_STEPS.desktop)[zoom];
+  const maxSpan = phone ? (cols > LANDS_STEPS.phone[2] ? Math.floor(cols / 2) : Math.ceil(cols / 2)) : Math.round(cols * 0.3);
+  return {cols, maxSpan};
+}
+export function landsInput<T extends WorldPiece & {photo?: boolean; video?: unknown}>(pieces: T[], phone: boolean, maxSpan: number, mode: WorldMode = 'lands'): T[] {
+  return pieces.map((p) => ({
+    ...p,
+    least:
+      p.kind === 'result'
+        ? phone ? Math.max(2, maxSpan - 1) : 2
+        : mode === 'lands' && (p.kind === 'video' || p.video)
+          ? 2
+          : phone && mode === 'lands' && p.photo ? 2 : 1,
+  }));
+}
+
+/*
+  THE SCORECARD AND THE SEARCH. The lands are a greedy placer: each piece
+  into the first spot that suits it, never revisited - so every rule added
+  to fix one page broke another (the homepage's week of size rules: Chris,
+  "this mosaic is looking as clunky as the several past tries"). Instead:
+  lay the page out many ways (a layout costs ~15ms) and keep the one that
+  scores best on what "good" means, written down once here.
+
+  Lower is better. In cells, so it holds at any width:
+    - holes: empty cells above the ragged last rows, and more for an empty
+      cell inside a bigger empty patch (a gap a reader sees, not a gutter);
+    - the first screen counted twice over (it is the page's first look);
+    - merch: its share of the first screen, a reward (`merch` weight);
+    - clusters: a set spread wider than its pieces need, a cost;
+    - height: a taller page for the same pieces, a small cost.
+*/
+export interface WorldScore {
+  holes: number;
+  firstHoles: number;
+  merch: number;
+  spread: number;
+  height: number;
+  total: number;
+}
+export interface ScoreWeights {
+  holes?: number;
+  first?: number;
+  merch?: number;
+  spread?: number;
+  height?: number;
+}
+export function scoreWorld(pieces: WorldPiece[], out: WorldResult, firstRows: number, w: ScoreWeights = {}): WorldScore {
+  const cols = out.cols;
+  const bottom = Math.max(1, ...out.placed.map((q) => q.r + q.ch));
+  // The last rows are ragged by nature (and fade on the homepage): judge the page above them.
+  const judged = Math.max(1, Math.round(bottom * 0.85));
+  const used = new Uint8Array(cols * bottom);
+  for (const q of out.placed) for (let y = q.r; y < q.r + q.ch && y < bottom; y++) for (let x = q.c; x < q.c + q.cw && x < cols; x++) used[y * cols + x] = 1;
+  let holes = 0;
+  let firstHoles = 0;
+  for (let y = 0; y < judged; y++)
+    for (let x = 0; x < cols; x++) {
+      if (used[y * cols + x]) continue;
+      let open = 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx >= 0 && nx < cols && ny >= 0 && ny < bottom && !used[ny * cols + nx]) open++;
+      }
+      const cost = 1 + open * 0.5;
+      holes += cost;
+      if (y < firstRows) firstHoles += cost;
+    }
+  const area = (q: WorldPlaced) => q.cw * q.ch;
+  let firstArea = 0;
+  let merchArea = 0;
+  for (const q of out.placed) {
+    const top = Math.max(0, Math.min(q.r + q.ch, firstRows) - q.r);
+    firstArea += top * q.cw;
+    if (pieces[q.i].kind === 'merch-apparel') merchArea += top * q.cw;
+  }
+  const sets = setsOf(pieces);
+  const bySet = new Map<string, WorldPlaced[]>();
+  for (const q of out.placed) bySet.set(sets[q.i], [...(bySet.get(sets[q.i]) ?? []), q]);
+  let spread = 0;
+  for (const list of bySet.values()) {
+    if (list.length < 2) continue;
+    const x0 = Math.min(...list.map((q) => q.c));
+    const x1 = Math.max(...list.map((q) => q.c + q.cw));
+    const y0 = Math.min(...list.map((q) => q.r));
+    const y1 = Math.max(...list.map((q) => q.r + q.ch));
+    spread += Math.max(0, (x1 - x0) * (y1 - y0) / list.reduce((s, q) => s + area(q), 0) - 1.6);
+  }
+  const cells = cols * judged;
+  const r = {
+    holes: holes / cells,
+    firstHoles: firstHoles / Math.max(1, cols * Math.min(firstRows, judged)),
+    merch: firstArea ? merchArea / firstArea : 0,
+    spread: spread / Math.max(1, bySet.size),
+    height: bottom / Math.max(1, Math.sqrt(out.placed.reduce((s, q) => s + area(q), 0) / cols) * Math.sqrt(cols)),
+  };
+  const total = (w.holes ?? 4) * r.holes + (w.first ?? 4) * r.firstHoles - (w.merch ?? 0) * r.merch + (w.spread ?? 0.5) * r.spread + (w.height ?? 0.3) * r.height;
+  return {...r, total};
+}
+
+/*
+  Lay the world out `tries` ways - the ground and the tie-breaks drawn from
+  `tries` seeds after `o.seed` - and keep the best by scoreWorld. The same
+  inputs always give the same page (the seeds are fixed), so the build can
+  do it once and ship the answer (LandsView, the precomputed layouts).
+*/
+export function searchWorld(pieces: WorldPiece[], o: WorldOptions, s: {tries: number; firstRows: number; weights?: ScoreWeights}): {out: WorldResult; seed: number; score: WorldScore} {
+  let best: {out: WorldResult; seed: number; score: WorldScore} | null = null;
+  for (let k = 0; k < Math.max(1, s.tries); k++) {
+    const seed = o.seed + k * 7919;
+    const out = generateWorld(pieces, {...o, seed});
+    const score = scoreWorld(pieces, out, s.firstRows, s.weights);
+    if (!best || score.total < best.score.total) best = {out, seed, score};
+  }
+  return best!;
+}
+
 // ---------------------------------------------------------------- the modes
 export function generateWorld(pieces: WorldPiece[], o: WorldOptions): WorldResult {
   const maxSpan = o.maxSpan ?? Math.max(2, Math.round(o.cols / 4));

@@ -56,6 +56,7 @@ import {sanityClient} from '../../lib/sanity';
 import {clusterCard} from '../../lib/clusterCard';
 import {parseCreditLines} from '../../lib/credits';
 import {DOT} from '../../lib/plain';
+import {landsGrid, landsInput, searchWorld} from '../../lib/world';
 
 
 /*
@@ -334,7 +335,31 @@ videos.forEach((v) =>
     weight: VIDEO_WEIGHT,
   }),
 );
-const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name})), grow, picks: picks ?? null, home: !!home};
+/*
+  THE BEST LAYOUT, FOUND AT BUILD (preview). The lands laid out many ways
+  for a phone's grid and a wide one, and the best by lib/world.ts's
+  scorecard shipped as positions - so the page opens on it at once, with no
+  reshuffle as it loads, and the build can afford a thorough search a phone
+  could not. The homepage's scorecard also rewards room for the merch.
+  Used at the default zoom with the first seed; a shuffle or a zoom lays
+  out on the page as before.
+*/
+const SEARCH = import.meta.env.PUBLIC_IS_PREVIEW === 'true' && !picks;
+const pre: Record<number, {placed: number[][]; rows: number}> = {};
+if (SEARCH) {
+  for (const phone of [true, false]) {
+    const {cols, maxSpan} = landsGrid(phone);
+    // A screen's rows at this grid: a phone's cell is an eighth of ~420px on half-height rows, a wide screen's a fourteenth of ~1440px.
+    const firstRows = phone ? 24 : 14;
+    const best = searchWorld(
+      landsInput(pieces as any[], phone, maxSpan),
+      {cols, mode: 'lands', seed: 4187, shuffled: false, maxSpan, rowsPerCell: 2, focus: null, focusRow: 0, card: null, tune: {simple: true, tallMarks: grow}},
+      {tries: home ? 300 : 150, firstRows, weights: home ? {merch: 1} : {}},
+    );
+    pre[cols] = {placed: best.out.placed.map((q) => [q.i, q.c, q.r, q.cw, q.ch]), rows: Math.max(0, ...best.out.placed.map((q) => q.r + q.ch))};
+  }
+}
+const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name})), grow, picks: picks ?? null, home: !!home, pre};
 ---
 
 <div class="wd pf-pane" data-pane="all">
@@ -481,11 +506,11 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
 </div>
 
 <script>
-  import {generateWorld, setsOf, type WorldMode, type WorldPiece, type WorldResult} from '../../lib/world';
+  import {generateWorld, landsInput, setsOf, type WorldMode, type WorldPiece, type WorldResult} from '../../lib/world';
   import {seedOf} from '../../lib/cluster';
 
   type P = WorldPiece & {id: string; slug: string | null; title: string; cat: string; photo: boolean};
-  const data: {pieces: P[]; names: Record<string, string>; filters: {value: string; name: string}[]; grow: boolean; picks: {code: string; kind: 'pitch' | 'picks' | 'vote'} | null; home: boolean} = JSON.parse(
+  const data: {pieces: P[]; names: Record<string, string>; filters: {value: string; name: string}[]; grow: boolean; picks: {code: string; kind: 'pitch' | 'picks' | 'vote'} | null; home: boolean; pre?: Record<number, {placed: number[][]; rows: number}>} = JSON.parse(
     document.getElementById('wd-data')!.textContent!,
   );
   const world = document.querySelector<HTMLElement>('.wd-world')!;
@@ -560,17 +585,8 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
 
     const subset = data.pieces.map((_, i) => i);
     if (focus !== null && !subset.includes(focus)) focus = null;
-    // A result tile as wide as a case study may be on a phone (a step under the widest), two cells on a wide screen, so its number reads.
-    const sub = subset.map((i) => ({
-      ...data.pieces[i],
-      least:
-        data.pieces[i].kind === 'result'
-          ? phone ? Math.max(2, maxSpan - 1) : 2
-          : // A video: the cells a 16:9 still needs to fill its box. Two: a floor, not a size - at three every video sat on it, one size again.
-            mode === 'lands' && (data.pieces[i].kind === 'video' || (data.pieces[i] as any).video)
-            ? 2
-            : phone && mode === 'lands' && data.pieces[i].photo ? 2 : 1,
-    }));
+    // Each piece's floor in cells (lib/world.ts, landsInput - the build uses the same).
+    const sub = landsInput(subset.map((i) => data.pieces[i]), phone, maxSpan, mode);
 
     /*
       The opened project's block of type, measured at the width it will
@@ -631,7 +647,11 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       tiles[focus!].querySelector('.wd-frame')!.insertBefore(named, tiles[focus!].querySelector('.wd-jump'));
     }
     // Any other seed is a shuffle: the projects' sets move, not only their pieces (lib/world.ts, SHUFFLED).
-    const out = generateWorld(sub, {cols, mode, seed, shuffled: !data.home && seed !== FIRST_SEED, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow}});
+    // The build's best layout for this grid, when the page is as it opens (THE BEST LAYOUT, FOUND AT BUILD).
+    const found = mode === 'lands' && simple && seed === FIRST_SEED && zoom === 2 ? data.pre?.[cols] : undefined;
+    const out: WorldResult = found
+      ? {placed: found.placed.map(([i, c, r, cw, ch]) => ({i, c, r, cw, ch})), cols, rows: found.rows, labels: [], family: []}
+      : generateWorld(sub, {cols, mode, seed, shuffled: !data.home && seed !== FIRST_SEED, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow}});
     last = {out, subset};
     const sets = inPlace ? setsOf(sub) : [];
     const fam = new Set(

@@ -130,7 +130,7 @@ export interface WorldOptions {
   /** Lands: rows to a cell's width (2: half-height rows, so boxes follow their pictures' shapes). Rows, `r` and `ch` are then in these. */
   rowsPerCell?: number;
   /** Lands: weights for how a set's pieces gather (for tuning; the defaults are the chosen ones). */
-  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean; simple?: boolean; floor?: number; curve?: number; capDrop?: number; tallMarks?: boolean; settle?: boolean};
+  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean; simple?: boolean; floor?: number; curve?: number; capDrop?: number; tallMarks?: boolean; settle?: boolean; stable?: boolean};
   /** Lands: room for the opened project's card, beside the opened piece. */
   card?: {cw: number; ch: number} | null;
 }
@@ -169,6 +169,17 @@ export interface WorldResult {
 }
 
 // ---------------------------------------------------------------- noise
+/*
+  A set's place in the seed's order by its own name, not by where it falls
+  in the list (preview: tune.stable) - Chris: "is this all going to get
+  messed with whenever I introduce a new grid item!" By position, one new
+  project shifted every rank after it and reshuffled the page.
+*/
+function hashKey(seed: number, key: string) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 0x01000193) >>> 0;
+  return hash2(seed, h | 0, 11);
+}
 function hash2(seed: number, x: number, y: number) {
   let h = (seed ^ Math.imul(x, 0x27d4eb2d) ^ Math.imul(y, 0x165667b1)) >>> 0;
   h = Math.imul(h ^ (h >>> 15), 0x85ebca6b) >>> 0;
@@ -512,6 +523,8 @@ function settle(pieces: WorldPiece[], out: WorldResult, kr = 2): WorldResult {
     - height: a taller page for the same pieces, a small cost.
 */
 export interface WorldScore {
+  rivers: number;
+  samey: number;
   heavy: number;
   shrink: number;
   holes: number;
@@ -522,6 +535,8 @@ export interface WorldScore {
   total: number;
 }
 export interface ScoreWeights {
+  rivers?: number;
+  samey?: number;
   heavy?: number;
   shrink?: number;
   holes?: number;
@@ -572,6 +587,32 @@ export function scoreWorld(pieces: WorldPiece[], out: WorldResult, firstRows: nu
     const y1 = Math.max(...list.map((q) => q.r + q.ch));
     spread += Math.max(0, (x1 - x0) * (y1 - y0) / list.reduce((s, q) => s + area(q), 0) - 1.6);
   }
+  /*
+    RIVERS - Chris: "predictable 'rivers' or samey spots where similar
+    dimension stuff is reappearing in the same column". A vertical gutter
+    no piece crosses for more than a couple of cells is a river; its length
+    past that costs. And a piece stacked on one of the same width in the
+    same column is the samey spot.
+  */
+  let rivers = 0;
+  for (let x = 1; x < cols; x++) {
+    let run = 0;
+    const flush = () => {
+      if (run > 2 * 2) rivers += (run - 4) ** 1.3;
+      run = 0;
+    };
+    for (let y = 0; y < judged; y++) {
+      // A gutter here: the cells either side are different pieces (or empty), so no piece spans the line.
+      const crossed = out.placed.some((q) => q.c < x && q.c + q.cw > x && q.r <= y && q.r + q.ch > y);
+      if (crossed) flush();
+      else run++;
+    }
+    flush();
+  }
+  let samey = 0;
+  for (const p of out.placed)
+    for (const q of out.placed)
+      if (q !== p && q.c === p.c && q.cw === p.cw && Math.abs(q.r - (p.r + p.ch)) < 0.5) samey++;
   // Heavy pieces side by side (both dark and dense): they clump into one loud corner.
   let heavy = 0;
   const loud = out.placed.filter((q) => (pieces[q.i].ink ?? 0) > 0.45);
@@ -587,6 +628,8 @@ export function scoreWorld(pieces: WorldPiece[], out: WorldResult, firstRows: nu
   // No winning by shrinking: pieces smaller on average than the plain layout's cost (small pieces leave fewer gaps, and every video sat at its floor).
   const meanArea = out.placed.reduce((s, q) => s + area(q), 0) / Math.max(1, out.placed.length);
   const r = {
+    rivers: rivers / Math.max(1, cols * judged),
+    samey: samey / Math.max(1, out.placed.length),
     heavy: heavy / Math.max(1, out.placed.length),
     shrink: baseArea ? Math.max(0, 1 - meanArea / baseArea) : 0,
     holes: holes / cells,
@@ -595,7 +638,7 @@ export function scoreWorld(pieces: WorldPiece[], out: WorldResult, firstRows: nu
     spread: spread / Math.max(1, bySet.size),
     height: bottom / Math.max(1, Math.sqrt(out.placed.reduce((s, q) => s + area(q), 0) / cols) * Math.sqrt(cols)),
   };
-  const total = (w.shrink ?? 3) * r.shrink + (w.heavy ?? 0) * r.heavy + (w.holes ?? 4) * r.holes + (w.first ?? 4) * r.firstHoles - (w.merch ?? 0) * r.merch + (w.spread ?? 0.5) * r.spread + (w.height ?? 0.3) * r.height;
+  const total = (w.rivers ?? 0) * r.rivers + (w.samey ?? 0) * r.samey + (w.shrink ?? 3) * r.shrink + (w.heavy ?? 0) * r.heavy + (w.holes ?? 4) * r.holes + (w.first ?? 4) * r.firstHoles - (w.merch ?? 0) * r.merch + (w.spread ?? 0.5) * r.spread + (w.height ?? 0.3) * r.height;
   return {...r, total};
 }
 
@@ -605,18 +648,24 @@ export function scoreWorld(pieces: WorldPiece[], out: WorldResult, firstRows: nu
   inputs always give the same page (the seeds are fixed), so the build can
   do it once and ship the answer (LandsView, the precomputed layouts).
 */
-export function searchWorld(pieces: WorldPiece[], o: WorldOptions, s: {tries: number; firstRows: number; weights?: ScoreWeights}): {out: WorldResult; seed: number; score: WorldScore} {
-  let best: {out: WorldResult; seed: number; score: WorldScore} | null = null;
+export function searchWorld(pieces: WorldPiece[], o: WorldOptions, s: {tries: number; firstRows: number; weights?: ScoreWeights; sticky?: number}): {out: WorldResult; seed: number; score: WorldScore} {
+  const tried: {out: WorldResult; seed: number; score: WorldScore}[] = [];
   let baseArea = 0;
   for (let k = 0; k < Math.max(1, s.tries); k++) {
     const seed = o.seed + k * 7919;
     const out = generateWorld(pieces, {...o, seed});
     // The first try is the plain layout: its pieces' average size is the bar.
     if (k === 0) baseArea = out.placed.reduce((n, q) => n + q.cw * q.ch, 0) / Math.max(1, out.placed.length);
-    const score = scoreWorld(pieces, out, s.firstRows, s.weights, baseArea);
-    if (!best || score.total < best.score.total) best = {out, seed, score};
+    tried.push({out, seed, score: scoreWorld(pieces, out, s.firstRows, s.weights, baseArea)});
   }
-  return best!;
+  /*
+    STICKY: the earliest try that scores within a whisker of the best, not
+    the best itself - so a new piece, which nudges every score a little,
+    does not flip the page to a different layout over a hair's difference.
+  */
+  const top = Math.min(...tried.map((t) => t.score.total));
+  const tol = s.sticky ?? 0;
+  return tried.find((t) => t.score.total <= top + tol * (Math.abs(top) + 0.05))!;
 }
 
 // ---------------------------------------------------------------- the modes
@@ -856,7 +905,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
   const groups = new Map<string, number[]>();
   sets.forEach((k, i) => groups.set(k, [...(groups.get(k) ?? []), i]));
   const keys = [...groups.keys()];
-  const rank = new Map(order(keys.length, o.seed).map((k, n) => [keys[k], n]));
+  const rank = o.tune?.stable ? new Map(keys.map((k) => [k, hashKey(o.seed, k)])) : new Map(order(keys.length, o.seed).map((k, n) => [keys[k], n]));
   const toneOf = (k: string) => {
     const t = groups.get(k)!.map((i) => pieces[i].tone ?? 1.5).sort((a, z) => a - z);
     return t[Math.floor(t.length / 2)];

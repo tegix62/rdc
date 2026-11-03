@@ -1,0 +1,39 @@
+name: Freeze the mosaic layouts
+
+# Keep the layouts the lands engine chose on the preview, so a new grid item
+# does not reshuffle a page (scripts/freeze-layouts.mjs, LandsView's FROZEN
+# LAYOUTS). By hand, once a look is approved; then the preview is rebuilt
+# with them. Reads the pages' data only - no pictures.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Site to read the layouts from'
+        default: 'https://preview.rumeau-design-co.pages.dev'
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  freeze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/freeze-layouts.mjs "${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}"
+      - name: Commit the layouts, and rebuild the preview with them
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add src/data/layouts.json
+          if git diff --cached --quiet; then echo "nothing new to freeze"; exit 0; fi
+          git commit -qm "Layouts: freeze the mosaic layouts chosen on the preview"
+          git push origin HEAD:main
+          gh workflow run deploy-pages.yml --ref main

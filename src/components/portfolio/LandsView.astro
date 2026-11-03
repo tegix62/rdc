@@ -56,8 +56,9 @@ import {sanityClient} from '../../lib/sanity';
 import {clusterCard} from '../../lib/clusterCard';
 import {parseCreditLines} from '../../lib/credits';
 import {DOT} from '../../lib/plain';
-import {landsGrid, landsInput, searchWorld} from '../../lib/world';
+import {generateWorld as layWorld, landsGrid, landsInput, searchWorld} from '../../lib/world';
 import shapes from '../../data/shapes.json';
+import layouts from '../../data/layouts.json';
 
 
 /*
@@ -444,18 +445,37 @@ if (SEARCH)
       P.order = -200;
     }
   });
-const pre: Record<number, {placed: number[][]; rows: number}> = {};
+/*
+  FROZEN LAYOUTS. Chris: "is this all going to get messed with whenever I
+  introduce a new grid item!" It was: one new piece nudged every score and
+  the search picked a different layout - measured, 30 to 45 of the
+  homepage's 45 pieces moved. So the chosen layout's seed is kept in
+  src/data/layouts.json (freeze-layouts.yml writes it, by hand, once a
+  look is approved) and every build lays the page out with it: a new piece
+  only moves what is laid after it, and nothing above it. With no seed
+  kept for the page, the build searches as before.
+*/
+const PAGE = home ? 'home' : project ? project : picks ? 'picks' : 'all';
+const frozen = ((layouts as Record<string, Record<string, number>>)[PAGE] ?? {}) as Record<string, number>;
+const pre: Record<number, {placed: number[][]; rows: number; seed: number}> = {};
 if (SEARCH) {
   for (const phone of [true, false]) {
     const {cols, maxSpan} = landsGrid(phone);
     // A screen's rows at this grid: a phone's cell is an eighth of ~420px on half-height rows, a wide screen's a fourteenth of ~1440px.
     const firstRows = phone ? 24 : 14;
-    const best = searchWorld(
-      landsInput(pieces as any[], phone, maxSpan),
-      {cols, mode: 'lands', seed: 4187, shuffled: false, maxSpan, rowsPerCell: 2, focus: null, focusRow: 0, card: null, tune: {simple: true, tallMarks: grow, settle: true}},
-      {tries: home ? 300 : 150, firstRows, weights: home ? {merch: 1, heavy: 1} : {heavy: 1}},
-    );
-    pre[cols] = {placed: best.out.placed.map((q) => [q.i, q.c, q.r, q.cw, q.ch]), rows: Math.max(0, ...best.out.placed.map((q) => q.r + q.ch))};
+    const input = landsInput(pieces as any[], phone, maxSpan);
+    const opts = {cols, mode: 'lands' as const, seed: 4187, shuffled: false, maxSpan, rowsPerCell: 2, focus: null, focusRow: 0, card: null, tune: {simple: true, tallMarks: grow, settle: true, stable: true}};
+    /*
+      The scorecard: no gaps, the merch's room on the homepage, heavy pieces
+      apart, and - Chris: "predictable 'rivers' or samey spots" - long
+      unbroken gutters and same-width stacks cost, more on a wide screen
+      (on a phone the few layouts with fewer rivers have twice the gaps).
+    */
+    const weights = {heavy: 1, ...(home ? {merch: 1} : {}), ...(phone ? {rivers: 3, samey: 1} : {rivers: 8, samey: 1.5})};
+    const best = frozen[cols]
+      ? {out: layWorld(input, {...opts, seed: frozen[cols]}), seed: frozen[cols]}
+      : searchWorld(input, opts, {tries: home ? 300 : 150, firstRows, weights});
+    pre[cols] = {placed: best.out.placed.map((q) => [q.i, q.c, q.r, q.cw, q.ch]), rows: Math.max(0, ...best.out.placed.map((q) => q.r + q.ch)), seed: best.seed};
   }
 }
 const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name})), grow, picks: picks ?? null, home: !!home || !!project, pre, search: SEARCH};
@@ -609,7 +629,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   import {seedOf} from '../../lib/cluster';
 
   type P = WorldPiece & {id: string; slug: string | null; title: string; cat: string; photo: boolean; type?: string; hue?: number; sat?: number};
-  const data: {pieces: P[]; names: Record<string, string>; filters: {value: string; name: string}[]; grow: boolean; picks: {code: string; kind: 'pitch' | 'picks' | 'vote'} | null; home: boolean; pre?: Record<number, {placed: number[][]; rows: number}>; search?: boolean} = JSON.parse(
+  const data: {pieces: P[]; names: Record<string, string>; filters: {value: string; name: string}[]; grow: boolean; picks: {code: string; kind: 'pitch' | 'picks' | 'vote'} | null; home: boolean; pre?: Record<number, {placed: number[][]; rows: number; seed?: number}>; search?: boolean} = JSON.parse(
     document.getElementById('wd-data')!.textContent!,
   );
   const world = document.querySelector<HTMLElement>('.wd-world')!;
@@ -821,13 +841,13 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     // Any other seed is a shuffle: the projects' sets move, not only their pieces (lib/world.ts, SHUFFLED).
     // The build's best layout for this grid, when the page is as it opens (THE BEST LAYOUT, FOUND AT BUILD).
     const found = mode === 'lands' && simple && seed === FIRST_SEED && zoom === 2 && like === null && !audience ? data.pre?.[cols] : undefined;
-    const opts = {cols, mode, seed, shuffled: !data.home && seed !== FIRST_SEED, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow, settle: !!data.search}};
+    const opts = {cols, mode, seed, shuffled: !data.home && seed !== FIRST_SEED, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow, settle: !!data.search, stable: !!data.search}};
     // Another zoom of the first world: a quick search here, so every step is as well laid as the one the build found.
     const quick = !found && data.search && mode === 'lands' && simple && (seed === FIRST_SEED || like !== null);
     const out: WorldResult = found
       ? {placed: found.placed.map(([i, c, r, cw, ch]) => ({i, c, r, cw, ch})), cols, rows: found.rows, labels: [], family: []}
       : quick
-        ? searchWorld(sub, opts, {tries: 12, firstRows: Math.round(innerHeight / rowH), weights: data.home ? {merch: 1, heavy: 1} : {heavy: 1}}).out
+        ? searchWorld(sub, opts, {tries: 12, firstRows: Math.round(innerHeight / rowH), weights: {heavy: 1, ...(data.home ? {merch: 1} : {}), ...(phone ? {rivers: 3, samey: 1} : {rivers: 8, samey: 1.5})}}).out
         : generateWorld(sub, opts);
     last = {out, subset};
     // MORE LIKE THIS: the bar over the world while it is on, the button on an opened piece.

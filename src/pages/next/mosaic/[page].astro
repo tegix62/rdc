@@ -1,0 +1,171 @@
+---
+/*
+  WHAT THE ENGINE READS - preview only, at /next/mosaic/read: every tile
+  picture beside what the lands engine thinks of it (scripts/trace-shapes.mjs
+  -> src/data/shapes.json): its symmetry, which way it faces, line or mass,
+  how heavy and how coloured - and the parts it is given from them: anchor
+  (a symmetric mark, centred in its set), wordmark (wide and short, locked
+  under an anchor). For checking the reader's judgement before the layout
+  leans on it. Never built for production, and noindex.
+*/
+import Layout from '../../../layouts/Layout.astro';
+import Img from '../../../components/Img.astro';
+import {getAllGridItems} from '../../../lib/queries';
+import {tileImage, imageDimensions} from '../../../lib/image';
+import {stripStegaKey} from '../../../lib/stega';
+import {treatmentOf} from '../../../lib/tiles';
+import shapes from '../../../data/shapes.json';
+
+export async function getStaticPaths() {
+  if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
+  return [{params: {page: 'read'}}];
+}
+
+const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
+type Read = {k: number; s?: number; h?: number; y?: number; f?: number; e?: number; m?: string};
+const rows = ((await getAllGridItems()) as any[])
+  .filter((it) => tileImage(it) && imageDimensions(tileImage(it)))
+  .map((it) => {
+    const img = tileImage(it);
+    const ref = img?.asset?._ref ?? img?.asset?._id ?? '';
+    const r = (shapes as Record<string, Read>)[ref];
+    const d = imageDimensions(img)!;
+    const wide = d.width / d.height;
+    const mark = treatmentOf(it) === 'mark';
+    const roles = [
+      r && (r.y ?? 0) >= 0.85 && (mark || r.m) ? 'anchor' : null,
+      wide >= 2.4 ? 'wordmark' : null,
+    ].filter(Boolean);
+    return {it, title: clean(it.title), r, wide, roles};
+  });
+const traced = rows.filter((x) => x.r && typeof x.r.y === 'number').length;
+const faceOf = (f?: number) => (f === undefined ? '-' : f > 0.25 ? 'right' : f < -0.25 ? 'left' : 'ahead');
+const lineOf = (e = 0) => `${e >= 0.45 ? 'line' : e <= 0.2 ? 'mass' : 'both'} (${Math.round(e * 100)})`;
+const coloured = (r: Read) => (r.s ?? 0) > 0.12;
+---
+
+<Layout title="What the engine reads - Rumeau Design Co" description="Each piece, as the mosaic reads it." noindex>
+  <div class="rd">
+    <header class="rd-head">
+      <h1>What the engine reads</h1>
+      <p>{traced} of {rows.length} pictures read. Each shows its symmetry, which way it faces, line or mass, weight and colour, and the part it plays: an anchor sits at the centre of its project, a wordmark locks under it.</p>
+    </header>
+    <ul class="rd-list">
+      {rows.map(({it, title, r, wide, roles}) => (
+        <li class="rd-item">
+          <div class="rd-pic">
+            <Img image={tileImage(it)} alt="" altFallback={title} width={240} sizes="120px" loading="lazy" field="Grid Thumbnail (reader check)" />
+          </div>
+          <div class="rd-words">
+            <b class="rd-title">{title}</b>
+            {r && typeof r.y === 'number' ? (
+              <dl class="rd-read">
+                <div><dt>Symmetry</dt><dd>{Math.round(r.y * 100)}%</dd></div>
+                <div><dt>Faces</dt><dd>{faceOf(r.f)}</dd></div>
+                <div><dt>Line or mass</dt><dd>{lineOf(r.e)}</dd></div>
+                <div><dt>Weight</dt><dd>{Math.round(r.k * 100)}</dd></div>
+                <div><dt>Colour</dt><dd>{coloured(r) ? <span class="rd-hue" style={`--h:${r.h}`}>{r.h}°</span> : 'black and white'}</dd></div>
+                <div><dt>Shape</dt><dd>{wide.toFixed(1)}:1{r.m ? ', cut out' : ''}</dd></div>
+              </dl>
+            ) : (
+              <p class="rd-none">Not read (an animation, or not traced yet).</p>
+            )}
+            {roles.length > 0 && <p class="rd-roles">{roles.join(' / ')}</p>}
+          </div>
+        </li>
+      ))}
+    </ul>
+  </div>
+</Layout>
+
+<style>
+  .rd {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: var(--space-5, 3rem) var(--space-3, 1.5rem) var(--space-6, 4rem);
+  }
+  .rd-head h1 {
+    margin: 0 0 0.5rem;
+    font: 800 clamp(2rem, 5vw, 3.25rem) / 0.95 var(--font-heading);
+    letter-spacing: -0.035em;
+    color: var(--color-navy);
+  }
+  .rd-head p {
+    max-width: 60ch;
+    line-height: 1.5;
+  }
+  .rd-list {
+    list-style: none;
+    margin: 2rem 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+    gap: 1rem 1.5rem;
+  }
+  .rd-item {
+    display: grid;
+    grid-template-columns: 7.5rem 1fr;
+    gap: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--color-border);
+  }
+  .rd-pic {
+    aspect-ratio: 1;
+    background: #f2f0eb;
+    display: grid;
+    place-items: center;
+  }
+  .rd-pic :global(img) {
+    max-width: 92%;
+    max-height: 92%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+  }
+  .rd-title {
+    display: block;
+    font: 700 0.875rem / 1.25 var(--font-heading);
+    color: var(--color-navy);
+    margin-bottom: 0.35rem;
+  }
+  .rd-read {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.15rem 0.75rem;
+    margin: 0;
+    font-size: 0.75rem;
+  }
+  .rd-read div {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .rd-read dt {
+    color: var(--color-gray);
+  }
+  .rd-read dd {
+    margin: 0;
+    font-weight: 600;
+  }
+  .rd-hue::before {
+    content: '';
+    display: inline-block;
+    width: 0.7em;
+    height: 0.7em;
+    margin-right: 0.3em;
+    background: hsl(var(--h) 70% 50%);
+    vertical-align: -0.05em;
+  }
+  .rd-none {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--color-gray);
+  }
+  .rd-roles {
+    margin: 0.4rem 0 0;
+    font: 700 0.6875rem / 1 var(--font-heading);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-navy);
+  }
+</style>

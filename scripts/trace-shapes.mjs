@@ -38,8 +38,8 @@ const have = existsSync(OUT) ? JSON.parse(readFileSync(OUT, 'utf8')) : {}
 let fetched = 0
 let failed = 0
 for (const a of seen.values()) {
-  // Traced before colour, or before the finer 24 x 24 outline (v2): again.
-  if (have[a._id] && typeof have[a._id].h === 'number' && have[a._id].v === 2) continue
+  // Traced before the reader's v3 (symmetry, facing, line or mass): again.
+  if (have[a._id] && have[a._id].v === 3) continue
   if (/\.gif($|\?)/.test(a.url)) continue
   try {
     const r = await fetch(`${a.url}?w=96&h=96&fit=max&fm=png`)
@@ -75,7 +75,49 @@ for (const a of seen.values()) {
         cells[c] += alpha
         counts[c]++
       }
-    const entry = {v: 2, k: Math.round((ink / (w * h)) * 100) / 100}
+    /*
+      THE READER (v3), for pacing, facing in, anchors and lockups (lib/world.ts):
+        y  symmetry, 0-1: how alike its left and right halves are - a crest
+           or a badge near 1, an illustration lower;
+        f  facing, -1 to 1: which way its weight leans across its box, for
+           a piece that isn't symmetric - right is positive;
+        e  line or mass, 0-1: the share of its ink at an edge - line work
+           high, a solid mark or a photograph low.
+    */
+    const inkAt = (x, y) => {
+      const p = (y * w + x) * 4
+      return (data[p + 3] / 255) * (1 - (0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2]) / 255)
+    }
+    let diff = 0
+    let both = 0
+    let mx = 0
+    let mass = 0
+    let edges = 0
+    let inked = 0
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        const v = inkAt(x, y)
+        const m = inkAt(w - 1 - x, y)
+        diff += Math.abs(v - m)
+        both += v + m
+        mx += v * (x + 0.5)
+        mass += v
+        if (v > 0.35) {
+          inked++
+          const near = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
+            const X = x + dx
+            const Y = y + dy
+            return X < 0 || Y < 0 || X >= w || Y >= h || inkAt(X, Y) < 0.2
+          })
+          if (near) edges++
+        }
+      }
+    const sym = both ? 1 - diff / both : 1
+    const cx = mass ? mx / mass / w : 0.5
+    const entry = {v: 3, k: Math.round((ink / (w * h)) * 100) / 100}
+    entry.y = Math.round(sym * 100) / 100
+    entry.f = sym > 0.85 ? 0 : Math.round(Math.max(-1, Math.min(1, (cx - 0.5) * 6)) * 100) / 100
+    entry.e = inked ? Math.round((edges / inked) * 100) / 100 : 0
     const n = w * h
     entry.s = Math.round((sat / n) * 100) / 100
     entry.h = Math.round(((Math.atan2(hy, hx) * 180) / Math.PI + 360) % 360)

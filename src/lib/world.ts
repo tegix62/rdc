@@ -97,6 +97,8 @@ export interface WorldPiece {
   mask?: string;
   /** How heavy it looks, 0-1: the share of it that is dark ink (src/data/shapes.json). */
   ink?: number;
+  /** The part of the mask its box shows, in mask cells [x0, y0, x1, y1], when the box is trimmed to its ink. */
+  maskBox?: [number, number, number, number];
   /** The fewest cells wide it may be, in lands (a photograph on a phone, so it can be told apart). */
   least?: number;
   /** A case study's place in the order Chris dragged the projects into in Studio. */
@@ -430,12 +432,16 @@ function inkCells(p: WorldPiece, w: number, h: number): Uint8Array {
   const cells = new Uint8Array(w * h);
   const n = p.mask?.length === 144 ? 24 : p.mask?.length === 36 ? 12 : 0;
   if (!n) return cells.fill(1);
+  // The box shows the whole mask, or the part it was trimmed to.
+  const [mx0, my0, mx1, my1] = p.maskBox ?? [0, 0, n - 1, n - 1];
+  const mw = mx1 - mx0 + 1;
+  const mh = my1 - my0 + 1;
   for (let y = 0; y < h; y++)
     for (let x = 0; x < w; x++) {
-      const bx0 = Math.floor((x * n) / w);
-      const bx1 = Math.max(bx0, Math.ceil(((x + 1) * n) / w) - 1);
-      const by0 = Math.floor((y * n) / h);
-      const by1 = Math.max(by0, Math.ceil(((y + 1) * n) / h) - 1);
+      const bx0 = mx0 + Math.floor((x * mw) / w);
+      const bx1 = Math.max(bx0, mx0 + Math.ceil(((x + 1) * mw) / w) - 1);
+      const by0 = my0 + Math.floor((y * mh) / h);
+      const by1 = Math.max(by0, my0 + Math.ceil(((y + 1) * mh) / h) - 1);
       let on = 0;
       for (let by = by0; by <= by1 && !on; by++) for (let bx = bx0; bx <= bx1 && !on; bx++) on = maskBit(p.mask!, n, bx, by);
       cells[y * w + x] = on;

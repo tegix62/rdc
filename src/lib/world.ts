@@ -99,6 +99,12 @@ export interface WorldPiece {
   ink?: number;
   /** The part of the mask its box shows, in mask cells [x0, y0, x1, y1], when the box is trimmed to its ink. */
   maskBox?: [number, number, number, number];
+  /** THE READER (src/data/shapes.json): symmetry 0-1, facing -1 (left) to 1 (right), line (1) or mass (0), and its colour. */
+  sym?: number;
+  face?: number;
+  edge?: number;
+  hue?: number;
+  sat?: number;
   /** The fewest cells wide it may be, in lands (a photograph on a phone, so it can be told apart). */
   least?: number;
   /** A case study's place in the order Chris dragged the projects into in Studio. */
@@ -130,7 +136,7 @@ export interface WorldOptions {
   /** Lands: rows to a cell's width (2: half-height rows, so boxes follow their pictures' shapes). Rows, `r` and `ch` are then in these. */
   rowsPerCell?: number;
   /** Lands: weights for how a set's pieces gather (for tuning; the defaults are the chosen ones). */
-  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean; simple?: boolean; floor?: number; curve?: number; capDrop?: number; tallMarks?: boolean; settle?: boolean; stable?: boolean; varyWidth?: boolean; looseBelow?: number};
+  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean; simple?: boolean; floor?: number; curve?: number; capDrop?: number; tallMarks?: boolean; settle?: boolean; stable?: boolean; varyWidth?: boolean; looseBelow?: number; art?: boolean};
   /** Lands: room for the opened project's card, beside the opened piece. */
   card?: {cw: number; ch: number} | null;
 }
@@ -306,6 +312,27 @@ export function setsOf(pieces: WorldPiece[]) {
   else the project's own tile, else the root), then every piece followed
   straight away by the pieces parented to it, so they land beside it.
 */
+/*
+  ANCHORS AND LOCKUPS (preview: tune.art). A set's most symmetric mark - a
+  crest, a badge, an emblem - is its anchor: laid first, so the rest of the
+  set gathers round it, as a brand sheet centres its mark. Its wordmarks
+  (wide and short) come next, so each can take the place under it
+  (spotFor, LOCKUP). The rest follow in their own order.
+*/
+export const isAnchor = (p: WorldPiece) => (p.sym ?? 0) >= 0.85 && (!!p.mark || !!p.mask) && p.kind !== 'result' && p.kind !== 'video';
+export const isWordmark = (p: WorldPiece) => p.w / (p.h || 1) >= 2.4 && p.kind !== 'result' && p.kind !== 'video';
+function artOrder(pieces: WorldPiece[], members: number[], on: boolean) {
+  if (!on || members.length < 2) return members;
+  const anchors = members.filter((i) => isAnchor(pieces[i])).sort((a, z) => (pieces[z].sym ?? 0) - (pieces[a].sym ?? 0));
+  if (!anchors.length) return members;
+  const a = anchors[0];
+  // Garments that lead a set (the homepage's apparel mix) keep the lead.
+  let lead = 0;
+  while (lead < members.length && pieces[members[lead]].kind === 'merch-apparel' && members[lead] !== a) lead++;
+  const head = members.slice(0, lead);
+  const words = members.filter((i) => i !== a && !head.includes(i) && isWordmark(pieces[i]));
+  return [...head, a, ...words, ...members.filter((i) => i !== a && !head.includes(i) && !words.includes(i))];
+}
 function laidOrder(pieces: WorldPiece[], members: number[], lead: number | null) {
   const inSet = new Set(members);
   const kids = new Map<string, number[]>();
@@ -423,6 +450,80 @@ export function landsInput<T extends WorldPiece & {photo?: boolean; video?: unkn
 }
 
 /*
+  REFINE - pacing, colour flow and facing in, after the lay. Choosing among
+  whole layouts barely moved them: each is a different shuffle, so none can
+  target "these two neighbours are alike". So, once laid, two pieces with
+  exactly the same box - of the same set, or both of none - swap places
+  whenever that makes neighbours contrast more in weight and in line or
+  mass, steps colour more gently, or turns a piece to look into the page.
+  The boxes stay where they are, so nothing can open a gap or split a set.
+*/
+function artNeighbours(pieces: WorldPiece[], placed: WorldPlaced[], cols: number) {
+  let alike = 0;
+  let hueStep = 0;
+  let looking = 0;
+  for (let a = 0; a < placed.length; a++) {
+    const p = placed[a];
+    const f = pieces[p.i].face ?? 0;
+    if (Math.abs(f) > 0.25) {
+      const mid = (p.c + p.cw / 2) / cols;
+      looking += Math.max(0, f > 0 ? mid - 0.5 : 0.5 - mid) * 2;
+    }
+    for (let b = a + 1; b < placed.length; b++) {
+      const q = placed[b];
+      const sideX = (Math.abs(p.c + p.cw - q.c) < 0.5 || Math.abs(q.c + q.cw - p.c) < 0.5) && Math.min(p.r + p.ch, q.r + q.ch) - Math.max(p.r, q.r) > 0.5;
+      const sideY = (Math.abs(p.r + p.ch - q.r) < 0.5 || Math.abs(q.r + q.ch - p.r) < 0.5) && Math.min(p.c + p.cw, q.c + q.cw) - Math.max(p.c, q.c) > 0.5;
+      if (!sideX && !sideY) continue;
+      const A = pieces[p.i];
+      const B = pieces[q.i];
+      if (typeof A.ink === 'number' && typeof B.ink === 'number') alike += 0.45 * (1 - Math.min(1, Math.abs(A.ink - B.ink) * 2.5));
+      if (typeof A.edge === 'number' && typeof B.edge === 'number') alike += 0.35 * (1 - Math.min(1, Math.abs(A.edge - B.edge) * 2.5));
+      if ((A.sat ?? 0) > 0.12 && (B.sat ?? 0) > 0.12 && typeof A.hue === 'number' && typeof B.hue === 'number')
+        hueStep += Math.min(Math.abs(A.hue - B.hue), 360 - Math.abs(A.hue - B.hue)) / 180;
+    }
+  }
+  return 1.5 * alike + 0.8 * hueStep + 0.8 * looking;
+}
+function refine(pieces: WorldPiece[], out: WorldResult, sets: string[]): WorldResult {
+  const placed = out.placed.map((q) => ({...q}));
+  const loose = (k: number) => !pieces[placed[k].i].project && sets.filter((x) => x === sets[placed[k].i]).length === 1;
+  const pairs: [number, number][] = [];
+  for (let a = 0; a < placed.length; a++)
+    for (let b = a + 1; b < placed.length; b++) {
+      const p = placed[a];
+      const q = placed[b];
+      if (p.cw !== q.cw || p.ch !== q.ch) continue;
+      const kinds = pieces[p.i].kind === 'result' || pieces[q.i].kind === 'result';
+      // Merch stays where the lay put it: the homepage leads with it.
+      if (kinds || (pieces[p.i].kind === 'merch-apparel') !== (pieces[q.i].kind === 'merch-apparel')) continue;
+      if (sets[p.i] === sets[q.i] || (loose(a) && loose(b))) pairs.push([a, b]);
+    }
+  let cost = artNeighbours(pieces, placed, out.cols);
+  for (let round = 0; round < 3; round++) {
+    let better = false;
+    for (const [a, b] of pairs) {
+      const ra = {c: placed[a].c, r: placed[a].r};
+      placed[a].c = placed[b].c;
+      placed[a].r = placed[b].r;
+      placed[b].c = ra.c;
+      placed[b].r = ra.r;
+      const next = artNeighbours(pieces, placed, out.cols);
+      if (next < cost - 1e-9) {
+        cost = next;
+        better = true;
+      } else {
+        placed[b].c = placed[a].c;
+        placed[b].r = placed[a].r;
+        placed[a].c = ra.c;
+        placed[a].r = ra.r;
+      }
+    }
+    if (!better) break;
+  }
+  return {...out, placed};
+}
+
+/*
   SETTLE - shape-aware packing. Every piece is a box, but a cut-out shirt's
   box has empty corners. With each transparent picture's ink traced (a
   24 x 24 mask, src/data/shapes.json), each piece, from the top down, rises
@@ -523,6 +624,9 @@ function settle(pieces: WorldPiece[], out: WorldResult, kr = 2): WorldResult {
     - height: a taller page for the same pieces, a small cost.
 */
 export interface WorldScore {
+  pacing: number;
+  flow: number;
+  facing: number;
   rivers: number;
   samey: number;
   heavy: number;
@@ -535,6 +639,9 @@ export interface WorldScore {
   total: number;
 }
 export interface ScoreWeights {
+  pacing?: number;
+  flow?: number;
+  facing?: number;
   rivers?: number;
   samey?: number;
   heavy?: number;
@@ -613,6 +720,45 @@ export function scoreWorld(pieces: WorldPiece[], out: WorldResult, firstRows: nu
   for (const p of out.placed)
     for (const q of out.placed)
       if (q !== p && q.c === p.c && q.cw === p.cw && Math.abs(q.r - (p.r + p.ch)) < 0.5) samey++;
+  /*
+    PACING and COLOUR FLOW, over pieces side by side (sharing an edge):
+    neighbours alike in weight, in line or mass, and in being a mark or a
+    photograph read as one lump - an editor alternates them - so likeness
+    costs; but colour should drift, not jump, so a big hue step between two
+    coloured neighbours costs. FACING: a piece looking off the page's edge.
+  */
+  let alike = 0;
+  let pairs = 0;
+  let hueStep = 0;
+  let huePairs = 0;
+  for (let a = 0; a < out.placed.length; a++)
+    for (let b = a + 1; b < out.placed.length; b++) {
+      const p = out.placed[a];
+      const q = out.placed[b];
+      const sideX = (Math.abs(p.c + p.cw - q.c) < 0.5 || Math.abs(q.c + q.cw - p.c) < 0.5) && Math.min(p.r + p.ch, q.r + q.ch) - Math.max(p.r, q.r) > 0.5;
+      const sideY = (Math.abs(p.r + p.ch - q.r) < 0.5 || Math.abs(q.r + q.ch - p.r) < 0.5) && Math.min(p.c + p.cw, q.c + q.cw) - Math.max(p.c, q.c) > 0.5;
+      if (!sideX && !sideY) continue;
+      const A = pieces[p.i];
+      const B = pieces[q.i];
+      let like = (!!A.mark === !!B.mark ? 0.1 : 0) + (!!A.photo === !!B.photo ? 0.1 : 0);
+      if (typeof A.ink === 'number' && typeof B.ink === 'number') like += 0.45 * (1 - Math.min(1, Math.abs(A.ink - B.ink) * 2.5));
+      if (typeof A.edge === 'number' && typeof B.edge === 'number') like += 0.35 * (1 - Math.min(1, Math.abs(A.edge - B.edge) * 2.5));
+      alike += like;
+      pairs++;
+      if ((A.sat ?? 0) > 0.12 && (B.sat ?? 0) > 0.12 && typeof A.hue === 'number' && typeof B.hue === 'number') {
+        hueStep += Math.min(Math.abs(A.hue - B.hue), 360 - Math.abs(A.hue - B.hue)) / 180;
+        huePairs++;
+      }
+    }
+  let looking = 0;
+  let facers = 0;
+  for (const q of out.placed) {
+    const f = pieces[q.i].face ?? 0;
+    if (Math.abs(f) <= 0.25) continue;
+    const mid = (q.c + q.cw / 2) / cols;
+    looking += Math.max(0, f > 0 ? mid - 0.5 : 0.5 - mid) * 2;
+    facers++;
+  }
   // Heavy pieces side by side (both dark and dense): they clump into one loud corner.
   let heavy = 0;
   const loud = out.placed.filter((q) => (pieces[q.i].ink ?? 0) > 0.45);
@@ -628,6 +774,9 @@ export function scoreWorld(pieces: WorldPiece[], out: WorldResult, firstRows: nu
   // No winning by shrinking: pieces smaller on average than the plain layout's cost (small pieces leave fewer gaps, and every video sat at its floor).
   const meanArea = out.placed.reduce((s, q) => s + area(q), 0) / Math.max(1, out.placed.length);
   const r = {
+    pacing: pairs ? alike / pairs : 0,
+    flow: huePairs ? hueStep / huePairs : 0,
+    facing: facers ? looking / facers : 0,
     rivers: rivers / Math.max(1, cols * judged),
     samey: samey / Math.max(1, out.placed.length),
     heavy: heavy / Math.max(1, out.placed.length),
@@ -638,7 +787,7 @@ export function scoreWorld(pieces: WorldPiece[], out: WorldResult, firstRows: nu
     spread: spread / Math.max(1, bySet.size),
     height: bottom / Math.max(1, Math.sqrt(out.placed.reduce((s, q) => s + area(q), 0) / cols) * Math.sqrt(cols)),
   };
-  const total = (w.rivers ?? 0) * r.rivers + (w.samey ?? 0) * r.samey + (w.shrink ?? 3) * r.shrink + (w.heavy ?? 0) * r.heavy + (w.holes ?? 4) * r.holes + (w.first ?? 4) * r.firstHoles - (w.merch ?? 0) * r.merch + (w.spread ?? 0.5) * r.spread + (w.height ?? 0.3) * r.height;
+  const total = (w.pacing ?? 0) * r.pacing + (w.flow ?? 0) * r.flow + (w.facing ?? 0) * r.facing + (w.rivers ?? 0) * r.rivers + (w.samey ?? 0) * r.samey + (w.shrink ?? 3) * r.shrink + (w.heavy ?? 0) * r.heavy + (w.holes ?? 4) * r.holes + (w.first ?? 4) * r.firstHoles - (w.merch ?? 0) * r.merch + (w.spread ?? 0.5) * r.spread + (w.height ?? 0.3) * r.height;
   return {...r, total};
 }
 
@@ -676,7 +825,8 @@ export function generateWorld(pieces: WorldPiece[], o: WorldOptions): WorldResul
   const family = focus === null ? [] : pieces.map((_, i) => i).filter((i) => sets[i] === sets[focus]);
   if (o.mode === 'biomes') return biomes(pieces, o, maxSpan, sets, focus, family);
   if (o.mode === 'lands') {
-    const out = lands(pieces, o, maxSpan, sets, focus, family);
+    let out = lands(pieces, o, maxSpan, sets, focus, family);
+    if (o.tune?.art && focus === null) out = refine(pieces, out, sets);
     return o.tune?.settle && focus === null ? settle(pieces, out, o.rowsPerCell ?? 1) : out;
   }
   return flow(pieces, o, maxSpan, sets, focus, family);
@@ -1147,6 +1297,29 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
       same width in the same column costs: a set's piece looks further, a
       loose piece takes the next spot that isn't one (within a few).
     */
+    /*
+      LOCKUP: a wordmark under its set's anchor (centred on it, touching its
+      foot) is the strongest place for it; beside it, the next. FACING IN:
+      a piece that faces one way would rather sit on the side it faces away
+      from, so it looks into the page, not off its edge.
+    */
+    const artOn = !!o.tune?.art;
+    const artCost = (q: WorldPlaced, lead: WorldPlaced | undefined) => {
+      if (!artOn) return 0;
+      let n = 0;
+      if (lead && isWordmark(p) && isAnchor(pieces[lead.i])) {
+        const overlap = Math.min(q.c + q.cw, lead.c + lead.cw) - Math.max(q.c, lead.c);
+        const under = Math.abs(q.r - (lead.r + lead.ch)) < 0.5 && overlap >= Math.min(q.cw, lead.cw) * 0.5;
+        const beside = (Math.abs(q.c - (lead.c + lead.cw)) < 0.5 || Math.abs(q.c + q.cw - lead.c) < 0.5) && q.r < lead.r + lead.ch && q.r + q.ch > lead.r;
+        n += under ? -60 : beside ? -30 : 0;
+      }
+      const f = p.face ?? 0;
+      if (Math.abs(f) > 0.25) {
+        const mid = (q.c + q.cw / 2) / o.cols;
+        n += 30 * Math.abs(f) * (f > 0 ? mid : 1 - mid);
+      }
+      return n;
+    };
     const sameyOn = !!o.tune?.stable;
     const samey = (q: WorldPlaced) => placed.some((x) => x.c === q.c && x.cw === q.cw && Math.abs(x.r + x.ch - q.r) < 0.5);
     /*
@@ -1215,7 +1388,8 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
         (up && touches(q, up) ? 0 : leadBonus && lead && touches(q, lead) ? 100 - leadBonus : kin.some((x) => touches(q, x)) ? 100 : Infinity) +
         seen * seenW +
         (q.r < lead.r && !high ? above : 0) +
-        (sameyOn && samey(q) ? 40 : 0);
+        (sameyOn && samey(q) ? 40 : 0) +
+        artCost(q, lead);
       // Strict: above the lead only if nothing below can touch the set at all.
       if (high && q.r < lead.r) {
         if (score < fallbackScore) {
@@ -1284,7 +1458,7 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
       cursor = 0;
       while (cursor < seq.length && grid.used[seq[cursor]] !== -1) cursor++;
     }
-    const members = laidOrder(pieces, groups.get(key)!, null).filter((i) => !inFamily.has(i));
+    const members = artOrder(pieces, laidOrder(pieces, groups.get(key)!, null).filter((i) => !inFamily.has(i)), !!o.tune?.art);
     if (!members.length) continue;
     let pickSkip = 0;
     // The first set opens the page at its top-left: it is not tried elsewhere.

@@ -406,6 +406,12 @@ if (SEARCH)
       (pieces[i] as any).hue = (shape as any).h;
       (pieces[i] as any).sat = (shape as any).s;
     }
+    // THE READER: symmetry, facing, line or mass (for anchors, lockups, facing in and pacing).
+    if (typeof (shape as any).y === 'number') {
+      (pieces[i] as any).sym = (shape as any).y;
+      (pieces[i] as any).face = (shape as any).f;
+      (pieces[i] as any).edge = (shape as any).e;
+    }
   });
 /*
   SIZE BY PROOF (preview, with the search): a project with a result - a
@@ -464,14 +470,15 @@ if (SEARCH) {
     // A screen's rows at this grid: a phone's cell is an eighth of ~420px on half-height rows, a wide screen's a fourteenth of ~1440px.
     const firstRows = phone ? 24 : 14;
     const input = landsInput(pieces as any[], phone, maxSpan);
-    const opts = {cols, mode: 'lands' as const, seed: 4187, shuffled: false, maxSpan, rowsPerCell: 2, focus: null, focusRow: 0, card: null, tune: {simple: true, tallMarks: grow, settle: true, stable: true, varyWidth: phone, looseBelow: phone ? 24 : 14}};
+    const opts = {cols, mode: 'lands' as const, seed: 4187, shuffled: false, maxSpan, rowsPerCell: 2, focus: null, focusRow: 0, card: null, tune: {simple: true, tallMarks: grow, settle: true, stable: true, varyWidth: phone, looseBelow: phone ? 24 : 14, art: true}};
     /*
       The scorecard: no gaps, the merch's room on the homepage, heavy pieces
       apart, and - Chris: "predictable 'rivers' or samey spots" - long
       unbroken gutters and same-width stacks cost, more on a wide screen
       (on a phone the few layouts with fewer rivers have twice the gaps).
     */
-    const weights = {heavy: 1, ...(home ? {merch: 1} : {}), ...(phone ? {rivers: 3, samey: 1} : {rivers: 8, samey: 1.5})};
+    // And - Chris: "pacing, facing in, anchors and lockups ... and we could try your color flow idea" - neighbours that contrast, colour that drifts, nothing looking off the page.
+    const weights = {heavy: 1, pacing: 0.5, flow: 0.3, facing: 0.8, ...(home ? {merch: 2} : {}), ...(phone ? {rivers: 3, samey: 1} : {rivers: 8, samey: 1.5})};
     const best = frozen[cols]
       ? {out: layWorld(input, {...opts, seed: frozen[cols]}), seed: frozen[cols]}
       : searchWorld(input, opts, {tries: home ? 300 : 150, firstRows, weights});
@@ -841,13 +848,13 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     // Any other seed is a shuffle: the projects' sets move, not only their pieces (lib/world.ts, SHUFFLED).
     // The build's best layout for this grid, when the page is as it opens (THE BEST LAYOUT, FOUND AT BUILD).
     const found = mode === 'lands' && simple && seed === FIRST_SEED && zoom === 2 && like === null && !audience ? data.pre?.[cols] : undefined;
-    const opts = {cols, mode, seed, shuffled: !data.home && seed !== FIRST_SEED, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow, settle: !!data.search, stable: !!data.search, varyWidth: !!data.search && phone, looseBelow: Math.round(innerHeight / rowH)}};
+    const opts = {cols, mode, seed, shuffled: !data.home && seed !== FIRST_SEED, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow, settle: !!data.search, stable: !!data.search, varyWidth: !!data.search && phone, looseBelow: Math.round(innerHeight / rowH), art: !!data.search}};
     // Another zoom of the first world: a quick search here, so every step is as well laid as the one the build found.
     const quick = !found && data.search && mode === 'lands' && simple && (seed === FIRST_SEED || like !== null);
     const out: WorldResult = found
       ? {placed: found.placed.map(([i, c, r, cw, ch]) => ({i, c, r, cw, ch})), cols, rows: found.rows, labels: [], family: []}
       : quick
-        ? searchWorld(sub, opts, {tries: 12, firstRows: Math.round(innerHeight / rowH), weights: {heavy: 1, ...(data.home ? {merch: 1} : {}), ...(phone ? {rivers: 3, samey: 1} : {rivers: 8, samey: 1.5})}}).out
+        ? searchWorld(sub, opts, {tries: 12, firstRows: Math.round(innerHeight / rowH), weights: {heavy: 1, pacing: 0.5, flow: 0.3, facing: 0.8, ...(data.home ? {merch: 2} : {}), ...(phone ? {rivers: 3, samey: 1} : {rivers: 8, samey: 1.5})}}).out
         : generateWorld(sub, opts);
     last = {out, subset};
     // MORE LIKE THIS: the bar over the world while it is on, the button on an opened piece.

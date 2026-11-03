@@ -64,6 +64,15 @@ back to these. Preview pages for shelved ideas stay at their `/next/` addresses
   `/next/issue/latest`.
 - **Zoomable rescans.** Shelved.
 
+- **More like this.** An opened piece gathers its nine closest pieces from
+  every project (Asset Type, category, mark or photo, visual weight, colour)
+  at the top of the mosaic. "Shelve it for now, it may have a use later."
+  With today's data it mostly repeats the category views: Asset Type is set
+  on 25 of the homepage's 45 pieces and only 37 of 204 pictures are
+  coloured. What would make it new: tags in Studio (skull, blackletter,
+  vintage wash...) or visual likeness from the traced pictures. Code kept,
+  off: `LIKE_ON` in `src/components/portfolio/LandsView.astro`.
+
 ## Needs more thought
 
 - The copy test for marks (a mark at three copy generations, as proof it holds

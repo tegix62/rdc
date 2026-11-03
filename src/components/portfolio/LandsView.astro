@@ -636,6 +636,8 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     ?like=<slug> keeps it in the address; Back to everything undoes it.
   */
   let like: number | null = null;
+  // SHELVED (Chris: "Shelve it for now, it may have a use later") - with today's data it mostly repeats the category views. true brings the button back; see IDEAS.md.
+  const LIKE_ON = false as boolean;
   /*
     ONE MOSAIC PER AUDIENCE (preview): ?for=apparel, ?for=brand or
     ?for=music lays the same work out for who is looking - their kind of
@@ -848,7 +850,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       likeBar.append(say, back);
     }
     world.querySelectorAll('.wd-like').forEach((el) => el.remove());
-    if (data.search && mode === 'lands' && focus !== null && focus !== like && data.pieces[focus].kind !== 'result') {
+    if (LIKE_ON && data.search && mode === 'lands' && focus !== null && focus !== like && data.pieces[focus].kind !== 'result') {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'wd-like';
@@ -1418,7 +1420,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
   // Arriving on a shared link: the view at once, the piece opened in it.
   const arrive = shown() ? q.get('open') : null;
   const arriving = arrive ? data.pieces.findIndex((p) => p.slug === arrive || p.id === arrive) : -1;
-  const likeKey = data.search && shown() ? q.get('like') : null;
+  const likeKey = LIKE_ON && data.search && shown() ? q.get('like') : null;
   const liked = likeKey ? data.pieces.findIndex((p) => p.slug === likeKey || p.id === likeKey) : -1;
   if (liked >= 0) like = liked;
   draw();

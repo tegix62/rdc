@@ -14,6 +14,7 @@ import { caseStudyDescription } from '../../lib/meta';
 import { readableOn } from '../../lib/color';
 import { creditsHtml, hasCreditsText } from '../../lib/credits';
 import { PLAIN, SEP } from '../../lib/plain';
+import LandsView from '../../components/portfolio/LandsView.astro';
 
 export async function getStaticPaths() {
   const slugs = await sanityClient.fetch(
@@ -204,6 +205,14 @@ const markStyle =
   markRatio && markRatio > 1
     ? `--mark-scale:${(1 / Math.sqrt(markRatio)).toFixed(4)}`
     : undefined;
+/*
+  ITS OWN MOSAIC (preview): the project's pieces laid out by the same lands
+  engine as the All view and the homepage, under its words - so the site is
+  one system and the page shows its whole range at a glance. Chris liked it:
+  "I liked 2, 3, 4, 6". Only with three pieces or more.
+*/
+const PROJECT_MOSAIC = import.meta.env.PUBLIC_IS_PREVIEW === 'true' && gridItems.length >= 2;
+const projectHref = `/work/${stripStegaKey(caseStudy.slug?.current ?? '')}`;
 ---
 
 <Layout
@@ -367,6 +376,13 @@ const markStyle =
       )}
     </div>
   </section>
+
+  {PROJECT_MOSAIC && (
+    <section class="pf-section work-mosaic" aria-label="The work">
+      <script is:inline>document.documentElement.dataset.pfPane = 'all';</script>
+      <LandsView project={projectHref} />
+    </section>
+  )}
 
   {/*
     Film Embed was likewise dead. It sits after the identity block so a case

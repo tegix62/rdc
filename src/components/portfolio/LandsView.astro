@@ -72,11 +72,13 @@ interface Props {
   home?: boolean;
   /** The homepage's apparel clusters, first and in this order (piece id -> place). */
   lead?: Record<string, number>;
+  /** A case study's own mosaic (preview): only that project's pieces, its videos, no address seed. */
+  project?: string;
 }
-const {only, picks, home, lead} = Astro.props as Props;
+const {only, picks, home, lead, project} = Astro.props as Props;
 const clean = (s: unknown) => stripStegaKey(s).replace(/\s+/g, ' ').trim();
 const idOf = (it: any) => cleanKey(it._id).replace(/^drafts\./, '');
-const all: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)) && (!only || only.includes(idOf(it))));
+const all: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it) && imageDimensions(tileImage(it)) && (!only || only.includes(idOf(it))) && (!project || tileHref(it) === project));
 const isProject = (it: any) => cleanKey(it.pageType) === 'Case Study';
 /*
   The homepage's apparel mix (WorkFirst, lead): within each project Chris
@@ -299,7 +301,7 @@ playing.forEach((v, i) => {
   Chris has made them all grid items since ("I added these all as grid
   items, so you can take out the ones you added").
 */
-const bare: any[] = WITH_REST && !picks && (!only || home) ? await getVideoGridItems() : [];
+const bare: any[] = WITH_REST && !picks && (!only || home) ? ((await getVideoGridItems()) as any[]).filter((it) => !project || tileHref(it) === project) : [];
 const videos = (
   await Promise.all([
     ...bare.map(async (it) => {
@@ -416,7 +418,7 @@ if (SEARCH) {
     pre[cols] = {placed: best.out.placed.map((q) => [q.i, q.c, q.r, q.cw, q.ch]), rows: Math.max(0, ...best.out.placed.map((q) => q.r + q.ch))};
   }
 }
-const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name})), grow, picks: picks ?? null, home: !!home, pre, search: SEARCH};
+const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, name})), grow, picks: picks ?? null, home: !!home || !!project, pre, search: SEARCH};
 ---
 
 <div class="wd pf-pane" data-pane="all">

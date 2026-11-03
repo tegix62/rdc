@@ -319,6 +319,34 @@ export default defineType({
       while a photograph or poster fills its frame. It is a presentation choice,
       not a subject taxonomy, which is why it has two values rather than six.
     */
+    /*
+      THE ALL VIEW'S SIZE AND PIN (preview): Chris's say over the mosaic,
+      which the lands engine's search respects (lib/world.ts). Size: Large is
+      held big, Small takes little ground; Auto leaves it to the engine.
+      Pin: first on the homepage, before every other project's pieces.
+    */
+    defineField({
+      name: 'tileSize',
+      title: 'Size in the mosaic',
+      type: 'string',
+      group: 'tile',
+      fieldset: 'tileOptions',
+      options: {list: [
+        {title: 'Auto', value: 'auto'},
+        {title: 'Small', value: 'small'},
+        {title: 'Large', value: 'large'},
+      ], layout: 'radio', direction: 'horizontal'},
+      initialValue: 'auto',
+      description: 'How much room this piece takes in the All view and the homepage. Auto lets the layout decide.',
+    }),
+    defineField({
+      name: 'homePin',
+      title: 'Pin to the front of the homepage',
+      type: 'boolean',
+      group: 'tile',
+      fieldset: 'tileOptions',
+      description: 'Large, and its project shown first on the homepage, ahead of everything else. Use for one or two pieces at most.',
+    }),
     defineField({
       name: 'heroTile',
       title: 'Hero Tile - spans two columns',

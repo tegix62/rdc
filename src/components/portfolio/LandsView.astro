@@ -358,6 +358,26 @@ if (SEARCH)
     (pieces[i] as any).ink = shape.k;
     if (shape.m) (pieces[i] as any).mask = shape.m;
   });
+/*
+  Chris's own say, from Studio (the tile's Size in the mosaic and Pin to the
+  front of the homepage): Large is held big, Small takes half the ground; a
+  pinned piece is big and its project goes first on the homepage. Preview
+  only, with the search.
+*/
+if (SEARCH)
+  all.forEach((it, i) => {
+    const P = pieces[i] as any;
+    const size = cleanKey(it.tileSize);
+    if (size === 'large') P.big = true;
+    if (size === 'small') {
+      P.big = false;
+      P.weight = (P.weight ?? 1) * 0.5;
+    }
+    if (home && it.homePin) {
+      P.big = true;
+      P.order = -200;
+    }
+  });
 const pre: Record<number, {placed: number[][]; rows: number}> = {};
 if (SEARCH) {
   for (const phone of [true, false]) {

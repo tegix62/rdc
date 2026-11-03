@@ -243,6 +243,7 @@ const IN_PROJECT = (id: string) => `(parentBrand._ref == ${id} || parentBrand->p
 const TILE = `
   _id,
   title, slug, pageType, thumbnail, mainImage, category, archiveMark, heroTile, orderRank,
+  tileSize, homePin,
   tileTreatment, assetType, merchPlacement, medium, year,
   // A grid item that is a video (the Video panel on its Tile tab): it plays in the All view.
   heroVideo, heroVideoSrc,

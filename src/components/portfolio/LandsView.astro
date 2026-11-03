@@ -365,6 +365,24 @@ if (SEARCH)
     }
   });
 /*
+  SIZE BY PROOF (preview, with the search): a project with a result - a
+  proof stat in Site Settings or a Result Stat of its own - has earned its
+  room. Its pieces take a little more ground, its garments the most. Chris
+  liked it: "I liked 2, 3, 4, 6".
+*/
+if (SEARCH) {
+  const proven = new Set<string>([
+    ...results.map((r) => norm(tileHref(all[r.opens]))),
+    ...all.filter((it) => isProject(it) && clean(it.resultStat)).map((it) => norm(tileHref(it))),
+  ]);
+  all.forEach((it, i) => {
+    const href = norm(tileHref(it));
+    if (!href || !proven.has(href)) return;
+    const P = pieces[i] as any;
+    P.weight = (P.weight ?? 1) * (cleanKey(it.category) === 'Merch & Apparel' ? 1.3 : 1.12);
+  });
+}
+/*
   Chris's own say, from Studio (the tile's Size in the mosaic and Pin to the
   front of the homepage): Large is held big, Small takes half the ground; a
   pinned piece is big and its project goes first on the homepage. Preview
@@ -576,6 +594,20 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     ?like=<slug> keeps it in the address; Back to everything undoes it.
   */
   let like: number | null = null;
+  /*
+    ONE MOSAIC PER AUDIENCE (preview): ?for=apparel, ?for=brand or
+    ?for=music lays the same work out for who is looking - their kind of
+    piece takes more ground and their kind of project comes first - so a
+    pitch link leads with that client's work. Chris liked it: "I liked 2,
+    3, 4, 6".
+  */
+  const AUDIENCES: Record<string, (p: P) => boolean> = {
+    apparel: (p) => p.cat === 'merch-apparel' || p.type === 'Apparel',
+    brand: (p) => p.cat === 'brand-identity' || p.type === 'Identity / Brand Sheet',
+    music: (p) => p.kind === 'video' || p.type === 'Vinyl / Record' || p.type === 'Social Card' || p.cat === 'type-lettering',
+  };
+  const forKey = q.get('for') ?? '';
+  const audience = data.search && AUDIENCES[forKey] ? AUDIENCES[forKey] : null;
   const KIN = 9;
   const likeness = (a: P, b: P) => {
     let n = 0;
@@ -667,7 +699,22 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     const plain = landsInput(subset.map((i) => data.pieces[i]), phone, maxSpan, mode);
     // More like this: its kin one set, first.
     const kin = like === null ? null : new Set(kinOf(like));
-    const sub = kin ? plain.map((p, k) => (kin.has(subset[k]) ? {...p, project: `like:${keyOf(like!)}`, parent: null, order: -300, own: subset[k] === like} : p)) : plain;
+    let sub = kin ? plain.map((p, k) => (kin.has(subset[k]) ? {...p, project: `like:${keyOf(like!)}`, parent: null, order: -300, own: subset[k] === like} : p)) : plain;
+    // For an audience: its pieces more ground, the rest less, and the projects most of its kind first.
+    if (audience && !kin) {
+      const share = new Map<string, [number, number]>();
+      sub.forEach((p, k) => {
+        if (!p.project) return;
+        const [m, n] = share.get(p.project) ?? [0, 0];
+        share.set(p.project, [m + (audience(data.pieces[subset[k]]) ? 1 : 0), n + 1]);
+      });
+      sub = sub.map((p, k) => {
+        const mine = audience(data.pieces[subset[k]]);
+        const [m, n] = p.project ? share.get(p.project) ?? [0, 1] : [mine ? 1 : 0, 1];
+        const lead = m / n >= 0.34 ? -250 + Math.round((1 - m / n) * 20) : p.order;
+        return {...p, weight: (p.weight ?? 1) * (mine ? 1.5 : 0.7), order: p.project && lead !== p.order ? lead : p.order};
+      });
+    }
 
     /*
       The opened project's block of type, measured at the width it will
@@ -729,7 +776,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     }
     // Any other seed is a shuffle: the projects' sets move, not only their pieces (lib/world.ts, SHUFFLED).
     // The build's best layout for this grid, when the page is as it opens (THE BEST LAYOUT, FOUND AT BUILD).
-    const found = mode === 'lands' && simple && seed === FIRST_SEED && zoom === 2 && like === null ? data.pre?.[cols] : undefined;
+    const found = mode === 'lands' && simple && seed === FIRST_SEED && zoom === 2 && like === null && !audience ? data.pre?.[cols] : undefined;
     const opts = {cols, mode, seed, shuffled: !data.home && seed !== FIRST_SEED, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow, settle: !!data.search}};
     // Another zoom of the first world: a quick search here, so every step is as well laid as the one the build found.
     const quick = !found && data.search && mode === 'lands' && simple && (seed === FIRST_SEED || like !== null);
@@ -1037,6 +1084,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     const set = (k: string, v: string | null) => (v ? url.searchParams.set(k, v) : url.searchParams.delete(k));
     set('open', focus === null ? null : keyOf(focus));
     set('like', like === null ? null : keyOf(like));
+    set('for', audience ? forKey : null);
     // The homepage's field is the one world it always is: no seed in its address.
     set('seed', data.home ? null : String(seed));
     set('mode', mode === 'lands' ? null : mode);

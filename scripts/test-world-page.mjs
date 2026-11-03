@@ -646,6 +646,35 @@ for (const [name, w, h] of [
 }
 
 /*
+  One mosaic per audience (preview): ?for=apparel gives the merch more of
+  the first screen than the plain All view does.
+*/
+{
+  const share = async (q) => {
+    const page = await browser.newPage({viewport: {width: 1440, height: 900}})
+    await page.goto(`${BASE}/portfolio?view=all${q}`, {waitUntil: 'domcontentloaded', timeout: 60_000}).catch(() => null)
+    await page.waitForTimeout(1500)
+    const got = await page.evaluate(() => {
+      const data = JSON.parse(document.getElementById('wd-data')?.textContent || '{"pieces":[]}')
+      const world = document.querySelector('.wd-world')
+      if (!world || !data.search) return null
+      const top = world.getBoundingClientRect().top
+      const near = [...document.querySelectorAll('.wd-piece:not([hidden])')].filter((t) => t.offsetParent && t.getBoundingClientRect().top - top < innerHeight)
+      const a = (t) => t.getBoundingClientRect().width * t.getBoundingClientRect().height
+      const all = near.reduce((n, t) => n + a(t), 0)
+      const merch = near.filter((t) => data.pieces[Number(t.dataset.i)]?.cat === 'merch-apparel').reduce((n, t) => n + a(t), 0)
+      return {share: Math.round((merch / Math.max(1, all)) * 100) / 100, for: new URL(location.href).searchParams.get('for')}
+    })
+    await page.close()
+    return got
+  }
+  const plain = await share('')
+  const apparel = await share('&for=apparel')
+  if (!plain || !apparel) console.log('skip  audience: not on this site (preview only)')
+  else check('audience: ?for=apparel gives the merch more of the first screen, and keeps it in the address', apparel.share > plain.share && apparel.for === 'apparel', JSON.stringify({plain, apparel}))
+}
+
+/*
   Start with your name (preview): typing sets the name a letter at a time -
   a cut letter or, until there is one, a stand-in - word by word, and the
   address keeps the name so it can be sent on.

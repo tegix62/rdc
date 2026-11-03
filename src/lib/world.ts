@@ -130,7 +130,7 @@ export interface WorldOptions {
   /** Lands: rows to a cell's width (2: half-height rows, so boxes follow their pictures' shapes). Rows, `r` and `ch` are then in these. */
   rowsPerCell?: number;
   /** Lands: weights for how a set's pieces gather (for tuning; the defaults are the chosen ones). */
-  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean; simple?: boolean; floor?: number; curve?: number; capDrop?: number; tallMarks?: boolean; settle?: boolean; stable?: boolean};
+  tune?: {leadBonus?: number; seenW?: number; tries?: number; early?: number; corner?: number; tail?: number; high?: boolean; deal?: boolean; caps?: boolean; above?: number; top?: number; firstFixed?: boolean; keepTop?: boolean; grow?: boolean; simple?: boolean; floor?: number; curve?: number; capDrop?: number; tallMarks?: boolean; settle?: boolean; stable?: boolean; varyWidth?: boolean};
   /** Lands: room for the opened project's card, beside the opened piece. */
   card?: {cw: number; ch: number} | null;
 }
@@ -1139,6 +1139,16 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
     let seen = 0;
     let fallback: WorldPlaced | null = null;
     let fallbackScore = Infinity;
+    /*
+      NO SAMEY STACKS (preview: tune.stable). Chris: "predictable 'rivers'
+      or samey spots where similar dimension stuff is reappearing in the
+      same column" - the strip a set leaves at the screen's edge filled with
+      one 2-wide photograph after another. A spot right under a piece of the
+      same width in the same column costs: a set's piece looks further, a
+      loose piece takes the next spot that isn't one (within a few).
+    */
+    const sameyOn = !!o.tune?.stable;
+    const samey = (q: WorldPlaced) => placed.some((x) => x.c === q.c && x.cw === q.cw && Math.abs(x.r + x.ch - q.r) < 0.5);
     for (let k = cursor; k < seq.length && (seen < 48 || !best); k++) {
       const at = seq[k];
       if (grid.used[at] !== -1) continue;
@@ -1161,7 +1171,8 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
         const {ch} = boxAt(p, cw, kr);
         if (!grid.fits(c, r, cw, ch)) continue;
         const ratio = p.w / p.h || 1;
-        const fit = Math.min(ratio / ((cw * kr) / ch), (cw * kr) / ch / ratio);
+        // A width that would sit on one of the same width, in the same column, fits a little worse (NO SAMEY STACKS; a phone only - wide, it cost gaps).
+        const fit = Math.min(ratio / ((cw * kr) / ch), (cw * kr) / ch / ratio) - (o.tune?.varyWidth && samey({i, c, r, cw, ch}) ? 0.2 : 0);
         if (fit > pickFit + 0.001) {
           pick = {i, c, r, cw, ch};
           pickFit = fit;
@@ -1171,7 +1182,11 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
       if (!pick) continue;
       const q = pick;
       first ??= q;
-      if (plain) break;
+      if (plain) {
+        if (!sameyOn || !samey(q)) return q;
+        if (seen >= 24) return first;
+        continue;
+      }
       if (kin.length === 0) {
         // A set's first piece: the skip-th spot with room round it for the set.
         if (room(q) >= Math.min(q.cw + q.ch + 2, 2 * (setSize.get(sets[i]) ?? 1))) {
@@ -1186,7 +1201,8 @@ function lands(pieces: WorldPiece[], o: WorldOptions, maxSpan: number, sets: str
       const score =
         (up && touches(q, up) ? 0 : leadBonus && lead && touches(q, lead) ? 100 - leadBonus : kin.some((x) => touches(q, x)) ? 100 : Infinity) +
         seen * seenW +
-        (q.r < lead.r && !high ? above : 0);
+        (q.r < lead.r && !high ? above : 0) +
+        (sameyOn && samey(q) ? 40 : 0);
       // Strict: above the lead only if nothing below can touch the set at all.
       if (high && q.r < lead.r) {
         if (score < fallbackScore) {

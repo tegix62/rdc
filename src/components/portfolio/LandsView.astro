@@ -358,6 +358,8 @@ const SEARCH = import.meta.env.PUBLIC_IS_PREVIEW === 'true' && !picks;
 if (SEARCH)
   all.forEach((it, i) => {
     const shape = (shapes as Record<string, {k: number; m?: string; h?: number; s?: number}>)[refOf(it) ?? ''];
+    // Its picture, by asset - so a layout can be tuned offline on the field's own pieces (scripts/tune-home.mjs).
+    (pieces[i] as any).ref = refOf(it) ?? undefined;
     if (!shape) return;
     (pieces[i] as any).ink = shape.k;
     if (shape.m) (pieces[i] as any).mask = shape.m;

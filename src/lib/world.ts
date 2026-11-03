@@ -93,7 +93,7 @@ export interface WorldPiece {
   weight?: number;
   /** A piece that should stand out - a case study, a hero tile: never small. */
   big?: boolean;
-  /** Where its ink is, 12 x 12, as hex (src/data/shapes.json) - only a picture with transparency has one. */
+  /** Where its ink is, 24 x 24 (or 12 x 12), as hex (src/data/shapes.json) - only a picture with transparency has one. */
   mask?: string;
   /** How heavy it looks, 0-1: the share of it that is dark ink (src/data/shapes.json). */
   ink?: number;
@@ -411,58 +411,79 @@ export function landsInput<T extends WorldPiece & {photo?: boolean; video?: unkn
 
 /*
   SETTLE - shape-aware packing. Every piece is a box, but a cut-out shirt's
-  box has empty corners. With each transparent picture's ink traced (its
-  12 x 12 mask), each piece, from the top down, rises while its ink would
-  touch no other piece's ink - tucking into the corners above it - so the
-  page reads as a collage laid by hand rather than a grid of boxes. A piece
-  with no mask counts as solid. Nothing moves sideways, so sets keep their
-  columns; only the rows above close up.
+  box has empty corners. With each transparent picture's ink traced (a
+  24 x 24 mask, src/data/shapes.json), each piece, from the top down, rises
+  while its ink stays clear of every other piece's ink by a gutter - so it
+  tucks into the corners above it and the page reads as a collage laid by
+  hand rather than a grid of boxes. Worked on a grid four times finer than
+  the lands' (a quarter of a cell each way), so it moves in quarter steps;
+  a piece with no mask counts as solid. Nothing moves sideways, so sets keep
+  their columns.
 */
-function inkCells(p: WorldPiece, cw: number, ch: number): Uint8Array {
-  const cells = new Uint8Array(cw * ch);
-  if (!p.mask || p.mask.length < 36) return cells.fill(1);
-  const bit = (x: number, y: number) => (parseInt(p.mask![(y * 12 + x) >> 2], 16) >> (3 - ((y * 12 + x) & 3))) & 1;
-  for (let y = 0; y < ch; y++)
-    for (let x = 0; x < cw; x++) {
-      const bx0 = Math.floor((x * 12) / cw);
-      const bx1 = Math.max(bx0, Math.ceil(((x + 1) * 12) / cw) - 1);
-      const by0 = Math.floor((y * 12) / ch);
-      const by1 = Math.max(by0, Math.ceil(((y + 1) * 12) / ch) - 1);
+const SUB = 4;
+function maskBit(mask: string, n: number, x: number, y: number) {
+  const k = y * n + x;
+  return (parseInt(mask[k >> 2], 16) >> (3 - (k & 3))) & 1;
+}
+// Its ink on the fine grid: w x h sub-cells.
+function inkCells(p: WorldPiece, w: number, h: number): Uint8Array {
+  const cells = new Uint8Array(w * h);
+  const n = p.mask?.length === 144 ? 24 : p.mask?.length === 36 ? 12 : 0;
+  if (!n) return cells.fill(1);
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const bx0 = Math.floor((x * n) / w);
+      const bx1 = Math.max(bx0, Math.ceil(((x + 1) * n) / w) - 1);
+      const by0 = Math.floor((y * n) / h);
+      const by1 = Math.max(by0, Math.ceil(((y + 1) * n) / h) - 1);
       let on = 0;
-      for (let by = by0; by <= by1 && !on; by++) for (let bx = bx0; bx <= bx1 && !on; bx++) on = bit(bx, by);
-      cells[y * cw + x] = on;
+      for (let by = by0; by <= by1 && !on; by++) for (let bx = bx0; bx <= bx1 && !on; bx++) on = maskBit(p.mask!, n, bx, by);
+      cells[y * w + x] = on;
     }
   return cells;
 }
-function settle(pieces: WorldPiece[], out: WorldResult): WorldResult {
-  const cols = out.cols;
+function settle(pieces: WorldPiece[], out: WorldResult, kr = 2): WorldResult {
+  // Fine units: a quarter of a cell across; down, a row is half a cell (kr = 2), so two units.
+  const ux = SUB;
+  const uy = Math.max(1, Math.round(SUB / kr));
+  const W = out.cols * ux;
   const placed = out.placed.map((q) => ({...q}));
-  const ink = placed.map((q) => inkCells(pieces[q.i], q.cw, q.ch));
-  const rows = Math.max(1, ...placed.map((q) => q.r + q.ch)) + 1;
-  const owner = new Int32Array(cols * rows).fill(-1);
-  const stamp = (k: number, v: number) => {
-    const q = placed[k];
-    for (let y = 0; y < q.ch; y++) for (let x = 0; x < q.cw; x++) if (ink[k][y * q.cw + x]) owner[(q.r + y) * cols + q.c + x] = v;
+  const size = placed.map((q) => ({w: q.cw * ux, h: Math.round(q.ch * uy)}));
+  const ink = placed.map((q, k) => inkCells(pieces[q.i], size[k].w, size[k].h));
+  const H = Math.ceil(Math.max(1, ...placed.map((q) => q.r + q.ch)) * uy) + 2;
+  const owner = new Int32Array(W * H).fill(-1);
+  const at = (k: number) => ({x: placed[k].c * ux, y: Math.round(placed[k].r * uy)});
+  const stamp = (k: number, v: number, y0 = at(k).y) => {
+    const {x: x0} = at(k);
+    for (let y = 0; y < size[k].h; y++) for (let x = 0; x < size[k].w; x++) if (ink[k][y * size[k].w + x]) owner[(y0 + y) * W + x0 + x] = v;
   };
   placed.forEach((_, k) => stamp(k, k));
-  const clear = (k: number, r: number) => {
-    const q = placed[k];
-    for (let y = 0; y < q.ch; y++)
-      for (let x = 0; x < q.cw; x++) {
-        if (!ink[k][y * q.cw + x]) continue;
-        const o = owner[(r + y) * cols + q.c + x];
-        if (o !== -1 && o !== k) return false;
+  // Clear at row y0: its ink, and a gutter of one fine unit round it, touch no one else's ink.
+  const clear = (k: number, y0: number) => {
+    const {x: x0} = at(k);
+    for (let y = 0; y < size[k].h; y++)
+      for (let x = 0; x < size[k].w; x++) {
+        if (!ink[k][y * size[k].w + x]) continue;
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++) {
+            const X = x0 + x + dx;
+            const Y = y0 + y + dy;
+            if (X < 0 || X >= W || Y < 0) continue;
+            const o = owner[Y * W + X];
+            if (o !== -1 && o !== k) return false;
+          }
       }
     return true;
   };
   const byTop = placed.map((_, k) => k).sort((a, z) => placed[a].r - placed[z].r || placed[a].c - placed[z].c);
   for (const k of byTop) {
-    let r = placed[k].r;
-    while (r > 0 && clear(k, r - 1)) r--;
-    if (r !== placed[k].r) {
-      stamp(k, -1);
-      placed[k].r = r;
-      stamp(k, k);
+    const from = at(k).y;
+    let y = from;
+    while (y > 0 && clear(k, y - 1)) y--;
+    if (y !== from) {
+      stamp(k, -1, from);
+      placed[k].r = y / uy;
+      stamp(k, k, y);
     }
   }
   return {...out, placed, rows: Math.max(0, ...placed.map((q) => q.r + q.ch))};
@@ -601,7 +622,7 @@ export function generateWorld(pieces: WorldPiece[], o: WorldOptions): WorldResul
   if (o.mode === 'biomes') return biomes(pieces, o, maxSpan, sets, focus, family);
   if (o.mode === 'lands') {
     const out = lands(pieces, o, maxSpan, sets, focus, family);
-    return o.tune?.settle && focus === null ? settle(pieces, out) : out;
+    return o.tune?.settle && focus === null ? settle(pieces, out, o.rowsPerCell ?? 1) : out;
   }
   return flow(pieces, o, maxSpan, sets, focus, family);
 }

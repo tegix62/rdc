@@ -3,7 +3,7 @@
   visual weight (lib/world.ts; Chris: "Let's give these ideas a shot!").
 
   For every grid item's tile picture, once: its colour (hue and how coloured,
-  for More like this), its outline as a 12 x 12 grid of
+  for More like this), its outline as a 24 x 24 grid of
   where its ink is (only a picture with transparency has empty corners
   another piece can tuck into), and how heavy it looks - the share of it
   that is dark ink, 0 to 1 - so the engine can give a light line drawing a
@@ -21,7 +21,7 @@ import {readFileSync, writeFileSync, existsSync, mkdirSync} from 'node:fs'
 import sharp from 'sharp'
 
 const OUT = 'src/data/shapes.json'
-const G = 12
+const G = 24
 const PROJECT = '8337vjtf'
 const DATASET = 'production'
 
@@ -38,11 +38,11 @@ const have = existsSync(OUT) ? JSON.parse(readFileSync(OUT, 'utf8')) : {}
 let fetched = 0
 let failed = 0
 for (const a of seen.values()) {
-  // Traced before colour was: again, for its hue.
-  if (have[a._id] && typeof have[a._id].h === 'number') continue
+  // Traced before colour, or before the finer 24 x 24 outline (v2): again.
+  if (have[a._id] && typeof have[a._id].h === 'number' && have[a._id].v === 2) continue
   if (/\.gif($|\?)/.test(a.url)) continue
   try {
-    const r = await fetch(`${a.url}?w=48&h=48&fit=max&fm=png`)
+    const r = await fetch(`${a.url}?w=96&h=96&fit=max&fm=png`)
     if (!r.ok) throw new Error(`HTTP ${r.status}`)
     const {data, info} = await sharp(Buffer.from(await r.arrayBuffer())).ensureAlpha().raw().toBuffer({resolveWithObject: true})
     const {width: w, height: h} = info
@@ -75,14 +75,14 @@ for (const a of seen.values()) {
         cells[c] += alpha
         counts[c]++
       }
-    const entry = {k: Math.round((ink / (w * h)) * 100) / 100}
+    const entry = {v: 2, k: Math.round((ink / (w * h)) * 100) / 100}
     const n = w * h
     entry.s = Math.round((sat / n) * 100) / 100
     entry.h = Math.round(((Math.atan2(hy, hx) * 180) / Math.PI + 360) % 360)
     // Only a picture with transparency has corners to give: its cells with any real ink.
     if (a.alpha && !a.opaque) {
       let bits = ''
-      for (let i = 0; i < G * G; i++) bits += cells[i] / Math.max(1, counts[i]) > 0.12 ? '1' : '0'
+      for (let i = 0; i < G * G; i++) bits += cells[i] / Math.max(1, counts[i]) > 0.2 ? '1' : '0'
       let hex = ''
       for (let i = 0; i < bits.length; i += 4) hex += parseInt(bits.slice(i, i + 4).padEnd(4, '0'), 2).toString(16)
       entry.m = hex

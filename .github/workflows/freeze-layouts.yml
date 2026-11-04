@@ -3,7 +3,9 @@ name: Freeze the mosaic layouts
 # Keep the layouts the lands engine chose on the preview, so a new grid item
 # does not reshuffle a page (scripts/freeze-layouts.mjs, LandsView's FROZEN
 # LAYOUTS). By hand, once a look is approved; then the preview is rebuilt
-# with them. Reads the pages' data only - no pictures.
+# with them. Reads the pages' data only - no pictures. Every piece's place
+# is kept, so new grid items are fitted in around them; "start over" forgets
+# a page's layout so the engine finds a fresh best one.
 
 on:
   workflow_dispatch:
@@ -11,6 +13,9 @@ on:
       base_url:
         description: 'Site to read the layouts from'
         default: 'https://preview.rumeau-design-co.pages.dev'
+      start_over:
+        description: 'Instead, forget these pages layouts so the engine finds a fresh best one (home, all, a case study like /work/chateau-seven, or everything). Freeze again once you like it.'
+        default: ''
 
 permissions:
   contents: write
@@ -25,15 +30,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node scripts/freeze-layouts.mjs "${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}"
+      - env:
+          OVER: ${{ inputs.start_over }}
+          BASE: ${{ inputs.base_url || 'https://preview.rumeau-design-co.pages.dev' }}
+        run: |
+          if [ -n "$OVER" ]; then node scripts/freeze-layouts.mjs --start-over "$OVER"; else node scripts/freeze-layouts.mjs "$BASE"; fi
       - name: Commit the layouts, and rebuild the preview with them
         env:
           GH_TOKEN: ${{ github.token }}
+          OVER: ${{ inputs.start_over }}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add src/data/layouts.json
           if git diff --cached --quiet; then echo "nothing new to freeze"; exit 0; fi
-          git commit -qm "Layouts: freeze the mosaic layouts chosen on the preview"
+          if [ -n "$OVER" ]; then MSG="Layouts: start over on $OVER"; else MSG="Layouts: freeze the mosaic layouts chosen on the preview"; fi
+          git commit -qm "$MSG"
           git push origin HEAD:main
           gh workflow run deploy-pages.yml --ref main

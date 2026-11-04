@@ -450,6 +450,162 @@ export function landsInput<T extends WorldPiece & {photo?: boolean; video?: unkn
 }
 
 /*
+  KEEP A LAYOUT - Chris: "I really love the frozen layout ... But what I do
+  need is the flexibility to be able to add grid items." A seed alone does
+  not hold a look: a new piece near the top re-lays everything after it.
+  So the approved layout is kept box by box (src/data/layouts.json), and
+  each build puts every piece it knows back where it was. Then:
+    - a piece that is gone leaves room, and only what rested on it slides
+      up into that room;
+    - a new piece goes into a gap beside its own project if one fits it
+      (at its size, or a size smaller), and otherwise just under one of its
+      project's pieces, wherever that moves the least - pieces under it
+      slide down only as far as they must, and gaps below soak the push up;
+    - a piece with no project goes in a gap below the first screen, or at
+      the foot of the page.
+  Nothing above a new piece moves, and nothing beside it except what sat
+  under it.
+*/
+export type KeptBox = number[];
+export function layoutKeys(pieces: {id?: string; slug?: string; title?: string}[]) {
+  const seen = new Map<string, number>();
+  return pieces.map((p, i) => {
+    const k = p.id ?? p.slug ?? p.title ?? String(i);
+    const n = (seen.get(k) ?? 0) + 1;
+    seen.set(k, n);
+    return n > 1 ? `${k}#${n}` : k;
+  });
+}
+type KBox = {i: number; c: number; r: number; cw: number; ch: number};
+const colsMeet = (a: KBox, b: KBox) => Math.min(a.c + a.cw, b.c + b.cw) - Math.max(a.c, b.c) > 0.01;
+const boxesMeet = (a: KBox, b: KBox) => colsMeet(a, b) && Math.min(a.r + a.ch, b.r + b.ch) - Math.max(a.r, b.r) > 0.01;
+// Empty room inside the layout (above each column's lowest piece), in half-cells.
+function gapArea(boxes: KBox[], cols: number, extra?: KBox, push?: Map<KBox, number>) {
+  const S = 2;
+  const W = cols * S;
+  const all = extra ? [...boxes, extra] : boxes;
+  const at = (b: KBox) => b.r + (push?.get(b) ?? 0);
+  const H = Math.ceil(Math.max(0, ...all.map((b) => at(b) + b.ch)) * S) + 1;
+  const g = new Uint8Array(W * H);
+  for (const b of all)
+    for (let y = Math.floor(at(b) * S + 0.01); y < Math.ceil((at(b) + b.ch) * S - 0.01); y++)
+      for (let x = Math.floor(b.c * S + 0.01); x < Math.ceil((b.c + b.cw) * S - 0.01); x++) g[y * W + x] = 1;
+  let gaps = 0;
+  for (let x = 0; x < W; x++) {
+    let low = -1;
+    for (let y = H - 1; y >= 0; y--) if (g[y * W + x]) { low = y; break; }
+    for (let y = 0; y < low; y++) if (!g[y * W + x]) gaps++;
+  }
+  return gaps;
+}
+export function keepLayout(pieces: WorldPiece[], kept: Record<string, KeptBox>, fresh: WorldResult, firstRows: number): WorldResult {
+  const cols = fresh.cols;
+  const keys = layoutKeys(pieces as any[]);
+  const known = new Set(keys);
+  let boxes: KBox[] = [];
+  keys.forEach((k, i) => {
+    const b = kept[k];
+    if (b && b.length === 4 && b[0] >= 0 && b[0] + b[2] <= cols + 0.01) boxes.push({i, c: b[0], r: b[1], cw: b[2], ch: b[3]});
+  });
+  // Pieces that are gone: what rested on them slides up into their room.
+  const gone: KBox[] = Object.entries(kept)
+    .filter(([k, b]) => !known.has(k) && b.length === 4)
+    .map(([, b]) => ({i: -1, c: b[0], r: b[1], cw: b[2], ch: b[3]}));
+  if (gone.length) {
+    const all = [...boxes, ...gone].sort((a, b) => a.r - b.r);
+    const up = new Map<KBox, number>();
+    for (const y of all) {
+      const above = all.filter((x) => x !== y && x.r < y.r - 0.01 && colsMeet(x, y));
+      let limit = Infinity;
+      for (const x of above) if (x.i >= 0) limit = Math.min(limit, (up.get(x) ?? 0) + Math.max(0, y.r - (x.r + x.ch)));
+      const near = Math.max(-Infinity, ...above.map((x) => x.r + x.ch));
+      let cap = 0;
+      for (const x of above)
+        if (x.r + x.ch > near - 0.5) cap = Math.max(cap, (up.get(x) ?? 0) + (x.i < 0 ? x.ch + Math.max(0, y.r - (x.r + x.ch)) : 0));
+      up.set(y, Math.max(0, Math.min(limit, cap)));
+    }
+    for (const b of boxes) b.r -= up.get(b) ?? 0;
+  }
+  // The new pieces, at the size the engine would give them now.
+  const size = new Map(fresh.placed.map((q) => [q.i, q]));
+  const fresh_ = keys.map((k, i) => i).filter((i) => !kept[keys[i]] || !boxes.some((b) => b.i === i));
+  for (const n of fresh_) {
+    const s = size.get(n);
+    if (!s) continue;
+    const proj = pieces[n].project;
+    const mates = proj ? boxes.filter((b) => pieces[b.i].project === proj) : [];
+    // Its size now, or one a step either way at the same shape.
+    const sizes: [number, number][] = [[s.cw, s.ch]];
+    for (const cw of [s.cw - 1, s.cw + 1])
+      if (cw >= 1 && cw <= 4 && cw <= cols) sizes.push([cw, Math.max(1, Math.round((cw * s.ch) / s.cw))]);
+    const resized = (cw: number, ch: number) => (Math.abs(cw * ch - s.cw * s.ch) / (s.cw * s.ch)) * 4;
+    const bottom = Math.max(0, ...boxes.map((b) => b.r + b.ch));
+    const gaps0 = gapArea(boxes, cols);
+    let best: {cost: number; box: KBox; push: Map<KBox, number>} | null = null;
+    const consider = (cost: number, box: KBox, push: Map<KBox, number>) => {
+      if (!best || cost < best.cost) best = {cost, box, push};
+    };
+    const touches = (q: KBox) =>
+      mates.some((m) => {
+        const sideX = (Math.abs(m.c + m.cw - q.c) < 0.5 || Math.abs(q.c + q.cw - m.c) < 0.5) && Math.min(m.r + m.ch, q.r + q.ch) - Math.max(m.r, q.r) > 0.01;
+        const sideY = (Math.abs(m.r + m.ch - q.r) < 0.5 || Math.abs(q.r + q.ch - m.r) < 0.5) && colsMeet(m, q);
+        return sideX || sideY;
+      });
+    // A gap that fits it.
+    sizes.forEach(([cw, ch], smaller) => {
+      for (let r = 0; r <= bottom; r += 0.5)
+        for (let c = 0; c + cw <= cols; c++) {
+          const q = {i: n, c, r, cw, ch};
+          if (r + ch > bottom + 0.01 && !mates.length) continue;
+          if (boxes.some((b) => boxesMeet(b, q))) continue;
+          if (mates.length ? !touches(q) : r < firstRows) continue;
+          consider(resized(cw, ch) + r * 0.01, q, new Map());
+        }
+    });
+    // Or just under one of its project's pieces, moving the least.
+    const under = mates.length ? mates : [];
+    // Under a piece of its project, or beside one at its top, moving what is there down.
+    const spots: [number, number, number, number][] = [];
+    for (const m of under)
+      for (const [cw, ch] of sizes) {
+        for (let c = Math.max(0, m.c - cw + 1); c <= Math.min(cols - cw, m.c + m.cw - 1); c++) spots.push([c, m.r + m.ch, cw, ch]);
+        if (m.c + m.cw + cw <= cols) spots.push([m.c + m.cw, m.r, cw, ch]);
+        if (m.c - cw >= 0) spots.push([m.c - cw, m.r, cw, ch]);
+      }
+    for (const [c, r, cw, ch] of spots) {
+        const q = {i: n, c, r, cw, ch};
+        if (boxes.some((b) => b.r < q.r - 0.01 && boxesMeet(b, q))) continue;
+        const push = new Map<KBox, number>();
+        const order = [...boxes].sort((a, b) => a.r - b.r);
+        let moved = 0;
+        for (const y of order) {
+          let d = boxesMeet(y, q) ? q.r + q.ch - y.r : 0;
+          for (const [x, dx] of push) if (x !== y && x.r <= y.r && colsMeet(x, y)) d = Math.max(d, dx - Math.max(0, y.r - (x.r + x.ch)));
+          if (d > 0.01) {
+            push.set(y, d);
+            moved += d * y.cw * y.ch;
+          }
+        }
+        // What it moves, and above all the gaps the move opens.
+        const opened = Math.max(0, gapArea(boxes, cols, q, push) - gaps0) / 4;
+        consider(1 + resized(cw, ch) + moved / Math.max(1, s.cw * s.ch * 8) + opened / Math.max(1, s.cw * s.ch) * 3 + q.r * 0.001, q, push);
+      }
+    // Or, with nowhere better, at the foot of the page where it lies lowest.
+    if (!best)
+      for (let c = 0; c + s.cw <= cols; c++) {
+        const r = Math.max(0, ...boxes.filter((b) => b.c < c + s.cw - 0.01 && b.c + b.cw > c + 0.01).map((b) => b.r + b.ch));
+        consider(100 + r, {i: n, c, r, cw: s.cw, ch: s.ch}, new Map());
+      }
+    const won = best as {cost: number; box: KBox; push: Map<KBox, number>} | null;
+    if (!won) continue;
+    for (const [b, d] of won.push) b.r += d;
+    boxes.push(won.box);
+  }
+  boxes = boxes.sort((a, b) => a.r - b.r || a.c - b.c);
+  return {...fresh, placed: boxes, rows: Math.ceil(Math.max(0, ...boxes.map((b) => b.r + b.ch)))};
+}
+
+/*
   REFINE - pacing, colour flow and facing in, after the lay. Choosing among
   whole layouts barely moved them: each is a different shuffle, so none can
   target "these two neighbours are alike". So, once laid, two pieces with

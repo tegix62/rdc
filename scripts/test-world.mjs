@@ -31,7 +31,7 @@
 
   Usage: node scripts/test-world.mjs
 */
-import {generateWorld, setsOf} from '../src/lib/world.ts'
+import {generateWorld, setsOf, keepLayout, layoutKeys} from '../src/lib/world.ts'
 
 let failures = 0
 const check = (name, ok, detail = '') => {
@@ -344,6 +344,37 @@ for (const [name, cols, maxSpan] of [
     const over = o.placed.filter((q) => !ps[q.i].big && q.cw > minBig)
     check(`real pieces, ${name}: no supporting piece bigger than the case studies`, over.length === 0, `${over.length}`)
   }
+}
+
+// KEEP A LAYOUT: a kept page comes back exactly; a new piece moves almost nothing, overlaps nothing, and sits with its project.
+{
+  const cols = 14
+  const ps = pieces
+  const opts = {cols, mode: 'lands', seed: 4187, maxSpan: 4, rowsPerCell: 2, focus: null, focusRow: 0, card: null, tune: {simple: true, settle: true, stable: true}}
+  const a = generateWorld(ps, opts)
+  const keys = layoutKeys(ps)
+  const kept = Object.fromEntries(a.placed.map((q) => [keys[q.i], [q.c, q.r, q.cw, q.ch]]))
+  const same = keepLayout(ps, kept, a, 14)
+  check('keep a layout: every piece back where it was', same.placed.every((q) => kept[keys[q.i]][0] === q.c && kept[keys[q.i]][1] === q.r))
+  const src = ps.find((p) => p.project && !p.own)
+  const k = ps.indexOf(src)
+  const more = [...ps.slice(0, k + 1), {...src, id: 'brand-new', title: 'Brand new', parent: undefined}, ...ps.slice(k + 1)]
+  const mk = layoutKeys(more)
+  const b = keepLayout(more, kept, generateWorld(more, opts), 14)
+  const moved = b.placed.filter((q) => kept[mk[q.i]] && (kept[mk[q.i]][0] !== q.c || kept[mk[q.i]][1] !== q.r)).length
+  const meet = (x, y) => Math.min(x.c + x.cw, y.c + y.cw) - Math.max(x.c, y.c) > 0.01 && Math.min(x.r + x.ch, y.r + y.ch) - Math.max(x.r, y.r) > 0.01
+  const was = new Set()
+  for (const x of a.placed) for (const y of a.placed) if (x !== y && meet(x, y)) was.add(keys[x.i] + '|' + keys[y.i])
+  let bad = 0
+  for (const x of b.placed) for (const y of b.placed) if (x !== y && meet(x, y) && !was.has(mk[x.i] + '|' + mk[y.i])) bad++
+  const nw = b.placed.find((q) => mk[q.i] === 'brand-new')
+  const near = nw && b.placed.some((q) => q !== nw && more[q.i].project === src.project && Math.abs(q.r - nw.r) <= Math.max(q.ch, nw.ch) + 0.5 && Math.abs(q.c - nw.c) <= Math.max(q.cw, nw.cw) + 0.5)
+  check('keep a layout: a new piece is placed', !!nw && b.placed.length === more.length)
+  check('keep a layout: a new piece moves under a third of the rest', moved <= Math.ceil(ps.length / 3), `${moved} of ${ps.length} moved`)
+  check('keep a layout: a new piece overlaps nothing', bad === 0, `${bad / 2}`)
+  check('keep a layout: a new piece sits with its project', !!near)
+  const gone = keepLayout(ps.filter((_, i) => i !== k), kept, generateWorld(ps.filter((_, i) => i !== k), opts), 14)
+  check('keep a layout: a piece taken away leaves the rest', gone.placed.length === ps.length - 1)
 }
 
 console.log(failures ? `\n${failures} check(s) failed.` : '\nall checks passed')

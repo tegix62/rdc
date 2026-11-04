@@ -56,7 +56,7 @@ import {sanityClient} from '../../lib/sanity';
 import {clusterCard} from '../../lib/clusterCard';
 import {parseCreditLines} from '../../lib/credits';
 import {DOT} from '../../lib/plain';
-import {generateWorld as layWorld, landsGrid, landsInput, searchWorld} from '../../lib/world';
+import {generateWorld as layWorld, keepLayout, landsGrid, landsInput, searchWorld} from '../../lib/world';
 import shapes from '../../data/shapes.json';
 import layouts from '../../data/layouts.json';
 
@@ -461,8 +461,16 @@ if (SEARCH)
   only moves what is laid after it, and nothing above it. With no seed
   kept for the page, the build searches as before.
 */
+/*
+  And kept box by box - Chris: "I really love the frozen layout ... But what
+  I do need is the flexibility to be able to add grid items." A page frozen
+  with its boxes (`at`) puts every piece it knows back where it was and
+  fits only the new ones in (lib/world.ts, keepLayout); a page kept by its
+  seed alone lays out as before.
+*/
 const PAGE = home ? 'home' : project ? project : picks ? 'picks' : 'all';
-const frozen = ((layouts as Record<string, Record<string, number>>)[PAGE] ?? {}) as Record<string, number>;
+type Kept = number | {seed: number; at?: Record<string, number[]>};
+const frozen = ((layouts as unknown as Record<string, Record<string, Kept>>)[PAGE] ?? {}) as Record<string, Kept>;
 const pre: Record<number, {placed: number[][]; rows: number; seed: number}> = {};
 if (SEARCH) {
   for (const phone of [true, false]) {
@@ -479,9 +487,12 @@ if (SEARCH) {
     */
     // And - Chris: "pacing, facing in, anchors and lockups ... and we could try your color flow idea" - neighbours that contrast, colour that drifts, nothing looking off the page.
     const weights = {heavy: 1, pacing: 0.5, flow: 0.3, facing: 0.8, ...(home ? {merch: 2} : {}), ...(phone ? {rivers: 3, samey: 1} : {rivers: 8, samey: 1.5})};
-    const best = frozen[cols]
-      ? {out: layWorld(input, {...opts, seed: frozen[cols]}), seed: frozen[cols]}
+    const kept = frozen[cols];
+    const seed = typeof kept === 'number' ? kept : kept?.seed;
+    const best = seed
+      ? {out: layWorld(input, {...opts, seed}), seed}
       : searchWorld(input, opts, {tries: home ? 300 : 150, firstRows, weights});
+    if (typeof kept === 'object' && kept.at && Object.keys(kept.at).length) best.out = keepLayout(input, kept.at, best.out, firstRows);
     pre[cols] = {placed: best.out.placed.map((q) => [q.i, q.c, q.r, q.cw, q.ch]), rows: Math.max(0, ...best.out.placed.map((q) => q.r + q.ch)), seed: best.seed};
   }
 }

@@ -373,6 +373,22 @@ for (const [name, cols, maxSpan] of [
   check('keep a layout: a new piece moves under a third of the rest', moved <= Math.ceil(ps.length / 3), `${moved} of ${ps.length} moved`)
   check('keep a layout: a new piece overlaps nothing', bad === 0, `${bad / 2}`)
   check('keep a layout: a new piece sits with its project', !!near)
+  // And the room it leaves empty stays close to the kept page's - the tidy (lib/world.ts, TIDY).
+  const empty = (placed) => {
+    const R = 4, W = cols * R, bot = Math.max(...placed.map((q) => q.r + q.ch)), H = Math.ceil(bot * R * 0.85)
+    const g = new Uint8Array(W * Math.ceil(bot * R + 1))
+    for (const q of placed) for (let y = Math.round(q.r * R); y < Math.round((q.r + q.ch) * R); y++) for (let x = Math.round(q.c * R); x < Math.round((q.c + q.cw) * R); x++) g[y * W + x] = 1
+    let e = 0
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!g[y * W + x]) e++
+    return e / (W * H)
+  }
+  for (const s of [...new Set(ps.map((p) => p.project).filter(Boolean))]) {
+    const at = [...ps].reverse().find((p) => p.project === s)
+    const j = ps.indexOf(at)
+    const plus = [...ps.slice(0, j + 1), {...at, id: 'brand-new', title: 'Brand new', own: false, parent: undefined}, ...ps.slice(j + 1)]
+    const laid = keepLayout(plus, kept, generateWorld(plus, opts), 14)
+    check(`keep a layout: a new piece in ${s} leaves no more than 3 points more empty room`, empty(laid.placed) <= empty(a.placed) + 0.03, `${(empty(a.placed) * 100).toFixed(1)}% -> ${(empty(laid.placed) * 100).toFixed(1)}%`)
+  }
   const gone = keepLayout(ps.filter((_, i) => i !== k), kept, generateWorld(ps.filter((_, i) => i !== k), opts), 14)
   check('keep a layout: a piece taken away leaves the rest', gone.placed.length === ps.length - 1)
 }

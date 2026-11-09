@@ -479,8 +479,8 @@ export function layoutKeys(pieces: {id?: string; slug?: string; title?: string}[
 type KBox = {i: number; c: number; r: number; cw: number; ch: number};
 const colsMeet = (a: KBox, b: KBox) => Math.min(a.c + a.cw, b.c + b.cw) - Math.max(a.c, b.c) > 0.01;
 const boxesMeet = (a: KBox, b: KBox) => colsMeet(a, b) && Math.min(a.r + a.ch, b.r + b.ch) - Math.max(a.r, b.r) > 0.01;
-// Empty room inside the layout (above each column's lowest piece), in half-cells.
-function gapArea(boxes: KBox[], cols: number, extra?: KBox, push?: Map<KBox, number>) {
+// Empty room inside the layout (above each column's lowest piece), in half-cells - three times over on the first screen, where it shows most.
+function gapArea(boxes: KBox[], cols: number, extra?: KBox, push?: Map<KBox, number>, firstRows = 0) {
   const S = 2;
   const W = cols * S;
   const all = extra ? [...boxes, extra] : boxes;
@@ -494,7 +494,7 @@ function gapArea(boxes: KBox[], cols: number, extra?: KBox, push?: Map<KBox, num
   for (let x = 0; x < W; x++) {
     let low = -1;
     for (let y = H - 1; y >= 0; y--) if (g[y * W + x]) { low = y; break; }
-    for (let y = 0; y < low; y++) if (!g[y * W + x]) gaps++;
+    for (let y = 0; y < low; y++) if (!g[y * W + x]) gaps += y < firstRows * S ? 3 : 1;
   }
   return gaps;
 }
@@ -507,6 +507,11 @@ export function keepLayout(pieces: WorldPiece[], kept: Record<string, KeptBox>, 
     const b = kept[k];
     if (b && b.length === 4 && b[0] >= 0 && b[0] + b[2] <= cols + 0.01) boxes.push({i, c: b[0], r: b[1], cw: b[2], ch: b[3]});
   });
+  // Where each kept piece was, and which pairs overlapped there on purpose
+  // (the shape-aware packing tucks one piece into another's empty corner).
+  const was = new Map(boxes.map((b) => [b, {c: b.c, r: b.r}]));
+  const nested = new Set<string>();
+  for (const a of boxes) for (const b of boxes) if (a !== b && boxesMeet(a, b)) nested.add(`${a.i}|${b.i}`);
   // Pieces that are gone: what rested on them slides up into their room.
   const gone: KBox[] = Object.entries(kept)
     .filter(([k, b]) => !known.has(k) && b.length === 4)
@@ -538,9 +543,10 @@ export function keepLayout(pieces: WorldPiece[], kept: Record<string, KeptBox>, 
     const sizes: [number, number][] = [[s.cw, s.ch]];
     for (const cw of [s.cw - 1, s.cw + 1])
       if (cw >= 1 && cw <= 4 && cw <= cols) sizes.push([cw, Math.max(1, Math.round((cw * s.ch) / s.cw))]);
-    const resized = (cw: number, ch: number) => (Math.abs(cw * ch - s.cw * s.ch) / (s.cw * s.ch)) * 4;
+    // A size up costs less than a size down: a new piece a little larger than planned reads as a choice, a squeezed one as a mistake.
+    const resized = (cw: number, ch: number) => (Math.abs(cw * ch - s.cw * s.ch) / (s.cw * s.ch)) * (cw * ch > s.cw * s.ch ? 1.5 : 4);
     const bottom = Math.max(0, ...boxes.map((b) => b.r + b.ch));
-    const gaps0 = gapArea(boxes, cols);
+    const gaps0 = gapArea(boxes, cols, undefined, undefined, firstRows);
     let best: {cost: number; box: KBox; push: Map<KBox, number>} | null = null;
     const consider = (cost: number, box: KBox, push: Map<KBox, number>) => {
       if (!best || cost < best.cost) best = {cost, box, push};
@@ -575,20 +581,10 @@ export function keepLayout(pieces: WorldPiece[], kept: Record<string, KeptBox>, 
     for (const [c, r, cw, ch] of spots) {
         const q = {i: n, c, r, cw, ch};
         if (boxes.some((b) => b.r < q.r - 0.01 && boxesMeet(b, q))) continue;
-        const push = new Map<KBox, number>();
-        const order = [...boxes].sort((a, b) => a.r - b.r);
-        let moved = 0;
-        for (const y of order) {
-          let d = boxesMeet(y, q) ? q.r + q.ch - y.r : 0;
-          for (const [x, dx] of push) if (x !== y && x.r <= y.r && colsMeet(x, y)) d = Math.max(d, dx - Math.max(0, y.r - (x.r + x.ch)));
-          if (d > 0.01) {
-            push.set(y, d);
-            moved += d * y.cw * y.ch;
-          }
-        }
+        const {push, moved} = pushFor(boxes, q);
         // What it moves, and above all the gaps the move opens.
-        const opened = Math.max(0, gapArea(boxes, cols, q, push) - gaps0) / 4;
-        consider(1 + resized(cw, ch) + moved / Math.max(1, s.cw * s.ch * 8) + opened / Math.max(1, s.cw * s.ch) * 3 + q.r * 0.001, q, push);
+        const opened = Math.max(0, gapArea(boxes, cols, q, push, firstRows) - gaps0) / 4;
+        consider(1 + resized(cw, ch) + moved / Math.max(1, s.cw * s.ch * 8) + opened / Math.max(1, s.cw * s.ch) * 6 + q.r * 0.001, q, push);
       }
     // Or, with nowhere better, at the foot of the page where it lies lowest.
     if (!best)
@@ -601,9 +597,191 @@ export function keepLayout(pieces: WorldPiece[], kept: Record<string, KeptBox>, 
     for (const [b, d] of won.push) b.r += d;
     boxes.push(won.box);
   }
+  // Then close what the changes opened - only when something changed, so a page with nothing new comes back exactly.
+  const changes = fresh_.length + gone.length;
+  if (changes) tidy(pieces, boxes, was, nested, cols, firstRows, 3 * changes);
   boxes = boxes.sort((a, b) => a.r - b.r || a.c - b.c);
   return {...fresh, placed: boxes, rows: Math.ceil(Math.max(0, ...boxes.map((b) => b.r + b.ch)))};
 }
+
+/*
+  What has to slide down, and how far, for a box to go in at q: what it
+  covers moves to just under it, and what is under that moves only as far
+  as it must - a gap below soaks the push up.
+*/
+function pushFor(boxes: KBox[], q: KBox, skip?: KBox) {
+  const push = new Map<KBox, number>();
+  let moved = 0;
+  for (const y of [...boxes].sort((a, b) => a.r - b.r)) {
+    if (y === skip) continue;
+    let d = boxesMeet(y, q) ? q.r + q.ch - y.r : 0;
+    for (const [x, dx] of push) if (x !== y && x.r <= y.r && colsMeet(x, y)) d = Math.max(d, dx - Math.max(0, y.r - (x.r + x.ch)));
+    if (d > 0.01) {
+      push.set(y, d);
+      moved += d * y.cw * y.ch;
+    }
+  }
+  return {push, moved};
+}
+
+/*
+  TIDY - Chris: "if it gets messed up upon me adding grid items, then it's
+  fundamentally flawed", and he wants it hands-free. Fitting a piece in
+  slides the pieces under it down, and where one of those was wider than
+  the push, the columns beside it are left with a gap. Two moves close it:
+    1. a piece pushed further than it needed slides back up, never above
+       where it was;
+    2. a piece lower down moves up into a gap - one with no project, or
+       one that will still touch its own project there - at its size or a
+       size smaller, when that clearly shrinks the empty room. A piece from
+       the foot of the page costs nothing to move: the foot is ragged anyway.
+  A few moves per change at most, so the page stays the one approved.
+*/
+function tidy(pieces: WorldPiece[], boxes: KBox[], was: Map<KBox, {c: number; r: number}>, nested: Set<string>, cols: number, firstRows: number, budget: number) {
+  const moved = (b: KBox) => {
+    const w = was.get(b);
+    return !w || Math.abs(w.c - b.c) > 0.01 || Math.abs(w.r - b.r) > 0.01;
+  };
+  const clash = (a: KBox, b: KBox) => boxesMeet(a, b) && !(nested.has(`${a.i}|${b.i}`) && !moved(a) && !moved(b));
+  const fits = (q: KBox, skip: KBox) => q.c >= -0.01 && q.c + q.cw <= cols + 0.01 && q.r >= -0.01 && !boxes.some((b) => b !== skip && clash(b, q));
+  // 1. Back up as far as it can, never above where it was.
+  for (let round = 0; round < 2; round++)
+    for (const b of [...boxes].sort((x, y) => x.r - y.r)) {
+      const w = was.get(b);
+      if (!w || b.r <= w.r + 0.01) continue;
+      for (let r = w.r; r < b.r - 0.01; r += 0.25) {
+        const at = b.r;
+        b.r = r;
+        if (!boxes.some((x) => x !== b && clash(x, b))) break;
+        b.r = at;
+      }
+    }
+  /*
+    Below the first screen, every piece settles up into the room above it -
+    never into the first screen. This is what makes a move worth making: a
+    piece moved up leaves its own hole, and only the pieces under it rising
+    into that hole turn the move into less empty room.
+  */
+  const settle = (jump = true) => {
+    for (let round = 0; round < 4; round++) {
+      let any = false;
+      for (const b of [...boxes].sort((x, y) => x.r - y.r)) {
+        if (b.r <= firstRows + 0.01) continue;
+        // Straight up to the foot of whatever is above it in its columns (or the first screen's edge).
+        let r = firstRows;
+        for (const x of boxes) if (x !== b && colsMeet(x, b) && x.r < b.r - 0.01 && !clash(x, b)) r = Math.max(r, x.r + x.ch);
+        if (r >= b.r - 0.01) continue;
+        const at = b.r;
+        // That spot first; if something tucked beside it is in the way, the highest spot between that is clear.
+        for (let t = r; t < at - 0.01; t += 0.25) {
+          b.r = t;
+          if (!boxes.some((x) => x !== b && clash(x, b))) {
+            any = true;
+            break;
+          }
+          b.r = at;
+        }
+      }
+      /*
+        With `jump`, the last pass: a piece may also rise past what is above
+        it into an enclosed hole higher up - only where it still touches its
+        own project there (or has none), so no piece leaves its set.
+      */
+      if (jump)
+        for (const b of [...boxes].sort((x, y) => x.r - y.r)) {
+          if (b.r <= firstRows + 0.01) continue;
+          const proj = pieces[b.i]?.project;
+          const mates = proj ? boxes.filter((m) => m !== b && pieces[m.i]?.project === proj) : [];
+          const at = b.r;
+          for (let t = firstRows; t < at - 0.01; t += 0.25) {
+            b.r = t;
+            if (!boxes.some((x) => x !== b && clash(x, b)) && (!mates.length || mates.some((m) => touching(m, b)))) {
+              any = true;
+              break;
+            }
+            b.r = at;
+          }
+        }
+      if (!any) break;
+    }
+  };
+  settle();
+  /*
+    1b. A new piece a column wider, into a gap beside it, when that leaves
+    less empty room - a new piece set into a slot narrower than the one
+    beside it leaves a sliver no other piece fits.
+  */
+  for (const b of boxes) {
+    if (was.has(b) || b.cw >= 4) continue;
+    for (const c of [b.c, b.c - 1]) {
+      const g0 = gapArea(boxes, cols, undefined, undefined, firstRows);
+      const q = {i: b.i, c, r: b.r, cw: b.cw + 1, ch: Math.max(1, Math.round(((b.cw + 1) * b.ch) / b.cw))};
+      if (q.c < 0 || q.c + q.cw > cols + 0.01) continue;
+      // Only into room that is empty beside it, for its whole height.
+      const beside = {i: -1, c: c === b.c ? b.c + b.cw : b.c - 1, r: b.r, cw: 1, ch: b.ch};
+      if (boxes.some((x) => x !== b && boxesMeet(x, beside))) continue;
+      const before = boxes.map((x) => ({c: x.c, r: x.r, cw: x.cw, ch: x.ch}));
+      const {push} = pushFor(boxes, q, b);
+      for (const [x, d] of push) x.r += d;
+      Object.assign(b, {c: q.c, cw: q.cw, ch: q.ch});
+      settle();
+      if (gapArea(boxes, cols, undefined, undefined, firstRows) < g0 - 2) break;
+      boxes.forEach((x, n) => Object.assign(x, before[n]));
+    }
+  }
+  // 2. A piece from lower down into a gap.
+  const S = 2;
+  const W = cols * S;
+  for (let move = 0; move < budget; move++) {
+    const g0 = gapArea(boxes, cols, undefined, undefined, firstRows);
+    if (!g0) break;
+    const bottom = Math.max(0, ...boxes.map((b) => b.r + b.ch));
+    const H = Math.ceil(bottom * S) + 1;
+    const g = new Uint8Array(W * H);
+    for (const b of boxes)
+      for (let y = Math.floor(b.r * S + 0.01); y < Math.ceil((b.r + b.ch) * S - 0.01); y++)
+        for (let x = Math.floor(b.c * S + 0.01); x < Math.ceil((b.c + b.cw) * S - 0.01); x++) g[y * W + x] = 1;
+    // Every empty spot inside the page, on whole columns, as a place a piece's top-left corner could go.
+    const corners: [number, number][] = [];
+    for (let y = 0; y < Math.floor(bottom * 0.85 * S); y++)
+      for (let x = 0; x < W; x++)
+        if (!g[y * W + x] && x % S === 0) corners.push([x / S, y / S]);
+    let best: {gain: number; b: KBox; c: number; r: number; cw: number; ch: number} | null = null;
+    for (const [c, r] of corners)
+      for (const b of boxes) {
+        const kind = pieces[b.i]?.kind;
+        if (kind === 'result' || kind === 'video' || b.r < r + 0.5) continue;
+        const proj = pieces[b.i]?.project;
+        const mates = proj ? boxes.filter((m) => m !== b && pieces[m.i]?.project === proj) : [];
+        if (!proj && r < firstRows) continue;
+        const sizes: [number, number][] = [[b.cw, b.ch]];
+        for (const cw of [b.cw - 1, b.cw + 1]) if (cw >= 1 && cw <= 4) sizes.push([cw, Math.max(1, Math.round((cw * b.ch) / b.cw))]);
+        sizes.forEach(([cw, ch], smaller) => {
+          const q = {i: b.i, c, r, cw, ch};
+          if (!fits(q, b)) return;
+          if (mates.length && !mates.some((m) => touching(m, q))) return;
+          // Judged after what was under it has settled into the room it left.
+          const before = boxes.map((x) => ({c: x.c, r: x.r, cw: x.cw, ch: x.ch}));
+          Object.assign(b, {c, r, cw, ch});
+          settle();
+          const gain = g0 - gapArea(boxes, cols, undefined, undefined, firstRows);
+          boxes.forEach((x, n) => Object.assign(x, before[n]));
+          if (gain >= (smaller ? 8 : 4) && (!best || gain > best.gain)) best = {gain, b, c, r, cw, ch};
+        });
+      }
+    const won = best as {gain: number; b: KBox; c: number; r: number; cw: number; ch: number} | null;
+    if (!won) break;
+    Object.assign(won.b, {c: won.c, r: won.r, cw: won.cw, ch: won.ch});
+    settle();
+  }
+  // 3. And once more at the end, letting a piece rise into an enclosed hole beside its own project.
+  settle(true);
+}
+const touching = (m: KBox, q: KBox) => {
+  const sideX = (Math.abs(m.c + m.cw - q.c) < 0.5 || Math.abs(q.c + q.cw - m.c) < 0.5) && Math.min(m.r + m.ch, q.r + q.ch) - Math.max(m.r, q.r) > 0.01;
+  const sideY = (Math.abs(m.r + m.ch - q.r) < 0.5 || Math.abs(q.r + q.ch - m.r) < 0.5) && colsMeet(m, q);
+  return sideX || sideY;
+};
 
 /*
   REFINE - pacing, colour flow and facing in, after the lay. Choosing among

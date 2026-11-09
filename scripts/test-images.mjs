@@ -172,7 +172,12 @@ const ampleSet = buildSrcSet(ample, 2400)
 
 check('a stretched source is delivered at higher quality', /[?&]q=92/.test(shortSet), true)
 check('a stretched source is sharpened', /[?&]sharp=15/.test(shortSet), true)
-check('every candidate gets it, not just the largest', shortSet.split(', ').every((c) => c.includes('q=92')), true)
+// Only the largest - the file at its own width - can be shown enlarged: a
+// browser takes the smallest candidate at least as wide as the space, so the
+// smaller ones are never stretched and keep q90, unsharpened.
+const shortCands = shortSet.split(', ')
+check('the largest candidate, the file at its own width, gets it', /[?&]w=1200\b/.test(shortCands.at(-1)) && shortCands.at(-1).includes('q=92'), true)
+check('the smaller candidates do not', shortCands.slice(0, -1).every((c) => c.includes('q=90') && !c.includes('sharp=')), true)
 // The default must stay the photograph default (90 since October 2026,
 // chosen on purpose) - not the stretched picture's 92 - or this quietly
 // becomes a site-wide quality bump and a site-wide byte increase.

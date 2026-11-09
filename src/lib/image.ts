@@ -418,11 +418,20 @@ export function buildSrcSet(
   /*
     Same rule as the `src` in Img.astro, computed here rather than passed in so
     the two cannot drift: when the layout wants more pixels than the file has,
-    every candidate is delivered at higher quality and lightly sharpened.
+    the file is delivered at higher quality and lightly sharpened.
 
     This has to be here as well, not only on `src`. Once a srcset exists the
     browser chooses from IT, so improving only the fallback would improve the
     one URL almost nobody is served.
+
+    Only the LARGEST candidate - the file at its own width. A browser takes
+    the smallest candidate at least as wide as the space, so a smaller one is
+    only ever shown at or below its own size; only the full-width file can be
+    shown enlarged. Every candidate used to get it, and on the mosaic that was
+    most pictures: a tile asks for up to 1400px, so any upload narrower than
+    that counted as "stretched" - 191 of the 285 pictures in use (November
+    2026), each sent at q92 and sharpened at every size, 29% more bytes than
+    q90, almost always for a tile showing it smaller than the file.
   */
   const intrinsic = imageDimensions(source);
   const willStretch = !!intrinsic && intrinsic.width < maxWidth;
@@ -430,7 +439,7 @@ export function buildSrcSet(
   return widths
     .map((w) => {
       let b = urlFor(source).width(w);
-      if (willStretch) b = b.quality(92).sharpen(15);
+      if (willStretch && w === ceiling) b = b.quality(92).sharpen(15);
       // Preserve a deliberate crop ratio across every variant, otherwise the
       // wider entries come back at the source aspect and the layout shifts
       // when the browser swaps them.

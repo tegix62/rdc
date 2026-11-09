@@ -17,7 +17,7 @@
 import {chromium} from 'playwright'
 
 const BASE = (process.argv[2] ?? 'https://preview.rumeau-design-co.pages.dev').replace(/\/$/, '')
-// The apparel mix on the homepage is preview-only for now (WorkFirst.astro, APPAREL_MIX).
+// The homepage's merch share is weighed by the preview's mosaic engine (LandsView, SEARCH), so that check stays on the preview.
 const PREVIEW_HOME = /preview\./.test(BASE)
 let failures = 0
 const check = (name, ok, detail = '') => {

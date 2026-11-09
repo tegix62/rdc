@@ -63,9 +63,9 @@ const anyScan = series.some((p) => p.hasScan);
                    screen, beside a ruler, with a bank card to match the
                    screen's inch to a real one. See the script below.
 */
-const PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
-const MUSEUM_LABELS = PREVIEW;
-const ACTUAL_SIZE = PREVIEW;
+// Both live since November 2026 - Chris: "Number 8, yes".
+const MUSEUM_LABELS = true as boolean;
+const ACTUAL_SIZE = true as boolean;
 const labelOf = (p: any) => {
   const size = p.hasScan ? realSize(p.scan, p.realWidth) : null;
   const detail = [stripStegaKey(p.medium), size ? sizeText(size) : ''].filter(Boolean).join(', ');

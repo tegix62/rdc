@@ -62,11 +62,11 @@ const isMerch = (it: any) => cleanKey(it.category) === 'Merch & Apparel';
   looking as clunky as the several past tries". With two dozen pieces there
   was nothing small to fill round the big ones, whatever the sizes.
 
-  THE APPAREL MIX (preview) changes the order only: the projects Chris named
+  THE APPAREL MIX (live since November 2026 - Chris: "Number 4, yes") changes the order only: the projects Chris named
   first, in LEAD's order (LandsView, lead), and each one's merch first among
   its pieces - so its PER are its garments before its posters.
 */
-const APPAREL_MIX = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+const APPAREL_MIX = true as boolean;
 const PER = 7;
 const items: any[] = (await getAllGridItems()).filter((it: any) => tileImage(it));
 const only = new Set<string>(featured.map(idOf).filter(Boolean));

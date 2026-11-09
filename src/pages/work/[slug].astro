@@ -4,7 +4,7 @@ import Img from '../../components/Img.astro';
 import Sections from '../../components/Sections.astro';
 import { sanityClient } from '../../lib/sanity';
 import { getCaseStudy, getGridItems, getOtherCaseStudies, getSiteSettings } from '../../lib/queries';
-import { socialCardUrl, fileUrl, imageDimensions, hasAsset } from '../../lib/image';
+import { socialCardUrl, fileUrl, imageDimensions, hasAsset, archiveCard } from '../../lib/image';
 import { embedUrl } from '../../lib/video';
 import { renderPortableText } from '../../lib/portableText';
 import { stripStegaKey } from '../../lib/stega';
@@ -49,6 +49,14 @@ const CONTACT_URL = (await getSiteSettings())?.contactUrl || '/contact';
   without squashing: the width is capped at (ceiling x ratio), the same
   trick as the hero.
 */
+/*
+  OFF for now - Chris (November 2026): "every case study shows like the
+  apparent best image at the end of the scroll. I don't want that right
+  now." The page ends on the ask and the More Work cards again. The code
+  stays, so turning this back to true brings the plate (and the line of
+  names in place of the cards) back.
+*/
+const CLOSING_PLATE = false as boolean;
 const heroIsVideo = Boolean(
   caseStudy.heroVideo || caseStudy.heroVideoSrc || caseStudy.heroVideoFile || caseStudy.heroVideoWebm,
 );
@@ -436,7 +444,7 @@ const projectHref = `/work/${stripStegaKey(caseStudy.slug?.current ?? '')}`;
     </article>
   )}
 
-  {closing && !gated && (
+  {CLOSING_PLATE && closing && !gated && (
     <figure class="work-closing" style={closingStyle}>
       <Img
         image={closing.image}
@@ -450,11 +458,10 @@ const projectHref = `/work/${stripStegaKey(caseStudy.slug?.current ?? '')}`;
   )}
 
   {/*
-    The ask, as the end. The other projects used to follow it as a row of
-    cards, so every case study ended on four small pictures of other work
-    and the footer. They are still linked - a visitor who wants the next
-    project should find it - but as a line of names under the buttons, so
-    the closing plate and the ask are what the page ends on.
+    The ask, then the other projects as a row of cards again - Chris (November
+    2026): "I want there to be more case studies or see more case studies type
+    of functionality like we originally had." While the closing plate was on,
+    they were a line of names under the buttons; that line returns with it.
   */}
   {!gated && (
     <div class="page-ask">
@@ -463,7 +470,7 @@ const projectHref = `/work/${stripStegaKey(caseStudy.slug?.current ?? '')}`;
         <a class="button" href={CONTACT_URL}>Let's Work</a>
         <a class="button button--outline" href="/portfolio">See Portfolio</a>
       </div>
-      {otherWork.length > 0 && (
+      {CLOSING_PLATE && otherWork.length > 0 && (
         <p class="page-ask__more">
           More work:{' '}
           {otherWork.map((item: any, i: number) => (
@@ -475,6 +482,37 @@ const projectHref = `/work/${stripStegaKey(caseStudy.slug?.current ?? '')}`;
         </p>
       )}
     </div>
+  )}
+
+  {!CLOSING_PLATE && !gated && otherWork.length > 0 && (
+    <section class="work-related">
+      <p class="section-label">More Work</p>
+      <div class="grid">
+        {otherWork.map((item: any) => {
+          /*
+            An archive card, not a thumbnail - the Archive Mark where one is
+            drawn, the tile inked where one is not. See archiveCard().
+          */
+          const card = archiveCard(item);
+          return (
+            <a class="card" href={`/work/${item.slug.current}`}>
+              {card.image && (
+                <Img
+                  image={card.image}
+                  markMode={card.mode}
+                  alt={item.title}
+                  field={card.mode === 'drawn' ? 'archiveMark (Archive Mark)' : 'thumbnail (Tile Image)'}
+                  width={600}
+                  sizes="(max-width: 40rem) 33vw, 25vw"
+                />
+              )}
+              <p class="card__title">{item.title}</p>
+              {item.client && <p class="card__meta">{item.client}</p>}
+            </a>
+          );
+        })}
+      </div>
+    </section>
   )}
 
   {gated && (

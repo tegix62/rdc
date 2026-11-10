@@ -958,6 +958,33 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     // Only the piece opening or closing glides; a redrawing (a wider window, + or -) is at once.
     const moving = grow && drawn !== focus ? [drawn, focus] : [];
     drawn = focus;
+    /*
+      A WIDER GAP BETWEEN PROJECTS (preview). Chris: "on mobile, stuff is not
+      really connected in the All view". Each project's pieces do sit
+      together (measured: every project one touching group), but with the
+      same 2px between everything nothing says where one project ends and
+      the next starts. So a side that meets another project's piece - or a
+      piece of no project - is pulled back a few pixels more: the work
+      inside a project stays close, and each project reads as its own patch.
+    */
+    const apart = data.search && mode === 'lands' ? (phone ? 6 : 8) : 0;
+    const inset = new Map<WorldResult['placed'][number], [number, number, number, number]>();
+    if (apart) {
+      const setOf = setsOf(sub);
+      for (const a of out.placed) {
+        const e: [number, number, number, number] = [0, 0, 0, 0];
+        for (const b of out.placed) {
+          if (a === b || setOf[a.i] === setOf[b.i]) continue;
+          const rows = Math.min(a.r + a.ch, b.r + b.ch) - Math.max(a.r, b.r) > 0.01;
+          const colsMeet = Math.min(a.c + a.cw, b.c + b.cw) - Math.max(a.c, b.c) > 0.01;
+          if (rows && Math.abs(b.c + b.cw - a.c) < 0.01) e[0] = apart / 2;
+          if (rows && Math.abs(a.c + a.cw - b.c) < 0.01) e[2] = apart / 2;
+          if (colsMeet && Math.abs(b.r + b.ch - a.r) < 0.3) e[1] = apart / 2;
+          if (colsMeet && Math.abs(a.r + a.ch - b.r) < 0.3) e[3] = apart / 2;
+        }
+        inset.set(a, e);
+      }
+    }
     for (const p of out.placed) {
       const i = subset[p.i];
       const t = tiles[i];
@@ -965,10 +992,11 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
       // On a phone everything below makes room (see the drawer below), so everything glides.
       t.classList.toggle('is-moving', moving.length > 0 && (phone || moving.includes(i)));
       t.classList.toggle('has-card', i === focus && !!cardEl && grow);
-      t.style.left = `${p.c * cell + gap / 2}px`;
-      t.style.top = `${p.r * rowH + gap / 2}px`;
-      t.style.width = `${p.cw * cell - gap}px`;
-      t.style.height = `${p.ch * rowH - gap}px`;
+      const [el, et, er, eb] = inset.get(p) ?? [0, 0, 0, 0];
+      t.style.left = `${p.c * cell + gap / 2 + el}px`;
+      t.style.top = `${p.r * rowH + gap / 2 + et}px`;
+      t.style.width = `${p.cw * cell - gap - el - er}px`;
+      t.style.height = `${p.ch * rowH - gap - et - eb}px`;
       t.classList.toggle('is-open', i === focus);
       t.classList.toggle('is-sibling', fam.has(i));
       t.classList.toggle('is-small', p.cw * cell < 150);

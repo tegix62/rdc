@@ -388,6 +388,18 @@ videos.forEach((v) =>
 */
 const SEARCH = import.meta.env.PUBLIC_IS_PREVIEW === 'true' && !picks;
 /*
+  THE PHONE AS LIVE. Chris, on the phone All view: "I feel like this doesn't
+  look as good as the mosaics that are on live." Side by side (November
+  2026), live's phone mosaic packs more pieces into a screen, mixes big and
+  small more, and keeps a project tight; the search's was emptier and
+  clunkier. The wide screen he likes as the search lays it ("It's excellent
+  on desktop"). So a phone is laid out exactly as live lays it - the plain
+  pieces, before the traced shapes, the proof and the colour below, and
+  live's own settings - and only kept box by box on top (KEEP A LAYOUT), so
+  a new piece is fitted in rather than reshuffling it.
+*/
+const plainPieces = pieces.map((p) => ({...p}));
+/*
   Each picture's traced shape and visual weight (scripts/trace-shapes.mjs,
   src/data/shapes.json): the ink's 12 x 12 mask, for SETTLE, and how heavy it
   looks, for VISUAL WEIGHT (lib/world.ts). Preview only, with the search.
@@ -439,16 +451,18 @@ if (SEARCH) {
 */
 if (SEARCH)
   all.forEach((it, i) => {
-    const P = pieces[i] as any;
-    const size = cleanKey(it.tileSize);
-    if (size === 'large') P.big = true;
-    if (size === 'small') {
-      P.big = false;
-      P.weight = (P.weight ?? 1) * 0.5;
-    }
-    if (home && it.homePin) {
-      P.big = true;
-      P.order = -200;
+    // Both versions of the piece: Chris's say holds on a phone too.
+    for (const P of [pieces[i], plainPieces[i]] as any[]) {
+      const size = cleanKey(it.tileSize);
+      if (size === 'large') P.big = true;
+      if (size === 'small') {
+        P.big = false;
+        P.weight = (P.weight ?? 1) * 0.5;
+      }
+      if (home && it.homePin) {
+        P.big = true;
+        P.order = -200;
+      }
     }
   });
 /*
@@ -477,8 +491,16 @@ if (SEARCH) {
     const {cols, maxSpan} = landsGrid(phone);
     // A screen's rows at this grid: a phone's cell is an eighth of ~420px on half-height rows, a wide screen's a fourteenth of ~1440px.
     const firstRows = phone ? 24 : 14;
-    const input = landsInput(pieces as any[], phone, maxSpan);
-    const opts = {cols, mode: 'lands' as const, seed: 4187, shuffled: false, maxSpan, rowsPerCell: 2, focus: null, focusRow: 0, card: null, tune: {simple: true, tallMarks: grow, settle: true, stable: true, varyWidth: phone, looseBelow: phone ? 24 : 14, art: true}};
+    const input = landsInput((phone ? plainPieces : pieces) as any[], phone, maxSpan);
+    /*
+      A phone with live's settings (THE PHONE AS LIVE): no settling into
+      shapes, no stable ranks, no width variety, no swaps - and live's
+      loose-piece line, a screen down, at a common phone's height (844px
+      over rows of half a cell, the cell an eighth of 382px).
+    */
+    const opts = phone
+      ? {cols, mode: 'lands' as const, seed: 4187, shuffled: false, maxSpan, rowsPerCell: 2, focus: null, focusRow: 0, card: null, tune: {simple: true, tallMarks: grow, looseBelow: Math.round(844 / (382 / cols / 2))}}
+      : {cols, mode: 'lands' as const, seed: 4187, shuffled: false, maxSpan, rowsPerCell: 2, focus: null, focusRow: 0, card: null, tune: {simple: true, tallMarks: grow, settle: true, stable: true, varyWidth: phone, looseBelow: phone ? 24 : 14, art: true}};
     /*
       The scorecard: no gaps, the merch's room on the homepage, heavy pieces
       apart, and - Chris: "predictable 'rivers' or samey spots" - long
@@ -489,8 +511,9 @@ if (SEARCH) {
     const weights = {heavy: 1, pacing: 0.5, flow: 0.3, facing: 0.8, ...(home ? {merch: 2} : {}), ...(phone ? {rivers: 3, samey: 1} : {rivers: 8, samey: 1.5})};
     const kept = frozen[cols];
     const seed = typeof kept === 'number' ? kept : kept?.seed;
-    const best = seed
-      ? {out: layWorld(input, {...opts, seed}), seed}
+    // A phone is laid as live lays it, never searched (THE PHONE AS LIVE).
+    const best = seed || phone
+      ? {out: layWorld(input, {...opts, seed: seed ?? 4187}), seed: seed ?? 4187}
       : searchWorld(input, opts, {tries: home ? 300 : 150, firstRows, weights});
     if (typeof kept === 'object' && kept.at && Object.keys(kept.at).length) best.out = keepLayout(input, kept.at, best.out, firstRows);
     pre[cols] = {placed: best.out.placed.map((q) => [q.i, q.c, q.r, q.cw, q.ch]), rows: Math.max(0, ...best.out.placed.map((q) => q.r + q.ch)), seed: best.seed};
@@ -884,9 +907,11 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     // Any other seed is a shuffle: the projects' sets move, not only their pieces (lib/world.ts, SHUFFLED).
     // The build's best layout for this grid, when the page is as it opens (THE BEST LAYOUT, FOUND AT BUILD).
     const found = mode === 'lands' && simple && seed === FIRST_SEED && zoom === 2 && like === null && !audience ? data.pre?.[cols] : undefined;
-    const opts = {cols, mode, seed, shuffled: !data.home && seed !== FIRST_SEED, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow, settle: !!data.search, stable: !!data.search, varyWidth: !!data.search && phone, looseBelow: Math.round(innerHeight / rowH), art: !!data.search}};
+    // The search's settings on a wide screen only; a phone lays out as live (THE PHONE AS LIVE, in the build above).
+    const wide = !!data.search && !phone;
+    const opts = {cols, mode, seed, shuffled: !data.home && seed !== FIRST_SEED, maxSpan, rowsPerCell: kr, focus: focus === null || inPlace ? null : subset.indexOf(focus), focusRow, card, tune: {simple, tallMarks: data.grow, settle: wide, stable: wide, varyWidth: false, looseBelow: Math.round(innerHeight / rowH), art: wide}};
     // Another zoom of the first world: a quick search here, so every step is as well laid as the one the build found.
-    const quick = !found && data.search && mode === 'lands' && simple && (seed === FIRST_SEED || like !== null);
+    const quick = !found && wide && mode === 'lands' && simple && (seed === FIRST_SEED || like !== null);
     let out: WorldResult = found
       ? {placed: found.placed.map(([i, c, r, cw, ch]) => ({i, c, r, cw, ch})), cols, rows: found.rows, labels: [], family: []}
       : quick

@@ -498,7 +498,14 @@ function gapArea(boxes: KBox[], cols: number, extra?: KBox, push?: Map<KBox, num
   }
   return gaps;
 }
-export function keepLayout(pieces: WorldPiece[], kept: Record<string, KeptBox>, fresh: WorldResult, firstRows: number): WorldResult {
+export function keepLayout(
+  pieces: WorldPiece[],
+  kept: Record<string, KeptBox>,
+  fresh: WorldResult,
+  firstRows: number,
+  // Lays some of the pieces out on their own, across the full width - for a set going in whole (A SET THAT IS MOSTLY NEW).
+  layAlone?: (idx: number[]) => WorldPlaced[] | null,
+): WorldResult {
   const cols = fresh.cols;
   const keys = layoutKeys(pieces as any[]);
   /*
@@ -559,13 +566,18 @@ export function keepLayout(pieces: WorldPiece[], kept: Record<string, KeptBox>, 
     const added = members.filter((i) => fresh_.includes(i));
     const held = boxes.filter((b) => setOf[b.i] === set);
     if (added.length < 2 || added.length < held.length) continue;
-    const patch = members.map((i) => freshAt.get(i));
-    if (patch.some((q) => !q)) continue;
-    const c0 = Math.min(...patch.map((q) => q!.c));
-    const r0 = Math.min(...patch.map((q) => q!.r));
-    const bw = Math.max(...patch.map((q) => q!.c + q!.cw)) - c0;
-    const bh = Math.max(...patch.map((q) => q!.r + q!.ch)) - r0;
-    if (bw > cols) continue;
+    /*
+      Two shapes for it: its patch in the fresh lay (gathered round its
+      lead, as Red Kettle is, but as tall as the lay made it), and the set
+      laid alone across the full width - a short band, which at the foot
+      leaves no side running long. Whichever leaves the page best.
+    */
+    const shapes: KBox[][] = [];
+    const inFresh = members.map((i) => freshAt.get(i));
+    if (inFresh.every((q) => q)) shapes.push(inFresh.map((q) => ({...q!})));
+    const alone = layAlone?.(members);
+    if (alone && alone.length === members.length) shapes.push(alone.map((q) => ({i: members[q.i], c: q.c, r: q.r, cw: q.cw, ch: q.ch})));
+    if (!shapes.length) continue;
     // Out with its kept pieces; the block goes where they began, or at the foot.
     boxes = boxes.filter((b) => setOf[b.i] !== set);
     const foot = Math.max(0, ...boxes.map((b) => b.r + b.ch));
@@ -588,8 +600,14 @@ export function keepLayout(pieces: WorldPiece[], kept: Record<string, KeptBox>, 
       return ends.reduce((n, e) => n + (top - e), 0);
     };
     const rag0 = ragged({i: -1, c: 0, r: 0, cw: 0, ch: 0}, new Map());
-    let best: {cost: number; c: number; r: number; push: Map<KBox, number>} | null = null;
-    for (let c = 0; c + bw <= cols; c++) {
+    let best: {cost: number; c: number; r: number; push: Map<KBox, number>; patch: KBox[]; c0: number; r0: number} | null = null;
+    for (const patch of shapes) {
+    const c0 = Math.min(...patch.map((q) => q.c));
+    const r0 = Math.min(...patch.map((q) => q.r));
+    const bw = Math.max(...patch.map((q) => q.c + q.cw)) - c0;
+    const bh = Math.max(...patch.map((q) => q.r + q.ch)) - r0;
+    if (bw > cols + 0.01) continue;
+    for (let c = 0; c + bw <= cols + 0.01; c++) {
       const low = Math.max(0, ...boxes.filter((b) => b.c < c + bw - 0.01 && b.c + b.cw > c + 0.01).map((b) => b.r + b.ch));
       for (const r of held.length ? [at, low] : [low]) {
         const q = {i: -1, c, r, cw: bw, ch: bh};
@@ -597,15 +615,19 @@ export function keepLayout(pieces: WorldPiece[], kept: Record<string, KeptBox>, 
         const {push, moved} = pushFor(boxes, q);
         const opened = Math.max(0, gapArea(boxes, cols, q, push, firstRows) - gaps0);
         const cost = moved + opened * 2 + Math.max(0, ragged(q, push) - rag0) * 2 + (r - at) * 0.5;
-        if (!best || cost < best.cost) best = {cost, c, r, push};
+        if (!best || cost < best.cost) best = {cost, c, r, push, patch, c0, r0};
       }
     }
-    const won = best as {cost: number; c: number; r: number; push: Map<KBox, number>} | null;
-    const c = won ? won.c : 0;
-    const r = won ? won.r : foot;
-    if (won) for (const [b, d] of won.push) b.r += d;
+    }
+    const won = best as {cost: number; c: number; r: number; push: Map<KBox, number>; patch: KBox[]; c0: number; r0: number} | null;
+    if (!won) {
+      // Nowhere it fits as a block: back to the one-by-one fitting below.
+      for (const b of held) boxes.push(b);
+      continue;
+    }
+    for (const [b, d] of won.push) b.r += d;
     // In as kept, tucks and all, so the tidy keeps the patch whole rather than growing or sliding its pieces one by one.
-    const block = patch.map((q) => ({i: q!.i, c: q!.c - c0 + c, r: q!.r - r0 + r, cw: q!.cw, ch: q!.ch}));
+    const block = won.patch.map((q) => ({i: q.i, c: q.c - won.c0 + won.c, r: q.r - won.r0 + won.r, cw: q.cw, ch: q.ch}));
     for (const b of block) {
       boxes.push(b);
       was.set(b, {c: b.c, r: b.r});

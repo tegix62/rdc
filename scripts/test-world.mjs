@@ -407,7 +407,8 @@ for (const [name, cols, maxSpan] of [
     const lone = ps.find((p) => !p.project && !p.parent && !ps.some((q) => q.parent === p.id) && p.id)
     const kids = [0, 1, 2, 3, 4, 5].map((n) => ({...lone, id: `${lone.id}-kid-${n}`, title: `Close-up ${n}`, parent: lone.id}))
     const plus = [...ps, ...kids]
-    const laid = keepLayout(plus, kept, generateWorld(plus, opts), 14)
+    // With the set's full-width band to choose from too, as the page gives it.
+    const laid = keepLayout(plus, kept, generateWorld(plus, opts), 14, (idx) => generateWorld(idx.map((i) => plus[i]), opts).placed)
     const set = setsOf(plus)
     const mine = laid.placed.filter((q) => set[q.i] === set[plus.indexOf(lone)])
     const touch = (a, b) => (Math.abs(a.c + a.cw - b.c) < 0.5 || Math.abs(b.c + b.cw - a.c) < 0.5) && Math.min(a.r + a.ch, b.r + b.ch) - Math.max(a.r, b.r) > 0.01 || (Math.abs(a.r + a.ch - b.r) < 0.5 || Math.abs(b.r + b.ch - a.r) < 0.5) && Math.min(a.c + a.cw, b.c + b.cw) - Math.max(a.c, b.c) > 0.01 || Math.min(a.c + a.cw, b.c + b.cw) - Math.max(a.c, b.c) > 0.01 && Math.min(a.r + a.ch, b.r + b.ch) - Math.max(a.r, b.r) > 0.01

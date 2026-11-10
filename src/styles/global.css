@@ -8341,6 +8341,11 @@ html.realsize-open {
 .wd-jump {
   display: none;
 }
+/* TRY A NEW PIECE (preview, ?add=<project>): the pretend new piece, outlined. */
+.wd-piece--try .wd-frame {
+  outline: 3px solid #e4002b;
+  outline-offset: -3px;
+}
 .wd-piece.is-open .wd-jump,
 .wd-piece--study .wd-jump {
   display: flex;

@@ -571,18 +571,38 @@ export function keepLayout(pieces: WorldPiece[], kept: Record<string, KeptBox>, 
     const foot = Math.max(0, ...boxes.map((b) => b.r + b.ch));
     const at = held.length ? Math.min(...held.map((b) => b.r)) : foot;
     const gaps0 = gapArea(boxes, cols, undefined, undefined, firstRows);
-    let best: {cost: number; c: number; push: Map<KBox, number>} | null = null;
+    /*
+      Where the set was, sliding what is under it down - or at the foot, on
+      the columns that end soonest, sliding nothing. Either way the page's
+      foot is counted too: a block that leaves one side running long and
+      the other short reads as lopsided (Chris: "So what can we do about
+      this?", of the Unknown Wars patch set to the left of a ragged foot).
+    */
+    const ragged = (q: KBox, push: Map<KBox, number>) => {
+      const ends = new Array(cols).fill(0);
+      for (const b of [...boxes, q]) {
+        const bottom = b.r + (push.get(b) ?? 0) + b.ch;
+        for (let x = Math.floor(b.c + 0.01); x < Math.ceil(b.c + b.cw - 0.01); x++) ends[x] = Math.max(ends[x], bottom);
+      }
+      const top = Math.max(...ends);
+      return ends.reduce((n, e) => n + (top - e), 0);
+    };
+    const rag0 = ragged({i: -1, c: 0, r: 0, cw: 0, ch: 0}, new Map());
+    let best: {cost: number; c: number; r: number; push: Map<KBox, number>} | null = null;
     for (let c = 0; c + bw <= cols; c++) {
-      const q = {i: -1, c, r: at, cw: bw, ch: bh};
-      if (boxes.some((b) => b.r < at - 0.01 && boxesMeet(b, q))) continue;
-      const {push, moved} = pushFor(boxes, q);
-      const opened = Math.max(0, gapArea(boxes, cols, q, push, firstRows) - gaps0);
-      const cost = moved + opened * 2;
-      if (!best || cost < best.cost) best = {cost, c, push};
+      const low = Math.max(0, ...boxes.filter((b) => b.c < c + bw - 0.01 && b.c + b.cw > c + 0.01).map((b) => b.r + b.ch));
+      for (const r of held.length ? [at, low] : [low]) {
+        const q = {i: -1, c, r, cw: bw, ch: bh};
+        if (boxes.some((b) => b.r < r - 0.01 && boxesMeet(b, q))) continue;
+        const {push, moved} = pushFor(boxes, q);
+        const opened = Math.max(0, gapArea(boxes, cols, q, push, firstRows) - gaps0);
+        const cost = moved + opened * 2 + Math.max(0, ragged(q, push) - rag0) * 2 + (r - at) * 0.5;
+        if (!best || cost < best.cost) best = {cost, c, r, push};
+      }
     }
-    const won = best as {cost: number; c: number; push: Map<KBox, number>} | null;
+    const won = best as {cost: number; c: number; r: number; push: Map<KBox, number>} | null;
     const c = won ? won.c : 0;
-    const r = won ? at : foot;
+    const r = won ? won.r : foot;
     if (won) for (const [b, d] of won.push) b.r += d;
     // In as kept, tucks and all, so the tidy keeps the patch whole rather than growing or sliding its pieces one by one.
     const block = patch.map((q) => ({i: q!.i, c: q!.c - c0 + c, r: q!.r - r0 + r, cw: q!.cw, ch: q!.ch}));

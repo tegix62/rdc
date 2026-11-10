@@ -515,8 +515,7 @@ if (SEARCH) {
     const best = seed || phone
       ? {out: layWorld(input, {...opts, seed: seed ?? 4187}), seed: seed ?? 4187}
       : searchWorld(input, opts, {tries: home ? 300 : 150, firstRows, weights});
-    if (typeof kept === 'object' && kept.at && Object.keys(kept.at).length)
-      best.out = keepLayout(input, kept.at, best.out, firstRows, (idx) => layWorld(idx.map((i) => input[i]) as any[], {...opts, seed: best.seed}).placed);
+    if (typeof kept === 'object' && kept.at && Object.keys(kept.at).length) best.out = keepLayout(input, kept.at, best.out, firstRows);
     pre[cols] = {placed: best.out.placed.map((q) => [q.i, q.c, q.r, q.cw, q.ch]), rows: Math.max(0, ...best.out.placed.map((q) => q.r + q.ch)), seed: best.seed};
   }
 }
@@ -922,8 +921,7 @@ const data = {pieces, names, filters: FILTERS.map(({value, name}) => ({value, na
     if (found && tryNew !== null) {
       const keys = layoutKeys(sub);
       const kept = Object.fromEntries(found.placed.map(([i, c, r, cw, ch]) => [keys[i], [c, r, cw, ch]]));
-      const laySeed = found.seed ?? FIRST_SEED;
-      out = keepLayout(sub, kept, generateWorld(sub, {...opts, seed: laySeed}), phone ? 24 : 14, (idx) => generateWorld(idx.map((i) => sub[i]), {...opts, seed: laySeed}).placed);
+      out = keepLayout(sub, kept, generateWorld(sub, {...opts, seed: found.seed ?? FIRST_SEED}), phone ? 24 : 14);
     }
     last = {out, subset};
     // MORE LIKE THIS: the bar over the world while it is on, the button on an opened piece.

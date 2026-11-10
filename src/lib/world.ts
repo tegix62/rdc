@@ -501,6 +501,14 @@ function gapArea(boxes: KBox[], cols: number, extra?: KBox, push?: Map<KBox, num
 export function keepLayout(pieces: WorldPiece[], kept: Record<string, KeptBox>, fresh: WorldResult, firstRows: number): WorldResult {
   const cols = fresh.cols;
   const keys = layoutKeys(pieces as any[]);
+  /*
+    Each piece's set, the same rule as the lay's (setsOf): its project, or
+    a parent piece and its children - so new close-ups parented to a
+    collage join that collage, not the loose work. Chris: "the items I
+    added are all parented to the Unknown Wars Collage and yet they spill to
+    the bottom all separated."
+  */
+  const setOf = setsOf(pieces);
   const known = new Set(keys);
   let boxes: KBox[] = [];
   keys.forEach((k, i) => {
@@ -537,8 +545,7 @@ export function keepLayout(pieces: WorldPiece[], kept: Record<string, KeptBox>, 
   for (const n of fresh_) {
     const s = size.get(n);
     if (!s) continue;
-    const proj = pieces[n].project;
-    const mates = proj ? boxes.filter((b) => pieces[b.i].project === proj) : [];
+    const mates = boxes.filter((b) => setOf[b.i] === setOf[n]);
     // Its size now, or one a step either way at the same shape.
     const sizes: [number, number][] = [[s.cw, s.ch]];
     for (const cw of [s.cw - 1, s.cw + 1])
@@ -599,7 +606,7 @@ export function keepLayout(pieces: WorldPiece[], kept: Record<string, KeptBox>, 
   }
   // Then close what the changes opened - only when something changed, so a page with nothing new comes back exactly.
   const changes = fresh_.length + gone.length;
-  if (changes) tidy(pieces, boxes, was, nested, cols, firstRows, 3 * changes);
+  if (changes) tidy(pieces, setOf, boxes, was, nested, cols, firstRows, 3 * changes);
   boxes = boxes.sort((a, b) => a.r - b.r || a.c - b.c);
   return {...fresh, placed: boxes, rows: Math.ceil(Math.max(0, ...boxes.map((b) => b.r + b.ch)))};
 }
@@ -637,7 +644,7 @@ function pushFor(boxes: KBox[], q: KBox, skip?: KBox) {
        the foot of the page costs nothing to move: the foot is ragged anyway.
   A few moves per change at most, so the page stays the one approved.
 */
-function tidy(pieces: WorldPiece[], boxes: KBox[], was: Map<KBox, {c: number; r: number}>, nested: Set<string>, cols: number, firstRows: number, budget: number) {
+function tidy(pieces: WorldPiece[], setOf: string[], boxes: KBox[], was: Map<KBox, {c: number; r: number}>, nested: Set<string>, cols: number, firstRows: number, budget: number) {
   const moved = (b: KBox) => {
     const w = was.get(b);
     return !w || Math.abs(w.c - b.c) > 0.01 || Math.abs(w.r - b.r) > 0.01;
@@ -690,8 +697,7 @@ function tidy(pieces: WorldPiece[], boxes: KBox[], was: Map<KBox, {c: number; r:
       if (jump)
         for (const b of [...boxes].sort((x, y) => x.r - y.r)) {
           if (b.r <= firstRows + 0.01) continue;
-          const proj = pieces[b.i]?.project;
-          const mates = proj ? boxes.filter((m) => m !== b && pieces[m.i]?.project === proj) : [];
+          const mates = boxes.filter((m) => m !== b && setOf[m.i] === setOf[b.i]);
           const at = b.r;
           for (let t = firstRows; t < at - 0.01; t += 0.25) {
             b.r = t;
@@ -751,9 +757,8 @@ function tidy(pieces: WorldPiece[], boxes: KBox[], was: Map<KBox, {c: number; r:
       for (const b of boxes) {
         const kind = pieces[b.i]?.kind;
         if (kind === 'result' || kind === 'video' || b.r < r + 0.5) continue;
-        const proj = pieces[b.i]?.project;
-        const mates = proj ? boxes.filter((m) => m !== b && pieces[m.i]?.project === proj) : [];
-        if (!proj && r < firstRows) continue;
+        const mates = boxes.filter((m) => m !== b && setOf[m.i] === setOf[b.i]);
+        if (!mates.length && r < firstRows) continue;
         const sizes: [number, number][] = [[b.cw, b.ch]];
         for (const cw of [b.cw - 1, b.cw + 1]) if (cw >= 1 && cw <= 4) sizes.push([cw, Math.max(1, Math.round((cw * b.ch) / b.cw))]);
         sizes.forEach(([cw, ch], smaller) => {

@@ -389,6 +389,19 @@ for (const [name, cols, maxSpan] of [
     const laid = keepLayout(plus, kept, generateWorld(plus, opts), 14)
     check(`keep a layout: a new piece in ${s} leaves no more than 3 points more empty room`, empty(laid.placed) <= empty(a.placed) + 0.03, `${(empty(a.placed) * 100).toFixed(1)}% -> ${(empty(laid.placed) * 100).toFixed(1)}%`)
   }
+  // A new close-up parented to a collage of no project joins that collage, not the loose work at the foot.
+  // Chris: "the items I added are all parented to the Unknown Wars Collage and yet they spill to the bottom all separated."
+  {
+    const kids = [0, 1, 2].map((n) => ({...ps.find((p) => p.id === 'red-kettle-close-2'), id: `red-kettle-new-${n}`, title: `New close-up ${n}`, parent: 'red-kettle'}))
+    const plus = [...ps, ...kids]
+    const pk = layoutKeys(plus)
+    const laid = keepLayout(plus, kept, generateWorld(plus, opts), 14)
+    const set = setsOf(plus)
+    const kettle = set[plus.findIndex((p) => p.id === 'red-kettle')]
+    const touch = (a, b) => (Math.abs(a.c + a.cw - b.c) < 0.5 || Math.abs(b.c + b.cw - a.c) < 0.5) && Math.min(a.r + a.ch, b.r + b.ch) - Math.max(a.r, b.r) > 0.01 || (Math.abs(a.r + a.ch - b.r) < 0.5 || Math.abs(b.r + b.ch - a.r) < 0.5) && Math.min(a.c + a.cw, b.c + b.cw) - Math.max(a.c, b.c) > 0.01
+    const joined = laid.placed.filter((q) => pk[q.i].startsWith('red-kettle-new-')).filter((q) => laid.placed.some((o) => o !== q && set[o.i] === kettle && touch(q, o)))
+    check('keep a layout: new close-ups parented to a collage sit with that collage', joined.length === kids.length, `${joined.length} of ${kids.length}`)
+  }
   const gone = keepLayout(ps.filter((_, i) => i !== k), kept, generateWorld(ps.filter((_, i) => i !== k), opts), 14)
   check('keep a layout: a piece taken away leaves the rest', gone.placed.length === ps.length - 1)
 }

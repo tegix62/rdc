@@ -542,7 +542,59 @@ export function keepLayout(pieces: WorldPiece[], kept: Record<string, KeptBox>, 
   // The new pieces, at the size the engine would give them now.
   const size = new Map(fresh.placed.map((q) => [q.i, q]));
   const fresh_ = keys.map((k, i) => i).filter((i) => !kept[keys[i]] || !boxes.some((b) => b.i === i));
+  /*
+    A SET THAT IS MOSTLY NEW goes in whole. Chris, of the thirteen close-ups
+    he parented to the Unknown Wars collage: they "spill to the bottom all
+    separated. However, I love how Red Kettle is gathered". Fitted one by one,
+    a dozen new pieces string out along whatever room there is. So when a set
+    gains at least two pieces and has more new than kept, it is laid as the
+    lay lays any set - its patch in the fresh layout - and that patch goes in
+    as one block, where the set's kept pieces were (or at the foot), what is
+    under it sliding down.
+  */
+  const freshAt = new Map(fresh.placed.map((q) => [q.i, q]));
+  const whole = new Set<number>();
+  for (const set of new Set(fresh_.map((i) => setOf[i]))) {
+    const members = keys.map((_, i) => i).filter((i) => setOf[i] === set);
+    const added = members.filter((i) => fresh_.includes(i));
+    const held = boxes.filter((b) => setOf[b.i] === set);
+    if (added.length < 2 || added.length < held.length) continue;
+    const patch = members.map((i) => freshAt.get(i));
+    if (patch.some((q) => !q)) continue;
+    const c0 = Math.min(...patch.map((q) => q!.c));
+    const r0 = Math.min(...patch.map((q) => q!.r));
+    const bw = Math.max(...patch.map((q) => q!.c + q!.cw)) - c0;
+    const bh = Math.max(...patch.map((q) => q!.r + q!.ch)) - r0;
+    if (bw > cols) continue;
+    // Out with its kept pieces; the block goes where they began, or at the foot.
+    boxes = boxes.filter((b) => setOf[b.i] !== set);
+    const foot = Math.max(0, ...boxes.map((b) => b.r + b.ch));
+    const at = held.length ? Math.min(...held.map((b) => b.r)) : foot;
+    const gaps0 = gapArea(boxes, cols, undefined, undefined, firstRows);
+    let best: {cost: number; c: number; push: Map<KBox, number>} | null = null;
+    for (let c = 0; c + bw <= cols; c++) {
+      const q = {i: -1, c, r: at, cw: bw, ch: bh};
+      if (boxes.some((b) => b.r < at - 0.01 && boxesMeet(b, q))) continue;
+      const {push, moved} = pushFor(boxes, q);
+      const opened = Math.max(0, gapArea(boxes, cols, q, push, firstRows) - gaps0);
+      const cost = moved + opened * 2;
+      if (!best || cost < best.cost) best = {cost, c, push};
+    }
+    const won = best as {cost: number; c: number; push: Map<KBox, number>} | null;
+    const c = won ? won.c : 0;
+    const r = won ? at : foot;
+    if (won) for (const [b, d] of won.push) b.r += d;
+    // In as kept, tucks and all, so the tidy keeps the patch whole rather than growing or sliding its pieces one by one.
+    const block = patch.map((q) => ({i: q!.i, c: q!.c - c0 + c, r: q!.r - r0 + r, cw: q!.cw, ch: q!.ch}));
+    for (const b of block) {
+      boxes.push(b);
+      was.set(b, {c: b.c, r: b.r});
+    }
+    for (const a of block) for (const b of block) if (a !== b && boxesMeet(a, b)) nested.add(`${a.i}|${b.i}`);
+    for (const i of members) whole.add(i);
+  }
   for (const n of fresh_) {
+    if (whole.has(n)) continue;
     const s = size.get(n);
     if (!s) continue;
     const mates = boxes.filter((b) => setOf[b.i] === setOf[n]);

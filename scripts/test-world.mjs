@@ -402,6 +402,22 @@ for (const [name, cols, maxSpan] of [
     const joined = laid.placed.filter((q) => pk[q.i].startsWith('red-kettle-new-')).filter((q) => laid.placed.some((o) => o !== q && set[o.i] === kettle && touch(q, o)))
     check('keep a layout: new close-ups parented to a collage sit with that collage', joined.length === kids.length, `${joined.length} of ${kids.length}`)
   }
+  // A set that is mostly new goes in whole, one touching patch - as Red Kettle gathers. Chris: "I love how Red Kettle is gathered".
+  {
+    const lone = ps.find((p) => !p.project && !p.parent && !ps.some((q) => q.parent === p.id) && p.id)
+    const kids = [0, 1, 2, 3, 4, 5].map((n) => ({...lone, id: `${lone.id}-kid-${n}`, title: `Close-up ${n}`, parent: lone.id}))
+    const plus = [...ps, ...kids]
+    const laid = keepLayout(plus, kept, generateWorld(plus, opts), 14)
+    const set = setsOf(plus)
+    const mine = laid.placed.filter((q) => set[q.i] === set[plus.indexOf(lone)])
+    const touch = (a, b) => (Math.abs(a.c + a.cw - b.c) < 0.5 || Math.abs(b.c + b.cw - a.c) < 0.5) && Math.min(a.r + a.ch, b.r + b.ch) - Math.max(a.r, b.r) > 0.01 || (Math.abs(a.r + a.ch - b.r) < 0.5 || Math.abs(b.r + b.ch - a.r) < 0.5) && Math.min(a.c + a.cw, b.c + b.cw) - Math.max(a.c, b.c) > 0.01 || Math.min(a.c + a.cw, b.c + b.cw) - Math.max(a.c, b.c) > 0.01 && Math.min(a.r + a.ch, b.r + b.ch) - Math.max(a.r, b.r) > 0.01
+    const seen = new Set([mine[0]])
+    for (let grew = true; grew; ) { grew = false; for (const q of mine) if (!seen.has(q) && [...seen].some((o) => touch(o, q))) { seen.add(q); grew = true } }
+    check('keep a layout: a set that is mostly new goes in as one touching patch', mine.length === 7 && seen.size === 7, `${seen.size} of ${mine.length} together`)
+    let bad = 0
+    for (const x of laid.placed) for (const y of laid.placed) if (x !== y && set[x.i] !== set[y.i] && Math.min(x.c + x.cw, y.c + y.cw) - Math.max(x.c, y.c) > 0.01 && Math.min(x.r + x.ch, y.r + y.ch) - Math.max(x.r, y.r) > 0.01) bad++
+    check('keep a layout: and overlaps nothing else', bad === 0, `${bad / 2}`)
+  }
   const gone = keepLayout(ps.filter((_, i) => i !== k), kept, generateWorld(ps.filter((_, i) => i !== k), opts), 14)
   check('keep a layout: a piece taken away leaves the rest', gone.placed.length === ps.length - 1)
 }

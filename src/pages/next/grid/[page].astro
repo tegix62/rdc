@@ -118,7 +118,7 @@ const placeholderLeft = cs ? isPlaceholder(clean(cs.client)) || paragraphs(cs.se
   The plates in sequence, on the grid: a wide picture across the measure with
   its caption in the margin, alternating sides; two upright ones as a pair.
 */
-type Laid = {kind: 'wide' | 'pair' | 'full'; side?: 'l' | 'r'; figs: {n: number; image: any; caption: string; w: number; h: number}[]};
+type Laid = {kind: 'wide' | 'pair' | 'full'; side?: 'l' | 'r'; upright?: boolean; figs: {n: number; image: any; caption: string; w: number; h: number}[]};
 const laid: Laid[] = [];
 {
   const withDims = figs
@@ -130,7 +130,8 @@ const laid: Laid[] = [];
     const p = withDims[k];
     const upright = p.w / p.h < 1.15;
     const next = withDims[k + 1];
-    if (k === 0) laid.push({kind: 'full', figs: [p]});
+    // Fig. 1 across the page - or, upright, on the text's columns with its caption beside it.
+    if (k === 0) laid.push({kind: 'full', upright, figs: [p]});
     else if (upright && next && next.w / next.h < 1.15) {
       laid.push({kind: 'pair', figs: [p, next]});
       k++;
@@ -187,10 +188,10 @@ const span = (() => {
         <!-- Fig. 1, across the page. -->
         {laid[0] && (
           <figure class="mg-grid mg-fig mg-fig--full">
-            <div class="mg-fig__pic" {...at('1 / 13')}>
-              <Img image={laid[0].figs[0].image} alt={laid[0].figs[0].caption} width={2000} sizes="100vw" loading="eager" field="Main image (monograph)" />
+            <div class="mg-fig__pic" {...at(laid[0].upright ? '4 / 10' : '1 / 13')}>
+              <Img image={laid[0].figs[0].image} alt={laid[0].figs[0].caption} width={2000} sizes={laid[0].upright ? '(min-width: 48rem) 50vw, 100vw' : '100vw'} loading="eager" field="Main image (monograph)" />
             </div>
-            <figcaption class="mg-cap" {...at('1 / 5')}><span class="mg-sc">Fig. 1</span> {laid[0].figs[0].caption}</figcaption>
+            <figcaption class:list={['mg-cap', laid[0].upright && 'mg-cap--beside']} {...at(laid[0].upright ? '1 / 4' : '1 / 5')}><span class="mg-sc">Fig. 1</span> {laid[0].figs[0].caption}</figcaption>
           </figure>
         )}
 
@@ -485,8 +486,12 @@ const span = (() => {
   /* Figures. */
   .mg-fig { margin: 0; padding-top: calc(var(--u) * 9); row-gap: var(--u); }
   .mg-fig figure { margin: 0; }
-  .mg-fig__pic img, .mg-fig__pic video { display: block; width: 100%; height: auto; max-height: 82vh; object-fit: contain; object-position: left top; }
-  .mg-fig--wide.mg-fig--l .mg-fig__pic img { object-position: right top; }
+  /* A picture hugs the column line it starts on (the far one, on a plate set to the left), at its own shape. */
+  .mg-fig__pic { display: flex; align-items: flex-end; }
+  .mg-fig__pic img, .mg-fig__pic video { display: block; width: auto; max-width: 100%; height: auto; max-height: 82vh; }
+  .mg-fig--pair .mg-fig__pic img { width: 100%; }
+  .mg-fig--full:not(:has(.mg-cap--beside)) .mg-fig__pic img { width: 100%; object-fit: contain; object-position: left bottom; }
+  .mg-fig--wide.mg-fig--l .mg-fig__pic { justify-content: flex-end; }
   .mg-cap { margin: 0; color: var(--quiet); text-wrap: pretty; }
   .mg-cap .mg-sc { color: var(--ink); margin-right: 0.5em; }
   @media (min-width: 48rem) {
@@ -495,6 +500,8 @@ const span = (() => {
     .mg-fig--wide.mg-fig--l .mg-cap { text-align: left; }
     .mg-fig--pair figure .mg-cap { margin-top: var(--u); }
     .mg-fig--full .mg-cap { margin-top: 0; }
+    .mg-fig--full { align-items: end; }
+    .mg-fig--full .mg-cap--beside { grid-row: 1; }
   }
   .mg-fig--pair figure .mg-cap { margin-top: var(--u); }
 

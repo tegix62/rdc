@@ -65,6 +65,20 @@ const {page} = Astro.params as {page: string};
 const {items, studies} = await catalogue();
 const studyNo = (slug: string) => studies.findIndex((s) => slugOf(s) === slug) + 1;
 const pad2 = (n: number) => String(n).padStart(2, '0');
+/*
+  A piece's own name, without its project in front: "Hug a Mug - Tarot
+  Taurus Tee" under Hug a Mug Coffeehouse & Ceramics Studio is "Tarot Taurus
+  Tee" - whether the title starts with the project's whole name or with the
+  short name before a dash that the project's title begins with.
+*/
+const ownName = (title: string, project: string) => {
+  const t = title.trim();
+  const p = project.toLowerCase();
+  if (p && t.toLowerCase().startsWith(p)) return t.slice(project.length).replace(/^[\s\-–—:]+/, '') || t;
+  const m = t.match(/^(.+?)\s+[-–—:]\s+(.+)$/);
+  if (m && p.startsWith(m[1].toLowerCase())) return m[2];
+  return t;
+};
 // A place on the grid: at('4 / 10') is columns 4 to 10, written into the markup so nothing moves as the page loads.
 const at = (c: string) => ({'data-c': c, style: `--c: ${c}`});
 
@@ -84,9 +98,8 @@ if (page === 'works') {
   for (const s of studies) if (tileHref(s)) projectName[tileHref(s)!] = clean(s.title);
   rows = ordered.map((it, n) => {
     const project = tileHref(it) ? (projectName[tileHref(it)!] ?? '') : '';
-    let title = clean(it.title);
     // "DumpStat - Fantasy Keth Tee" is "Fantasy Keth Tee" in its project's column.
-    if (project && title.toLowerCase().startsWith(project.toLowerCase())) title = title.slice(project.length).replace(/^[\s\-–—:]+/, '') || title;
+    const title = ownName(clean(it.title), project);
     return {
       no: catalogueNo(n + 1),
       title: typeset(title),
@@ -251,9 +264,7 @@ const span = (() => {
               <thead><tr><th class="mg-tab">No.</th><th>Title</th><th>Type</th><th class="mg-tab">Year</th></tr></thead>
               <tbody>
                 {works.sort(byTitle).map((w, k) => {
-                  let t = clean(w.title);
-                  const p = clean(cs.title);
-                  if (t.toLowerCase().startsWith(p.toLowerCase())) t = t.slice(p.length).replace(/^[\s\-–—:]+/, '') || t;
+                  const t = ownName(clean(w.title), clean(cs.title));
                   return (
                     <tr>
                       <td class="mg-tab">{pad2(no)}.{pad2(k + 1)}</td>

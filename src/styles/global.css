@@ -10908,3 +10908,30 @@ a.wd-pic {
   .grid-band__tile--wide,
   .grid-band__words { grid-column: 1 / -1; }
 }
+
+/*
+  OPTICAL MARGINS (preview, scripts/optical-margins.mjs). Chris: the C on
+  Chateau Seven "can be pushed to the left a little bit to compensate
+  optically". A heading's first letter, when round or pointed, is wrapped
+  by the build and nudged into the margin, so it looks flush with straight
+  stems below and beside it; an opening quote hangs right out. Amounts in
+  em, so they hold at any size; they are for Inter Tight at display sizes.
+*/
+.om {
+  display: inline;
+}
+.om-round {
+  margin-left: -0.035em;
+}
+.om-soft {
+  margin-left: -0.02em;
+}
+.om-point {
+  margin-left: -0.05em;
+}
+.om-bar {
+  margin-left: -0.04em;
+}
+.om-quote {
+  margin-left: -0.38em;
+}

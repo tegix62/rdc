@@ -226,6 +226,7 @@ jobs:
       - run: node scripts/test-world.mjs
       - run: node scripts/test-workflows-no-pictures.mjs
       - run: node scripts/test-hide-emails.mjs
+      - run: node scripts/test-optical-margins.mjs
 
       - run: npm run build
 

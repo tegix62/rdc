@@ -594,6 +594,8 @@ const span = (() => {
     .mg-index__wrap { overflow-x: auto; }
     .mg-table--index.mg-sub { grid-template-columns: repeat(12, minmax(0, 1fr)); min-width: 56rem; }
   }
+  /* A thumbnail is not text: it stays at the row's top and leaves the baseline to the words. */
+  .mg-table .mg-index__thumb { align-self: start; }
   .mg-index__thumb img { display: block; width: calc(var(--u) * 6); height: calc(var(--u) * 6); object-fit: contain; }
   .mg-table--index td { padding-block: var(--u); }
   .mg-studies { padding-top: calc(var(--u) * 3); }
@@ -694,7 +696,8 @@ const span = (() => {
       const baseline = mark.getBoundingClientRect().bottom - top;
       mark.remove();
       const off = ((baseline % unit) + unit) % unit;
-      return off <= unit / 2 ? -off : unit - off;
+      // Always onto the line at or below, so neighbours in a row - which can differ by a pixel or two - land on the same line.
+      return off < 0.25 ? 0 : unit - off;
     });
     blocks.forEach((el, k) => {
       if (Math.abs(shifts[k]) > 0.25) el.style.translate = `0 ${shifts[k].toFixed(2)}px`;

@@ -81,6 +81,12 @@ const ownName = (title: string, project: string) => {
 };
 // A place on the grid: at('4 / 10') is columns 4 to 10, written into the markup so nothing moves as the page loads.
 const at = (c: string) => ({'data-c': c, style: `--c: ${c}`});
+/*
+  A cell's span on the page's own columns, inside a row set on them (a
+  subgrid): sp(4, 2) is four columns wide, two on a phone; 0 on a phone
+  hides it there.
+*/
+const sp = (d: number, p: number) => ({'data-s': d, style: `--s: ${d}; --sp: ${Math.max(p, 1)}`, ...(p === 0 ? {'data-phone-hide': ''} : {})});
 
 // The index: each case study, then its pieces, then everything else - numbered in that order.
 type Row = {no: string; title: string; project: string; discipline: string; type: string; year: string; image: any; href: string | null; study: boolean};
@@ -190,13 +196,13 @@ const span = (() => {
         </header>
 
         <section class="mg-grid mg-facts" aria-label="Facts">
-          <dl {...at('4 / 13')} class="mg-facts__dl">
-            {client && (<><dt>Client</dt><dd>{client}</dd></>)}
-            {cs.year && (<><dt>Year</dt><dd class="mg-tab">{cs.year}</dd></>)}
-            {cs.category && (<><dt>Discipline</dt><dd>{clean(cs.category)}</dd></>)}
-            {done.length > 0 && (<><dt>Services</dt><dd>{done.map((d) => typeset(d)).join(', ')}</dd></>)}
-            {typefaces.length > 0 && (<><dt>Typefaces</dt><dd>{typefaces.map((t) => typeset(t.name)).join(', ')}</dd></>)}
-            <dt>Plates</dt><dd class="mg-tab">{figs.length}{works.length > 0 && <>; {works.length} works catalogued</>}</dd>
+          <dl {...at('4 / 13')} class="mg-facts__dl mg-sub">
+            {client && (<><dt {...sp(2, 2)}>Client</dt><dd {...sp(7, 2)}>{client}</dd></>)}
+            {cs.year && (<><dt {...sp(2, 2)}>Year</dt><dd class="mg-tab" {...sp(7, 2)}>{cs.year}</dd></>)}
+            {cs.category && (<><dt {...sp(2, 2)}>Discipline</dt><dd {...sp(7, 2)}>{clean(cs.category)}</dd></>)}
+            {done.length > 0 && (<><dt {...sp(2, 2)}>Services</dt><dd {...sp(7, 2)}>{done.map((d) => typeset(d)).join(', ')}</dd></>)}
+            {typefaces.length > 0 && (<><dt {...sp(2, 2)}>Typefaces</dt><dd {...sp(7, 2)}>{typefaces.map((t) => typeset(t.name)).join(', ')}</dd></>)}
+            <dt {...sp(2, 2)}>Plates</dt><dd class="mg-tab" {...sp(7, 2)}>{figs.length}{works.length > 0 && <>; {works.length} works catalogued</>}</dd>
           </dl>
         </section>
 
@@ -260,17 +266,17 @@ const span = (() => {
         {works.length > 0 && (
           <section class="mg-grid mg-works" aria-label="Works">
             <h2 class="mg-h3" {...at('1 / 4')}>Works</h2>
-            <table class="mg-table" {...at('4 / 13')}>
-              <thead><tr><th class="mg-tab">No.</th><th>Title</th><th>Type</th><th class="mg-tab">Year</th></tr></thead>
-              <tbody>
+            <table class="mg-table mg-sub" role="table" {...at('4 / 13')}>
+              <thead role="rowgroup"><tr role="row"><th role="columnheader" class="mg-tab" {...sp(1, 1)}>No.</th><th role="columnheader" {...sp(4, 2)}>Title</th><th role="columnheader" {...sp(3, 0)}>Type</th><th role="columnheader" class="mg-tab" {...sp(1, 1)}>Year</th></tr></thead>
+              <tbody role="rowgroup">
                 {works.sort(byTitle).map((w, k) => {
                   const t = ownName(clean(w.title), clean(cs.title));
                   return (
-                    <tr>
-                      <td class="mg-tab">{pad2(no)}.{pad2(k + 1)}</td>
-                      <td>{typeset(t)}</td>
-                      <td>{clean(w.assetType) || clean(w.category) || '—'}</td>
-                      <td class="mg-tab">{w.year || cs.year || '—'}</td>
+                    <tr role="row">
+                      <td role="cell" class="mg-tab" {...sp(1, 1)}>{pad2(no)}.{pad2(k + 1)}</td>
+                      <td role="cell" {...sp(4, 2)}>{typeset(t)}</td>
+                      <td role="cell" {...sp(3, 0)}>{clean(w.assetType) || clean(w.category) || '—'}</td>
+                      <td role="cell" class="mg-tab" {...sp(1, 1)}>{w.year || cs.year || '—'}</td>
                     </tr>
                   );
                 })}
@@ -298,36 +304,36 @@ const span = (() => {
         </header>
         <section class="mg-grid mg-studies" aria-label="Monographs">
           <h2 class="mg-h3" {...at('1 / 4')}>Monographs</h2>
-          <ol class="mg-studies__list" {...at('4 / 13')}>
+          <ol class="mg-studies__list mg-sub" {...at('4 / 13')}>
             {studies.filter((s) => slugOf(s)).map((s, k) => (
-              <li><a href={`/next/grid/${slugOf(s)}`}><span class="mg-tab">{'№'} {pad2(k + 1)}</span> {typeset(clean(s.title))}<span class="mg-tab mg-studies__year">{s.year ?? ''}</span></a></li>
+              <li><a href={`/next/grid/${slugOf(s)}`}><span class="mg-tab" {...sp(1, 1)}>{'№'} {pad2(k + 1)}</span><span {...sp(7, 2)}>{typeset(clean(s.title))}</span><span class="mg-tab mg-studies__year" {...sp(1, 1)}>{s.year ?? ''}</span></a></li>
             ))}
           </ol>
         </section>
         <section class="mg-grid mg-index" aria-label="Index">
           <div class="mg-index__wrap" {...at('1 / 13')}>
-            <table class="mg-table mg-table--index" id="mg-index">
-              <thead>
-                <tr>
-                  <th class="mg-tab"><button type="button" data-sort="0">No.</button></th>
-                  <th class="mg-index__thumb"><span class="mg-visually-hidden">Picture</span></th>
-                  <th><button type="button" data-sort="2">Title</button></th>
-                  <th><button type="button" data-sort="3">Project</button></th>
-                  <th><button type="button" data-sort="4">Discipline</button></th>
-                  <th><button type="button" data-sort="5">Type</button></th>
-                  <th class="mg-tab"><button type="button" data-sort="6">Year</button></th>
+            <table class="mg-table mg-table--index mg-sub" id="mg-index" role="table">
+              <thead role="rowgroup">
+                <tr role="row">
+                  <th role="columnheader" class="mg-tab" {...sp(1, 1)}><button type="button" data-sort="0">No.</button></th>
+                  <th role="columnheader" class="mg-index__thumb" {...sp(1, 1)}><span class="mg-visually-hidden">Picture</span></th>
+                  <th role="columnheader" {...sp(3, 3)}><button type="button" data-sort="2">Title</button></th>
+                  <th role="columnheader" {...sp(3, 3)}><button type="button" data-sort="3">Project</button></th>
+                  <th role="columnheader" {...sp(2, 2)}><button type="button" data-sort="4">Discipline</button></th>
+                  <th role="columnheader" {...sp(1, 1)}><button type="button" data-sort="5">Type</button></th>
+                  <th role="columnheader" class="mg-tab" {...sp(1, 1)}><button type="button" data-sort="6">Year</button></th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody role="rowgroup">
                 {rows.map((r) => (
-                  <tr class:list={[r.study && 'is-study']}>
-                    <td class="mg-tab">{r.no}</td>
-                    <td class="mg-index__thumb">{hasAsset(r.image) && <Img image={r.image} alt="" altFallback={r.title} width={96} sizes="48px" field="Index thumbnail" />}</td>
-                    <td>{r.href ? <a href={r.href}>{r.title}</a> : r.title}</td>
-                    <td>{r.project || '—'}</td>
-                    <td>{r.discipline}</td>
-                    <td>{r.type}</td>
-                    <td class="mg-tab">{r.year}</td>
+                  <tr role="row" class:list={[r.study && 'is-study']}>
+                    <td role="cell" class="mg-tab" {...sp(1, 1)}>{r.no}</td>
+                    <td role="cell" class="mg-index__thumb" {...sp(1, 1)}>{hasAsset(r.image) && <Img image={r.image} alt="" altFallback={r.title} width={96} sizes="48px" field="Index thumbnail" />}</td>
+                    <td role="cell" {...sp(3, 3)}>{r.href ? <a href={r.href}>{r.title}</a> : r.title}</td>
+                    <td role="cell" {...sp(3, 3)}>{r.project || '—'}</td>
+                    <td role="cell" {...sp(2, 2)}>{r.discipline}</td>
+                    <td role="cell" {...sp(1, 1)}>{r.type}</td>
+                    <td role="cell" class="mg-tab" {...sp(1, 1)}>{r.year}</td>
                   </tr>
                 ))}
               </tbody>
@@ -378,6 +384,13 @@ const span = (() => {
     padding-right: max(3rem, env(safe-area-inset-right, 0px));
   }
   .mg-grid > * { grid-column: 1 / -1; min-width: 0; }
+  /* A row set on the page's own columns (sp() in the markup). */
+  .mg-sub { display: grid; grid-template-columns: subgrid; column-gap: var(--gutter); }
+  .mg [data-s] { grid-column: span var(--s); min-width: 0; }
+  @media (max-width: 47.99rem) {
+    .mg [data-s] { grid-column: span var(--sp); }
+    .mg [data-phone-hide] { display: none; }
+  }
   @media (min-width: 48rem) {
     .mg-grid > [data-c] { grid-column: var(--c); }
   }
@@ -476,9 +489,6 @@ const span = (() => {
   /* The facts. */
   .mg-head { padding-bottom: calc(var(--u) * 6); }
   .mg-facts__dl {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
-    column-gap: var(--gutter);
     margin: 0;
     box-shadow: inset 0 1px 0 var(--rule);
     /* Label and value on one baseline, whatever their typefaces' metrics. */
@@ -487,8 +497,10 @@ const span = (() => {
   .mg-facts__dl dt, .mg-facts__dl dd {
     margin: 0;
     padding-block: var(--u);
-    box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--rule) 25%, transparent);
   }
+  /* Each fact's rule from its label, across the gutters to the end of the block. */
+  .mg-facts__dl dt { position: relative; align-self: stretch; }
+  .mg-facts__dl dt::after { content: ''; position: absolute; left: 0; bottom: 0; width: 1000vw; height: 1px; background: color-mix(in srgb, var(--rule) 25%, transparent); }
   .mg-facts__dl dt {
     font-family: var(--font-heading);
     font-weight: 600;
@@ -535,21 +547,30 @@ const span = (() => {
 
   /* Tables: the works, and the index. */
   .mg-works { padding-top: calc(var(--u) * 12); }
-  .mg-table { width: 100%; border-collapse: collapse; }
-  .mg-table tr { vertical-align: baseline; }
+  .mg-table { width: 100%; }
   .mg-table th, .mg-table td {
     text-align: left;
-    vertical-align: top;
-    padding: var(--u) calc(var(--u) * 2) var(--u) 0;
-    box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--rule) 25%, transparent);
+    padding: var(--u) 0;
   }
   .mg-table thead th {
     font-family: var(--font-heading);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    box-shadow: inset 0 1px 0 var(--rule), inset 0 -1px 0 var(--rule);
   }
+  /*
+    Rows on the page's columns: the table is a subgrid of the page grid,
+    its rows and groups fall away (display: contents - the roles in the
+    markup keep it a table to a screen reader), and every cell spans whole
+    columns. The rules are drawn from each row's first cell across the
+    gutters, the table clipping them at its edge.
+  */
+  .mg-table.mg-sub { overflow: clip; align-items: baseline; }
+  .mg-table.mg-sub thead, .mg-table.mg-sub tbody, .mg-table.mg-sub tr { display: contents; }
+  .mg-table.mg-sub tr > :first-child { position: relative; align-self: stretch; }
+  .mg-table.mg-sub tr > :first-child::after { content: ''; position: absolute; left: 0; bottom: 0; width: 1000vw; height: 1px; background: color-mix(in srgb, var(--rule) 25%, transparent); }
+  .mg-table.mg-sub thead tr > :first-child::after { background: var(--rule); }
+  .mg-table.mg-sub thead tr > :first-child::before { content: ''; position: absolute; left: 0; top: 0; width: 1000vw; height: 1px; background: var(--rule); }
   .mg-table th button {
     font: inherit;
     letter-spacing: inherit;
@@ -564,16 +585,23 @@ const span = (() => {
   .mg-table th[aria-sort='descending'] button::after { content: ' \2193'; }
   .mg-table tr.is-study td { font-weight: 600; color: var(--accent); }
   .mg-index { padding-top: calc(var(--u) * 6); }
-  .mg-index__wrap { overflow-x: auto; }
-  .mg-table--index { min-width: 44rem; }
-  .mg-index__thumb { width: calc(var(--u) * 8); }
+  /* On a wide screen the index is on the page's twelve columns; on a phone it keeps twelve of its own and scrolls sideways. */
+  @media (min-width: 48rem) {
+    .mg-index__wrap { display: grid; grid-template-columns: subgrid; }
+    .mg-table--index { grid-column: 1 / -1; }
+  }
+  @media (max-width: 47.99rem) {
+    .mg-index__wrap { overflow-x: auto; }
+    .mg-table--index.mg-sub { grid-template-columns: repeat(12, minmax(0, 1fr)); min-width: 56rem; }
+  }
   .mg-index__thumb img { display: block; width: calc(var(--u) * 6); height: calc(var(--u) * 6); object-fit: contain; }
   .mg-table--index td { padding-block: var(--u); }
   .mg-studies { padding-top: calc(var(--u) * 3); }
   .mg-studies__list { list-style: none; margin: 0; padding: 0; box-shadow: inset 0 1px 0 var(--rule); font-size: var(--t-lead); line-height: calc(var(--u) * 4); }
-  .mg-studies__list a { display: flex; align-items: baseline; gap: calc(var(--u) * 3); padding-block: var(--u); box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--rule) 25%, transparent); text-decoration: none; font-family: var(--font-heading); font-weight: 600; }
-  .mg-studies__list .mg-tab { color: var(--accent); min-width: 3.5em; }
-  .mg-studies__year { margin-left: auto; color: var(--quiet); font-weight: 400; }
+  .mg-studies__list li, .mg-studies__list a { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; }
+  .mg-studies__list a { align-items: baseline; padding-block: var(--u); box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--rule) 25%, transparent); text-decoration: none; font-family: var(--font-heading); font-weight: 600; }
+  .mg-studies__list .mg-tab { color: var(--accent); white-space: nowrap; }
+  .mg-studies__year { color: var(--quiet); font-weight: 400; }
 
   /* Turning the page. */
   .mg-turn { padding-top: calc(var(--u) * 12); }

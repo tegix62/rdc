@@ -1,6 +1,6 @@
 ---
 /*
-  THE MONOGRAPH - a typographic trial, preview only, at /next/grid/index and
+  THE MONOGRAPH - a typographic trial, preview only, at /next/grid/works and
   /next/grid/<case study>. Chris: "I wonder if there are ways to make the
   site typographically gridded and elevated/academic levels of graphic
   design", then "try all six in one preview". All six, in one system:
@@ -19,6 +19,8 @@
        raisonné, sortable by any column.
 
   Press G (or the Grid button) to show the columns and the baseline.
+  The index is "works", not "index": Cloudflare takes /x/index for the
+  folder's own page and answers 404.
   Never built for production (getStaticPaths), and noindex.
 */
 import Layout from '../../../layouts/Layout.astro';
@@ -56,7 +58,7 @@ export async function getStaticPaths() {
     .filter((it) => stripStegaKey(it.pageType) === 'Case Study')
     .map((it) => stripStegaKey(it?.slug?.current ?? it?.slug).trim())
     .filter(Boolean);
-  return [{params: {page: 'index'}}, ...[...new Set(slugs)].map((page) => ({params: {page}}))];
+  return [{params: {page: 'works'}}, ...[...new Set(slugs)].map((page) => ({params: {page}}))];
 }
 
 const {page} = Astro.params as {page: string};
@@ -69,7 +71,7 @@ const at = (c: string) => ({'data-c': c, style: `--c: ${c}`});
 // The index: each case study, then its pieces, then everything else - numbered in that order.
 type Row = {no: string; title: string; project: string; discipline: string; type: string; year: string; image: any; href: string | null; study: boolean};
 let rows: Row[] = [];
-if (page === 'index') {
+if (page === 'works') {
   const used = new Set<any>();
   const ordered: any[] = [];
   for (const s of studies)
@@ -100,7 +102,7 @@ if (page === 'index') {
 }
 
 // A monograph.
-const cs: any = page === 'index' ? null : await getCaseStudy(page);
+const cs: any = page === 'works' ? null : await getCaseStudy(page);
 const works: any[] = cs ? (await getGridItems(cs._id)).filter((it: any) => tileImage(it)) : [];
 const no = cs ? studyNo(page) : 0;
 const title = cs ? typeset(clean(cs.title)) : 'Index of Works';
@@ -158,7 +160,7 @@ const span = (() => {
           {cs ? <><span class="mg-num">{'№'} {pad2(no)}</span> {title}</> : <>Index of Works</>}
         </p>
         <p class="mg-run__book" {...at('7 / 11')}>
-          <a href="/next/grid/index">Rumeau Design, work {span}</a>
+          <a href="/next/grid/works">Rumeau Design, work {span}</a>
         </p>
         <p class="mg-run__tools" {...at('11 / 13')}>
           <button type="button" class="mg-gridbtn" id="mg-gridbtn" aria-pressed="false">Grid <kbd>G</kbd></button>

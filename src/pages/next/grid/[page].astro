@@ -630,6 +630,59 @@ const span = (() => {
   // Every [data-c] places itself on the grid: {...at('4 / 10')} is columns 4 to 10.
   document.querySelectorAll<HTMLElement>('.mg [data-c]').forEach((el) => el.style.setProperty('--c', el.dataset.c!));
 
+  /*
+    ON THE BASELINE. Chris, on a phone with the grid shown: "it looks like
+    the grid isn't being snapped to fit the body/paragraph". Every line
+    height and gap is a whole number of 8px units, so each line box starts
+    on the grid - but where the baseline falls inside it depends on the
+    typeface's metrics and the size, so letters sat between the lines. So,
+    once laid out, each block's first baseline is measured and the block is
+    nudged (translate, which moves nothing around it) the few pixels onto
+    the nearest line; its later lines follow, their line height being whole
+    units too. Again once the fonts have loaded, and on a resize.
+  */
+  const TEXT = [
+    '.mg-run__in > p', '.mg-h1', '.mg-lead', '.mg-h3', '.mg-facts__dl > dt', '.mg-facts__dl > dd', '.mg-cap',
+    '.mg-notes > .mg-sc', '.mg-notes li', '.mg-note', '.mg-text > p', '.mg-text li', '.mg-text > h2', '.mg-text > h3',
+    '.mg-table th', '.mg-table td', '.mg-studies__list a', '.mg-turn a', '.mg-trialnote span',
+  ].join(', ');
+  const snap = () => {
+    const mg = document.getElementById('mg');
+    if (!mg) return;
+    const unit = parseFloat(getComputedStyle(mg).getPropertyValue('--u')) * parseFloat(getComputedStyle(document.documentElement).fontSize) || 8;
+    const blocks = Array.from(mg.querySelectorAll<HTMLElement>(TEXT));
+    blocks.forEach((el) => (el.style.translate = ''));
+    const top = mg.getBoundingClientRect().top;
+    // Measure them all, then move them all: one layout, not one per block.
+    const shifts = blocks.map((el) => {
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {acceptNode: (n) => (n.textContent!.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP)});
+      const first = walker.nextNode();
+      // Not laid out (hidden at this width): nothing to put on a line.
+      if (!first || !first.parentNode || !el.getClientRects().length) return 0;
+      // A zero-size mark on the first line's baseline, there only to be measured.
+      const mark = document.createElement('span');
+      mark.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline';
+      first.parentNode.insertBefore(mark, first);
+      const baseline = mark.getBoundingClientRect().bottom - top;
+      mark.remove();
+      const off = ((baseline % unit) + unit) % unit;
+      return off <= unit / 2 ? -off : unit - off;
+    });
+    blocks.forEach((el, k) => {
+      if (Math.abs(shifts[k]) > 0.25) el.style.translate = `0 ${shifts[k].toFixed(2)}px`;
+    });
+  };
+  let pending = 0;
+  const later = () => {
+    cancelAnimationFrame(pending);
+    pending = requestAnimationFrame(snap);
+  };
+  snap();
+  document.fonts?.ready.then(later);
+  addEventListener('resize', later);
+  // A plate arriving can change the height above what follows it (the index's thumbnails are a fixed size).
+  document.querySelectorAll<HTMLImageElement>('.mg-fig img').forEach((img) => img.complete || img.addEventListener('load', later, {once: true}));
+
   // The grid, shown and hidden: G, or the button. Remembered for the visit.
   const btn = document.getElementById('mg-gridbtn');
   const set = (on: boolean) => {

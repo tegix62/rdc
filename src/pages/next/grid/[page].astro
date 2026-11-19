@@ -693,7 +693,8 @@ const span = (() => {
     } catch {}
   };
   try {
-    if (sessionStorage.getItem('mg-grid')) set(true);
+    // ?grid opens the page with the grid shown - to check it, or to send it shown.
+    if (new URLSearchParams(location.search).has('grid') || sessionStorage.getItem('mg-grid')) set(true);
   } catch {}
   btn?.addEventListener('click', () => set(!document.documentElement.classList.contains('mg-show-grid')));
   addEventListener('keydown', (e) => {

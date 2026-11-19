@@ -10935,3 +10935,100 @@ a.wd-pic {
 .om-quote {
   margin-left: -0.38em;
 }
+
+/*
+  THE TIDY (preview, .is-tidy on the portfolio grid). Chris, on an opened
+  piece in the Brand Identity view: "is there a way we could tidy up the
+  view ... with everything we've learned?" What the typographic trial
+  taught, applied to the gather:
+    ONE LEFT EDGE. The project's block was padded in from its box, so its
+      picture and words started 24px in from the rows of pieces under it.
+      The box already stands a gutter off the opened piece; the padding
+      goes, and block and rows share one edge.
+    NOTHING CUT OFF MID-NAME. The credits ran on one line and were cut with
+      an ellipsis ("FairytaleJF Regula..."). They wrap to a second line,
+      breaking only between people, and the picture's window gives that
+      line its room.
+    ONE CAPTION SIZE, ONE BODY SIZE. Label, credits and client in 13 on 16;
+      the line about the project in 17 on 24.
+    GAPS IN WHOLE 8PX STEPS.
+*/
+@media (min-width: 48rem) {
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster).is-tidy .pf-item.is-card--beside {
+    padding-left: 0;
+  }
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster).is-tidy .pf-item.is-card--before {
+    padding-right: 0;
+  }
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster).is-tidy .pf-item.is-card {
+    gap: 1.5rem;
+  }
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster).is-tidy .pf-item.is-card .pf-card__go {
+    margin-top: 0.5rem;
+  }
+}
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster).is-tidy .pf-item.is-card .pf-card {
+  gap: 0.5rem;
+  padding: 0 0 0.5rem;
+}
+.pf-grid.is-tidy .pf-card__client {
+  font-size: 0.8125rem;
+  line-height: 1rem;
+}
+.pf-grid.is-tidy .pf-card__line {
+  font-size: 1.0625rem;
+  line-height: 1.5rem;
+}
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster).is-tidy.has-labels .pf-item.is-expanded .pf-item__label {
+  gap: 0.25rem;
+  padding-top: 0.75rem;
+  line-height: 1rem;
+  white-space: normal;
+}
+.pf-grid.is-tidy .pf-item__label-line:first-child {
+  white-space: nowrap;
+}
+.pf-grid.is-tidy .pf-item__label-credits {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: clip;
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  white-space: normal;
+}
+/*
+  A role and its person stay together and the line breaks only between
+  people: each pair is one unit (inline-block), since the pairs sit with no
+  space between them to break at. A gap, not a separator, between them, so
+  a wrapped line never opens on one; grey role and navy name already tell
+  the pairs apart.
+*/
+.pf-grid.is-tidy .pf-item__credit {
+  display: inline-block;
+  margin-right: 1.25em;
+  white-space: nowrap;
+}
+.pf-grid.is-tidy .pf-item__credit + .pf-item__credit::before {
+  content: none;
+}
+/* Room for the second line of names, in the picture's window cap. */
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster).is-tidy.has-labels .pf-item:has(.pf-item__label--credits) {
+  --pf-label-h: 4rem;
+}
+:is(.pf-grid.is-merch-view, .pf-grid.is-cluster).is-tidy.has-labels:has(.pf-item.is-card--beside) .pf-item--study.is-expanded:has(.pf-item__label--credits) {
+  --pf-label-h: 3rem;
+}
+/* A phone is narrow enough that each person takes a line: three, and the room for them. */
+@media (max-width: 47.99rem) {
+  .pf-grid.is-tidy .pf-item__label-credits {
+    -webkit-line-clamp: 3;
+  }
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster).is-tidy.has-labels .pf-item:has(.pf-item__label--credits) {
+    --pf-label-h: 5rem;
+  }
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster).is-tidy.has-labels:has(.pf-item.is-card--beside) .pf-item--study.is-expanded:has(.pf-item__label--credits) {
+    --pf-label-h: 4rem;
+  }
+}

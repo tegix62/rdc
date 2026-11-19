@@ -225,6 +225,14 @@ const MUSEUM_LABELS = true;
 */
 const VOTES = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
 /*
+  THE TIDY (preview) - Chris, on an opened piece in the Brand Identity view:
+  "is there a way we could tidy up the view ... with everything we've
+  learned?" From the typographic trial: one left edge for the project's
+  block and its rows, no name cut off mid-word, one caption size and one
+  body size, and gaps in whole 8px steps. See THE TIDY in global.css.
+*/
+const TIDY = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
+/*
   ROLLED BACK, both. Chris, on seeing them: "the animations are interesting,
   but they look a little cheesy currently ... roll back the animations for
   now" - the motion idea wants rethinking (why animate at all, and what
@@ -413,7 +421,7 @@ if (emptyFilters.length > 0) {
         - a timeout removes it regardless, so if Isotope fails to load the
           tiles come back in float order instead of staying invisible.
     */}
-    <div class:list={['pf-grid', 'pf-pane', MUSEUM_LABELS && 'has-labels', WALL && 'is-wall', PASTE_UP && 'is-paste', GLIDE && 'is-glide']} id="pf-grid" data-type-cluster={TYPE_CLUSTER ? '' : undefined}>
+    <div class:list={['pf-grid', 'pf-pane', MUSEUM_LABELS && 'has-labels', WALL && 'is-wall', PASTE_UP && 'is-paste', GLIDE && 'is-glide', TIDY && 'is-tidy']} id="pf-grid" data-type-cluster={TYPE_CLUSTER ? '' : undefined}>
       {items.map((item: any, i: number) => {
         // tileImage, not `thumbnail || mainImage`: an empty Grid Thumbnail is
         // truthy and used to swallow the real picture. See lib/image.ts.

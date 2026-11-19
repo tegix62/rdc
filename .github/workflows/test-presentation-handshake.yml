@@ -14,7 +14,7 @@ on:
 
 jobs:
   handshake:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # No timeout means GitHub's 360-minute default. test-media-row-slots hung
     # for four hours on a single stalled image before anyone noticed it had
     # never reported, so every browser check and audit now fails loudly rather

@@ -1290,7 +1290,8 @@ if (emptyFilters.length > 0) {
           runs.splice(i, 1);
           i--;
         }
-      const floor = colW * 0.55;
+      // Wordmarks read small; a shirt or a photograph needs more room to read at all.
+      const floorOf = (kind: number) => colW * (kind === 1 ? 0.55 : 0.9);
       const cap = Math.min(colW * 2.6, opened.h * 0.45);
       const flushH = (items: {a: number}[]) => (width - 2 * pad * items.length) / items.reduce((s, it) => s + it.a, 0) + 2 * pad;
       type Row = {items: {el: HTMLElement; a: number}[]; h: number; flush: number; kind: number};
@@ -1312,7 +1313,7 @@ if (emptyFilters.length > 0) {
             const flush = flushH(items);
             const h = Math.min(cap, flush);
             // A row too short to read is no way at all.
-            if (h < floor * 0.9) continue;
+            if (h < floorOf(run.kind) * 0.9) continue;
             rows.push({items, h, flush, kind: run.kind});
             cut(j, rows);
             rows.pop();
@@ -1328,57 +1329,78 @@ if (emptyFilters.length > 0) {
       */
       const limit = height * 1.005;
       type Sum = {laid: Laid[]; total: number; uneven: number};
-      let sums = new Map<number, Sum>([[0, {laid: [], total: 0, uneven: 0}]]);
-      for (const run of runs.slice(0, -1)) {
-        const next = new Map<number, Sum>();
-        for (const way of ways(run))
-          for (const sum of sums.values()) {
-            const total = sum.total + way.total;
-            if (total > limit) continue;
-            const key = Math.round(total / 3);
-            const uneven = sum.uneven + way.uneven;
-            const had = next.get(key);
-            if (!had || uneven < had.uneven) next.set(key, {laid: [...sum.laid, way], total, uneven});
-          }
-        sums = next;
-      }
-      /*
-        Then the last kind, whose last row may end short, like a paragraph's
-        last line, down to the legible floor - so the rows can meet the foot
-        exactly. Judged by what the band is for: the least empty space in it,
-        counting the gap under the rows and the room a short row leaves
-        beside it (a row at the cap leaves some too); then rows as even as
-        they come, the merch kept the tallest and the wordmarks the shortest.
-      */
-      let best: {score: number; laid: Laid[]} | null = null;
-      for (const way of ways(runs[runs.length - 1]))
-        for (const sum of sums.values()) {
-          const fixed = sum.total + way.total - way.rows[way.rows.length - 1].h;
-          const end = way.rows[way.rows.length - 1];
-          const endH = Math.max(floor, Math.min(end.h, height - fixed));
-          if (fixed + endH > limit) continue;
-          const last = {...end, h: endH};
-          const laid = [...sum.laid, {...way, rows: [...way.rows.slice(0, -1), last]}];
-          const rows = laid.flatMap((l) => l.rows);
-          const total = fixed + endH;
-          let empty = Math.max(0, height - total);
-          for (const row of rows) empty += row.h * (1 - row.h / row.flush);
-          let score = empty / height + 0.15 * (sum.uneven + way.uneven);
-          const mean = (kind: number) => {
-            const hs = rows.filter((row) => row.kind === kind).map((row) => row.h);
-            return hs.length ? hs.reduce((x, y) => x + y, 0) / hs.length : null;
-          };
-          const merch = mean(0);
-          const marks = mean(1);
-          const other = mean(2);
-          if (merch !== null && other !== null && merch < other) score += 0.5 * ((other - merch) / other);
-          if (other !== null && marks !== null && other < marks) score += 0.5 * ((marks - other) / marks);
-          if (merch !== null && marks !== null && merch < marks) score += 0.5 * ((marks - merch) / marks);
-          if (!best || score < best.score) best = {score, laid};
+      const solve = (list: Run[]): {score: number; laid: Laid[]} | null => {
+        let sums = new Map<number, Sum>([[0, {laid: [], total: 0, uneven: 0}]]);
+        for (const run of list.slice(0, -1)) {
+          const next = new Map<number, Sum>();
+          for (const way of ways(run))
+            for (const sum of sums.values()) {
+              const total = sum.total + way.total;
+              if (total > limit) continue;
+              const key = Math.round(total / 3);
+              const uneven = sum.uneven + way.uneven;
+              const had = next.get(key);
+              if (!had || uneven < had.uneven) next.set(key, {laid: [...sum.laid, way], total, uneven});
+            }
+          sums = next;
         }
-      const won = best as {score: number; laid: Laid[]} | null;
+        /*
+          Then the last kind, whose last row may end short, like a paragraph's
+          last line, to no less than half its height and never under the
+          legible floor - so the rows can meet the foot
+          exactly. Judged by what the band is for: the least empty space in it,
+          counting the gap under the rows and the room a short row leaves
+          beside it (a row at the cap leaves some too); then rows as even as
+          they come, the merch kept the tallest and the wordmarks the shortest.
+        */
+        let best: {score: number; laid: Laid[]} | null = null;
+        for (const way of ways(list[list.length - 1]))
+          for (const sum of sums.values()) {
+            const fixed = sum.total + way.total - way.rows[way.rows.length - 1].h;
+            const end = way.rows[way.rows.length - 1];
+            const endH = Math.min(end.h, Math.max(floorOf(end.kind), end.h / 2, height - fixed));
+            if (fixed + endH > limit) continue;
+            const last = {...end, h: endH};
+            const laid = [...sum.laid, {...way, rows: [...way.rows.slice(0, -1), last]}];
+            const rows = laid.flatMap((l) => l.rows);
+            const total = fixed + endH;
+            let empty = Math.max(0, height - total);
+            for (const row of rows) empty += row.h * (1 - row.h / row.flush);
+            let score = empty / height + 0.15 * (sum.uneven + way.uneven);
+            const mean = (kind: number) => {
+              const hs = rows.filter((row) => row.kind === kind).map((row) => row.h);
+              return hs.length ? hs.reduce((x, y) => x + y, 0) / hs.length : null;
+            };
+            const merch = mean(0);
+            const marks = mean(1);
+            const other = mean(2);
+            if (merch !== null && other !== null && merch < other) score += 0.5 * ((other - merch) / other);
+            if (other !== null && marks !== null && other < marks) score += 0.5 * ((marks - other) / marks);
+            if (merch !== null && marks !== null && merch < marks) score += 0.5 * ((marks - merch) / marks);
+            if (!best || score < best.score) best = {score, laid};
+          }
+        const found = best as {score: number; laid: Laid[]} | null;
+        return found && found.laid.length === list.length ? found : null;
+      };
+      /*
+        A kind too few to fill a row at the cap (two shirts, say) leaves the
+        rest of its row empty. So the band is also tried with each such kind
+        sharing its row with its neighbour's pieces, and the emptier of the
+        two loses.
+      */
+      const shared = runs.map((run) => ({...run, items: [...run.items]}));
+      for (let i = 0; i < shared.length && shared.length > 1; i++)
+        if (flushH(shared[i].items) > cap) {
+          const into = i < shared.length - 1 ? i + 1 : i - 1;
+          if (into > i) shared[into].items.unshift(...shared[i].items);
+          else shared[into].items.push(...shared[i].items);
+          shared.splice(i, 1);
+          i = -1;
+        }
+      const tries = [solve(runs), shared.length < runs.length ? solve(shared) : null];
+      const won = tries.reduce<{score: number; laid: Laid[]} | null>((x, y) => (y && (!x || y.score < x.score) ? y : x), null);
       // Nothing fits under the piece at a legible size: the planner below runs the rows on past it.
-      if (!won || won.laid.length !== runs.length) return null;
+      if (!won) return null;
       const rows = won.laid.flatMap((l) => l.rows);
       const total = rows.reduce((s, row) => s + row.h, 0);
       // Not laid yet: planJustified compares it with the other planner's and lays the better.

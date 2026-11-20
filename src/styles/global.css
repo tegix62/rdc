@@ -11034,23 +11034,21 @@ a.wd-pic {
 }
 
 /*
-  The wide block, tidied (preview): the name takes only the room it needs -
-  up to half the block - and the line starts right after it, held to a
-  reading measure, instead of each taking half and leaving a gap after a
-  short name. Chris, of Two Point Oh: "that should probably hug itself better".
+  The wide block, tidied (preview): stacked, as on a narrower screen - name,
+  then the line and the way in - with the line held to a reading measure.
+  Chris: "back to stacked vertically while still having this nice space
+  filled in". The rows beside the opened piece start under the taller block,
+  and the planner fills from there (FILL THE BAND, portfolio.astro).
 */
 @container (min-width: 56rem) {
   :is(.pf-grid.is-merch-view, .pf-grid.is-cluster).is-tidy .pf-item.is-card .pf-card {
-    column-gap: 2rem;
+    flex-direction: column;
   }
 
-  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster).is-tidy .pf-item.is-card .pf-card__head {
-    flex: 0 1 auto;
-    max-width: 50%;
-  }
-
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster).is-tidy .pf-item.is-card .pf-card__head,
   :is(.pf-grid.is-merch-view, .pf-grid.is-cluster).is-tidy .pf-item.is-card .pf-card__body {
-    flex: 1 1 0;
-    max-width: 34rem;
+    flex: 0 0 auto;
+    align-self: stretch;
+    max-width: 40rem;
   }
 }

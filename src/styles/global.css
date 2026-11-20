@@ -11032,3 +11032,25 @@ a.wd-pic {
     --pf-label-h: 4rem;
   }
 }
+
+/*
+  The wide block, tidied (preview): the name takes only the room it needs -
+  up to half the block - and the line starts right after it, held to a
+  reading measure, instead of each taking half and leaving a gap after a
+  short name. Chris, of Two Point Oh: "that should probably hug itself better".
+*/
+@container (min-width: 56rem) {
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster).is-tidy .pf-item.is-card .pf-card {
+    column-gap: 2rem;
+  }
+
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster).is-tidy .pf-item.is-card .pf-card__head {
+    flex: 0 1 auto;
+    max-width: 50%;
+  }
+
+  :is(.pf-grid.is-merch-view, .pf-grid.is-cluster).is-tidy .pf-item.is-card .pf-card__body {
+    flex: 1 1 0;
+    max-width: 34rem;
+  }
+}

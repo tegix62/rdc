@@ -1,12 +1,12 @@
 ---
 /*
-  TWO TRIALS WITH THE COLLAGE CUT-OUTS, IN THE SPIRIT OF LANDS (preview only).
+  A TRIAL WITH THE COLLAGE CUT-OUTS, IN THE SPIRIT OF LANDS (preview only).
 
   Chris: "You remember the whole Minecraft philosophy of noise creating
   things and how that fundamentally changed our CSS grid? Anything similar
   to that vein that would work here?" - and, of the ideas, "try 1 and 3 but
-  be ready to roll back". Nothing is placed by hand: a few rules and some
-  noise, and the arrangement grows out of them. The cut-outs never map back
+  be ready to roll back" - and then "ditch fabric". Nothing is placed by
+  hand: a few rules and some noise, and the arrangement grows out of them. The cut-outs never map back
   onto their collage; they are the blocks, not a key to the original.
 
     /collage/play/world   An endless field to drag around. Each collage is a
@@ -16,16 +16,8 @@
                           speeds. A place always grows the same way, so its
                           link (?at=x,y) can be shared.
 
-    /collage/play/fabric  A printed fabric per collage, grown cell by cell by
-                          wave function collapse: each cell may only take a
-                          cut-out its neighbours allow - never the same one
-                          twice side by side, colours contrasting, big and
-                          small taking turns - so it repeats like a textile
-                          without ever quite repeating. Never mirrored or
-                          turned: the cut-outs carry words.
-
   Rolling back is deleting this one file: nothing else uses it, and the
-  production build emits neither page (getStaticPaths returns nothing there).
+  production build does not emit it (getStaticPaths returns nothing there).
 */
 import Layout from '../../../layouts/Layout.astro';
 import {sanityClient} from '../../../lib/sanity';
@@ -35,10 +27,10 @@ import {stripStegaKey} from '../../../lib/stega';
 
 export function getStaticPaths() {
   if (import.meta.env.PUBLIC_IS_PREVIEW !== 'true') return [];
-  return [{params: {kind: 'world'}}, {params: {kind: 'fabric'}}];
+  return [{params: {kind: 'world'}}];
 }
 
-const {kind} = Astro.params as {kind: 'world' | 'fabric'};
+const {kind} = Astro.params as {kind: 'world'};
 
 const collages: any[] = await sanityClient.fetch(
   `*[_type == "caseStudy" && ${COLLAGE_FILTER}]{
@@ -61,7 +53,7 @@ const sets = collages
       cuts: c.cuts
         .map((k: any) => {
           const dim = imageDimensions(k.mainImage);
-          const src = imageUrl(k.mainImage)?.width(kind === 'world' ? 640 : 360).url();
+          const src = imageUrl(k.mainImage)?.width(640).url();
           if (!dim || !src) return null;
           return {slug: stripStegaKey(k.slug), title: stripStegaKey(k.title), src, a: dim.width / dim.height, colour: k.colour ?? '#888888'};
         })
@@ -72,37 +64,19 @@ const sets = collages
   .sort((a, z) => z.cuts.length - a.cuts.length);
 
 const total = sets.reduce((n, s) => n + s.cuts.length, 0);
-const title = kind === 'world' ? 'Cut-out World' : 'Cut-out Fabric';
+const title = 'Cut-out World';
 ---
 
 <Layout title={title} description="A trial: collage cut-outs arranged by rules and noise." noindex>
-  {kind === 'world' ? (
-    <section class="cw" aria-label="Cut-out world">
-      <div class="cw__view" id="cw-view" tabindex="0" aria-label="Drag, scroll or use the arrow keys to wander">
-        <div class="cw__layer" data-depth="0"></div>
-        <div class="cw__layer" data-depth="1"></div>
-        <div class="cw__layer" data-depth="2"></div>
-      </div>
-      <p class="cw__where" id="cw-where" aria-live="polite"></p>
-      <p class="cw__hint" id="cw-hint">Drag to wander. {sets.length} collages, {total} cut-outs, no end.</p>
-    </section>
-  ) : (
-    <section class="cf" aria-label="Cut-out fabric">
-      <header class="cf__head">
-        <h1 class="cf__title">Cut-out Fabric</h1>
-        <p class="cf__line">Each collage's cut-outs, grown into a printed fabric by a few rules: never the same cut-out twice side by side, colours contrasting, big and small taking turns.</p>
-      </header>
-      {[...sets, {name: 'All of them', year: '', cuts: sets.flatMap((s) => s.cuts)}].map((s, i) => (
-        <div class="cf__band" data-band={i}>
-          <div class="cf__bar">
-            <h2 class="cf__name">{s.name}{s.year && <span class="cf__year"> {s.year}</span>}</h2>
-            <button class="cf__again" type="button" data-again={i}>Grow again</button>
-          </div>
-          <div class="cf__cloth" data-cloth={i}></div>
-        </div>
-      ))}
-    </section>
-  )}
+  <section class="cw" aria-label="Cut-out world">
+    <div class="cw__view" id="cw-view" tabindex="0" aria-label="Drag, scroll or use the arrow keys to wander">
+      <div class="cw__layer" data-depth="0"></div>
+      <div class="cw__layer" data-depth="1"></div>
+      <div class="cw__layer" data-depth="2"></div>
+    </div>
+    <p class="cw__where" id="cw-where" aria-live="polite"></p>
+    <p class="cw__hint" id="cw-hint">Drag to wander. {sets.length} collages, {total} cut-outs, no end.</p>
+  </section>
   <script type="application/json" id="play-data" set:html={JSON.stringify({kind, sets})} />
 </Layout>
 
@@ -127,8 +101,7 @@ const title = kind === 'world' ? 'Cut-out World' : 'Cut-out Fabric';
   };
   const fbm = (x: number, y: number, s: number) => (noise(x, y, s) * 0.62 + noise(x * 2.1, y * 2.1, s + 17) * 0.28 + noise(x * 4.3, y * 4.3, s + 31) * 0.1);
 
-  if (data.kind === 'world') world();
-  else fabric();
+  world();
 
   /*
     THE WORLD. Three depths, each its own scatter: far (small, many, slow),
@@ -302,132 +275,6 @@ const title = kind === 'world' ? 'Cut-out World' : 'Cut-out Fabric';
     addEventListener('resize', queue);
     draw();
   }
-
-  /*
-    THE FABRIC. A grid of cells, every other column dropped half a cell, as
-    a printed textile repeats. Each cell starts able to take any cut-out,
-    large or small. The cell with the fewest choices left is decided first,
-    its pick weighted towards colours that contrast with its decided
-    neighbours, and the choice is passed on: no neighbour may then take the
-    same cut-out, and the cells beside it in its row take the other size, so
-    big and small alternate along the cloth. Repeat until every cell is
-    decided - wave function collapse. A dead end starts the band again with
-    the next seed. Nothing is mirrored or turned: the cut-outs carry words.
-  */
-  function fabric() {
-    const SIZES = [0.62, 0.92];
-    const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) || 0);
-    const contrast = (a: string, b: string) => {
-      const [p, q] = [rgb(a), rgb(b)];
-      return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]) / 441;
-    };
-    const bands = [...data.sets, {name: 'All of them', year: '', cuts: data.sets.flatMap((s) => s.cuts)}];
-    const seeds = bands.map((_, i) => 1 + i * 97 + Math.floor(Math.random() * 1000));
-
-    const columns = () => (innerWidth < 640 ? 4 : innerWidth < 1100 ? 7 : 10);
-
-    // Neighbours on a half-drop grid: above, below, and two each side (the dropped columns sit half a cell up, between rows).
-    const neighbours = (c: number, r: number, cols: number, rows: number) => {
-      const out: {c: number; r: number; side: boolean}[] = [];
-      const push = (cc: number, rr: number, side: boolean) => { if (cc >= 0 && cc < cols && rr >= 0 && rr < rows) out.push({c: cc, r: rr, side}); };
-      push(c, r - 1, false);
-      push(c, r + 1, false);
-      const drop = c % 2;
-      for (const dc of [-1, 1]) {
-        push(c + dc, drop ? r - 1 : r, true);
-        push(c + dc, drop ? r : r + 1, true);
-      }
-      return out;
-    };
-
-    const weave = (cuts: Cut[], cols: number, rows: number, seed: number) => {
-      for (let attempt = 0; attempt < 30; attempt++) {
-        let s = seed + attempt * 7919;
-        const rand = () => { s = (Math.imul(s, 1103515245) + 12345) >>> 0; return s / 4294967296; };
-        const all = cuts.flatMap((_, k) => [0, 1].map((o) => k * 4 + o));
-        const cells = Array.from({length: cols * rows}, () => new Set(all));
-        const done = new Array<number>(cols * rows).fill(-1);
-        let ok = true;
-        for (let n = 0; n < cells.length && ok; n++) {
-          // The undecided cell with the fewest choices left (ties broken at random).
-          let at = -1, least = Infinity;
-          for (let i = 0; i < cells.length; i++) if (done[i] < 0) { const e = cells[i].size + rand() * 0.5; if (e < least) { least = e; at = i; } }
-          const c = at % cols, r = Math.floor(at / cols);
-          const near = neighbours(c, r, cols, rows);
-          const options = [...cells[at]];
-          if (!options.length) { ok = false; break; }
-          const weight = (st: number) => {
-            let w = 0.25;
-            for (const m of near) { const v = done[m.r * cols + m.c]; if (v >= 0) w += contrast(cuts[st >> 2].colour, cuts[v >> 2].colour); }
-            return w * w;
-          };
-          const ws = options.map(weight);
-          let roll = rand() * ws.reduce((x, y) => x + y, 0);
-          let pick = options[options.length - 1];
-          for (let i = 0; i < options.length; i++) { roll -= ws[i]; if (roll <= 0) { pick = options[i]; break; } }
-          done[at] = pick;
-          // Pass it on to the neighbours.
-          for (const m of near) {
-            const j = m.r * cols + m.c;
-            if (done[j] >= 0) continue;
-            for (const st of [...cells[j]]) {
-              const sameCut = st >> 2 === pick >> 2;
-              const bad = m.side && (st & 1) === (pick & 1);
-              if (sameCut || bad) cells[j].delete(st);
-            }
-            if (!cells[j].size) ok = false;
-          }
-        }
-        if (ok) return done;
-      }
-      // Too few cut-outs for every rule: just keep neighbours different.
-      return Array.from({length: cols * rows}, (_, i) => ((i * 7 + Math.floor(i / cols) * 3) % cuts.length) * 4 + (i % 2));
-    };
-
-    const render = (i: number) => {
-      const band = bands[i];
-      const cloth = document.querySelector<HTMLElement>(`[data-cloth="${i}"]`);
-      if (!cloth) return;
-      const cols = columns();
-      const rows = i === bands.length - 1 ? 5 : 4;
-      const states = weave(band.cuts, cols, rows, seeds[i]);
-      cloth.style.setProperty('--cols', String(cols));
-      cloth.style.setProperty('--rows', String(rows - 1));
-      cloth.replaceChildren(
-        ...states.map((st, n) => {
-          const c = n % cols, r = Math.floor(n / cols);
-          const cut = band.cuts[st >> 2];
-          const cell = document.createElement('a');
-          cell.className = 'cf__cell';
-          cell.href = `/portfolio?open=${encodeURIComponent(cut.slug)}`;
-          cell.style.gridColumn = String(c + 1);
-          cell.style.gridRow = String(r + 1);
-          if (c % 2) cell.classList.add('is-dropped');
-          // Its size from the rules, with a little give by noise across the cloth.
-          const scale = SIZES[st & 1] * (0.92 + fbm(c * 0.45, r * 0.45, seeds[i]) * 0.16);
-          const img = document.createElement('img');
-          img.src = cut.src;
-          img.alt = cut.title;
-          img.loading = 'lazy';
-          img.decoding = 'async';
-          img.style.transform = `scale(${scale.toFixed(3)})`;
-          cell.append(img);
-          return cell;
-        }),
-      );
-    };
-
-    bands.forEach((_, i) => render(i));
-    document.querySelectorAll<HTMLButtonElement>('[data-again]').forEach((b) =>
-      b.addEventListener('click', () => {
-        const i = Number(b.dataset.again);
-        seeds[i] += 1009;
-        render(i);
-      }),
-    );
-    let lastCols = columns();
-    addEventListener('resize', () => { if (columns() !== lastCols) { lastCols = columns(); bands.forEach((_, i) => render(i)); } });
-  }
 </script>
 
 <style is:global>
@@ -530,101 +377,5 @@ const title = kind === 'world' ? 'Cut-out World' : 'Cut-out Fabric';
 
   .cw__hint.is-gone {
     opacity: 0;
-  }
-
-  /* THE FABRIC */
-  .cf {
-    padding: 2rem 1rem 4rem;
-    max-width: 90rem;
-    margin: 0 auto;
-  }
-
-  .cf__head {
-    max-width: 40rem;
-    margin-bottom: 2.5rem;
-  }
-
-  .cf__title {
-    font-family: var(--font-heading);
-    color: var(--color-navy);
-    margin: 0 0 0.5rem;
-  }
-
-  .cf__line {
-    margin: 0;
-    font-size: 1.0625rem;
-    line-height: 1.5rem;
-  }
-
-  .cf__band {
-    margin-bottom: 3rem;
-  }
-
-  .cf__bar {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-    border-top: 1px solid var(--color-navy);
-    padding-top: 0.5rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .cf__name {
-    font-family: var(--font-heading);
-    font-size: 1.25rem;
-    color: var(--color-navy);
-    margin: 0;
-  }
-
-  .cf__year {
-    font-family: var(--font-body);
-    font-size: 0.8125rem;
-    color: var(--color-ink);
-  }
-
-  .cf__again {
-    font: inherit;
-    font-size: 0.8125rem;
-    color: var(--color-navy);
-    background: none;
-    border: 1px solid var(--color-navy);
-    padding: 0.25rem 0.75rem;
-    cursor: pointer;
-  }
-
-  .cf__again:hover {
-    background: var(--color-navy);
-    color: #fff;
-  }
-
-  /* One row fewer than is grown: the dropped columns' last half-cell runs off the bottom edge, as cloth does. */
-  .cf__cloth {
-    display: grid;
-    grid-template-columns: repeat(var(--cols, 10), minmax(0, 1fr));
-    grid-auto-rows: auto;
-    aspect-ratio: calc(var(--cols, 10) / var(--rows, 3));
-    overflow: hidden;
-  }
-
-  .cf__cell {
-    position: relative;
-    display: block;
-    aspect-ratio: 1;
-    min-height: 0;
-  }
-
-  .cf__cell.is-dropped {
-    transform: translateY(-50%);
-  }
-
-  .cf__cell img {
-    position: absolute;
-    inset: 6%;
-    display: block;
-    width: 88%;
-    height: 88%;
-    object-fit: contain;
-    transition: transform 0.25s ease;
   }
 </style>

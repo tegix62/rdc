@@ -75,7 +75,7 @@ const title = 'Cut-out World';
       <div class="cw__layer" data-depth="2"></div>
     </div>
     <p class="cw__where" id="cw-where" aria-live="polite"></p>
-    <p class="cw__hint" id="cw-hint">Drag to wander. {sets.length} collages, {total} cut-outs, no end.</p>
+    <p class="cw__hint" id="cw-hint">Drag to wander. Point at a soft one to bring it forward. {sets.length} collages, {total} cut-outs, no end.</p>
   </section>
   <script type="application/json" id="play-data" set:html={JSON.stringify({kind, sets})} />
 </Layout>
@@ -106,8 +106,22 @@ const title = 'Cut-out World';
   /*
     THE WORLD. Three depths, each its own scatter: far (small, many, slow),
     middle, near (big, few, fast). Each depth is cut into chunks of cells;
-    a cell grows at most one cut-out, jittered inside it. Only the chunks on
-    screen exist, made as they come into view and dropped as they leave.
+    only the chunks on screen exist, made as they come into view and dropped
+    as they leave.
+
+    TERRITORIES (the middle depth) - Chris: "try territories, depth as
+    focus". Every cell has a site, jittered inside it, and owns the ground
+    nearer to it than to any other site (a Voronoi cell), drawn as a
+    hairline; where two neighbours belong to different collages the line is
+    drawn firm, so the biomes read as countries on a map. Each territory
+    grows one cut-out, fitted inside it, so nothing overlaps. A cell's shape
+    depends only on the sites within two cells of it, so every chunk can
+    draw its own and they still meet.
+
+    DEPTH AS FOCUS. The far and near depths are out of focus, like a
+    camera's; the middle, the map, is sharp. Pointing at a soft cut-out
+    brings it forward - a sharp copy of it rises over everything while the
+    rest recedes - and pointing at a territory lights it.
   */
   function world() {
     const view = document.getElementById('cw-view') as HTMLElement;
@@ -115,13 +129,15 @@ const title = 'Cut-out World';
     const hint = document.getElementById('cw-hint') as HTMLElement;
     const layers = [...view.querySelectorAll<HTMLElement>('.cw__layer')];
     const sets = data.sets;
+    const MAP = 1;
     const DEPTHS = [
       {speed: 0.55, cell: 150, min: 46, max: 110, keep: 0.5, seed: 11},
-      {speed: 1, cell: 240, min: 100, max: 230, keep: 0.6, seed: 23},
-      {speed: 1.6, cell: 460, min: 210, max: 380, keep: 0.28, seed: 37},
+      {speed: 1, cell: 230, min: 0, max: 460, keep: 1, seed: 23},
+      {speed: 1.6, cell: 560, min: 200, max: 340, keep: 0.16, seed: 37},
     ];
     const CHUNK = 4;
     const BIOME = 1 / 1500;
+    const SVG = 'http://www.w3.org/2000/svg';
 
     // Which collage a place belongs to: the strongest of one noise field per collage; near a border, sometimes the runner-up.
     const biomeAt = (gx: number, gy: number, roll: number) => {
@@ -134,18 +150,22 @@ const title = 'Cut-out World';
       return bv - sv < 0.05 && roll < 0.45 ? second : best;
     };
 
+    // A cut-out from the collage, different from the cell to the left and the one above where they share it.
+    const pickCut = (set: Set, cx: number, cy: number, seed: number) => {
+      const pick = (x: number, y: number) => Math.floor(hash(x, y, seed) * set.cuts.length);
+      let k = pick(cx, cy);
+      if (set.cuts.length > 2) for (let t = 0; t < 3 && (k === pick(cx - 1, cy) || k === pick(cx, cy - 1)); t++) k = (k + 1) % set.cuts.length;
+      return set.cuts[k];
+    };
+
+    // The soft depths: scattered, a cell growing at most one cut-out.
     const grow = (d: number, cx: number, cy: number) => {
       const D = DEPTHS[d];
       // The ground this cell stands for: the same for every depth, so the biomes line up.
       const gx = (cx + 0.5) * D.cell / D.speed, gy = (cy + 0.5) * D.cell / D.speed;
       const thick = fbm(gx / 1100 + 40, gy / 1100 - 40, 7);
       if (hash(cx, cy, D.seed) > D.keep * (0.35 + thick * 1.1)) return null;
-      const set = sets[biomeAt(gx, gy, hash(cx, cy, D.seed + 1))];
-      // A different cut-out from the cell to the left and the one above, where they came from the same collage.
-      const pick = (x: number, y: number) => Math.floor(hash(x, y, D.seed + 2) * set.cuts.length);
-      let k = pick(cx, cy);
-      if (set.cuts.length > 2) for (let t = 0; t < 3 && (k === pick(cx - 1, cy) || k === pick(cx, cy - 1)); t++) k = (k + 1) % set.cuts.length;
-      const cut = set.cuts[k];
+      const cut = pickCut(sets[biomeAt(gx, gy, hash(cx, cy, D.seed + 1))], cx, cy, D.seed + 2);
       const peak = fbm(gx / 900 + 500, gy / 900 + 500, 3);
       const size = (D.min + (D.max - D.min) * Math.pow(peak, 1.3)) * (0.85 + hash(cx, cy, D.seed + 3) * 0.3);
       const w = cut.a >= 1 ? size : size * cut.a;
@@ -155,27 +175,121 @@ const title = 'Cut-out World';
       return {cut, x, y, w, h, turn: (hash(cx, cy, D.seed + 6) - 0.5) * 10};
     };
 
+    // The territories.
+    const C = DEPTHS[MAP].cell;
+    const site = (cx: number, cy: number) => ({x: (cx + 0.2 + hash(cx, cy, 61) * 0.6) * C, y: (cy + 0.2 + hash(cx, cy, 62) * 0.6) * C});
+    const biomeOfCell = (cx: number, cy: number) => {
+      const p = site(cx, cy);
+      return biomeAt(p.x, p.y, hash(cx, cy, 63));
+    };
+    type V = {x: number; y: number; o: [number, number] | null};
+    const territory = (cx: number, cy: number) => {
+      const p = site(cx, cy);
+      // Start from a square well beyond the cell and cut it down by the line halfway to each neighbour's site.
+      let poly: V[] = [
+        {x: p.x - 2 * C, y: p.y - 2 * C, o: null},
+        {x: p.x + 2 * C, y: p.y - 2 * C, o: null},
+        {x: p.x + 2 * C, y: p.y + 2 * C, o: null},
+        {x: p.x - 2 * C, y: p.y + 2 * C, o: null},
+      ];
+      let reach = Infinity;
+      for (let dy = -2; dy <= 2; dy++)
+        for (let dx = -2; dx <= 2; dx++) {
+          if (!dx && !dy) continue;
+          const q = site(cx + dx, cy + dy);
+          const nx = q.x - p.x, ny = q.y - p.y;
+          const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2;
+          reach = Math.min(reach, Math.hypot(nx, ny) / 2);
+          const side = (v: {x: number; y: number}) => (v.x - mx) * nx + (v.y - my) * ny;
+          const out: V[] = [];
+          for (let i = 0; i < poly.length; i++) {
+            const A = poly[i], B = poly[(i + 1) % poly.length];
+            const sa = side(A), sb = side(B);
+            const cross = () => {
+              const t = sa / (sa - sb);
+              return {x: A.x + (B.x - A.x) * t, y: A.y + (B.y - A.y) * t};
+            };
+            if (sa <= 0) out.push(A);
+            if (sa <= 0 && sb > 0) out.push({...cross(), o: [dx, dy]});
+            else if (sa > 0 && sb <= 0) out.push({...cross(), o: A.o});
+          }
+          poly = out;
+        }
+      return {p, poly, reach};
+    };
+    const plant = (cx: number, cy: number, t: {p: {x: number; y: number}; reach: number}) => {
+      const gx = t.p.x, gy = t.p.y;
+      // Clearings: here and there a territory is left empty.
+      if (fbm(gx / 1100 + 40, gy / 1100 - 40, 7) < 0.3 && hash(cx, cy, 64) < 0.6) return null;
+      const cut = pickCut(sets[biomeOfCell(cx, cy)], cx, cy, 25);
+      // As big as fits in the territory (its corners may reach into the cell's own corners), peaks bigger.
+      const R = t.reach * 1.2 * (0.72 + 0.28 * fbm(gx / 900 + 500, gy / 900 + 500, 3));
+      const h = (2 * R) / Math.sqrt(1 + cut.a * cut.a);
+      const w = cut.a * h;
+      return {cut, x: gx - w / 2, y: gy - h / 2, w, h, turn: (hash(cx, cy, 65) - 0.5) * 8};
+    };
+
+    const cutEl = (g: {cut: Cut; x: number; y: number; w: number; h: number; turn: number}) => {
+      const a = document.createElement('a');
+      a.className = 'cw__cut';
+      a.href = `/portfolio?open=${encodeURIComponent(g.cut.slug)}`;
+      a.draggable = false;
+      a.style.cssText = `left:${g.x.toFixed(1)}px;top:${g.y.toFixed(1)}px;width:${g.w.toFixed(1)}px;height:${g.h.toFixed(1)}px;--turn:${g.turn.toFixed(2)}deg`;
+      const img = document.createElement('img');
+      img.src = g.cut.src;
+      img.alt = g.cut.title;
+      img.decoding = 'async';
+      img.draggable = false;
+      a.append(img);
+      return a;
+    };
+
     const live = layers.map(() => new Map<string, HTMLElement>());
     const makeChunk = (d: number, kx: number, ky: number) => {
       const el = document.createElement('div');
       el.className = 'cw__chunk';
+      if (d !== MAP) {
+        for (let j = 0; j < CHUNK; j++)
+          for (let i = 0; i < CHUNK; i++) {
+            const g = grow(d, kx * CHUNK + i, ky * CHUNK + j);
+            if (g) el.append(cutEl(g));
+          }
+        return el;
+      }
+      const svg = document.createElementNS(SVG, 'svg');
+      svg.setAttribute('class', 'cw__map');
+      const cells = document.createElementNS(SVG, 'g');
+      cells.setAttribute('class', 'cw__cells');
+      let borders = '';
       for (let j = 0; j < CHUNK; j++)
         for (let i = 0; i < CHUNK; i++) {
-          const g = grow(d, kx * CHUNK + i, ky * CHUNK + j);
-          if (!g) continue;
-          const a = document.createElement('a');
-          a.className = 'cw__cut';
-          a.href = `/portfolio?open=${encodeURIComponent(g.cut.slug)}`;
-          a.draggable = false;
-          a.style.cssText = `left:${g.x.toFixed(1)}px;top:${g.y.toFixed(1)}px;width:${g.w.toFixed(1)}px;height:${g.h.toFixed(1)}px;--turn:${g.turn.toFixed(2)}deg`;
-          const img = document.createElement('img');
-          img.src = g.cut.src;
-          img.alt = g.cut.title;
-          img.decoding = 'async';
-          img.draggable = false;
-          a.append(img);
-          el.append(a);
+          const cx = kx * CHUNK + i, cy = ky * CHUNK + j;
+          const t = territory(cx, cy);
+          const poly = document.createElementNS(SVG, 'polygon');
+          poly.setAttribute('points', t.poly.map((v) => `${v.x.toFixed(1)},${v.y.toFixed(1)}`).join(' '));
+          poly.dataset.cell = `${cx},${cy}`;
+          cells.append(poly);
+          // Firm lines between collages, each drawn once (by the cell that comes first).
+          const mine = biomeOfCell(cx, cy);
+          t.poly.forEach((v, n) => {
+            if (!v.o) return;
+            const ox = cx + v.o[0], oy = cy + v.o[1];
+            if (oy < cy || (oy === cy && ox < cx) || biomeOfCell(ox, oy) === mine) return;
+            const w = t.poly[(n + 1) % t.poly.length];
+            borders += `M${v.x.toFixed(1)} ${v.y.toFixed(1)}L${w.x.toFixed(1)} ${w.y.toFixed(1)}`;
+          });
+          const g = plant(cx, cy, t);
+          if (g) {
+            const a = cutEl(g);
+            a.dataset.cell = `${cx},${cy}`;
+            el.append(a);
+          }
         }
+      const line = document.createElementNS(SVG, 'path');
+      line.setAttribute('class', 'cw__borders');
+      line.setAttribute('d', borders);
+      svg.append(cells, line);
+      el.prepend(svg);
       return el;
     };
 
@@ -267,6 +381,55 @@ const title = 'Cut-out World';
       };
       requestAnimationFrame(step);
     };
+    /*
+      Focus. A soft cut-out pointed at: a sharp copy of it rises over
+      everything, a touch bigger, and the rest recede until the pointer
+      leaves it. A territory pointed at: its cut-out lifts and its ground is
+      lit. Only with a mouse; a tap goes straight to the piece.
+    */
+    const lens = document.createElement('div');
+    lens.className = 'cw__focus';
+    view.append(lens);
+    const unfocus = () => {
+      lens.replaceChildren();
+      view.classList.remove('is-focus');
+    };
+    let lit: Element[] = [];
+    const unlight = () => {
+      lit.forEach((e) => e.classList.remove('is-lit'));
+      lit = [];
+    };
+    if (matchMedia('(hover: hover)').matches)
+      view.addEventListener('pointerover', (e) => {
+        if (down) return;
+        const cut = (e.target as Element).closest<HTMLAnchorElement>('.cw__cut');
+        if (!cut || lens.contains(cut)) return;
+        const depth = Number(cut.closest<HTMLElement>('.cw__layer')?.dataset.depth);
+        unlight();
+        if (depth === MAP) {
+          const poly = cut.parentElement?.querySelector(`polygon[data-cell="${cut.dataset.cell}"]`);
+          lit = [cut, ...(poly ? [poly] : [])];
+          lit.forEach((x) => x.classList.add('is-lit'));
+          return;
+        }
+        const box = view.getBoundingClientRect(), r = cut.getBoundingClientRect();
+        const copy = cut.cloneNode(true) as HTMLAnchorElement;
+        copy.style.left = `${r.left + r.width / 2 - box.left - cut.offsetWidth / 2}px`;
+        copy.style.top = `${r.top + r.height / 2 - box.top - cut.offsetHeight / 2}px`;
+        // A far one comes forward to a readable size, not just a touch bigger.
+        copy.style.setProperty('--up', String(Math.max(1.15, 220 / Math.max(cut.offsetWidth, cut.offsetHeight))));
+        copy.addEventListener('pointerleave', unfocus);
+        lens.replaceChildren(copy);
+        view.classList.add('is-focus');
+        requestAnimationFrame(() => copy.classList.add('is-up'));
+      });
+    view.addEventListener('pointerout', (e) => {
+      const cut = (e.target as Element).closest('.cw__cut');
+      if (cut && lit.includes(cut) && !cut.contains(e.relatedTarget as Node)) unlight();
+    });
+    view.addEventListener('pointerdown', () => { unfocus(); unlight(); });
+    view.addEventListener('wheel', () => { unfocus(); unlight(); }, {passive: true});
+
     view.addEventListener('wheel', (e) => { e.preventDefault(); move(e.deltaX, e.deltaY); }, {passive: false});
     view.addEventListener('keydown', (e) => {
       const k = ({ArrowLeft: [-80, 0], ArrowRight: [80, 0], ArrowUp: [0, -80], ArrowDown: [0, 80]} as Record<string, number[]>)[e.key];
@@ -310,8 +473,85 @@ const title = 'Cut-out World';
     will-change: transform;
   }
 
+  /* Out of focus in front and behind; the map sharp. */
+  .cw__layer {
+    transition: opacity 0.35s ease, filter 0.35s ease;
+  }
+
   .cw__layer[data-depth='0'] {
-    opacity: 0.55;
+    opacity: 0.6;
+    filter: blur(2.5px);
+  }
+
+  .cw__layer[data-depth='2'] {
+    opacity: 0.85;
+    filter: blur(7px);
+  }
+
+  .cw__view.is-focus .cw__layer {
+    opacity: 0.3;
+  }
+
+  .cw__view.is-focus .cw__layer[data-depth='1'] {
+    filter: blur(1.5px);
+  }
+
+  .cw__map {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 1px;
+    height: 1px;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  .cw__cells {
+    fill: transparent;
+    stroke: var(--color-navy);
+    stroke-width: 1;
+    opacity: 0.2;
+  }
+
+  .cw__cells polygon {
+    transition: fill 0.25s ease;
+  }
+
+  .cw__cells polygon.is-lit {
+    fill: var(--color-navy);
+    fill-opacity: 0.18;
+  }
+
+  .cw__borders {
+    fill: none;
+    stroke: var(--color-navy);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    opacity: 0.75;
+  }
+
+  .cw__layer[data-depth='1'] .cw__cut.is-lit img {
+    transform: scale(1.06);
+  }
+
+  /* The cut-out brought forward: sharp, over everything, a touch bigger. */
+  .cw__focus {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .cw__focus .cw__cut {
+    pointer-events: auto;
+    transition: transform 0.3s ease;
+    z-index: 1;
+  }
+
+  .cw__focus .cw__cut.is-up {
+    transform: rotate(var(--turn)) scale(var(--up, 1.15));
+  }
+
+  .cw__focus .cw__cut img {
+    filter: drop-shadow(0 16px 24px rgb(0 0 0 / 0.22));
   }
 
   .cw__chunk {
@@ -344,11 +584,6 @@ const title = 'Cut-out World';
     filter: drop-shadow(0 5px 8px rgb(0 0 0 / 0.1));
   }
 
-  @media (hover: hover) {
-    .cw__view:not(.is-dragging) .cw__cut:hover img {
-      transform: scale(1.06);
-    }
-  }
 
   .cw__where,
   .cw__hint {

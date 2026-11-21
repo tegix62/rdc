@@ -1,0 +1,336 @@
+{
+  "/collage/play/world": {
+    "desktop": {
+      "title": "Cut-out World | Rumeau Design Co",
+      "description": "A trial: collage cut-outs arranged by rules and noise.",
+      "h1": "",
+      "headings": [],
+      "ctas": [],
+      "nav": [
+        " → /",
+        "Portfolio → /portfolio?view=all",
+        "About → /about",
+        "Video → /video",
+        "Contact → https://tally.so/r/mZ8LXz"
+      ],
+      "images": 107,
+      "imagesNoAlt": 0,
+      "imagesBroken": [],
+      "imageHosts": [
+        [
+          "img.rumeaudesign.co",
+          107
+        ]
+      ],
+      "words": 193,
+      "pageHeight": 1450,
+      "screens": 1.6,
+      "sections": [
+        {
+          "tag": "section",
+          "class": "cw",
+          "top": 74,
+          "height": 828,
+          "screens": 0.08,
+          "text": "Unknown Wars, 2025 Drag to wander. 5 collages, 35 cut-outs, no end."
+        }
+      ]
+    },
+    "phone": {
+      "title": "Cut-out World | Rumeau Design Co",
+      "description": "A trial: collage cut-outs arranged by rules and noise.",
+      "h1": "",
+      "headings": [],
+      "ctas": [],
+      "nav": [
+        " → /",
+        "Portfolio → /portfolio?view=all",
+        "About → /about",
+        "Video → /video",
+        "Contact → https://tally.so/r/mZ8LXz"
+      ],
+      "images": 73,
+      "imagesNoAlt": 0,
+      "imagesBroken": [],
+      "imageHosts": [
+        [
+          "img.rumeaudesign.co",
+          73
+        ]
+      ],
+      "words": 193,
+      "pageHeight": 1658,
+      "screens": 2,
+      "sections": [
+        {
+          "tag": "section",
+          "class": "cw",
+          "top": 60,
+          "height": 772,
+          "screens": 0.07,
+          "text": "Unknown Wars, 2025 Drag to wander. 5 collages, 35 cut-outs, no end."
+        }
+      ]
+    },
+    "phone-large": {
+      "title": "Cut-out World | Rumeau Design Co",
+      "description": "A trial: collage cut-outs arranged by rules and noise.",
+      "h1": "",
+      "headings": [],
+      "ctas": [],
+      "nav": [
+        " → /",
+        "Portfolio → /portfolio?view=all",
+        "About → /about",
+        "Video → /video",
+        "Contact → https://tally.so/r/mZ8LXz"
+      ],
+      "images": 73,
+      "imagesNoAlt": 0,
+      "imagesBroken": [],
+      "imageHosts": [
+        [
+          "img.rumeaudesign.co",
+          73
+        ]
+      ],
+      "words": 193,
+      "pageHeight": 1746,
+      "screens": 1.9,
+      "sections": [
+        {
+          "tag": "section",
+          "class": "cw",
+          "top": 60,
+          "height": 860,
+          "screens": 0.06,
+          "text": "Unknown Wars, 2025 Drag to wander. 5 collages, 35 cut-outs, no end."
+        }
+      ]
+    }
+  },
+  "/collage/play/fabric": {
+    "desktop": {
+      "title": "Cut-out Fabric | Rumeau Design Co",
+      "description": "A trial: collage cut-outs arranged by rules and noise.",
+      "h1": "Cut-out Fabric",
+      "headings": [
+        "h2: Unknown Wars 2025",
+        "h2: Magnesium Mildness 2025",
+        "h2: Red Kettle 2025",
+        "h2: First Moments 2025",
+        "h2: Rebel Spirit 2025",
+        "h2: All of them"
+      ],
+      "ctas": [
+        {
+          "text": "Grow again",
+          "href": null,
+          "screens": 0.33
+        },
+        {
+          "text": "Grow again",
+          "href": null,
+          "screens": 0.8
+        },
+        {
+          "text": "Grow again",
+          "href": null,
+          "screens": 1.27
+        },
+        {
+          "text": "Grow again",
+          "href": null,
+          "screens": 1.74
+        },
+        {
+          "text": "Grow again",
+          "href": null,
+          "screens": 2.21
+        },
+        {
+          "text": "Grow again",
+          "href": null,
+          "screens": 2.67
+        }
+      ],
+      "nav": [
+        " → /",
+        "Portfolio → /portfolio?view=all",
+        "About → /about",
+        "Video → /video",
+        "Contact → https://tally.so/r/mZ8LXz"
+      ],
+      "images": 250,
+      "imagesNoAlt": 0,
+      "imagesBroken": [],
+      "imageHosts": [
+        [
+          "img.rumeaudesign.co",
+          250
+        ]
+      ],
+      "words": 243,
+      "pageHeight": 3537,
+      "screens": 3.9,
+      "sections": [
+        {
+          "tag": "section",
+          "class": "cf",
+          "top": 74,
+          "height": 2914,
+          "screens": 0.08,
+          "text": "Cut-out Fabric Each collage's cut-outs, grown into a printed fabric by a few rules: never the same cut-out twice side by"
+        }
+      ]
+    },
+    "phone": {
+      "title": "Cut-out Fabric | Rumeau Design Co",
+      "description": "A trial: collage cut-outs arranged by rules and noise.",
+      "h1": "Cut-out Fabric",
+      "headings": [
+        "h2: Unknown Wars 2025",
+        "h2: Magnesium Mildness 2025",
+        "h2: Red Kettle 2025",
+        "h2: First Moments 2025",
+        "h2: Rebel Spirit 2025",
+        "h2: All of them"
+      ],
+      "ctas": [
+        {
+          "text": "Grow again",
+          "href": null,
+          "screens": 0.37
+        },
+        {
+          "text": "Grow again",
+          "href": null,
+          "screens": 0.78
+        },
+        {
+          "text": "Grow again",
+          "href": null,
+          "screens": 1.21
+        },
+        {
+          "text": "Grow again",
+          "href": null,
+          "screens": 1.62
+        },
+        {
+          "text": "Grow again",
+          "href": null,
+          "screens": 2.03
+        },
+        {
+          "text": "Grow again",
+          "href": null,
+          "screens": 2.43
+        }
+      ],
+      "nav": [
+        " → /",
+        "Portfolio → /portfolio?view=all",
+        "About → /about",
+        "Video → /video",
+        "Contact → https://tally.so/r/mZ8LXz"
+      ],
+      "images": 100,
+      "imagesNoAlt": 0,
+      "imagesBroken": [],
+      "imageHosts": [
+        [
+          "img.rumeaudesign.co",
+          100
+        ]
+      ],
+      "words": 243,
+      "pageHeight": 3361,
+      "screens": 4,
+      "sections": [
+        {
+          "tag": "section",
+          "class": "cf",
+          "top": 60,
+          "height": 2475,
+          "screens": 0.07,
+          "text": "Cut-out Fabric Each collage's cut-outs, grown into a printed fabric by a few rules: never the same cut-out twice side by"
+        }
+      ]
+    },
+    "phone-large": {
+      "title": "Cut-out Fabric | Rumeau Design Co",
+      "description": "A trial: collage cut-outs arranged by rules and noise.",
+      "h1": "Cut-out Fabric",
+      "headings": [
+        "h2: Unknown Wars 2025",
+        "h2: Magnesium Mildness 2025",
+        "h2: Red Kettle 2025",
+        "h2: First Moments 2025",
+        "h2: Rebel Spirit 2025",
+        "h2: All of them"
+      ],
+      "ctas": [
+        {
+          "text": "Grow again",
+          "href": null,
+          "screens": 0.31
+        },
+        {
+          "text": "Grow again",
+          "href": null,
+          "screens": 0.71
+        },
+        {
+          "text": "Grow again",
+          "href": null,
+          "screens": 1.12
+        },
+        {
+          "text": "Grow again",
+          "href": null,
+          "screens": 1.52
+        },
+        {
+          "text": "Grow again",
+          "href": null,
+          "screens": 1.92
+        },
+        {
+          "text": "Grow again",
+          "href": null,
+          "screens": 2.32
+        }
+      ],
+      "nav": [
+        " → /",
+        "Portfolio → /portfolio?view=all",
+        "About → /about",
+        "Video → /video",
+        "Contact → https://tally.so/r/mZ8LXz"
+      ],
+      "images": 100,
+      "imagesNoAlt": 0,
+      "imagesBroken": [],
+      "imageHosts": [
+        [
+          "img.rumeaudesign.co",
+          100
+        ]
+      ],
+      "words": 243,
+      "pageHeight": 3507,
+      "screens": 3.8,
+      "sections": [
+        {
+          "tag": "section",
+          "class": "cf",
+          "top": 60,
+          "height": 2622,
+          "screens": 0.06,
+          "text": "Cut-out Fabric Each collage's cut-outs, grown into a printed fabric by a few rules: never the same cut-out twice side by"
+        }
+      ]
+    }
+  }
+}

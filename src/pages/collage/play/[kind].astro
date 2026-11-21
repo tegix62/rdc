@@ -19,9 +19,10 @@
     /collage/play/fabric  A printed fabric per collage, grown cell by cell by
                           wave function collapse: each cell may only take a
                           cut-out its neighbours allow - never the same one
-                          twice side by side, mirrored across a row, turned
-                          down a column, colours contrasting - so it repeats
-                          like a textile without ever quite repeating.
+                          twice side by side, colours contrasting, big and
+                          small taking turns - so it repeats like a textile
+                          without ever quite repeating. Never mirrored or
+                          turned: the cut-outs carry words.
 
   Rolling back is deleting this one file: nothing else uses it, and the
   production build emits neither page (getStaticPaths returns nothing there).
@@ -89,7 +90,7 @@ const title = kind === 'world' ? 'Cut-out World' : 'Cut-out Fabric';
     <section class="cf" aria-label="Cut-out fabric">
       <header class="cf__head">
         <h1 class="cf__title">Cut-out Fabric</h1>
-        <p class="cf__line">Each collage's cut-outs, grown into a printed fabric by a few rules: never the same cut-out twice side by side, mirrored along a row, turned down a column, colours contrasting.</p>
+        <p class="cf__line">Each collage's cut-outs, grown into a printed fabric by a few rules: never the same cut-out twice side by side, colours contrasting, big and small taking turns.</p>
       </header>
       {[...sets, {name: 'All of them', year: '', cuts: sets.flatMap((s) => s.cuts)}].map((s, i) => (
         <div class="cf__band" data-band={i}>
@@ -304,19 +305,17 @@ const title = kind === 'world' ? 'Cut-out World' : 'Cut-out Fabric';
 
   /*
     THE FABRIC. A grid of cells, every other column dropped half a cell, as
-    a printed textile repeats. Each cell starts able to take any cut-out in
-    any of four turns (as drawn, mirrored, upside down, both). The cell with
-    the fewest choices left is decided first, its pick weighted towards
-    colours that contrast with its decided neighbours, and the choice is
-    passed on: no neighbour may then take the same cut-out, the cells beside
-    it in its row must be mirrored the other way, the cells above and below
-    turned the other way. Repeat until every cell is decided - wave function
-    collapse. A dead end starts the band again with the next seed.
+    a printed textile repeats. Each cell starts able to take any cut-out,
+    large or small. The cell with the fewest choices left is decided first,
+    its pick weighted towards colours that contrast with its decided
+    neighbours, and the choice is passed on: no neighbour may then take the
+    same cut-out, and the cells beside it in its row take the other size, so
+    big and small alternate along the cloth. Repeat until every cell is
+    decided - wave function collapse. A dead end starts the band again with
+    the next seed. Nothing is mirrored or turned: the cut-outs carry words.
   */
   function fabric() {
-    const turns = ['', 'scaleX(-1)', 'rotate(180deg)', 'rotate(180deg) scaleX(-1)'];
-    const mirrored = (o: number) => o === 1 || o === 3;
-    const flipped = (o: number) => o >= 2;
+    const SIZES = [0.62, 0.92];
     const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) || 0);
     const contrast = (a: string, b: string) => {
       const [p, q] = [rgb(a), rgb(b)];
@@ -345,7 +344,7 @@ const title = kind === 'world' ? 'Cut-out World' : 'Cut-out Fabric';
       for (let attempt = 0; attempt < 30; attempt++) {
         let s = seed + attempt * 7919;
         const rand = () => { s = (Math.imul(s, 1103515245) + 12345) >>> 0; return s / 4294967296; };
-        const all = cuts.flatMap((_, k) => [0, 1, 2, 3].map((o) => k * 4 + o));
+        const all = cuts.flatMap((_, k) => [0, 1].map((o) => k * 4 + o));
         const cells = Array.from({length: cols * rows}, () => new Set(all));
         const done = new Array<number>(cols * rows).fill(-1);
         let ok = true;
@@ -373,7 +372,7 @@ const title = kind === 'world' ? 'Cut-out World' : 'Cut-out Fabric';
             if (done[j] >= 0) continue;
             for (const st of [...cells[j]]) {
               const sameCut = st >> 2 === pick >> 2;
-              const bad = m.side ? mirrored(st & 3) === mirrored(pick & 3) : flipped(st & 3) === flipped(pick & 3);
+              const bad = m.side && (st & 1) === (pick & 1);
               if (sameCut || bad) cells[j].delete(st);
             }
             if (!cells[j].size) ok = false;
@@ -381,8 +380,8 @@ const title = kind === 'world' ? 'Cut-out World' : 'Cut-out Fabric';
         }
         if (ok) return done;
       }
-      // Too few cut-outs for every rule: drop the turns and just keep neighbours different.
-      return Array.from({length: cols * rows}, (_, i) => ((i * 7 + Math.floor(i / cols) * 3) % cuts.length) * 4);
+      // Too few cut-outs for every rule: just keep neighbours different.
+      return Array.from({length: cols * rows}, (_, i) => ((i * 7 + Math.floor(i / cols) * 3) % cuts.length) * 4 + (i % 2));
     };
 
     const render = (i: number) => {
@@ -404,14 +403,14 @@ const title = kind === 'world' ? 'Cut-out World' : 'Cut-out Fabric';
           cell.style.gridColumn = String(c + 1);
           cell.style.gridRow = String(r + 1);
           if (c % 2) cell.classList.add('is-dropped');
-          // A little give in the print: each motif a touch larger or smaller, by noise across the cloth.
-          const scale = 0.72 + fbm(c * 0.45, r * 0.45, seeds[i]) * 0.3;
+          // Its size from the rules, with a little give by noise across the cloth.
+          const scale = SIZES[st & 1] * (0.92 + fbm(c * 0.45, r * 0.45, seeds[i]) * 0.16);
           const img = document.createElement('img');
           img.src = cut.src;
           img.alt = cut.title;
           img.loading = 'lazy';
           img.decoding = 'async';
-          img.style.transform = `${turns[st & 3]} scale(${scale.toFixed(3)})`;
+          img.style.transform = `scale(${scale.toFixed(3)})`;
           cell.append(img);
           return cell;
         }),
@@ -609,9 +608,10 @@ const title = kind === 'world' ? 'Cut-out World' : 'Cut-out Fabric';
   }
 
   .cf__cell {
+    position: relative;
     display: block;
     aspect-ratio: 1;
-    padding: 6%;
+    min-height: 0;
   }
 
   .cf__cell.is-dropped {
@@ -619,9 +619,11 @@ const title = kind === 'world' ? 'Cut-out World' : 'Cut-out Fabric';
   }
 
   .cf__cell img {
+    position: absolute;
+    inset: 6%;
     display: block;
-    width: 100%;
-    height: 100%;
+    width: 88%;
+    height: 88%;
     object-fit: contain;
     transition: transform 0.25s ease;
   }

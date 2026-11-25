@@ -51,3 +51,25 @@
 /next/type/home/    /portfolio?view=type  301
 /next/close/home    /portfolio/up-close   301
 /next/close/home/   /portfolio/up-close   301
+
+# Old Webflow URLs that Google still lists (Search Console, 16 months to
+# 22 Nov 2026) but that the first pass missed, because Webflow's sitemap did
+# not include them. All were 404 on the live domain on 25 Nov 2026.
+#
+# /merch-portfolio was the old name for /merchfolio.
+/merch-portfolio                                       /merchfolio                   301
+
+# Webflow's /project/ pages were individual portfolio items. The grid items
+# have no public pages here, so they go to the portfolio. The Adelante one had
+# a case study of its own, which now lives at /work/adelante-barbell-club.
+/project/adelante-barbell-club-more-kilos-less-egos    /work/adelante-barbell-club   301
+/project/doomwoken                                     /portfolio                    301
+/project/et                                            /portfolio                    301
+
+# /turbo (49 impressions, average position 2.9) - a page with no counterpart
+# here and nothing in the repo saying what it was. Sent to the portfolio so it
+# does not 404; point it at something better if you remember what it showed.
+/turbo                                                 /portfolio                    301
+
+# A blog post that is not in the sitemap, so presumably unpublished.
+/blog/my-first-logo                                    /blog                         301

@@ -25,6 +25,7 @@
 import type { APIRoute } from 'astro';
 import { sanityClient } from '../lib/sanity';
 import { imageUrl } from '../lib/image';
+import { servedPath } from '../lib/servedPath';
 
 const IS_PREVIEW = import.meta.env.PUBLIC_IS_PREVIEW === 'true';
 
@@ -175,7 +176,7 @@ export const GET: APIRoute = async ({ site }) => {
 
   const urls = entries
     .map(({path, lastmod, images}) => {
-      const parts = [`    <loc>${xmlEscape(new URL(path, origin).href)}</loc>`];
+      const parts = [`    <loc>${xmlEscape(new URL(servedPath(path), origin).href)}</loc>`];
       if (lastmod) parts.push(`    <lastmod>${lastmod}</lastmod>`);
       for (const image of images ?? []) {
         parts.push(

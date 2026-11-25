@@ -296,10 +296,17 @@ check('every page has a canonical', noCanonical.length === 0, report(noCanonical
 const wrongHost = docs.filter((d) => d.canonical && !d.canonical.startsWith('https://rumeaudesign.co'))
 check('every canonical points at the real domain', wrongHost.length === 0, report(wrongHost))
 
-// Trailing slashes have to match sitemap.xml exactly or a crawler reads two
-// URLs for one page.
-const trailing = docs.filter((d) => d.canonical && d.canonical !== 'https://rumeaudesign.co/' && d.canonical.endsWith('/'))
-check('no canonical has a stray trailing slash', trailing.length === 0, report(trailing))
+// A canonical has to be the address the host answers with a 200. Cloudflare
+// Pages serves a directory page at /about/ and 308s /about to it, so a
+// slashless canonical points at a redirect - which is what this site shipped
+// until 25 Nov 2026, and Search Console split /portfolio and /portfolio/ into
+// two pages over it. dist/404.html is a file, not a directory, and keeps no
+// slash. The sitemap check below holds the sitemap to the same form.
+const slashless = docs.filter((d) => {
+  if (!d.canonical || d.route === '/404') return false
+  return !new URL(d.canonical).pathname.endsWith('/')
+})
+check('every canonical has the trailing slash the host serves', slashless.length === 0, report(slashless))
 
 // --- structure ---------------------------------------------------------------
 /*

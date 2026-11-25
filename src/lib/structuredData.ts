@@ -42,7 +42,7 @@ function compact<T extends Record<string, unknown>>(obj: T): Record<string, unkn
 }
 
 /** Where the site states what may and may not be done with its images. */
-export const LICENCE_PATH = '/image-license-info';
+export const LICENCE_PATH = '/image-license-info/';
 
 /*
   An image, declared as licensable.
@@ -140,7 +140,7 @@ export function buildGraph(ctx: SiteContext, extra: Record<string, unknown>[] = 
         '@type': 'Person',
         '@id': `${origin}/#founder`,
         name: founderName,
-        url: `${origin}/about`,
+        url: `${origin}/about/`,
         jobTitle: clean(settings?.founderRole),
       })
     : undefined;
@@ -285,7 +285,7 @@ export function caseStudyNode(
     mainEntityOfPage: {'@id': `${canonical}#webpage`},
   });
 
-  return [work, breadcrumb(origin, [['Portfolio', `${origin}/portfolio`], [clean(study.title) ?? 'Project', canonical]])];
+  return [work, breadcrumb(origin, [['Portfolio', `${origin}/portfolio/`], [clean(study.title) ?? 'Project', canonical]])];
 }
 
 export function blogPostNode(
@@ -317,7 +317,7 @@ export function blogPostNode(
     mainEntityOfPage: {'@id': `${canonical}#webpage`},
   });
 
-  return [article, breadcrumb(origin, [['Blog', `${origin}/blog`], [clean(post.title) ?? 'Post', canonical]])];
+  return [article, breadcrumb(origin, [['Blog', `${origin}/blog/`], [clean(post.title) ?? 'Post', canonical]])];
 }
 
 /** Home is always the first crumb; callers pass the rest in order. */

@@ -57,7 +57,7 @@ const graphFor = (canonical, extra = []) =>
 const page = ({
   title = 'About | Rumeau Design Co',
   description = 'About the studio.',
-  canonical = 'https://rumeaudesign.co/about',
+  canonical = 'https://rumeaudesign.co/about/',
   ogTitle = 'About',
   siteName = 'Rumeau Design Co',
   ogImage = 'https://cdn.sanity.io/images/x/production/a-1200x630.jpg?w=1200&amp;h=630&amp;fm=jpg&amp;fit=crop',
@@ -88,7 +88,7 @@ ${ogImageHeight ? `<meta property="og:image:height" content="${ogImageHeight}" /
 ${twitterCard ? `<meta name="twitter:card" content="${twitterCard}" />` : ''}
 ${twitterImageAlt ? `<meta name="twitter:image:alt" content="${twitterImageAlt}" />` : ''}
 ${robots ? `<meta name="robots" content="${robots}" />` : ''}
-<script type="application/ld+json">${jsonLd ?? graphFor(canonical || 'https://rumeaudesign.co/about')}</script>
+<script type="application/ld+json">${jsonLd ?? graphFor(canonical || 'https://rumeaudesign.co/about/')}</script>
 </head><body>${skip}
 ${main}${h1}${picture}</main></body></html>`
 
@@ -108,11 +108,11 @@ const build = async (name, overrides = {}) => {
   // A project page, so the per-template structured-data checks are exercised by
   // the default fixture rather than only by the defect cases.
   await mkdir(path.join(dir, 'work', 'a-project'), {recursive: true})
-  const workCanonical = 'https://rumeaudesign.co/work/a-project'
+  const workCanonical = 'https://rumeaudesign.co/work/a-project/'
   const pages = {
     'index.html': {title: 'Rumeau Design Co', description: 'The homepage.', canonical: 'https://rumeaudesign.co/', ogTitle: 'Rumeau Design Co'},
     'about/index.html': {},
-    'style-guide/index.html': {title: 'Style Guide | Rumeau Design Co', description: 'Design tokens.', canonical: 'https://rumeaudesign.co/style-guide', ogTitle: 'Style Guide', robots: 'noindex, nofollow'},
+    'style-guide/index.html': {title: 'Style Guide | Rumeau Design Co', description: 'Design tokens.', canonical: 'https://rumeaudesign.co/style-guide/', ogTitle: 'Style Guide', robots: 'noindex, nofollow'},
     'work/a-project/index.html': {
       title: 'A Project | Rumeau Design Co',
       description: 'A project page.',
@@ -214,12 +214,12 @@ await expectSilent('an og:title ending in a near-miss of the site name', await b
 }
 await expectCaught('a missing canonical', await build('fx-nocanon', {'about/index.html': {canonical: ''}}), 'has a canonical')
 await expectCaught('a canonical on the preview host', await build('fx-prevhost', {'about/index.html': {canonical: 'https://preview.rumeau-design-co.pages.dev/about'}}), 'real domain')
-await expectCaught('a canonical with a trailing slash', await build('fx-slash', {'about/index.html': {canonical: 'https://rumeaudesign.co/about/'}}), 'trailing slash')
+await expectCaught('a canonical without the trailing slash the host serves', await build('fx-slash', {'about/index.html': {canonical: 'https://rumeaudesign.co/about'}}), 'trailing slash')
 await expectCaught('a page with no <h1>', await build('fx-noh1', {'about/index.html': {h1: ''}}), 'has an <h1>')
 await expectCaught('a page with two <h1>s', await build('fx-twoh1', {'about/index.html': {h1: '<h1>A</h1><h1>B</h1>'}}), 'more than one')
 await expectCaught('a missing skip link', await build('fx-noskip', {'about/index.html': {skip: ''}}), 'skip link')
 await expectCaught('a missing skip target', await build('fx-notarget', {'about/index.html': {main: '<main>'}}), 'skip target')
-await expectCaught('an internal page left indexable', await build('fx-leak', {'style-guide/index.html': {title: 'Style Guide | Rumeau Design Co', description: 'Design tokens.', canonical: 'https://rumeaudesign.co/style-guide', ogTitle: 'Style Guide', robots: null}}), 'internal pages are noindexed')
+await expectCaught('an internal page left indexable', await build('fx-leak', {'style-guide/index.html': {title: 'Style Guide | Rumeau Design Co', description: 'Design tokens.', canonical: 'https://rumeaudesign.co/style-guide/', ogTitle: 'Style Guide', robots: null}}), 'internal pages are noindexed')
 await expectCaught('a real page accidentally noindexed', await build('fx-hidden', {'about/index.html': {robots: 'noindex'}}), 'accidentally noindexed')
 
 console.log('\n--- social cards ---')
@@ -264,7 +264,7 @@ await expectCaught(
         '@context': 'https://schema.org',
         '@graph': [
           {'@type': 'WebSite', '@id': 'https://rumeaudesign.co/#website'},
-          {'@type': 'WebPage', '@id': 'https://rumeaudesign.co/about#webpage'},
+          {'@type': 'WebPage', '@id': 'https://rumeaudesign.co/about/#webpage'},
         ],
       }),
     },
@@ -276,7 +276,7 @@ await expectCaught(
   await build('fx-nowork', {'work/a-project/index.html': {
     title: 'A Project | Rumeau Design Co',
     description: 'A project page.',
-    canonical: 'https://rumeaudesign.co/work/a-project',
+    canonical: 'https://rumeaudesign.co/work/a-project/',
     ogTitle: 'A Project',
   }}),
   'states one of',
@@ -297,7 +297,7 @@ await expectSilent(
   await build('fx-category', {'blog/category/typography/index.html': {
     title: 'Typography | Rumeau Design Co',
     description: 'Posts about typography.',
-    canonical: 'https://rumeaudesign.co/blog/category/typography',
+    canonical: 'https://rumeaudesign.co/blog/category/typography/',
     ogTitle: 'Typography',
   }}),
 )
@@ -307,10 +307,10 @@ await expectCaught(
   await build('fx-nocrumb', {'work/a-project/index.html': {
     title: 'A Project | Rumeau Design Co',
     description: 'A project page.',
-    canonical: 'https://rumeaudesign.co/work/a-project',
+    canonical: 'https://rumeaudesign.co/work/a-project/',
     ogTitle: 'A Project',
-    jsonLd: graphFor('https://rumeaudesign.co/work/a-project', [
-      {'@type': 'CreativeWork', '@id': 'https://rumeaudesign.co/work/a-project#work'},
+    jsonLd: graphFor('https://rumeaudesign.co/work/a-project/', [
+      {'@type': 'CreativeWork', '@id': 'https://rumeaudesign.co/work/a-project/#work'},
     ]),
   }}),
   'breadcrumb trail',
@@ -345,12 +345,12 @@ await expectCaught(
   'a licence URL pointing at a page that does not exist',
   await build('fx-nolicence', {
     'about/index.html': {
-      jsonLd: graphFor('https://rumeaudesign.co/about', [
+      jsonLd: graphFor('https://rumeaudesign.co/about/', [
         {
           '@type': 'ImageObject',
           url: 'https://cdn.sanity.io/images/x/production/a.jpg',
-          license: 'https://rumeaudesign.co/image-license-info',
-          acquireLicensePage: 'https://rumeaudesign.co/image-license-info',
+          license: 'https://rumeaudesign.co/image-license-info/',
+          acquireLicensePage: 'https://rumeaudesign.co/image-license-info/',
         },
       ]),
     },

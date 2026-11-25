@@ -123,9 +123,10 @@ if (!htmlFiles.length) fail('build', `${DIST} contains no HTML at all`)
 
 /*
   dist/about/index.html -> /about, dist/index.html -> /, dist/404.html -> /404.
-  Astro's directory build format serves these without the trailing slash, and
-  Layout.astro strips it from the canonical, so these are the URLs the site
-  actually claims for itself.
+  Normalised WITHOUT the trailing slash purely as a comparison key: every check
+  below strips it from both sides. The URLs the site actually claims carry it
+  (Cloudflare Pages serves /about/ and 308s /about to it - see
+  src/lib/servedPath.ts); scripts/test-head.mjs is what enforces that form.
 */
 function routeOf(file) {
   const rel = path.relative(DIST, file).split(path.sep).join('/')

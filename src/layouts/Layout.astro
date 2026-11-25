@@ -15,6 +15,7 @@ import Copier from '../components/Copier.astro';
 import { buildGraph, serialise, type SiteContext } from '../lib/structuredData';
 import { stripStega as clean } from '../lib/stega';
 import { PLAIN } from '../lib/plain';
+import { servedPath } from '../lib/servedPath';
 import {
   bareTitle,
   DEFAULT_LEGAL_NAME,
@@ -74,11 +75,11 @@ const settings = await getSiteSettings();
 // host served the page, so a preview can't compete with the live site for
 // its own URLs.
 //
-// The trailing slash is stripped so these match sitemap.xml exactly. Astro's
-// directory build format serves /about and /about/ alike, and left alone the
-// canonical said one while the sitemap said the other - which a crawler
-// reads as two URLs for one page.
-const path = Astro.url.pathname.replace(/(.)\/$/, '$1');
+// servedPath() gives the address the host actually answers with a 200 - the
+// SLASHED one for a directory page, since Cloudflare Pages 308s /about to
+// /about/. sitemap.xml uses the same function, so the two cannot drift apart
+// (which they did once, when this said /about/ and the sitemap said /about).
+const path = servedPath(Astro.url.pathname);
 const canonical = Astro.site ? new URL(path, Astro.site).href : Astro.url.href;
 
 // Both of these were in the Studio and read by nothing, so editing them did

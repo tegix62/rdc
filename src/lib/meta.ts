@@ -176,6 +176,25 @@ export function twitterHandle(socialLinks: unknown): string | undefined {
   return undefined;
 }
 
+/*
+  Plain text from a field that may be a string OR rich text.
+
+  The case study `summary` became rich text so it could hold links (see the
+  schema). stripStega() returns undefined for anything that is not a string, so
+  from that change on the summary silently dropped out of the fallback below and
+  DumpStat and Two Point Oh shipped the assembled "Brand Identity work for
+  <client> by ..." line despite both having a written paragraph. Found from the
+  built pages' meta descriptions on 25 Nov 2026.
+*/
+function proseOf(value: unknown): string | undefined {
+  if (!Array.isArray(value)) return stripStega(value);
+  const text = value
+    .filter((b: any) => b?._type === 'block' && Array.isArray(b.children))
+    .map((b: any) => b.children.map((c: any) => (typeof c?.text === 'string' ? c.text : '')).join(''))
+    .join(' ');
+  return stripStega(text);
+}
+
 interface CaseStudyMeta {
   title?: unknown;
   category?: unknown;
@@ -225,7 +244,7 @@ export function caseStudyDescription(
   const written = stripStega(study?.oneLineSummary);
   if (written) return firstSentence(written);
 
-  const paragraph = stripStega(study?.summary);
+  const paragraph = proseOf(study?.summary);
   if (paragraph) return firstSentence(paragraph);
 
   const name = stripStega(siteName) ?? DEFAULT_SITE_NAME;

@@ -141,6 +141,19 @@ eq(
 )
 
 eq(
+  'a rich-text summary is read as text, not skipped',
+  caseStudyDescription({
+    summary: [
+      {_type: 'block', children: [{_type: 'span', text: 'Chateau Seven needed a mark that '}, {_type: 'span', text: 'read as old.'}]},
+      {_type: 'block', children: [{_type: 'span', text: 'We drew it by hand.'}]},
+    ],
+    category: 'Brand Identity',
+    client: 'Chateau Seven',
+  }),
+  'Chateau Seven needed a mark that read as old.',
+)
+
+eq(
   'with neither, one is derived from the fields that are set',
   caseStudyDescription({category: 'Brand Identity', client: 'Chateau Seven', principalType: 'Caslon'}),
   'Brand Identity work for Chateau Seven by Rumeau Design Co. Principal type: Caslon.',
